@@ -304,6 +304,23 @@ export default function Dashboard() {
     }
   };
 
+  // Desconectar o Instagram limpando o banco
+  const handleDisconnect = async () => {
+    if (!confirm('Deseja realmente desconectar esta conta do Instagram?')) return;
+    try {
+      const res = await fetch('/api/status', { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Conta desconectada com sucesso.', 'success');
+        fetchStatusAndData();
+      } else {
+        showToast('Erro ao desconectar a conta.', 'error');
+      }
+    } catch {
+      showToast('Erro de conexão ao desconectar.', 'error');
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#07060E] text-white">
@@ -356,7 +373,7 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-4">
             {isConnected && config ? (
-              <div className="flex items-center gap-3 bg-zinc-900/60 border border-zinc-800/50 rounded-full py-1.5 pl-2.5 pr-4">
+              <div className="flex items-center gap-3 bg-zinc-900/60 border border-zinc-800/50 rounded-full py-1.5 pl-2.5 pr-3">
                 {config.profile_picture_url ? (
                   <img
                     src={config.profile_picture_url}
@@ -372,6 +389,13 @@ export default function Dashboard() {
                   <p className="text-xs font-semibold text-zinc-200">@{config.instagram_username}</p>
                   <p className="text-[10px] text-zinc-500">Conectado</p>
                 </div>
+                <button
+                  onClick={handleDisconnect}
+                  title="Desconectar Conta"
+                  className="ml-1 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
               </div>
             ) : (
               <button

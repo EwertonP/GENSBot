@@ -59,3 +59,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    const { error } = await supabase.from('config').delete().eq('id', true);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
