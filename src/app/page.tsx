@@ -18,6 +18,10 @@ import {
   X,
   FileCode,
   Lock,
+  Home,
+  Users,
+  BarChart3,
+  HelpCircle,
 } from 'lucide-react';
 
 const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
@@ -72,6 +76,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ automations: 0, contacts: 0, queue: 0, events: 0 });
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [recentQueue, setRecentQueue] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
   const [automations, setAutomations] = useState<Automation[]>([]);
   
   // Mídias do Instagram para o seletor visual
@@ -82,7 +87,7 @@ export default function Dashboard() {
 
   // Estados do formulário de automação
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'automations' | 'logs'>('automations');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'contacts' | 'logs'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -117,6 +122,7 @@ export default function Dashboard() {
         setStats(data.stats);
         setRecentEvents(data.recentEvents);
         setRecentQueue(data.recentQueue);
+        setContacts(data.contacts || []);
       }
       
       const autRes = await fetch('/api/automations');
@@ -334,66 +340,113 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#07060E] text-zinc-100 flex flex-col font-sans selection:bg-purple-500/30 selection:text-white">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex font-sans antialiased">
       {/* Toast Alert */}
       {toast && (
         <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl border backdrop-blur-xl shadow-2xl transition-all duration-300 animate-slide-in ${
+          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl border shadow-lg transition-all duration-300 animate-slide-in ${
             toast.type === 'success'
-              ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
-              : 'bg-rose-950/80 border-rose-500/40 text-rose-200'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
           }`}
         >
           {toast.type === 'success' ? (
-            <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
           ) : (
-            <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
           )}
-          <p className="text-sm font-medium">{toast.message}</p>
+          <p className="text-sm font-semibold">{toast.message}</p>
         </div>
       )}
 
-      {/* Decorative Radial Background */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 w-[600px] h-[600px] bg-pink-600/5 rounded-full blur-[160px] pointer-events-none" />
-
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#07060E]/75 backdrop-blur-md border-b border-zinc-800/40 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-pink-600 to-amber-500 flex items-center justify-center shadow-lg shadow-purple-600/20">
-              <Instagram className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
-                InstaFlow
-              </h1>
-              <p className="text-xs text-zinc-500 font-semibold tracking-wide">AUTOMAÇÃO EXCLUSIVA</p>
-            </div>
+      {/* 1. Left Sidebar Navigation */}
+      <aside className="w-64 bg-[#0F172A] text-slate-300 flex flex-col flex-shrink-0 select-none border-r border-slate-800">
+        {/* Brand Header */}
+        <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-900/30">
+            <MessageSquare className="w-4 h-4 text-white fill-white/10" />
           </div>
+          <div>
+            <h1 className="text-base font-bold text-white tracking-wide">InstaFlow</h1>
+            <p className="text-[10px] text-blue-400 font-semibold tracking-wider uppercase">Manychat Caseiro</p>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-4">
+        {/* Navigation Links */}
+        <nav className="flex-1 px-4 py-6 flex flex-col gap-1.5">
+          {[
+            { id: 'dashboard', label: 'Painel Geral', icon: BarChart3 },
+            { id: 'automations', label: 'Automações', icon: Settings },
+            { id: 'contacts', label: 'Contatos / Audience', icon: Users },
+            { id: 'logs', label: 'Logs de Eventos', icon: FileCode },
+          ].map(item => {
+            const Icon = item.icon;
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id as any);
+                  setIsEditing(false);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
+                  active
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-500'}`} />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Sidebar Footer / Help */}
+        <div className="p-4 border-t border-slate-800 flex items-center gap-3 text-xs text-slate-500">
+          <HelpCircle className="w-4 h-4 text-slate-600" />
+          <span>v1.2.0 • Suporte Local</span>
+        </div>
+      </aside>
+
+      {/* 2. Main Content Wrapper */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        {/* Top Header Bar */}
+        <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between flex-shrink-0">
+          <h2 className="text-lg font-bold text-slate-800">
+            {activeTab === 'dashboard' && 'Painel de Controle'}
+            {activeTab === 'automations' && 'Fluxos de Automação'}
+            {activeTab === 'contacts' && 'Público Engajado'}
+            {activeTab === 'logs' && 'Histórico do Webhook'}
+          </h2>
+
+          {/* Connection Status Badge */}
+          <div className="flex items-center gap-3">
             {isConnected && config ? (
-              <div className="flex items-center gap-3 bg-zinc-900/60 border border-zinc-800/50 rounded-full py-1.5 pl-2.5 pr-3">
+              <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-full py-1 pl-1 pr-3 shadow-sm">
                 {config.profile_picture_url ? (
                   <img
                     src={config.profile_picture_url}
                     alt="Instagram Profile"
-                    className="w-7 h-7 rounded-full object-cover border border-purple-500/40"
+                    className="w-6 h-6 rounded-full object-cover border border-slate-200"
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center">
-                    <Instagram className="w-4 h-4 text-purple-400" />
+                  <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center">
+                    <Instagram className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 )}
-                <div className="text-left">
-                  <p className="text-xs font-semibold text-zinc-200">@{config.instagram_username}</p>
-                  <p className="text-[10px] text-zinc-500">Conectado</p>
+                <div className="text-left leading-none">
+                  <p className="text-xs font-bold text-slate-700">@{config.instagram_username}</p>
+                  <span className="text-[9px] text-emerald-600 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                    Ativo
+                  </span>
                 </div>
                 <button
                   onClick={handleDisconnect}
                   title="Desconectar Conta"
-                  className="ml-1 p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 transition-colors cursor-pointer"
+                  className="ml-1 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -401,579 +454,748 @@ export default function Dashboard() {
             ) : (
               <button
                 onClick={handleConnectInstagram}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-medium text-sm transition-all shadow-lg hover:shadow-purple-500/10 cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-md shadow-blue-600/10 cursor-pointer animate-pulse"
               >
-                <Instagram className="w-4 h-4" />
+                <Instagram className="w-3.5 h-3.5" />
                 Conectar Instagram
               </button>
             )}
 
             <button
               onClick={handleManualDrain}
-              title="Drenar Fila Manual"
-              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800/80 transition-all hover:border-zinc-700 cursor-pointer"
+              title="Forçar Processamento da Fila"
+              className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4 text-zinc-300" />
+              <RefreshCw className="w-4 h-4 text-slate-600" />
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
-        
-        {/* Statistics Cards */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'Automações', val: stats.automations, sub: 'Total criadas', icon: Settings, color: 'text-purple-400' },
-            { label: 'Contatos', val: stats.contacts, sub: 'Clientes engajados', icon: MessageSquare, color: 'text-pink-400' },
-            { label: 'Fila de Envios', val: stats.queue, sub: 'DMs no pipeline', icon: Clock, color: 'text-amber-400' },
-            { label: 'Eventos Captados', val: stats.events, sub: 'Webhooks recebidos', icon: FileText, color: 'text-blue-400' },
-          ].map((item, idx) => (
-            <div key={idx} className="bg-zinc-900/40 border border-zinc-800/40 rounded-2xl p-5 flex items-center justify-between backdrop-blur-xl relative overflow-hidden group hover:border-zinc-700/60 transition-all">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider">{item.label}</span>
-                <span className="text-3xl font-black">{item.val}</span>
-                <span className="text-xs text-zinc-400">{item.sub}</span>
-              </div>
-              <div className={`p-3 rounded-xl bg-zinc-950 border border-zinc-800/60 ${item.color}`}>
-                <item.icon className="w-6 h-6" />
-              </div>
-            </div>
-          ))}
-        </section>
+        {/* 3. Tab-based Content Area */}
+        <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
+          
+          {/* TAB 1: DASHBOARD */}
+          {activeTab === 'dashboard' && (
+            <div className="flex flex-col gap-6">
+              {/* Metric Cards Grid */}
+              <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Automações', val: stats.automations, sub: 'Gatilhos cadastrados', icon: Settings, color: 'bg-blue-50 border-blue-100 text-blue-600' },
+                  { label: 'Contatos', val: stats.contacts, sub: 'Pessoas alcançadas', icon: Users, color: 'bg-emerald-50 border-emerald-100 text-emerald-600' },
+                  { label: 'Fila de Envio', val: stats.queue, sub: 'DMs agendadas', icon: Clock, color: 'bg-amber-50 border-amber-100 text-amber-600' },
+                  { label: 'Eventos Recebidos', val: stats.events, sub: 'Webhooks Meta', icon: FileText, color: 'bg-purple-50 border-purple-100 text-purple-600' },
+                ].map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center justify-between shadow-sm relative overflow-hidden group hover:border-slate-300 transition-all">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.label}</span>
+                        <span className="text-2xl font-black text-slate-800 leading-tight">{item.val}</span>
+                        <span className="text-[10px] text-slate-500 font-medium">{item.sub}</span>
+                      </div>
+                      <div className={`p-3.5 rounded-xl border ${item.color} shadow-sm transition-transform group-hover:scale-105 duration-300`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </section>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center border-b border-zinc-850/60 gap-4">
-          <button
-            onClick={() => setActiveTab('automations')}
-            className={`pb-3.5 text-sm font-semibold tracking-wide border-b-2 px-1 transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'automations'
-                ? 'border-purple-500 text-purple-400'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            Minhas Automações
-          </button>
-          <button
-            onClick={() => setActiveTab('logs')}
-            className={`pb-3.5 text-sm font-semibold tracking-wide border-b-2 px-1 transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'logs'
-                ? 'border-purple-500 text-purple-400'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <FileCode className="w-4 h-4" />
-            Logs de Fila & Eventos
-          </button>
-        </div>
-
-        {/* Dashboard Content */}
-        {activeTab === 'automations' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            {/* Left Column: Automations List */}
-            <div className="lg:col-span-7 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-zinc-200">Automações Ativas</h3>
-                {isEditing && (
-                  <button
-                    onClick={resetForm}
-                    className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg"
-                  >
-                    Nova Automação
-                  </button>
-                )}
-              </div>
-
-              {automations.length === 0 ? (
-                <div className="bg-zinc-900/20 border border-dashed border-zinc-800/60 rounded-2xl p-12 text-center flex flex-col items-center gap-4">
-                  <div className="p-4 rounded-full bg-zinc-950 border border-zinc-900 text-zinc-600">
-                    <Settings className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-zinc-300">Nenhuma automação cadastrada</h4>
-                    <p className="text-xs text-zinc-500 max-w-sm mt-1 mx-auto">
-                      Use o formulário ao lado para criar o seu primeiro fluxo de resposta automática para o Instagram.
+              {/* Dashboard Layout columns */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Connection Box / Banner */}
+                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between min-h-[250px]">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Integração Oficial</span>
+                    <h3 className="text-xl font-bold text-slate-800">Conecte o Instagram e inicie seu funil reativo</h3>
+                    <p className="text-sm text-slate-500 max-w-lg leading-relaxed">
+                      O InstaFlow monitora comentários e envia DMs estruturadas de forma automática para quem comentar nos seus posts do Instagram. O sistema respeita as regras de conformidade da Meta e o limite de segurança de disparos.
                     </p>
                   </div>
+                  
+                  <div className="mt-6 flex flex-col sm:flex-row items-center gap-4 pt-4 border-t border-slate-100">
+                    {isConnected && config ? (
+                      <div className="text-sm font-semibold text-emerald-600 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        <span>Sua conta comercial está vinculada e escutando webhooks!</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleConnectInstagram}
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-md shadow-blue-500/10 cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <Instagram className="w-4 h-4" />
+                        Vincular Conta do Instagram
+                      </button>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {automations.map(auto => (
-                    <div
-                      key={auto.id}
-                      className={`bg-zinc-900/30 border rounded-2xl p-5 flex flex-col gap-4 transition-all hover:bg-zinc-900/40 relative overflow-hidden group ${
-                        form.id === auto.id ? 'border-purple-500/80 bg-purple-950/5' : 'border-zinc-850/55'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
+
+                {/* Info Center Card */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+                  <h4 className="font-bold text-slate-800">Guia de Uso Rápido</h4>
+                  <div className="flex flex-col gap-3 text-xs leading-relaxed text-slate-600">
+                    <div className="flex gap-3">
+                      <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center flex-shrink-0">1</div>
+                      <p>Cadastre uma palavra-chave (ex: "quero") e o link de destino no menu **Automações**.</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center flex-shrink-0">2</div>
+                      <p>Certifique-se de vincular a conta principal e de que ela está como testadora da Meta.</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center flex-shrink-0">3</div>
+                      <p>O cliente comenta no post, recebe uma DM inicial, clica no botão e o link é liberado!</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Activity Overview */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-800">Envios Pendentes / Recentes na Fila</h4>
+                  <button onClick={() => setActiveTab('logs')} className="text-xs font-bold text-blue-600 hover:text-blue-500 transition-colors">
+                    Ver todos os logs →
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left text-slate-600">
+                    <thead className="text-xs uppercase text-slate-400 font-bold border-b border-slate-100">
+                      <tr>
+                        <th className="py-2.5">Contato ID</th>
+                        <th className="py-2.5">Tipo</th>
+                        <th className="py-2.5">Agendado</th>
+                        <th className="py-2.5">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {recentQueue.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-8 text-center text-slate-400">Nenhum disparo na fila recentemente.</td>
+                        </tr>
+                      ) : (
+                        recentQueue.slice(0, 5).map(item => (
+                          <tr key={item.id} className="hover:bg-slate-50/50">
+                            <td className="py-3 font-mono text-xs text-slate-400">@{item.contact_id.substring(0, 10)}...</td>
+                            <td className="py-3 font-semibold text-slate-700">
+                              {item.type === 'private_reply' && 'DM de Boas-Vindas'}
+                              {item.type === 'link_dm' && 'DM com Link'}
+                              {item.type === 'reminder_dm' && 'DM de Lembrete'}
+                            </td>
+                            <td className="py-3 text-xs text-slate-500">{new Date(item.created_at).toLocaleTimeString('pt-BR')}</td>
+                            <td className="py-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                item.status === 'sent' && 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                              } ${
+                                item.status === 'pending' && 'bg-slate-50 text-slate-500 border border-slate-200'
+                              } ${
+                                item.status === 'failed' && 'bg-rose-50 text-rose-600 border border-rose-100'
+                              }`}>
+                                {item.status === 'sent' && 'Enviado'}
+                                {item.status === 'pending' && 'Pendente'}
+                                {item.status === 'failed' && 'Falhou'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: AUTOMATIONS */}
+          {activeTab === 'automations' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* Left Side: List of Automations */}
+              <div className="lg:col-span-4 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-slate-800">Minhas Automações</h3>
+                  <button
+                    onClick={() => {
+                      resetForm();
+                      setIsEditing(true);
+                    }}
+                    className="flex items-center gap-1 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-xl transition-all shadow-sm shadow-blue-500/10 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Novo Fluxo
+                  </button>
+                </div>
+
+                {automations.length === 0 ? (
+                  <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center flex flex-col items-center gap-4 shadow-sm">
+                    <div className="p-3.5 rounded-full bg-slate-50 text-slate-400 border border-slate-200">
+                      <Settings className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-700 text-sm">Nenhuma automação cadastrada</h4>
+                      <p className="text-xs text-slate-500 mt-1 max-w-[200px] mx-auto leading-relaxed">
+                        Crie o seu primeiro fluxo usando o botão superior "Novo Fluxo".
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {automations.map(auto => (
+                      <div
+                        key={auto.id}
+                        onClick={() => handleEditAutomation(auto)}
+                        className={`bg-white border p-4 rounded-2xl cursor-pointer group transition-all flex flex-col gap-3 shadow-sm ${
+                          form.id === auto.id && isEditing
+                            ? 'border-blue-500 ring-2 ring-blue-500/10'
+                            : 'border-slate-200 hover:border-slate-350'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-800 text-sm truncate max-w-[150px]">{auto.name}</span>
                           <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-zinc-200 text-base">{auto.name}</h4>
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                                auto.active
-                                  ? 'bg-emerald-950/80 border border-emerald-500/40 text-emerald-400'
-                                  : 'bg-zinc-800 border border-zinc-700 text-zinc-400'
-                              }`}
-                            >
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                              auto.active
+                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                : 'bg-slate-50 text-slate-400 border border-slate-200'
+                            }`}>
                               {auto.active ? 'Ativo' : 'Pausado'}
                             </span>
-                          </div>
-                          
-                          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                            <span className="text-[10px] text-zinc-500 uppercase font-semibold">Gatilhos:</span>
-                            {auto.triggers.map(t => (
-                              <span key={t} className="text-[10px] bg-zinc-950 border border-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md font-medium uppercase">
-                                {t === 'comment' ? 'Comentário' : t === 'story' ? 'Story' : 'DM'}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-all">
-                          <button
-                            onClick={() => handleEditAutomation(auto)}
-                            title="Editar"
-                            className="p-2 rounded-lg bg-zinc-950 hover:bg-zinc-900 border border-zinc-850 text-zinc-300 hover:text-purple-400 transition-all cursor-pointer"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAutomation(auto.id!)}
-                            title="Excluir"
-                            className="p-2 rounded-lg bg-zinc-950 hover:bg-zinc-900 border border-zinc-850 text-zinc-300 hover:text-rose-400 transition-all cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 border-t border-zinc-850/50 pt-3 text-xs">
-                        <div>
-                          <span className="text-zinc-500 block">Palavras-chave:</span>
-                          <span className="font-semibold text-zinc-300">
-                            {auto.keywords.length > 0 ? auto.keywords.join(', ') : 'Qualquer texto'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-zinc-500 block">Tipo de Match:</span>
-                          <span className="font-semibold text-zinc-300 capitalize">
-                            {auto.match_type === 'contains'
-                              ? 'Contém'
-                              : auto.match_type === 'exact'
-                              ? 'Exato'
-                              : 'Qualquer'}
-                          </span>
-                        </div>
-                        <div className="col-span-2 md:col-span-1">
-                          <span className="text-zinc-500 block">Post de Destino:</span>
-                          <span className="font-semibold text-zinc-300 truncate block">
-                            {auto.specific_post_id ? `ID: ${auto.specific_post_id}` : 'Todos os Posts'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Right Column: Build Form */}
-            <div className="lg:col-span-5">
-              <form
-                onSubmit={handleSaveAutomation}
-                className="bg-zinc-900/30 border border-zinc-850/60 rounded-2xl p-5 flex flex-col gap-5 backdrop-blur-xl relative"
-              >
-                <div>
-                  <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
-                    {isEditing ? 'Editar Automação' : 'Criar Nova Automação'}
-                  </h3>
-                  <p className="text-xs text-zinc-500 mt-1">Configure o fluxo e as respostas rápidas.</p>
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  
-                  {/* Name */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-zinc-400">Nome da Automação</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Lead do Reels - Black Friday"
-                      value={form.name}
-                      onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/80 text-white placeholder-zinc-600 transition-all"
-                    />
-                  </div>
-
-                  {/* Status Toggle */}
-                  <div className="flex items-center justify-between bg-zinc-950/60 border border-zinc-850/60 p-3 rounded-xl">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-zinc-300">Automação Ativa</span>
-                      <span className="text-[10px] text-zinc-500">Se desligada, o webhook irá ignorar o gatilho</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={form.active}
-                        onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600 peer-checked:after:bg-white" />
-                    </label>
-                  </div>
-
-                  {/* Triggers */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-semibold text-zinc-400">Gatilhos</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'comment', label: 'Comentário' },
-                        { id: 'story', label: 'Story' },
-                        { id: 'dm', label: 'DM Comum' },
-                      ].map(t => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => handleTriggerChange(t.id)}
-                          className={`py-2 px-3 border rounded-xl font-medium text-xs transition-all cursor-pointer ${
-                            form.triggers.includes(t.id)
-                              ? 'bg-purple-950/45 border-purple-500/60 text-purple-300 shadow-md shadow-purple-900/10'
-                              : 'bg-zinc-950 border-zinc-850/60 text-zinc-500 hover:border-zinc-800 hover:text-zinc-300'
-                          }`}
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Keywords & Match Type */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="md:col-span-2 flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-zinc-400">Palavras-chave (separadas por vírgula)</label>
-                      <input
-                        type="text"
-                        placeholder="Ex: QUERO, LINK, INFO"
-                        value={keywordInput}
-                        onChange={handleKeywordsChange}
-                        disabled={form.match_type === 'any'}
-                        className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/80 text-white placeholder-zinc-600 disabled:opacity-50 transition-all"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-zinc-400">Tipo de Match</label>
-                      <select
-                        value={form.match_type}
-                        onChange={e =>
-                          setForm(prev => ({
-                            ...prev,
-                            match_type: e.target.value as any,
-                            keywords: e.target.value === 'any' ? [] : prev.keywords,
-                          }))
-                        }
-                        className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-purple-500/80 text-white transition-all appearance-none cursor-pointer"
-                      >
-                        <option value="contains">Contém</option>
-                        <option value="exact">Exato</option>
-                        <option value="any">Qualquer</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Specific Post ID Selector */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-zinc-400">Post de Destino Específico (Opcional)</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="ID do Reels ou Post da Meta (Vazio = todos)"
-                        value={form.specific_post_id || ''}
-                        onChange={e => setForm(prev => ({ ...prev, specific_post_id: e.target.value || null }))}
-                        className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/80 text-white flex-1 transition-all"
-                      />
-                      {isConnected && (
-                        <button
-                          type="button"
-                          onClick={handleLoadMedia}
-                          disabled={loadingMedia}
-                          className="px-4 py-3 bg-zinc-950 border border-zinc-800/80 hover:bg-zinc-900 rounded-xl text-xs font-semibold text-zinc-300 transition-all cursor-pointer"
-                        >
-                          {loadingMedia ? 'Lendo...' : 'Selecionar'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Public Replies (Random Comment Response) */}
-                  {form.triggers.includes('comment') && (
-                    <div className="flex flex-col gap-1.5 border border-zinc-850/50 p-3 rounded-xl bg-zinc-950/20">
-                      <label className="text-xs font-semibold text-zinc-400">Respostas Públicas no Comentário (Opcional)</label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="Ex: Te mandei as infos no direct! 😉"
-                          value={publicReplyInput}
-                          onChange={e => setPublicReplyInput(e.target.value)}
-                          className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500/80 text-white flex-1 transition-all"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddPublicReply}
-                          className="p-2.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-xl text-xs font-bold text-white transition-all cursor-pointer"
-                        >
-                          + Add
-                        </button>
-                      </div>
-
-                      {form.public_replies.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {form.public_replies.map((reply, i) => (
-                            <span
-                              key={i}
-                              className="text-xs bg-zinc-950 border border-zinc-800/60 rounded-lg px-2.5 py-1 flex items-center gap-1.5 text-zinc-300"
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAutomation(auto.id!);
+                              }}
+                              className="p-1 hover:bg-rose-50 text-slate-450 hover:text-rose-500 rounded-lg transition-colors cursor-pointer"
                             >
-                              <span className="truncate max-w-[200px]">{reply}</span>
-                              <X
-                                className="w-3.5 h-3.5 text-zinc-500 hover:text-rose-400 cursor-pointer flex-shrink-0"
-                                onClick={() => handleRemovePublicReply(i)}
-                              />
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Summary of Keywords */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {auto.keywords.slice(0, 3).map((kw, i) => (
+                            <span key={i} className="text-[10px] bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded-lg font-medium font-mono">
+                              {kw}
                             </span>
                           ))}
+                          {auto.keywords.length > 3 && (
+                            <span className="text-[9px] text-slate-400 font-bold">+ {auto.keywords.length - 3}</span>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Welcome DM */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-zinc-400">DM de Boas-vindas (Primeiro contato)</label>
-                    <textarea
-                      placeholder="Olá! Que ótimo que se interessou. Para receber o link, clique no botão abaixo para confirmar:"
-                      value={form.welcome_dm}
-                      onChange={e => setForm(prev => ({ ...prev, welcome_dm: e.target.value }))}
-                      rows={3}
-                      className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/80 text-white placeholder-zinc-600 transition-all resize-none"
-                    />
+                      </div>
+                    ))}
                   </div>
+                )}
+              </div>
 
-                  {/* Quick Reply Button Label */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-zinc-400">Botão de Resposta Rápida (Máx 20 caracteres)</label>
-                    <input
-                      type="text"
-                      maxLength={20}
-                      placeholder="Ex: Sim, eu quero!"
-                      value={form.quick_reply_button || ''}
-                      onChange={e => setForm(prev => ({ ...prev, quick_reply_button: e.target.value || null }))}
-                      className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/80 text-white placeholder-zinc-600 transition-all"
-                    />
-                  </div>
-
-                  {/* The Link Information (Sends after Quick Reply is clicked) */}
-                  <div className="flex flex-col gap-4 border border-zinc-850/50 p-4 rounded-xl bg-zinc-950/20">
-                    <span className="text-xs font-bold text-purple-400 uppercase tracking-wide">Sequência 1: O Link (Após o clique no botão)</span>
+              {/* Right Side: Visual Flow Builder Sequence Editor */}
+              <div className="lg:col-span-8">
+                {isEditing ? (
+                  <form onSubmit={handleSaveAutomation} className="flex flex-col gap-6">
                     
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-zinc-400">Texto do Link</label>
-                      <textarea
-                        placeholder="Perfeito! Aqui está o link exclusivo para você acessar o conteúdo completo:"
-                        value={form.link_text || ''}
-                        onChange={e => setForm(prev => ({ ...prev, link_text: e.target.value || null }))}
-                        rows={2}
-                        className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500/80 text-white placeholder-zinc-600 transition-all resize-none"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-zinc-400">Rótulo do Botão do Link</label>
+                    {/* Header of Flow Editor */}
+                    <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex items-center justify-between">
+                      <div>
                         <input
                           type="text"
-                          maxLength={20}
-                          placeholder="Ex: Acessar Agora 🚀"
-                          value={form.link_button_label || ''}
-                          onChange={e => setForm(prev => ({ ...prev, link_button_label: e.target.value || null }))}
-                          className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500/80 text-white placeholder-zinc-600 transition-all"
+                          required
+                          value={form.name}
+                          onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Nome do Fluxo (ex: Capturar Leads)"
+                          className="font-bold text-slate-800 text-lg focus:outline-none border-b border-transparent focus:border-blue-500 pb-0.5"
                         />
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">Configuração do Sequenciamento</p>
                       </div>
+                      
+                      <div className="flex items-center gap-3">
+                        {/* Active toggle */}
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={form.active}
+                            onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 relative"></div>
+                          <span className="text-xs font-bold text-slate-600">{form.active ? 'Ativo' : 'Pausado'}</span>
+                        </label>
 
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-zinc-400">URL do Link</label>
-                        <input
-                          type="url"
-                          placeholder="https://suapagina.com/conteudo"
-                          value={form.link_url || ''}
-                          onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
-                          className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500/80 text-white placeholder-zinc-600 transition-all"
-                        />
+                        <button
+                          type="submit"
+                          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-md shadow-blue-500/10 cursor-pointer transition-all"
+                        >
+                          Salvar Fluxo
+                        </button>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Reminder Information */}
-                  <div className="flex flex-col gap-4 border border-zinc-850/50 p-4 rounded-xl bg-zinc-950/20">
-                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wide">Sequência 2: Lembrete Automático (Opcional)</span>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-zinc-400">Texto do Lembrete</label>
-                      <textarea
-                        placeholder="Passando para avisar que o seu link expira logo. Já conseguiu dar uma olhada no conteúdo?"
-                        value={form.reminder_text || ''}
-                        onChange={e => setForm(prev => ({ ...prev, reminder_text: e.target.value || null }))}
-                        rows={2}
-                        className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500/80 text-white placeholder-zinc-600 transition-all resize-none"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-zinc-400">Atraso do Lembrete (em minutos)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={form.reminder_delay_minutes || ''}
-                        onChange={e => setForm(prev => ({ ...prev, reminder_delay_minutes: e.target.value ? parseInt(e.target.value) : null }))}
-                        className="bg-zinc-950 border border-zinc-800/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500/80 text-white placeholder-zinc-600 transition-all"
-                      />
-                    </div>
-                  </div>
-
-                </div>
-
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    type="submit"
-                    className="flex-1 py-3 px-5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-sm font-bold transition-all shadow-lg hover:shadow-purple-500/10 cursor-pointer text-center"
-                  >
-                    {form.id ? 'Salvar Alterações' : 'Criar Automação'}
-                  </button>
-                  {isEditing && (
-                    <button
-                      type="button"
-                      onClick={resetForm}
-                      className="py-3 px-5 rounded-xl bg-zinc-950 border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-white transition-all text-sm cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-
-          </div>
-        ) : (
-          /* Logs Tab */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* Left: Queue Logs */}
-            <div className="bg-zinc-900/30 border border-zinc-850/60 rounded-2xl p-5 flex flex-col gap-4 backdrop-blur-xl">
-              <div>
-                <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-amber-500" />
-                  Fila de Disparos
-                </h3>
-                <p className="text-xs text-zinc-500 mt-1">Acompanhe as mensagens agendadas e enviadas.</p>
-              </div>
-
-              <div className="flex flex-col gap-2.5 max-h-[500px] overflow-y-auto pr-1">
-                {recentQueue.length === 0 ? (
-                  <p className="text-sm text-zinc-500 text-center py-10">Fila vazia ou nenhuma mensagem enfileirada.</p>
-                ) : (
-                  recentQueue.map(item => (
-                    <div key={item.id} className="bg-zinc-950/60 border border-zinc-900 p-4 rounded-xl flex items-center justify-between gap-4">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-zinc-300 uppercase">{item.type}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                            item.status === 'sent'
-                              ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/20'
-                              : item.status === 'pending'
-                              ? 'bg-amber-950/80 text-amber-400 border border-amber-500/20'
-                              : item.status === 'skipped'
-                              ? 'bg-zinc-800 text-zinc-400'
-                              : 'bg-rose-950/80 text-rose-400 border border-rose-500/20'
-                          }`}>
-                            {item.status}
-                          </span>
+                    {/* VERTICAL FLOW STEP CARDS CONTAINER */}
+                    <div className="flex flex-col gap-4 relative">
+                      
+                      {/* Step 1: Gatilho / Trigger Card */}
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                            1
+                          </div>
+                          <h4 className="font-bold text-slate-800 text-sm">Gatilho de Comentário (Instagram Comment)</h4>
                         </div>
-                        <span className="text-xs text-zinc-500">User ID: {item.contact_id}</span>
-                        {item.error_message && (
-                          <span className="text-[11px] text-rose-400/90 font-medium italic mt-1">
-                            Erro: {item.error_message}
-                          </span>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-slate-500">Palavras-chave (Separadas por vírgula)</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="ex: quero, cupom, info"
+                              value={form.keywords.join(', ')}
+                              onChange={handleKeywordsChange}
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-400 transition-all font-mono"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-slate-500">Tipo de Correspondência (Match Type)</label>
+                            <select
+                              value={form.match_type}
+                              onChange={e => setForm(prev => ({ ...prev, match_type: e.target.value as any }))}
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-700 font-semibold cursor-pointer transition-all"
+                            >
+                              <option value="contains">Contém a palavra-chave</option>
+                              <option value="exact">Exato (Palavra-chave exata)</option>
+                              <option value="any">Qualquer comentário (Ignora palavra-chave)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Post target selector */}
+                        <div className="flex flex-col gap-1.5 pt-1">
+                          <label className="text-xs font-bold text-slate-500">Publicação Alvo (Opcional)</label>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={handleLoadMedia}
+                              className="px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer transition-all flex items-center gap-2"
+                            >
+                              {form.specific_post_id ? 'Trocar Publicação Selecionada' : 'Selecionar Post Específico'}
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </button>
+                            {form.specific_post_id && (
+                              <div className="flex items-center gap-2 bg-blue-50/50 border border-blue-100 rounded-xl py-1.5 px-3">
+                                <span className="text-[10px] font-bold text-blue-600 font-mono truncate max-w-[120px]">
+                                  Post: {form.specific_post_id}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setForm(prev => ({ ...prev, specific_post_id: null }))}
+                                  className="text-xs text-blue-500 hover:text-rose-500 font-bold ml-1 cursor-pointer"
+                                >
+                                  Limpar
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Connector Arrow */}
+                      <div className="flex justify-center h-4 items-center -my-2.5 z-10 pointer-events-none">
+                        <div className="h-6 w-[2px] bg-slate-200 relative after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:border-l-4 after:border-r-4 after:border-t-[6px] after:border-l-transparent after:border-r-transparent after:border-t-slate-350"></div>
+                      </div>
+
+                      {/* Step 2: Resposta Pública Card */}
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                            2
+                          </div>
+                          <h4 className="font-bold text-slate-800 text-sm">Resposta Automática no Post (Comentário público)</h4>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-bold text-slate-500">Escreva uma frase de resposta e clique em Adicionar</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="ex: Te chamei no direct! Dá uma olhada lá."
+                              value={publicReplyInput}
+                              onChange={e => setPublicReplyInput(e.target.value)}
+                              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-850 placeholder-slate-400"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddPublicReply}
+                              className="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors cursor-pointer"
+                            >
+                              Adicionar
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* List of responses */}
+                        {form.public_replies.length > 0 && (
+                          <div className="flex flex-col gap-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 max-h-[160px] overflow-y-auto">
+                            {form.public_replies.map((reply, index) => (
+                              <div key={index} className="flex items-center justify-between gap-3 text-xs bg-white py-2 px-3.5 rounded-xl border border-slate-150 shadow-xs">
+                                <span className="text-slate-700 truncate">{reply}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemovePublicReply(index)}
+                                  className="text-slate-400 hover:text-rose-500 font-bold flex-shrink-0 cursor-pointer"
+                                >
+                                  Remover
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      <div className="text-right text-[10px] text-zinc-500">
-                        <p>Criado: {new Date(item.created_at).toLocaleTimeString('pt-BR')}</p>
-                        {item.sent_at && <p>Envio: {new Date(item.sent_at).toLocaleTimeString('pt-BR')}</p>}
+
+                      {/* Connector Arrow */}
+                      <div className="flex justify-center h-4 items-center -my-2.5 z-10 pointer-events-none">
+                        <div className="h-6 w-[2px] bg-slate-200 relative after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:border-l-4 after:border-r-4 after:border-t-[6px] after:border-l-transparent after:border-r-transparent after:border-t-slate-350"></div>
                       </div>
+
+                      {/* Step 3: Mensagem DM com Quick Reply Card */}
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                            3
+                          </div>
+                          <h4 className="font-bold text-slate-800 text-sm">Mensagem Privada Inicial (DM no Direct)</h4>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-slate-500">Conteúdo do primeiro Direct</label>
+                            <textarea
+                              required
+                              placeholder="Olá! Vi seu interesse no post. Para receber o seu link de acesso, clique no botão de resposta rápida abaixo:"
+                              value={form.welcome_dm}
+                              onChange={e => setForm(prev => ({ ...prev, welcome_dm: e.target.value }))}
+                              rows={3}
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-450 transition-all resize-none"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-slate-500">Texto do Botão de Resposta Rápida (Máx 20 caracteres)</label>
+                            <input
+                              type="text"
+                              maxLength={20}
+                              placeholder="Ex: Sim, quero!"
+                              value={form.quick_reply_button || ''}
+                              onChange={e => setForm(prev => ({ ...prev, quick_reply_button: e.target.value || null }))}
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-400 transition-all font-semibold"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Conditional Connector Dotted Line */}
+                      <div className="flex flex-col items-center -my-3 z-10 pointer-events-none select-none">
+                        <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                          Se o usuário clicar no botão
+                        </span>
+                        <div className="h-6 w-[2px] border-l border-dashed border-blue-400 relative after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:border-l-4 after:border-r-4 after:border-t-[6px] after:border-l-transparent after:border-r-transparent after:border-t-blue-500"></div>
+                      </div>
+
+                      {/* Step 4: Card de Link DM */}
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                            4
+                          </div>
+                          <h4 className="font-bold text-slate-800 text-sm">Card de Envio do Link de Acesso</h4>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-slate-500">Texto do Link</label>
+                            <textarea
+                              placeholder="Perfeito! Aqui está o seu link exclusivo para acessar o conteúdo completo:"
+                              value={form.link_text || ''}
+                              onChange={e => setForm(prev => ({ ...prev, link_text: e.target.value || null }))}
+                              rows={2}
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-450 transition-all resize-none"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-xs font-bold text-slate-500">Rótulo do Botão (Ex: Acessar Conteúdo)</label>
+                              <input
+                                type="text"
+                                maxLength={20}
+                                placeholder="Acessar Conteúdo"
+                                value={form.link_button_label || ''}
+                                onChange={e => setForm(prev => ({ ...prev, link_button_label: e.target.value || null }))}
+                                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-400 font-semibold"
+                              />
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-xs font-bold text-slate-500">URL do Link</label>
+                              <input
+                                type="url"
+                                placeholder="https://sualandingpage.com"
+                                value={form.link_url || ''}
+                                onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
+                                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-400 font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Preview Card */}
+                          <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 flex flex-col gap-2.5 max-w-sm">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Visualização do Card DM</span>
+                            <div className="bg-white border border-slate-150 rounded-xl overflow-hidden shadow-xs flex flex-col">
+                              {/* Abstract image gradient */}
+                              <div className="h-28 w-full bg-gradient-to-tr from-purple-600 via-pink-500 to-amber-400 flex items-center justify-center text-white/90 text-sm font-semibold select-none">
+                                Miniatura do Card
+                              </div>
+                              <div className="p-3 flex flex-col gap-1 border-b border-slate-100">
+                                <span className="font-bold text-slate-700 text-xs truncate">{form.link_text || 'Aqui está o seu link:'}</span>
+                                <span className="text-[10px] text-slate-400">Toque no botão para acessar</span>
+                              </div>
+                              <div className="text-center py-2 text-blue-500 font-bold text-xs select-none">
+                                {form.link_button_label || 'Acessar Link'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Optional Connector */}
+                      <div className="flex justify-center h-4 items-center -my-2.5 z-10 pointer-events-none">
+                        <div className="h-6 w-[2px] bg-slate-200 relative after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:border-l-4 after:border-r-4 after:border-t-[6px] after:border-l-transparent after:border-r-transparent after:border-t-slate-350"></div>
+                      </div>
+
+                      {/* Step 5: Lembrete Card (Opcional) */}
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs border border-amber-100">
+                            5
+                          </div>
+                          <h4 className="font-bold text-slate-800 text-sm">Lembrete Automático (Follow-up de Contingência)</h4>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div className="flex flex-col gap-1.5 md:col-span-3">
+                            <label className="text-xs font-bold text-slate-500">Mensagem de Lembrete</label>
+                            <textarea
+                              placeholder="Passando para avisar que o seu link expira logo. Já conseguiu dar uma olhada no conteúdo?"
+                              value={form.reminder_text || ''}
+                              onChange={e => setForm(prev => ({ ...prev, reminder_text: e.target.value || null }))}
+                              rows={2}
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-450 transition-all resize-none"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1.5 md:col-span-1">
+                            <label className="text-xs font-bold text-slate-500">Tempo (Minutos)</label>
+                            <input
+                              type="number"
+                              min={1}
+                              placeholder="Minutos"
+                              value={form.reminder_delay_minutes || ''}
+                              onChange={e => setForm(prev => ({ ...prev, reminder_delay_minutes: e.target.value ? parseInt(e.target.value) : null }))}
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-400 font-bold"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Right: Webhook Logs */}
-            <div className="bg-zinc-900/30 border border-zinc-850/60 rounded-2xl p-5 flex flex-col gap-4 backdrop-blur-xl">
-              <div>
-                <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
-                  <FileCode className="w-5 h-5 text-blue-500" />
-                  Eventos do Webhook (Cru)
-                </h3>
-                <p className="text-xs text-zinc-500 mt-1">Log em tempo real dos payloads da API da Meta.</p>
-              </div>
-
-              <div className="flex flex-col gap-2.5 max-h-[500px] overflow-y-auto pr-1">
-                {recentEvents.length === 0 ? (
-                  <p className="text-sm text-zinc-500 text-center py-10">Nenhum evento captado até o momento.</p>
+                  </form>
                 ) : (
-                  recentEvents.map(evt => (
-                    <div key={evt.id} className="bg-zinc-950/60 border border-zinc-900 p-4 rounded-xl flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-400 px-2 py-0.5 rounded font-mono">
-                          ID: {evt.id.substring(0, 8)}
-                        </span>
-                        <span className="text-[10px] text-zinc-500">
-                          {new Date(evt.created_at).toLocaleString('pt-BR')}
-                        </span>
-                      </div>
-                      <pre className="text-[11px] text-zinc-400 font-mono bg-zinc-950 p-2.5 rounded-lg border border-zinc-900 overflow-x-auto max-h-[120px]">
-                        {JSON.stringify(evt.payload, null, 2)}
-                      </pre>
+                  <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center flex flex-col items-center gap-4 shadow-sm min-h-[400px] justify-center">
+                    <div className="p-4 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shadow-xs">
+                      <MessageSquare className="w-8 h-8 text-blue-500" />
                     </div>
-                  ))
+                    <div>
+                      <h4 className="font-bold text-slate-700">Fluxo de Automação Reativo</h4>
+                      <p className="text-xs text-slate-500 mt-1.5 max-w-sm mx-auto leading-relaxed">
+                        Selecione uma das suas automações listadas na barra lateral esquerda para editar a sequência de ações, ou clique em **Novo Fluxo** para desenhar um funil a partir do zero.
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
+
             </div>
+          )}
 
-          </div>
-        )}
+          {/* TAB 3: CONTACTS */}
+          {activeTab === 'contacts' && (
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">Audiência Cadastrada</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Lista de usuários que interagiram com as suas automações.</p>
+                </div>
+                <span className="bg-blue-50 border border-blue-100 text-blue-600 font-bold text-xs px-3 py-1.5 rounded-xl">
+                  {contacts.length} Contatos no Total
+                </span>
+              </div>
 
-      </main>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-slate-600">
+                  <thead className="text-xs uppercase text-slate-400 font-bold border-b border-slate-100">
+                    <tr>
+                      <th className="py-3 px-4">Usuário ID</th>
+                      <th className="py-3 px-4">Gatilho Primário</th>
+                      <th className="py-3 px-4">Última Interação</th>
+                      <th className="py-3 px-4">Cadastrado em</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {contacts.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-12 text-center text-slate-400">Nenhum contato cadastrado no banco de dados até o momento.</td>
+                      </tr>
+                    ) : (
+                      contacts.map(item => (
+                        <tr key={item.id} className="hover:bg-slate-50/50">
+                          <td className="py-3.5 px-4 font-mono text-xs text-slate-700">@{item.instagram_id}</td>
+                          <td className="py-3.5 px-4 font-bold text-slate-600 text-xs">
+                            {item.last_automation_id ? `Fluxo: ${item.last_automation_id.substring(0, 8)}...` : 'Nenhum'}
+                          </td>
+                          <td className="py-3.5 px-4 text-xs text-slate-500">
+                            {item.last_response_at ? new Date(item.last_response_at).toLocaleString('pt-BR') : 'Não registrado'}
+                          </td>
+                          <td className="py-3.5 px-4 text-xs text-slate-400">
+                            {new Date(item.first_contact_at || item.created_at).toLocaleDateString('pt-BR')}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: LOGS */}
+          {activeTab === 'logs' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Eventos Recentes */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    Webhooks da Meta (Payload Bruto)
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">Logs em tempo real dos pacotes de eventos entregues pela Meta.</p>
+                </div>
+
+                <div className="flex flex-col gap-2.5 max-h-[500px] overflow-y-auto pr-1">
+                  {recentEvents.length === 0 ? (
+                    <p className="text-xs text-slate-400 text-center py-10">Nenhum evento captado até o momento.</p>
+                  ) : (
+                    recentEvents.map(evt => (
+                      <div key={evt.id} className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] bg-white border border-slate-200 text-slate-500 px-2 py-0.5 rounded font-mono">
+                            ID: {evt.id.substring(0, 8)}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(evt.created_at).toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+                        <pre className="text-[10px] text-slate-600 font-mono bg-white p-2.5 rounded-lg border border-slate-150 overflow-x-auto max-h-[120px]">
+                          {JSON.stringify(evt.payload, null, 2)}
+                        </pre>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Fila de Disparos Completa */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-600" />
+                    Fila de Disparos de DMs
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">Histórico e status do pipeline de entrega de mensagens.</p>
+                </div>
+
+                <div className="flex flex-col gap-2.5 max-h-[500px] overflow-y-auto pr-1">
+                  {recentQueue.length === 0 ? (
+                    <p className="text-xs text-slate-400 text-center py-10">Nenhuma mensagem enfileirada no banco.</p>
+                  ) : (
+                    recentQueue.map(item => (
+                      <div key={item.id} className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] bg-white border border-slate-200 text-slate-500 px-2 py-0.5 rounded font-mono">
+                            Destino ID: {item.contact_id.substring(0, 10)}...
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(item.created_at).toLocaleTimeString('pt-BR')}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 pt-1">
+                          <span className="text-xs font-semibold text-slate-700">
+                            {item.type === 'private_reply' && 'Resposta Privada'}
+                            {item.type === 'link_dm' && 'DM de Link'}
+                            {item.type === 'reminder_dm' && 'DM de Lembrete'}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                            item.status === 'sent' && 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          } ${
+                            item.status === 'pending' && 'bg-slate-100 text-slate-500 border border-slate-200'
+                          } ${
+                            item.status === 'failed' && 'bg-rose-50 text-rose-600 border border-rose-100'
+                          }`}>
+                            {item.status === 'sent' && 'Enviado'}
+                            {item.status === 'pending' && 'Pendente'}
+                            {item.status === 'failed' && 'Falhou'}
+                          </span>
+                        </div>
+                        {item.error_message && (
+                          <div className="text-[10px] text-rose-500 bg-rose-50/50 p-2 rounded-lg border border-rose-100 font-mono mt-1">
+                            Erro: {item.error_message}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+        </main>
+      </div>
 
       {/* Visual Post Selector Modal */}
       {showMediaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-[#0D0C16] border border-zinc-800 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             
             {/* Modal Header */}
-            <div className="p-5 border-b border-zinc-850/60 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-150 flex items-center justify-between">
               <div>
-                <h4 className="font-bold text-zinc-100 text-lg">Selecionar Post ou Reels</h4>
-                <p className="text-xs text-zinc-500">Escolha o post específico para esta automação.</p>
+                <h4 className="font-bold text-slate-800 text-base">Selecionar Post ou Reels</h4>
+                <p className="text-xs text-slate-500">Escolha a publicação para esta automação.</p>
               </div>
               <button
                 onClick={() => setShowMediaModal(false)}
-                className="p-1.5 hover:bg-zinc-900 rounded-lg text-zinc-400 hover:text-white cursor-pointer transition-all"
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Filter Tabs */}
-            <div className="flex border-b border-zinc-900 bg-[#0A0910] px-5 py-3 gap-2 overflow-x-auto select-none scrollbar-none">
+            <div className="flex border-b border-slate-100 bg-slate-50 px-5 py-3 gap-2 overflow-x-auto select-none scrollbar-none">
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'video', label: 'Reels' },
@@ -985,8 +1207,8 @@ export default function Dashboard() {
                   onClick={() => setMediaFilter(tab.id as any)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                     mediaFilter === tab.id
-                      ? 'bg-purple-600/20 border border-purple-500/40 text-purple-400'
-                      : 'bg-zinc-950 border border-zinc-900 text-zinc-400 hover:text-zinc-200'
+                      ? 'bg-blue-50 border border-blue-200 text-blue-600 font-bold'
+                      : 'bg-white border border-slate-200 text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   {tab.label}
@@ -1016,10 +1238,10 @@ export default function Dashboard() {
                         setShowMediaModal(false);
                         showToast('Post selecionado com sucesso!', 'success');
                       }}
-                      className="bg-zinc-950 border border-zinc-900 hover:border-purple-500 rounded-2xl overflow-hidden cursor-pointer group transition-all flex flex-col relative"
+                      className="bg-white border border-slate-200 hover:border-blue-500 rounded-2xl overflow-hidden cursor-pointer group transition-all flex flex-col relative shadow-xs"
                     >
                       <div 
-                        className="bg-zinc-900 relative overflow-hidden flex items-center justify-center w-full"
+                        className="bg-slate-100 relative overflow-hidden flex items-center justify-center w-full"
                         style={aspectStyle}
                       >
                         <img
@@ -1027,12 +1249,12 @@ export default function Dashboard() {
                           alt="Instagram media"
                           className="object-cover w-full h-full group-hover:scale-105 transition-all duration-300"
                         />
-                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-full px-2 py-0.5 text-[9px] font-bold text-zinc-300">
+                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-full px-2 py-0.5 text-[9px] font-bold text-zinc-350 select-none">
                           {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
                         </div>
                       </div>
-                      <div className="p-2.5 text-xs text-zinc-400 line-clamp-2 leading-relaxed flex-1 bg-zinc-950">
-                        {media.caption || <span className="text-zinc-600 italic">Sem legenda</span>}
+                      <div className="p-2.5 text-xs text-slate-500 line-clamp-2 leading-relaxed flex-1 bg-white">
+                        {media.caption || <span className="text-slate-400 italic">Sem legenda</span>}
                       </div>
                     </div>
                   );
@@ -1044,17 +1266,15 @@ export default function Dashboard() {
       )}
 
       {/* Footer */}
-      <footer className="mt-auto py-6 border-t border-zinc-900 bg-[#07060E]">
-        <div className="max-w-7xl mx-auto px-6 text-center text-xs text-zinc-600 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 InstaFlow. Desenvolvido para automação reativa autônoma.</p>
-          <div className="flex items-center gap-4">
-            <a href="/privacidade" target="_blank" className="hover:text-zinc-400 transition-colors">
-              Política de Privacidade
-            </a>
-            <a href="/exclusao-de-dados" target="_blank" className="hover:text-zinc-400 transition-colors">
-              Exclusão de Dados
-            </a>
-          </div>
+      <footer className="fixed bottom-0 left-64 right-0 py-3 bg-white border-t border-slate-200 px-6 text-[10px] text-slate-400 flex items-center justify-between select-none z-30">
+        <p>© 2026 InstaFlow. Desenvolvido no padrão de design Manychat.</p>
+        <div className="flex items-center gap-4">
+          <a href="/privacidade" target="_blank" className="hover:text-slate-650 transition-colors">
+            Política de Privacidade
+          </a>
+          <a href="/exclusao-de-dados" target="_blank" className="hover:text-slate-650 transition-colors">
+            Exclusão de Dados
+          </a>
         </div>
       </footer>
     </div>

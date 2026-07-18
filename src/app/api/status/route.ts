@@ -28,23 +28,30 @@ export async function GET() {
       .from('events')
       .select('*', { count: 'exact', head: true });
 
+    // Buscar contatos cadastrados
+    const { data: contactsList } = await supabase
+      .from('contacts')
+      .select('*')
+      .order('updated_at', { ascending: false });
+
     // Buscar últimos logs de eventos para exibição
     const { data: recentEvents } = await supabase
       .from('events')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(20);
 
     // Buscar últimos status da fila de envios
     const { data: recentQueue } = await supabase
       .from('queue')
       .select('id, contact_id, type, status, error_message, created_at, sent_at')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(20);
 
     return NextResponse.json({
       isConnected,
       config: config || null,
+      contacts: contactsList || [],
       stats: {
         automations: automationsCount || 0,
         contacts: contactsCount || 0,
