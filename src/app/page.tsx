@@ -1592,7 +1592,7 @@ export default function Dashboard() {
                   onClick={() => setMediaFilter(tab.id as any)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                     mediaFilter === tab.id
-                      ? 'bg-blue-50 border border-blue-200 text-blue-600 font-bold'
+                      ? 'bg-violet-50 border border-violet-200 text-violet-700 font-bold'
                       : 'bg-white border border-slate-200 text-slate-500 hover:text-slate-700'
                   }`}
                 >
@@ -1613,7 +1613,6 @@ export default function Dashboard() {
                 })
                 .map(media => {
                   const isVideo = media.media_type === 'VIDEO';
-                  const aspectStyle = isVideo ? { aspectRatio: '9/16' } : { aspectRatio: '1/1' };
                   
                   return (
                     <div
@@ -1623,22 +1622,19 @@ export default function Dashboard() {
                         setShowMediaModal(false);
                         showToast('Post selecionado com sucesso!', 'success');
                       }}
-                      className="bg-white border border-slate-200 hover:border-blue-500 rounded-2xl overflow-hidden cursor-pointer group transition-all flex flex-col relative shadow-xs"
+                      className="bg-white border border-slate-150 hover:border-violet-500 rounded-2xl overflow-hidden cursor-pointer group transition-all flex flex-col relative shadow-xs w-full"
                     >
-                      <div 
-                        className="bg-slate-100 relative overflow-hidden flex items-center justify-center w-full"
-                        style={aspectStyle}
-                      >
+                      <div className={`bg-slate-100 relative overflow-hidden w-full ${isVideo ? 'aspect-[9/16]' : 'aspect-square'}`}>
                         <img
                           src={media.thumbnail_url || media.media_url}
                           alt="Instagram media"
-                          className="object-cover w-full h-full group-hover:scale-105 transition-all duration-300"
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
                         />
-                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-full px-2 py-0.5 text-[9px] font-bold text-zinc-350 select-none">
+                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-full px-2 py-0.5 text-[9px] font-bold text-white select-none z-10">
                           {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
                         </div>
                       </div>
-                      <div className="p-2.5 text-xs text-slate-500 line-clamp-2 leading-relaxed flex-1 bg-white">
+                      <div className="p-3 text-xs text-slate-500 line-clamp-2 leading-relaxed bg-white border-t border-slate-50 flex-1">
                         {media.caption || <span className="text-slate-400 italic">Sem legenda</span>}
                       </div>
                     </div>
