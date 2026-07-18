@@ -202,6 +202,7 @@ async function processWebhookEvent(payload: any) {
 
         const messageData = messageEvent.message;
         if (!messageData) continue;
+        if (messageData.is_echo) continue;
 
         // Se for clique em quick reply (botão de resposta rápida)
         const quickReplyPayload = messageData.quick_reply?.payload;
@@ -329,6 +330,7 @@ async function enqueueFollowups(contactId: string, auto: any) {
               {
                 title: auto.link_text || 'Aqui está o seu link:',
                 subtitle: 'Toque no botão para acessar',
+                image_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=60',
                 buttons: [
                   {
                     type: 'web_url',
