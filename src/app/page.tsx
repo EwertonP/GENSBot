@@ -78,6 +78,7 @@ export default function Dashboard() {
   const [mediaList, setMediaList] = useState<IgMedia[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [showMediaModal, setShowMediaModal] = useState(false);
+  const [mediaFilter, setMediaFilter] = useState<'all' | 'video' | 'carousel' | 'image'>('all');
 
   // Estados do formulário de automação
   const [isEditing, setIsEditing] = useState(false);
@@ -971,33 +972,71 @@ export default function Dashboard() {
               </button>
             </div>
 
-            {/* Modal Grid */}
-            <div className="p-5 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {mediaList.map(media => (
-                <div
-                  key={media.id}
-                  onClick={() => {
-                    setForm(prev => ({ ...prev, specific_post_id: media.id }));
-                    setShowMediaModal(false);
-                    showToast('Post selecionado com sucesso!', 'success');
-                  }}
-                  className="bg-zinc-950 border border-zinc-900 hover:border-purple-500 rounded-2xl overflow-hidden cursor-pointer group transition-all flex flex-col relative"
+            {/* Modal Filter Tabs */}
+            <div className="flex border-b border-zinc-900 bg-[#0A0910] px-5 py-3 gap-2 overflow-x-auto select-none scrollbar-none">
+              {[
+                { id: 'all', label: 'Todos' },
+                { id: 'video', label: 'Reels' },
+                { id: 'carousel', label: 'Carrossel' },
+                { id: 'image', label: 'Post Estático' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setMediaFilter(tab.id as any)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                    mediaFilter === tab.id
+                      ? 'bg-purple-600/20 border border-purple-500/40 text-purple-400'
+                      : 'bg-zinc-950 border border-zinc-900 text-zinc-400 hover:text-zinc-200'
+                  }`}
                 >
-                  <div className="aspect-square bg-zinc-900 relative overflow-hidden flex items-center justify-center">
-                    <img
-                      src={media.thumbnail_url || media.media_url}
-                      alt="Instagram media"
-                      className={`${media.media_type === 'VIDEO' ? 'object-contain' : 'object-cover'} w-full h-full group-hover:scale-105 transition-all duration-300`}
-                    />
-                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-full px-2 py-0.5 text-[9px] font-bold text-zinc-300">
-                      {media.media_type}
-                    </div>
-                  </div>
-                  <div className="p-2.5 text-xs text-zinc-400 line-clamp-2 leading-relaxed flex-1 bg-zinc-950">
-                    {media.caption || <span className="text-zinc-600 italic">Sem legenda</span>}
-                  </div>
-                </div>
+                  {tab.label}
+                </button>
               ))}
+            </div>
+
+            {/* Modal Grid */}
+            <div className="p-5 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
+              {mediaList
+                .filter(media => {
+                  if (mediaFilter === 'all') return true;
+                  if (mediaFilter === 'video') return media.media_type === 'VIDEO';
+                  if (mediaFilter === 'carousel') return media.media_type === 'CAROUSEL_ALBUM';
+                  if (mediaFilter === 'image') return media.media_type === 'IMAGE';
+                  return true;
+                })
+                .map(media => {
+                  const isVideo = media.media_type === 'VIDEO';
+                  const aspectStyle = isVideo ? { aspectRatio: '9/16' } : { aspectRatio: '1/1' };
+                  
+                  return (
+                    <div
+                      key={media.id}
+                      onClick={() => {
+                        setForm(prev => ({ ...prev, specific_post_id: media.id }));
+                        setShowMediaModal(false);
+                        showToast('Post selecionado com sucesso!', 'success');
+                      }}
+                      className="bg-zinc-950 border border-zinc-900 hover:border-purple-500 rounded-2xl overflow-hidden cursor-pointer group transition-all flex flex-col relative"
+                    >
+                      <div 
+                        className="bg-zinc-900 relative overflow-hidden flex items-center justify-center w-full"
+                        style={aspectStyle}
+                      >
+                        <img
+                          src={media.thumbnail_url || media.media_url}
+                          alt="Instagram media"
+                          className="object-cover w-full h-full group-hover:scale-105 transition-all duration-300"
+                        />
+                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-full px-2 py-0.5 text-[9px] font-bold text-zinc-300">
+                          {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
+                        </div>
+                      </div>
+                      <div className="p-2.5 text-xs text-zinc-400 line-clamp-2 leading-relaxed flex-1 bg-zinc-950">
+                        {media.caption || <span className="text-zinc-600 italic">Sem legenda</span>}
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
 
           </div>
