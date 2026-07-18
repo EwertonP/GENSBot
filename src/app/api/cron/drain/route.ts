@@ -135,6 +135,36 @@ async function handleDrain(req: Request) {
             })
             .eq('id', job.id);
 
+          // Salvar no histórico de mensagens (outbound)
+          const textContent = job.payload.message?.text || 
+            (job.payload.message?.attachment?.payload?.elements?.[0]?.title) || 
+            'Mensagem Estruturada';
+
+          await supabase.from('messages').insert({
+            instagram_user_id: config.instagram_user_id,
+            contact_id: job.contact_id,
+            direction: 'outbound',
+            text: textContent,
+            payload: resData
+          });
+
+          // Logar eventos de análise
+          if (job.type === 'private_reply') {
+            await supabase.from('analytics_events').insert({
+              instagram_user_id: config.instagram_user_id,
+              contact_id: job.contact_id,
+              automation_id: job.automation_id,
+              event_type: 'welcome_dm_sent'
+            });
+          } else if (job.type === 'reminder_dm') {
+            await supabase.from('analytics_events').insert({
+              instagram_user_id: config.instagram_user_id,
+              contact_id: job.contact_id,
+              automation_id: job.automation_id,
+              event_type: 'reminder_sent'
+            });
+          }
+
           // Atualizar o status da tabela followups correspondente se aplicável
           if (job.type === 'link_dm' || job.type === 'reminder_dm') {
             const step = job.type === 'link_dm' ? 1 : 2;

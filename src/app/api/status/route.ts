@@ -49,6 +49,30 @@ export async function GET() {
       .order('created_at', { ascending: false })
       .limit(20);
 
+    // Obter estatísticas do funil de conversão
+    const { data: analyticsEvents } = activeUserId
+      ? await supabase
+          .from('analytics_events')
+          .select('event_type')
+          .eq('instagram_user_id', activeUserId)
+      : { data: null };
+
+    const funnel = {
+      comments: 0,
+      welcomeDms: 0,
+      clicks: 0,
+      leads: 0
+    };
+
+    if (analyticsEvents) {
+      for (const evt of analyticsEvents) {
+        if (evt.event_type === 'comment') funnel.comments++;
+        else if (evt.event_type === 'welcome_dm_sent') funnel.welcomeDms++;
+        else if (evt.event_type === 'link_clicked') funnel.clicks++;
+        else if (evt.event_type === 'lead_captured') funnel.leads++;
+      }
+    }
+
     return NextResponse.json({
       isConnected,
       config: config || null,
@@ -61,6 +85,7 @@ export async function GET() {
       },
       recentEvents: recentEvents || [],
       recentQueue: recentQueue || [],
+      funnel
     });
   } catch (err: any) {
     console.error('Erro ao buscar status da aplicação:', err);

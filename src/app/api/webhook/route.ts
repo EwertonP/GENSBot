@@ -115,6 +115,15 @@ async function processWebhookEvent(payload: any) {
           // Ignorar comentários da própria conta
           if (fromUserId === myIgId) continue;
 
+          // Salvar comentário recebido no histórico de mensagens (inbound)
+          await supabase.from('messages').insert({
+            instagram_user_id: myIgId,
+            contact_id: fromUserId,
+            direction: 'inbound',
+            text: `[Comentário no Post] ${text}`,
+            payload: value
+          });
+
           // Buscar automações ativas com gatilho de comentário pertencentes a esta conta
           const { data: automations } = await supabase
             .from('automations')
@@ -131,25 +140,47 @@ async function processWebhookEvent(payload: any) {
 
             // Verificar se o texto bate com as palavras-chave
             if (matchesKeywords(text, auto.keywords, auto.match_type)) {
+              // Log de evento analítico
+              await supabase.from('analytics_events').insert({
+                instagram_user_id: myIgId,
+                contact_id: fromUserId,
+                automation_id: auto.id,
+                event_type: 'comment'
+              });
+
+              // Determinar o próximo estado de acordo com a captura de leads
+              let nextState = 'idle';
+              let welcomeText = auto.welcome_dm;
+
+              if (auto.ask_email) {
+                nextState = 'waiting_email';
+                welcomeText = `${auto.welcome_dm}\n\nPor favor, informe o seu melhor e-mail para continuar:`;
+              } else if (auto.ask_phone) {
+                nextState = 'waiting_phone';
+                welcomeText = `${auto.welcome_dm}\n\nPor favor, informe seu número de telefone/WhatsApp com DDD:`;
+              }
+
               // Upsert do contato
               await supabase.from('contacts').upsert({
                 instagram_id: fromUserId,
                 instagram_user_id: myIgId,
                 username: fromUsername,
                 last_automation_id: auto.id,
+                last_active_automation_id: auto.id,
+                conversation_state: nextState,
                 updated_at: new Date().toISOString(),
               });
 
-              // Enfileirar a resposta privada (welcome_dm) usando o comment_id como destinatário
+              // Enfileirar a resposta privada (welcome_dm)
               const welcomePayload = {
                 recipient: { comment_id: commentId },
                 message: {
-                  text: auto.welcome_dm,
-                  quick_replies: auto.quick_reply_button
+                  text: welcomeText,
+                  quick_replies: (nextState === 'idle' && auto.quick_reply_button)
                     ? [
                         {
                           content_type: 'text',
-                          title: auto.quick_reply_button.substring(0, 20), // Limite de 20 chars para botões
+                          title: auto.quick_reply_button.substring(0, 20),
                           payload: `automation_id:${auto.id}`,
                         },
                       ]
@@ -167,7 +198,7 @@ async function processWebhookEvent(payload: any) {
                 scheduled_at: new Date().toISOString(),
               });
 
-              // Se houver respostas públicas configuradas, sortear uma e enfileirar
+              // Se não estiver capturando dados e houver respostas públicas configuradas, sortear uma e enfileirar
               if (auto.public_replies && auto.public_replies.length > 0) {
                 const randomReply =
                   auto.public_replies[Math.floor(Math.random() * auto.public_replies.length)];
@@ -184,9 +215,9 @@ async function processWebhookEvent(payload: any) {
                 });
               }
 
-              // Executar a fila imediatamente de forma assíncrona
+              // Executar a fila imediatamente
               triggerQueueDrain();
-              break; // Executa apenas a primeira automação que der match
+              break;
             }
           }
         }
@@ -206,6 +237,24 @@ async function processWebhookEvent(payload: any) {
         if (!messageData) continue;
         if (messageData.is_echo) continue;
 
+        const text = messageData.text;
+
+        // Salvar mensagem recebida no Direct (inbound)
+        await supabase.from('messages').insert({
+          instagram_user_id: myIgId,
+          contact_id: senderId,
+          direction: 'inbound',
+          text: text || 'Mensagem / Mídia recebida',
+          payload: messageEvent
+        });
+
+        // Buscar dados do contato existente para ver o estado da conversa
+        const { data: contact } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('instagram_id', senderId)
+          .single();
+
         // Se for clique em quick reply (botão de resposta rápida)
         const quickReplyPayload = messageData.quick_reply?.payload;
         if (quickReplyPayload && quickReplyPayload.startsWith('automation_id:')) {
@@ -219,12 +268,21 @@ async function processWebhookEvent(payload: any) {
             .single();
 
           if (auto) {
+            // Registrar clique no botão nos eventos
+            await supabase.from('analytics_events').insert({
+              instagram_user_id: myIgId,
+              contact_id: senderId,
+              automation_id: auto.id,
+              event_type: 'link_clicked'
+            });
+
             // Atualizar last_response_at do contato (abre janela de 24h)
             await supabase.from('contacts').upsert({
               instagram_id: senderId,
               instagram_user_id: myIgId,
               last_response_at: new Date().toISOString(),
               last_automation_id: auto.id,
+              conversation_state: 'idle',
               updated_at: new Date().toISOString(),
             });
 
@@ -235,8 +293,6 @@ async function processWebhookEvent(payload: any) {
           continue;
         }
 
-        // Se for mensagem comum ou resposta a story
-        const text = messageData.text;
         if (!text) continue;
 
         // Tratar solicitação de exclusão de dados da Meta
@@ -258,10 +314,136 @@ async function processWebhookEvent(payload: any) {
           continue;
         }
 
+        // MÁQUINA DE ESTADOS: Captura Interativa de Leads
+        if (contact && contact.conversation_state && contact.conversation_state !== 'idle') {
+          const activeAutoId = contact.last_active_automation_id;
+          
+          if (activeAutoId) {
+            const { data: auto } = await supabase.from('automations').select('*').eq('id', activeAutoId).single();
+            
+            if (auto) {
+              if (contact.conversation_state === 'waiting_email') {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const emailCandidate = text.trim().toLowerCase();
+
+                if (emailRegex.test(emailCandidate)) {
+                  // Salvar email no contato
+                  const nextState = auto.ask_phone ? 'waiting_phone' : 'idle';
+                  
+                  await supabase
+                    .from('contacts')
+                    .update({
+                      email: emailCandidate,
+                      conversation_state: nextState,
+                      last_response_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('instagram_id', senderId);
+
+                  if (nextState === 'waiting_phone') {
+                    // Perguntar telefone
+                    await supabase.from('queue').insert({
+                      contact_id: senderId,
+                      automation_id: auto.id,
+                      type: 'private_reply',
+                      recipient_id: senderId,
+                      payload: {
+                        recipient: { id: senderId },
+                        message: { text: 'Ótimo! Agora, por favor, envie o seu número de WhatsApp/telefone com DDD (ex: 11999998888):' }
+                      },
+                      status: 'pending',
+                      scheduled_at: new Date().toISOString()
+                    });
+                  } else {
+                    // Finalizou fluxo (apenas e-mail)
+                    await supabase.from('analytics_events').insert({
+                      instagram_user_id: myIgId,
+                      contact_id: senderId,
+                      automation_id: auto.id,
+                      event_type: 'lead_captured'
+                    });
+
+                    await enqueueFollowups(senderId, auto);
+                    if (auto.webhook_url) {
+                      triggerExternalWebhook(auto.webhook_url, { ...contact, email: emailCandidate }, auto);
+                    }
+                  }
+                  triggerQueueDrain();
+                  continue;
+                } else {
+                  // E-mail inválido
+                  await supabase.from('queue').insert({
+                    contact_id: senderId,
+                    automation_id: auto.id,
+                    type: 'private_reply',
+                    recipient_id: senderId,
+                    payload: {
+                      recipient: { id: senderId },
+                      message: { text: '⚠️ E-mail inválido. Por favor, envie um endereço de e-mail correto (ex: nome@dominio.com):' }
+                    },
+                    status: 'pending',
+                    scheduled_at: new Date().toISOString()
+                  });
+                  triggerQueueDrain();
+                  continue;
+                }
+              }
+
+              if (contact.conversation_state === 'waiting_phone') {
+                const phoneCandidate = text.replace(/\D/g, ''); // apenas números
+
+                if (phoneCandidate.length >= 10 && phoneCandidate.length <= 15) {
+                  // Salvar telefone e finalizar
+                  await supabase
+                    .from('contacts')
+                    .update({
+                      phone: phoneCandidate,
+                      conversation_state: 'idle',
+                      last_response_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('instagram_id', senderId);
+
+                  await supabase.from('analytics_events').insert({
+                    instagram_user_id: myIgId,
+                    contact_id: senderId,
+                    automation_id: auto.id,
+                    event_type: 'lead_captured'
+                  });
+
+                  await enqueueFollowups(senderId, auto);
+                  if (auto.webhook_url) {
+                    triggerExternalWebhook(auto.webhook_url, { ...contact, phone: phoneCandidate }, auto);
+                  }
+                  triggerQueueDrain();
+                  continue;
+                } else {
+                  // Telefone inválido
+                  await supabase.from('queue').insert({
+                    contact_id: senderId,
+                    automation_id: auto.id,
+                    type: 'private_reply',
+                    recipient_id: senderId,
+                    payload: {
+                      recipient: { id: senderId },
+                      message: { text: '⚠️ Número de telefone inválido. Por favor, envie seu número completo com DDD (somente números):' }
+                    },
+                    status: 'pending',
+                    scheduled_at: new Date().toISOString()
+                  });
+                  triggerQueueDrain();
+                  continue;
+                }
+              }
+            }
+          }
+        }
+
+        // Se o contato está IDLE, verificar gatilhos de palavras-chave
         const isStoryReply = !!messageData.reply_to?.story;
         const requiredTrigger = isStoryReply ? 'story' : 'dm';
 
-        // Buscar automações ativas com o gatilho correspondente pertencentes a esta conta
+        // Buscar automações ativas com o gatilho correspondente
         const { data: automations } = await supabase
           .from('automations')
           .select('*')
@@ -273,21 +455,40 @@ async function processWebhookEvent(payload: any) {
 
         for (const auto of automations) {
           if (matchesKeywords(text, auto.keywords, auto.match_type)) {
-            // Se casar a palavra-chave, manda a DM de boas-vindas direto
+            // Log do gatilho acionado
+            await supabase.from('analytics_events').insert({
+              instagram_user_id: myIgId,
+              contact_id: senderId,
+              automation_id: auto.id,
+              event_type: 'welcome_dm_sent'
+            });
+
+            // Determinar próximo estado
+            let nextState = 'idle';
+            let welcomeText = auto.welcome_dm;
+
+            if (auto.ask_email) {
+              nextState = 'waiting_email';
+              welcomeText = `${auto.welcome_dm}\n\nPor favor, informe o seu melhor e-mail para prosseguir:`;
+            } else if (auto.ask_phone) {
+              nextState = 'waiting_phone';
+              welcomeText = `${auto.welcome_dm}\n\nPor favor, informe o seu telefone/WhatsApp com DDD para prosseguir:`;
+            }
+
             await supabase.from('contacts').upsert({
               instagram_id: senderId,
               instagram_user_id: myIgId,
               last_automation_id: auto.id,
+              last_active_automation_id: auto.id,
+              conversation_state: nextState,
               updated_at: new Date().toISOString(),
             });
 
-            // Como o contato já iniciou a conversa (enviou DM/story), a janela de 24h está aberta
-            // Mandamos a DM de boas-vindas padrão com o botão de resposta rápida
             const welcomePayload = {
               recipient: { id: senderId },
               message: {
-                text: auto.welcome_dm,
-                quick_replies: auto.quick_reply_button
+                text: welcomeText,
+                quick_replies: (nextState === 'idle' && auto.quick_reply_button)
                   ? [
                       {
                         content_type: 'text',
@@ -315,6 +516,34 @@ async function processWebhookEvent(payload: any) {
         }
       }
     }
+  }
+}
+
+// Disparador de Webhook Externo (Make, Zapier, etc.)
+async function triggerExternalWebhook(url: string, contact: any, auto: any) {
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        event: 'lead_captured',
+        automation: {
+          id: auto.id,
+          name: auto.name
+        },
+        contact: {
+          instagram_id: contact.instagram_id,
+          username: contact.username,
+          email: contact.email,
+          phone: contact.phone,
+          timestamp: new Date().toISOString()
+        }
+      })
+    });
+  } catch (err) {
+    console.error('Falha ao disparar webhook externo:', err);
   }
 }
 

@@ -112,3 +112,42 @@ begin
 end;
 $$;
 
+-- SaaS Extension Columns
+alter table automations add column if not exists ask_email boolean not null default false;
+alter table automations add column if not exists ask_phone boolean not null default false;
+alter table automations add column if not exists webhook_url text;
+
+alter table contacts add column if not exists email text;
+alter table contacts add column if not exists phone text;
+alter table contacts add column if not exists conversation_state text not null default 'idle';
+alter table contacts add column if not exists last_active_automation_id uuid references automations(id) on delete set null;
+
+-- Table: messages
+create table if not exists messages (
+  id uuid primary key default gen_random_uuid(),
+  instagram_user_id text, -- ID of the Instagram page/user this message belongs to
+  contact_id text references contacts(instagram_id) on delete cascade,
+  direction text not null, -- 'inbound' or 'outbound'
+  text text,
+  payload jsonb, -- full message metadata
+  created_at timestamp with time zone default now()
+);
+
+-- Table: analytics_events
+create table if not exists analytics_events (
+  id uuid primary key default gen_random_uuid(),
+  instagram_user_id text, -- ID of the Instagram page/user
+  contact_id text references contacts(instagram_id) on delete cascade,
+  automation_id uuid references automations(id) on delete cascade,
+  event_type text not null, -- 'comment', 'welcome_dm_sent', 'link_clicked', 'reminder_sent', 'lead_captured'
+  created_at timestamp with time zone default now()
+);
+
+-- RLS and Indexes for SaaS Extensions
+alter table messages enable row level security;
+alter table analytics_events enable row level security;
+
+create index if not exists idx_messages_contact on messages (contact_id, created_at desc);
+create index if not exists idx_analytics_events_type on analytics_events (instagram_user_id, event_type);
+
+

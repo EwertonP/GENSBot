@@ -56,6 +56,9 @@ interface Automation {
   link_url?: string | null;
   reminder_text?: string | null;
   reminder_delay_minutes?: number | null;
+  ask_email?: boolean;
+  ask_phone?: boolean;
+  webhook_url?: string | null;
   created_at?: string;
 }
 
@@ -74,6 +77,7 @@ export default function Dashboard() {
   const [isConnected, setIsConnected] = useState(false);
   const [config, setConfig] = useState<any>(null);
   const [stats, setStats] = useState({ automations: 0, contacts: 0, queue: 0, events: 0 });
+  const [funnel, setFunnel] = useState({ comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [recentQueue, setRecentQueue] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -87,7 +91,7 @@ export default function Dashboard() {
 
   // Estados do formulário de automação
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'contacts' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'contacts' | 'logs' | 'chat'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -103,7 +107,16 @@ export default function Dashboard() {
     link_url: '',
     reminder_text: '',
     reminder_delay_minutes: 15,
+    ask_email: false,
+    ask_phone: false,
+    webhook_url: '',
   });
+  
+  // Live Chat States
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
   
   // Estado para inputs auxiliares
   const [keywordInput, setKeywordInput] = useState('');
@@ -123,6 +136,7 @@ export default function Dashboard() {
         setRecentEvents(data.recentEvents);
         setRecentQueue(data.recentQueue);
         setContacts(data.contacts || []);
+        setFunnel(data.funnel || { comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
       }
       
       const autRes = await fetch('/api/automations');
@@ -145,6 +159,57 @@ export default function Dashboard() {
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 5000);
+  };
+
+  const fetchChatMessages = async (contactId: string) => {
+    try {
+      const res = await fetch(`/api/messages?contact_id=${contactId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setChatMessages(data);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar mensagens do chat:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedContactId) {
+      fetchChatMessages(selectedContactId);
+      const interval = setInterval(() => {
+        fetchChatMessages(selectedContactId);
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedContactId]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContactId || !chatInput.trim() || sendingMessage) return;
+
+    setSendingMessage(true);
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact_id: selectedContactId,
+          text: chatInput.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setChatInput('');
+        setChatMessages(prev => [...prev, data]);
+        showToast('Mensagem enviada com sucesso!', 'success');
+      } else {
+        showToast(data.error || 'Erro ao enviar mensagem.', 'error');
+      }
+    } catch (err: any) {
+      showToast('Erro de rede ao enviar mensagem.', 'error');
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
   const handleConnectInstagram = () => {
@@ -254,6 +319,9 @@ export default function Dashboard() {
       link_url: '',
       reminder_text: '',
       reminder_delay_minutes: 15,
+      ask_email: false,
+      ask_phone: false,
+      webhook_url: '',
     });
     setIsEditing(false);
     setKeywordInput('');
@@ -379,6 +447,7 @@ export default function Dashboard() {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-2">Operações</span>
             {[
               { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+              { id: 'chat', label: 'Live Chat Inbox', icon: MessageSquare },
               { id: 'automations', label: 'Automações', icon: Settings },
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
             ].map(item => {
@@ -448,12 +517,14 @@ export default function Dashboard() {
           <div>
             <h2 className="text-lg font-black text-slate-800 tracking-tight">
               {activeTab === 'dashboard' && 'Dashboard'}
+              {activeTab === 'chat' && 'Live Chat Inbox'}
               {activeTab === 'automations' && 'Automações'}
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
             <p className="text-[10px] text-slate-400 font-medium mt-0.5">
               {activeTab === 'dashboard' && 'Bem-vindo de volta! Veja o que está acontecendo com sua automação.'}
+              {activeTab === 'chat' && 'Converse em tempo real e faça atendimento manual no direct do Instagram.'}
               {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
               {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
               {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
@@ -616,22 +687,33 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Info Center Card */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
-                  <h4 className="font-bold text-slate-800">Guia de Uso Rápido</h4>
-                  <div className="flex flex-col gap-3 text-xs leading-relaxed text-slate-600">
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center flex-shrink-0">1</div>
-                      <p>Cadastre uma palavra-chave (ex: "quero") e o link de destino no menu **Automações**.</p>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center flex-shrink-0">2</div>
-                      <p>Certifique-se de vincular a conta principal e de que ela está como testadora da Meta.</p>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center flex-shrink-0">3</div>
-                      <p>O cliente comenta no post, recebe uma DM inicial, clica no botão e o link é liberado!</p>
-                    </div>
+                {/* Funil de Conversão Card */}
+                <div className="bg-white border border-slate-150 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+                  <h4 className="font-bold text-slate-800 text-sm">Funil de Conversão (Leads)</h4>
+                  <div className="flex flex-col gap-3.5">
+                    {[
+                      { label: 'Comentários Acionados', val: funnel.comments, color: 'bg-violet-500' },
+                      { label: 'DMs de Boas-Vindas', val: funnel.welcomeDms, color: 'bg-indigo-500' },
+                      { label: 'Cliques no Botão', val: funnel.clicks, color: 'bg-blue-500' },
+                      { label: 'Leads Qualificados', val: funnel.leads, color: 'bg-emerald-500' }
+                    ].map((step, idx, arr) => {
+                      const maxVal = arr[0].val || 1;
+                      const percent = Math.round((step.val / maxVal) * 100) || 0;
+                      return (
+                        <div key={idx} className="flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between text-xs font-semibold">
+                            <span className="text-slate-500">{step.label}</span>
+                            <span className="text-slate-800 font-bold">{step.val} <span className="text-slate-400 font-medium">({percent}%)</span></span>
+                          </div>
+                          <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${step.color} rounded-full transition-all duration-500`}
+                              style={{ width: `${percent}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -689,6 +771,150 @@ export default function Dashboard() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          )}
+          {/* TAB: LIVE CHAT */}
+          {activeTab === 'chat' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-xs h-[calc(100vh-170px)]">
+              {/* Left Contacts List */}
+              <div className="lg:col-span-4 border-r border-slate-100 flex flex-col h-full overflow-hidden bg-slate-50/50">
+                <div className="p-4 border-b border-slate-100 bg-white">
+                  <h3 className="font-bold text-slate-800 text-sm">Conversas Recentes</h3>
+                  <p className="text-[10px] text-slate-400">Clique para abrir o histórico de mensagens</p>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5">
+                  {contacts.length === 0 ? (
+                    <div className="text-center py-10 text-xs text-slate-400">Nenhum contato ativo.</div>
+                  ) : (
+                    contacts.map(c => {
+                      const isSelected = selectedContactId === c.instagram_id;
+                      return (
+                        <div
+                          key={c.instagram_id}
+                          onClick={() => setSelectedContactId(c.instagram_id)}
+                          className={`p-3.5 rounded-xl cursor-pointer transition-all flex flex-col gap-1 ${
+                            isSelected
+                              ? 'bg-white border border-violet-100 shadow-xs ring-1 ring-violet-500/5'
+                              : 'hover:bg-slate-100/70 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs font-bold ${isSelected ? 'text-violet-700' : 'text-slate-700'}`}>
+                              @{c.username || c.instagram_id}
+                            </span>
+                            {c.conversation_state && c.conversation_state !== 'idle' && (
+                              <span className="text-[9px] bg-amber-50 text-amber-600 border border-amber-100 font-bold px-1.5 py-0.5 rounded-full">
+                                {c.conversation_state === 'waiting_email' ? 'Aguardando E-mail' : 'Aguardando Fone'}
+                              </span>
+                            )}
+                          </div>
+                          {(c.email || c.phone) ? (
+                            <div className="flex flex-col gap-0.5 text-[9px] text-slate-400 font-medium">
+                              {c.email && <span>📧 {c.email}</span>}
+                              {c.phone && <span>📱 {c.phone}</span>}
+                            </div>
+                          ) : (
+                            <span className="text-[9px] text-slate-400">Sem dados de contato</span>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Right Chat Pane */}
+              <div className="lg:col-span-8 flex flex-col h-full overflow-hidden bg-white">
+                {selectedContactId ? (
+                  <div className="flex flex-col h-full overflow-hidden">
+                    {/* Chat Header */}
+                    <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/20">
+                      <div>
+                        <h4 className="font-bold text-slate-800 text-sm">
+                          @{contacts.find(c => c.instagram_id === selectedContactId)?.username || selectedContactId}
+                        </h4>
+                        <span className="text-[9px] text-slate-400 font-medium">
+                          ID: {selectedContactId}
+                        </span>
+                      </div>
+                      
+                      {/* State status badge */}
+                      {(() => {
+                        const c = contacts.find(c => c.instagram_id === selectedContactId);
+                        if (!c) return null;
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                              {c.conversation_state === 'idle' ? 'Disponível' : c.conversation_state === 'waiting_email' ? 'Lendo E-mail' : 'Lendo Fone'}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Chat Message list */}
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-[#FAFAFC]/60">
+                      {chatMessages.length === 0 ? (
+                        <div className="text-center py-20 text-xs text-slate-400">Nenhuma mensagem registrada nesta conversa.</div>
+                      ) : (
+                        chatMessages.map(msg => {
+                          const isInbound = msg.direction === 'inbound';
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`flex flex-col ${isInbound ? 'items-start' : 'items-end'}`}
+                            >
+                              <div
+                                className={`p-3.5 rounded-2xl text-xs max-w-[75%] leading-relaxed ${
+                                  isInbound
+                                    ? 'bg-slate-100 text-slate-800 rounded-tl-xs border border-slate-200'
+                                    : 'bg-gradient-to-r from-violet-600 to-indigo-650 text-white rounded-tr-xs shadow-xs'
+                                }`}
+                              >
+                                {msg.text}
+                              </div>
+                              <span className="text-[9px] text-slate-400 font-medium mt-1 px-1">
+                                {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Chat Input form */}
+                    <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-100 flex items-center gap-2 bg-white">
+                      <input
+                        type="text"
+                        placeholder="Digite uma mensagem para enviar..."
+                        value={chatInput}
+                        onChange={e => setChatInput(e.target.value)}
+                        className="flex-1 bg-slate-50 border border-slate-200 focus:border-violet-500 rounded-full px-4 py-2.5 text-xs focus:outline-none text-slate-800 transition-all"
+                      />
+                      <button
+                        type="submit"
+                        disabled={sendingMessage || !chatInput.trim()}
+                        className="p-2.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-550 text-white transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
+                      >
+                        <Send className="w-4.5 h-4.5 text-white" />
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-10">
+                    <div className="p-4 rounded-full bg-violet-50 text-violet-600 border border-violet-100">
+                      <MessageSquare className="w-8 h-8 text-violet-500" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-700">Selecione uma conversa</h4>
+                      <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+                        Escolha um contato na lista à esquerda para carregar o histórico de mensagens e responder diretamente.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -821,12 +1047,47 @@ export default function Dashboard() {
                     <div className="flex flex-col gap-4 relative">
                       
                       {/* Step 1: Gatilho / Trigger Card */}
-                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                      <div className="bg-white border border-slate-150 rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-slate-250 transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                          <div className="w-7 h-7 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold text-xs border border-violet-100">
                             1
                           </div>
-                          <h4 className="font-bold text-slate-800 text-sm">Gatilho de Comentário (Instagram Comment)</h4>
+                          <h4 className="font-bold text-slate-800 text-sm">Configuração de Gatilhos de Entrada</h4>
+                        </div>
+
+                        {/* Fontes do Gatilho */}
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-slate-500">Fontes do Gatilho (Selecione um ou mais)</label>
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            {[
+                              { id: 'comment', label: 'Comentários em Posts' },
+                              { id: 'dm', label: 'Mensagens Diretas (DMs)' },
+                              { id: 'story', label: 'Respostas / Menções nos Stories' }
+                            ].map(trigger => {
+                              const active = form.triggers.includes(trigger.id);
+                              return (
+                                <button
+                                  type="button"
+                                  key={trigger.id}
+                                  onClick={() => {
+                                    const nextTriggers = form.triggers.includes(trigger.id)
+                                      ? form.triggers.filter(t => t !== trigger.id)
+                                      : [...form.triggers, trigger.id];
+                                    if (nextTriggers.length > 0) {
+                                      setForm(prev => ({ ...prev, triggers: nextTriggers }));
+                                    }
+                                  }}
+                                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                                    active
+                                      ? 'bg-violet-50 border-violet-200 text-violet-700 shadow-2xs'
+                                      : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                                  }`}
+                                >
+                                  {trigger.label}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
@@ -945,9 +1206,9 @@ export default function Dashboard() {
                       </div>
 
                       {/* Step 3: Mensagem DM com Quick Reply Card */}
-                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                      <div className="bg-white border border-slate-150 rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-slate-250 transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                          <div className="w-7 h-7 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold text-xs border border-violet-100">
                             3
                           </div>
                           <h4 className="font-bold text-slate-800 text-sm">Mensagem Privada Inicial (DM no Direct)</h4>
@@ -962,7 +1223,7 @@ export default function Dashboard() {
                               value={form.welcome_dm}
                               onChange={e => setForm(prev => ({ ...prev, welcome_dm: e.target.value }))}
                               rows={3}
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-450 transition-all resize-none"
+                              className="bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500 text-slate-800 placeholder-slate-450 transition-all resize-none"
                             />
                           </div>
 
@@ -974,8 +1235,47 @@ export default function Dashboard() {
                               placeholder="Ex: Sim, quero!"
                               value={form.quick_reply_button || ''}
                               onChange={e => setForm(prev => ({ ...prev, quick_reply_button: e.target.value || null }))}
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-400 transition-all font-semibold"
+                              className="bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500 text-slate-800 placeholder-slate-400 transition-all font-semibold"
                             />
+                          </div>
+
+                          {/* Lead Capture Options */}
+                          <div className="border-t border-slate-100 pt-4 mt-2 flex flex-col gap-3">
+                            <span className="text-xs font-bold text-slate-700">Captura de Leads & Integração (Opcional)</span>
+                            <div className="grid grid-cols-2 gap-4">
+                              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={form.ask_email || false}
+                                  onChange={e => setForm(prev => ({ ...prev, ask_email: e.target.checked }))}
+                                  className="rounded border-slate-350 text-violet-650 focus:ring-violet-500 w-4 h-4"
+                                />
+                                <span className="text-xs text-slate-600 font-semibold">Solicitar E-mail</span>
+                              </label>
+
+                              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={form.ask_phone || false}
+                                  onChange={e => setForm(prev => ({ ...prev, ask_phone: e.target.checked }))}
+                                  className="rounded border-slate-350 text-violet-650 focus:ring-violet-500 w-4 h-4"
+                                />
+                                <span className="text-xs text-slate-600 font-semibold">Solicitar Telefone</span>
+                              </label>
+                            </div>
+
+                            {(form.ask_email || form.ask_phone) && (
+                              <div className="flex flex-col gap-1.5 animate-fade-in mt-1">
+                                <label className="text-[11px] font-bold text-slate-500">URL do Webhook Externo (POST para Make/Zapier)</label>
+                                <input
+                                  type="url"
+                                  placeholder="https://hook.us1.make.com/..."
+                                  value={form.webhook_url || ''}
+                                  onChange={e => setForm(prev => ({ ...prev, webhook_url: e.target.value }))}
+                                  className="bg-slate-50 border border-slate-150 focus:border-violet-500 rounded-xl px-4 py-2 text-xs focus:outline-none text-slate-800 placeholder-slate-400 font-mono"
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
