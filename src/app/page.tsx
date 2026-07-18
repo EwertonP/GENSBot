@@ -963,7 +963,7 @@ export default function Dashboard() {
                     <img
                       src={media.thumbnail_url || media.media_url}
                       alt="Instagram media"
-                      className="object-cover w-full h-full group-hover:scale-105 transition-all duration-300"
+                      className={`${media.media_type === 'VIDEO' ? 'object-contain' : 'object-cover'} w-full h-full group-hover:scale-105 transition-all duration-300`}
                     />
                     <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-full px-2 py-0.5 text-[9px] font-bold text-zinc-300">
                       {media.media_type}
