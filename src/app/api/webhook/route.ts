@@ -51,19 +51,27 @@ export async function POST(req: Request) {
   const signatureHeader = req.headers.get('x-hub-signature-256');
   const rawBody = await req.text();
 
-  if (!verifySignature(rawBody, signatureHeader)) {
-    return new Response('Assinatura inválida', { status: 401 });
-  }
-
   let payload;
   try {
     payload = JSON.parse(rawBody);
   } catch {
-    return new Response('JSON inválido', { status: 400 });
+    payload = { error: 'Corpo do payload não é JSON válido', raw: rawBody };
   }
 
-  // Registrar o evento no banco para auditoria
+  // Registrar o evento no banco para auditoria IMEDIATAMENTE (para facilitar debug)
   await supabase.from('events').insert({ payload });
+
+  if (!verifySignature(rawBody, signatureHeader)) {
+    // Adicionar um registro adicional de erro de assinatura para sabermos
+    await supabase.from('events').insert({ 
+      payload: { 
+        error: 'Assinatura inválida (HMAC-SHA256 falhou)', 
+        signatureHeader,
+        bodyPreview: rawBody.substring(0, 1000)
+      } 
+    });
+    return new Response('Assinatura inválida', { status: 401 });
+  }
 
   // Disparar o processamento do evento de forma assíncrona após responder
   after(async () => {
