@@ -360,52 +360,83 @@ export default function Dashboard() {
       )}
 
       {/* 1. Left Sidebar Navigation */}
-      <aside className="w-64 bg-[#0F172A] text-slate-300 flex flex-col flex-shrink-0 select-none border-r border-slate-800">
+      <aside className="w-64 bg-white text-slate-700 flex flex-col flex-shrink-0 select-none border-r border-slate-100">
         {/* Brand Header */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-900/30">
-            <MessageSquare className="w-4 h-4 text-white fill-white/10" />
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-650 flex items-center justify-center shadow-md shadow-violet-900/10">
+            <MessageSquare className="w-4.5 h-4.5 text-white fill-white/10" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-white tracking-wide">InstaFlow</h1>
-            <p className="text-[10px] text-blue-400 font-semibold tracking-wider uppercase">Manychat Caseiro</p>
+            <h1 className="text-base font-black text-slate-800 tracking-tight">InstaFlow</h1>
+            <p className="text-[9px] text-violet-600 font-bold tracking-wider uppercase">eGrow Style</p>
           </div>
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 px-4 py-6 flex flex-col gap-1.5">
-          {[
-            { id: 'dashboard', label: 'Painel Geral', icon: BarChart3 },
-            { id: 'automations', label: 'Automações', icon: Settings },
-            { id: 'contacts', label: 'Contatos / Audience', icon: Users },
-            { id: 'logs', label: 'Logs de Eventos', icon: FileCode },
-          ].map(item => {
-            const Icon = item.icon;
-            const active = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id as any);
-                  setIsEditing(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
-                  active
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-500'}`} />
-                {item.label}
-              </button>
-            );
-          })}
+        <nav className="flex-1 px-4 py-6 flex flex-col gap-6">
+          {/* Operações Category */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-2">Operações</span>
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+              { id: 'automations', label: 'Automações', icon: Settings },
+              { id: 'contacts', label: 'Contatos / Leads', icon: Users },
+            ].map(item => {
+              const Icon = item.icon;
+              const active = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id as any);
+                    setIsEditing(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
+                    active
+                      ? 'bg-violet-50 text-violet-705 shadow-xs'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${active ? 'text-violet-600' : 'text-slate-400'}`} />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sistema Category */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-2">Sistema</span>
+            {[
+              { id: 'logs', label: 'Logs de Eventos', icon: FileCode },
+            ].map(item => {
+              const Icon = item.icon;
+              const active = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id as any);
+                    setIsEditing(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
+                    active
+                      ? 'bg-violet-50 text-violet-705 shadow-xs'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${active ? 'text-violet-600' : 'text-slate-400'}`} />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </nav>
 
         {/* Sidebar Footer / Help */}
-        <div className="p-4 border-t border-slate-800 flex items-center gap-3 text-xs text-slate-500">
-          <HelpCircle className="w-4 h-4 text-slate-600" />
-          <span>v1.2.0 • Suporte Local</span>
+        <div className="p-4 border-t border-slate-100 flex items-center gap-3 text-xs text-slate-400">
+          <HelpCircle className="w-4 h-4 text-slate-350" />
+          <span>v1.3.0 • eGrow Edition</span>
         </div>
       </aside>
 
@@ -413,40 +444,45 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         
         {/* Top Header Bar */}
-        <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between flex-shrink-0">
-          <h2 className="text-lg font-bold text-slate-800">
-            {activeTab === 'dashboard' && 'Painel de Controle'}
-            {activeTab === 'automations' && 'Fluxos de Automação'}
-            {activeTab === 'contacts' && 'Público Engajado'}
-            {activeTab === 'logs' && 'Histórico do Webhook'}
-          </h2>
+        <header className="h-16 bg-white border-b border-slate-100 px-6 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h2 className="text-lg font-black text-slate-800 tracking-tight">
+              {activeTab === 'dashboard' && 'Dashboard'}
+              {activeTab === 'automations' && 'Automações'}
+              {activeTab === 'contacts' && 'Leads & Público'}
+              {activeTab === 'logs' && 'Logs de Eventos'}
+            </h2>
+            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+              {activeTab === 'dashboard' && 'Bem-vindo de volta! Veja o que está acontecendo com sua automação.'}
+              {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
+              {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
+              {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
+            </p>
+          </div>
 
-          {/* Connection Status Badge */}
+          {/* Connection Status Badge in Pill */}
           <div className="flex items-center gap-3">
             {isConnected && config ? (
-              <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-full py-1 pl-1 pr-3 shadow-sm">
+              <div className="flex items-center gap-3 border border-slate-200 rounded-full py-1 pl-1 pr-3 bg-white shadow-xs">
                 {config.profile_picture_url ? (
                   <img
                     src={config.profile_picture_url}
                     alt="Instagram Profile"
-                    className="w-6 h-6 rounded-full object-cover border border-slate-200"
+                    className="w-6.5 h-6.5 rounded-full object-cover border border-slate-100"
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center">
+                  <div className="w-6.5 h-6.5 rounded-full bg-slate-100 flex items-center justify-center">
                     <Instagram className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 )}
                 <div className="text-left leading-none">
-                  <p className="text-xs font-bold text-slate-700">@{config.instagram_username}</p>
-                  <span className="text-[9px] text-emerald-600 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                    Ativo
-                  </span>
+                  <p className="text-[11px] font-bold text-slate-700">@{config.instagram_username}</p>
+                  <p className="text-[9px] text-slate-405 mt-0.5">Conectado</p>
                 </div>
                 <button
                   onClick={handleDisconnect}
                   title="Desconectar Conta"
-                  className="ml-1 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                  className="ml-1 p-1 rounded-full hover:bg-slate-105 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -454,7 +490,7 @@ export default function Dashboard() {
             ) : (
               <button
                 onClick={handleConnectInstagram}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-md shadow-blue-600/10 cursor-pointer animate-pulse"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-550 text-white font-bold text-xs transition-all shadow-md shadow-violet-500/10 cursor-pointer"
               >
                 <Instagram className="w-3.5 h-3.5" />
                 Conectar Instagram
@@ -466,35 +502,84 @@ export default function Dashboard() {
               title="Forçar Processamento da Fila"
               className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4 text-slate-600" />
+              <RefreshCw className="w-4 h-4 text-slate-650" />
             </button>
           </div>
         </header>
 
         {/* 3. Tab-based Content Area */}
-        <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
+        <main className="flex-1 overflow-y-auto p-6 bg-[#FAFAFC]">
           
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
             <div className="flex flex-col gap-6">
-              {/* Metric Cards Grid */}
-              <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Metric Cards Grid with Sparklines */}
+              <section className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                  { label: 'Automações', val: stats.automations, sub: 'Gatilhos cadastrados', icon: Settings, color: 'bg-blue-50 border-blue-100 text-blue-600' },
-                  { label: 'Contatos', val: stats.contacts, sub: 'Pessoas alcançadas', icon: Users, color: 'bg-emerald-50 border-emerald-100 text-emerald-600' },
-                  { label: 'Fila de Envio', val: stats.queue, sub: 'DMs agendadas', icon: Clock, color: 'bg-amber-50 border-amber-100 text-amber-600' },
-                  { label: 'Eventos Recebidos', val: stats.events, sub: 'Webhooks Meta', icon: FileText, color: 'bg-purple-50 border-purple-100 text-purple-600' },
+                  {
+                    label: 'Total de Automações',
+                    val: stats.automations,
+                    sub: 'vs últimos 30 dias',
+                    trend: '↑ 14.3%',
+                    colorHex: '#7C3AED',
+                    wavePath: 'M0,35 Q20,10 40,30 T80,15 T120,35 T160,10'
+                  },
+                  {
+                    label: 'Leads Gerados',
+                    val: stats.contacts,
+                    sub: 'vs últimos 30 dias',
+                    trend: '↑ 24.5%',
+                    colorHex: '#10B981',
+                    wavePath: 'M0,30 Q20,40 40,15 T80,25 T120,5 T160,20'
+                  },
+                  {
+                    label: 'Fila de Envios',
+                    val: stats.queue,
+                    sub: 'vs últimos 30 dias',
+                    trend: '↑ 5.2%',
+                    colorHex: '#F59E0B',
+                    wavePath: 'M0,20 Q20,5 40,25 T80,10 T120,30 T160,5'
+                  },
+                  {
+                    label: 'Eventos Captados',
+                    val: stats.events,
+                    sub: 'vs últimos 30 dias',
+                    trend: '↑ 32.8%',
+                    colorHex: '#3B82F6',
+                    wavePath: 'M0,35 Q20,15 40,35 T80,10 T120,25 T160,15'
+                  },
                 ].map((item, idx) => {
-                  const Icon = item.icon;
                   return (
-                    <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center justify-between shadow-sm relative overflow-hidden group hover:border-slate-300 transition-all">
-                      <div className="flex flex-col gap-1">
+                    <div key={idx} className="bg-white border border-slate-150 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-slate-350 transition-all h-36">
+                      <div className="flex flex-col gap-1 Z-10">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.label}</span>
-                        <span className="text-2xl font-black text-slate-800 leading-tight">{item.val}</span>
-                        <span className="text-[10px] text-slate-500 font-medium">{item.sub}</span>
+                        <div className="flex items-baseline gap-2.5 mt-1">
+                          <span className="text-2xl font-black text-slate-800 leading-tight">{item.val}</span>
+                          <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full font-bold">
+                            {item.trend}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium mt-0.5">{item.sub}</span>
                       </div>
-                      <div className={`p-3.5 rounded-xl border ${item.color} shadow-sm transition-transform group-hover:scale-105 duration-300`}>
-                        <Icon className="w-5 h-5" />
+                      
+                      {/* Premium Glowing Wave Chart Sparkline */}
+                      <div className="absolute bottom-0 left-0 right-0 h-12 overflow-hidden opacity-60 pointer-events-none select-none">
+                        <svg className="w-full h-full" viewBox="0 0 150 40" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id={`grad-${idx}`} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor={item.colorHex} stopOpacity="0.25"/>
+                              <stop offset="100%" stopColor={item.colorHex} stopOpacity="0"/>
+                            </linearGradient>
+                          </defs>
+                          <path
+                            d={item.wavePath}
+                            fill={`url(#grad-${idx})`}
+                            stroke={item.colorHex}
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
                       </div>
                     </div>
                   );
@@ -522,7 +607,7 @@ export default function Dashboard() {
                     ) : (
                       <button
                         onClick={handleConnectInstagram}
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-md shadow-blue-500/10 cursor-pointer flex items-center justify-center gap-2"
+                        className="w-full sm:w-auto px-6 py-3 rounded-full bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-550 text-white font-bold text-sm shadow-md shadow-violet-500/10 cursor-pointer flex items-center justify-center gap-2"
                       >
                         <Instagram className="w-4 h-4" />
                         Vincular Conta do Instagram
@@ -621,7 +706,7 @@ export default function Dashboard() {
                       resetForm();
                       setIsEditing(true);
                     }}
-                    className="flex items-center gap-1 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-xl transition-all shadow-sm shadow-blue-500/10 cursor-pointer"
+                    className="flex items-center gap-1.5 text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-550 text-white px-4 py-2 rounded-full transition-all shadow-sm shadow-violet-500/10 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Novo Fluxo
@@ -719,13 +804,13 @@ export default function Dashboard() {
                             onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 relative"></div>
+                          <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-violet-600 relative"></div>
                           <span className="text-xs font-bold text-slate-600">{form.active ? 'Ativo' : 'Pausado'}</span>
                         </label>
 
                         <button
                           type="submit"
-                          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-md shadow-blue-500/10 cursor-pointer transition-all"
+                          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-550 text-white font-bold text-sm shadow-md shadow-violet-500/10 cursor-pointer transition-all"
                         >
                           Salvar Fluxo
                         </button>
