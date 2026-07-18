@@ -11,14 +11,16 @@ export async function GET() {
 
     const isConnected = !!config?.instagram_username;
 
-    // 2. Obter estatísticas básicas
-    const { count: automationsCount } = await supabase
-      .from('automations')
-      .select('*', { count: 'exact', head: true });
+    const activeUserId = config?.instagram_user_id;
 
-    const { count: contactsCount } = await supabase
-      .from('contacts')
-      .select('*', { count: 'exact', head: true });
+    // 2. Obter estatísticas básicas
+    const { count: automationsCount } = activeUserId
+      ? await supabase.from('automations').select('*', { count: 'exact', head: true }).eq('instagram_user_id', activeUserId)
+      : { count: 0 };
+
+    const { count: contactsCount } = activeUserId
+      ? await supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('instagram_user_id', activeUserId)
+      : { count: 0 };
 
     const { count: queueCount } = await supabase
       .from('queue')
@@ -29,10 +31,9 @@ export async function GET() {
       .select('*', { count: 'exact', head: true });
 
     // Buscar contatos cadastrados
-    const { data: contactsList } = await supabase
-      .from('contacts')
-      .select('*')
-      .order('updated_at', { ascending: false });
+    const { data: contactsList } = activeUserId
+      ? await supabase.from('contacts').select('*').eq('instagram_user_id', activeUserId).order('updated_at', { ascending: false })
+      : { data: [] };
 
     // Buscar últimos logs de eventos para exibição
     const { data: recentEvents } = await supabase

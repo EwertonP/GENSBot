@@ -2,13 +2,28 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from('automations')
-    .select('*')
-    .order('created_at', { ascending: false });
+  try {
+    // Buscar o ID da conta do Instagram conectada atualmente
+    const { data: config } = await supabase
+      .from('config')
+      .select('instagram_user_id')
+      .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    if (!config || !config.instagram_user_id) {
+      return NextResponse.json([]);
+    }
+
+    const { data, error } = await supabase
+      .from('automations')
+      .select('*')
+      .eq('instagram_user_id', config.instagram_user_id)
+      .order('created_at', { ascending: false });
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
@@ -19,9 +34,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nome e DM de boas-vindas são obrigatórios.' }, { status: 400 });
     }
 
+    // Buscar o ID da conta do Instagram conectada atualmente
+    const { data: config } = await supabase
+      .from('config')
+      .select('instagram_user_id')
+      .single();
+
+    if (!config || !config.instagram_user_id) {
+      return NextResponse.json({ error: 'Você precisa conectar uma conta do Instagram primeiro.' }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from('automations')
       .insert({
+        instagram_user_id: config.instagram_user_id,
         name: body.name,
         active: body.active ?? true,
         triggers: body.triggers || [],

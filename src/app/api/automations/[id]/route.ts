@@ -6,6 +6,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params;
     const body = await req.json();
 
+    // Buscar o ID da conta do Instagram conectada atualmente
+    const { data: config } = await supabase
+      .from('config')
+      .select('instagram_user_id')
+      .single();
+
+    if (!config || !config.instagram_user_id) {
+      return NextResponse.json({ error: 'Nenhuma conta do Instagram conectada.' }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from('automations')
       .update({
@@ -26,6 +36,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
+      .eq('instagram_user_id', config.instagram_user_id)
       .select()
       .single();
 
@@ -39,7 +50,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { error } = await supabase.from('automations').delete().eq('id', id);
+
+    // Buscar o ID da conta do Instagram conectada atualmente
+    const { data: config } = await supabase
+      .from('config')
+      .select('instagram_user_id')
+      .single();
+
+    if (!config || !config.instagram_user_id) {
+      return NextResponse.json({ error: 'Nenhuma conta do Instagram conectada.' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('automations')
+      .delete()
+      .eq('id', id)
+      .eq('instagram_user_id', config.instagram_user_id);
+
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err: any) {

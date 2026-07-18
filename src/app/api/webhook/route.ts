@@ -115,11 +115,12 @@ async function processWebhookEvent(payload: any) {
           // Ignorar comentários da própria conta
           if (fromUserId === myIgId) continue;
 
-          // Buscar automações ativas com gatilho de comentário
+          // Buscar automações ativas com gatilho de comentário pertencentes a esta conta
           const { data: automations } = await supabase
             .from('automations')
             .select('*')
             .eq('active', true)
+            .eq('instagram_user_id', myIgId)
             .contains('triggers', ['comment']);
 
           if (!automations) continue;
@@ -133,6 +134,7 @@ async function processWebhookEvent(payload: any) {
               // Upsert do contato
               await supabase.from('contacts').upsert({
                 instagram_id: fromUserId,
+                instagram_user_id: myIgId,
                 username: fromUsername,
                 last_automation_id: auto.id,
                 updated_at: new Date().toISOString(),
@@ -220,6 +222,7 @@ async function processWebhookEvent(payload: any) {
             // Atualizar last_response_at do contato (abre janela de 24h)
             await supabase.from('contacts').upsert({
               instagram_id: senderId,
+              instagram_user_id: myIgId,
               last_response_at: new Date().toISOString(),
               last_automation_id: auto.id,
               updated_at: new Date().toISOString(),
@@ -258,11 +261,12 @@ async function processWebhookEvent(payload: any) {
         const isStoryReply = !!messageData.reply_to?.story;
         const requiredTrigger = isStoryReply ? 'story' : 'dm';
 
-        // Buscar automações ativas com o gatilho correspondente
+        // Buscar automações ativas com o gatilho correspondente pertencentes a esta conta
         const { data: automations } = await supabase
           .from('automations')
           .select('*')
           .eq('active', true)
+          .eq('instagram_user_id', myIgId)
           .contains('triggers', [requiredTrigger]);
 
         if (!automations) continue;
@@ -272,6 +276,7 @@ async function processWebhookEvent(payload: any) {
             // Se casar a palavra-chave, manda a DM de boas-vindas direto
             await supabase.from('contacts').upsert({
               instagram_id: senderId,
+              instagram_user_id: myIgId,
               last_automation_id: auto.id,
               updated_at: new Date().toISOString(),
             });

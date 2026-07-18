@@ -15,6 +15,7 @@ create table if not exists config (
 -- Table: automations
 create table if not exists automations (
   id uuid primary key default gen_random_uuid(),
+  instagram_user_id text, -- ID of the Instagram page/user this automation belongs to
   name text not null,
   active boolean not null default true,
   triggers text[] not null, -- 'comment', 'story', 'dm'
@@ -36,6 +37,7 @@ create table if not exists automations (
 -- Table: contacts
 create table if not exists contacts (
   instagram_id text primary key,
+  instagram_user_id text, -- ID of the Instagram page/user this contact engaged with
   username text,
   first_contact_at timestamp with time zone default now(),
   last_response_at timestamp with time zone, -- Opens/extends 24h window
