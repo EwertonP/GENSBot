@@ -156,6 +156,19 @@ export default function Dashboard() {
     fetchStatusAndData();
   }, []);
 
+  useEffect(() => {
+    if (isConnected) {
+      fetch('/api/instagram/media')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.data) {
+            setMediaList(data.data);
+          }
+        })
+        .catch(err => console.error('Erro silencioso ao carregar mídias:', err));
+    }
+  }, [isConnected]);
+
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 5000);
@@ -953,51 +966,91 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    {automations.map(auto => (
-                      <div
-                        key={auto.id}
-                        onClick={() => handleEditAutomation(auto)}
-                        className={`bg-white border p-4 rounded-2xl cursor-pointer group transition-all flex flex-col gap-3 shadow-sm ${
-                          form.id === auto.id && isEditing
-                            ? 'border-blue-500 ring-2 ring-blue-500/10'
-                            : 'border-slate-200 hover:border-slate-350'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-800 text-sm truncate max-w-[150px]">{auto.name}</span>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                              auto.active
-                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                : 'bg-slate-50 text-slate-400 border border-slate-200'
-                            }`}>
-                              {auto.active ? 'Ativo' : 'Pausado'}
-                            </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteAutomation(auto.id!);
-                              }}
-                              className="p-1 hover:bg-rose-50 text-slate-450 hover:text-rose-500 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                    {automations.map(auto => {
+                      const postMedia = auto.specific_post_id ? mediaList.find(m => m.id === auto.specific_post_id) : null;
+                      return (
+                        <div
+                          key={auto.id}
+                          onClick={() => handleEditAutomation(auto)}
+                          className={`bg-white border p-4 rounded-2xl cursor-pointer group transition-all flex gap-3 shadow-sm items-start ${
+                            form.id === auto.id && isEditing
+                              ? 'border-violet-500 ring-2 ring-violet-500/10'
+                              : 'border-slate-200 hover:border-slate-350'
+                          }`}
+                        >
+                          {/* Quadradinho da imagem da publicação alvo se houver */}
+                          {auto.specific_post_id && (
+                            <div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden relative border border-slate-150 flex-shrink-0 mt-0.5">
+                              {postMedia ? (
+                                <img
+                                  src={postMedia.thumbnail_url || postMedia.media_url}
+                                  alt="Post Capa"
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-slate-400 bg-slate-50 text-center leading-3 p-0.5">
+                                  Post Selec.
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex-1 flex flex-col gap-2 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-slate-800 text-sm truncate flex-1">{auto.name}</span>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                                  auto.active
+                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                    : 'bg-slate-50 text-slate-400 border border-slate-200'
+                                }`}>
+                                  {auto.active ? 'Ativo' : 'Pausado'}
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteAutomation(auto.id!);
+                                  }}
+                                  className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-lg transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Badges de Gatilhos */}
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {auto.triggers.map(t => {
+                                let label = 'DM';
+                                if (t === 'comment') label = 'Comentários';
+                                if (t === 'story') label = 'Stories';
+                                return (
+                                  <span key={t} className="text-[9px] bg-violet-50 text-violet-750 font-extrabold px-1.5 py-0.5 rounded-md border border-violet-100 uppercase tracking-wider">
+                                    {label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+
+                            {/* Summary of Keywords */}
+                            {auto.keywords.length > 0 ? (
+                              <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                                {auto.keywords.slice(0, 3).map((kw, i) => (
+                                  <span key={i} className="text-[9px] bg-slate-50 border border-slate-200 text-slate-550 px-1.5 py-0.5 rounded font-medium font-mono">
+                                    {kw}
+                                  </span>
+                                ))}
+                                {auto.keywords.length > 3 && (
+                                  <span className="text-[9px] text-slate-400 font-bold">+ {auto.keywords.length - 3}</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[9px] text-slate-400 italic">Sem palavra-chave</span>
+                            )}
                           </div>
                         </div>
-
-                        {/* Summary of Keywords */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {auto.keywords.slice(0, 3).map((kw, i) => (
-                            <span key={i} className="text-[10px] bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded-lg font-medium font-mono">
-                              {kw}
-                            </span>
-                          ))}
-                          {auto.keywords.length > 3 && (
-                            <span className="text-[9px] text-slate-400 font-bold">+ {auto.keywords.length - 3}</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1129,20 +1182,39 @@ export default function Dashboard() {
                               {form.specific_post_id ? 'Trocar Publicação Selecionada' : 'Selecionar Post Específico'}
                               <ExternalLink className="w-3.5 h-3.5" />
                             </button>
-                            {form.specific_post_id && (
-                              <div className="flex items-center gap-2 bg-blue-50/50 border border-blue-100 rounded-xl py-1.5 px-3">
-                                <span className="text-[10px] font-bold text-blue-600 font-mono truncate max-w-[120px]">
-                                  Post: {form.specific_post_id}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => setForm(prev => ({ ...prev, specific_post_id: null }))}
-                                  className="text-xs text-blue-500 hover:text-rose-500 font-bold ml-1 cursor-pointer"
-                                >
-                                  Limpar
-                                </button>
-                              </div>
-                            )}
+                            {form.specific_post_id && (() => {
+                              const selectedMedia = mediaList.find(m => m.id === form.specific_post_id);
+                              return (
+                                <div className="flex items-center gap-3 bg-slate-50 border border-slate-150 rounded-xl p-2 animate-fade-in">
+                                  {selectedMedia && (
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden relative border border-slate-100 flex-shrink-0">
+                                      <img
+                                        src={selectedMedia.thumbnail_url || selectedMedia.media_url}
+                                        alt="Selected Post"
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[10px] font-bold text-slate-700 font-mono truncate max-w-[150px]">
+                                      ID: {form.specific_post_id}
+                                    </span>
+                                    {selectedMedia?.caption && (
+                                      <span className="text-[9px] text-slate-405 truncate max-w-[180px]">
+                                        {selectedMedia.caption}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setForm(prev => ({ ...prev, specific_post_id: null }))}
+                                    className="text-xs text-rose-500 hover:text-rose-600 font-bold ml-2 cursor-pointer"
+                                  >
+                                    Limpar
+                                  </button>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
