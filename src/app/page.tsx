@@ -379,10 +379,10 @@ export default function Dashboard() {
   // Drenar fila manualmente (para testes rápidos)
   const handleManualDrain = async () => {
     try {
-      const res = await fetch('/api/cron/drain', { method: 'POST' });
+      const res = await fetch('/api/queue/drain', { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        showToast(`Fila processada! Envia: ${data.processed?.length || 0} msgs.`, 'success');
+        showToast(data.message || `Fila processada! Envia: ${data.processed?.length || 0} msgs.`, 'success');
         fetchStatusAndData();
       } else {
         showToast(data.error || 'Erro ao drenar fila.', 'error');
