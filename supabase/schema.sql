@@ -39,6 +39,7 @@ create table if not exists contacts (
   instagram_id text primary key,
   instagram_user_id text, -- ID of the Instagram page/user this contact engaged with
   username text,
+  name text,
   first_contact_at timestamp with time zone default now(),
   last_response_at timestamp with time zone, -- Opens/extends 24h window
   last_automation_id uuid references automations(id) on delete set null,
@@ -117,6 +118,7 @@ alter table automations add column if not exists ask_email boolean not null defa
 alter table automations add column if not exists ask_phone boolean not null default false;
 alter table automations add column if not exists webhook_url text;
 
+alter table contacts add column if not exists name text;
 alter table contacts add column if not exists email text;
 alter table contacts add column if not exists phone text;
 alter table contacts add column if not exists conversation_state text not null default 'idle';

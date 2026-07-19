@@ -86,6 +86,25 @@ export async function POST(req: Request) {
 }
 
 // Processador do payload do webhook
+async function fetchInstagramUserProfile(senderId: string, accessToken: string) {
+  try {
+    const res = await fetch(`https://graph.facebook.com/v20.0/${senderId}?fields=username,name&access_token=${accessToken}`);
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        username: data.username || null,
+        name: data.name || null
+      };
+    } else {
+      const errData = await res.json();
+      console.error('Erro na resposta da API do perfil do Instagram:', errData);
+    }
+  } catch (err) {
+    console.error('Erro ao buscar perfil do Instagram:', err);
+  }
+  return { username: null, name: null };
+}
+
 async function processWebhookEvent(payload: any) {
   if (payload.object !== 'instagram' || !payload.entry) return;
 
@@ -160,11 +179,28 @@ async function processWebhookEvent(payload: any) {
                 welcomeText = `${auto.welcome_dm}\n\nPor favor, informe seu número de telefone/WhatsApp com DDD:`;
               }
 
+              // Obter ou atualizar informações de perfil (username/name)
+              const { data: existingContact } = await supabase
+                .from('contacts')
+                .select('name, username')
+                .eq('instagram_id', fromUserId)
+                .single();
+
+              let profileName = existingContact?.name || null;
+              let profileUsername = fromUsername || existingContact?.username || fromUserId;
+
+              if (!profileName) {
+                const profile = await fetchInstagramUserProfile(fromUserId, config.instagram_token);
+                profileName = profile.name;
+                if (profile.username) profileUsername = profile.username;
+              }
+
               // Upsert do contato
               await supabase.from('contacts').upsert({
                 instagram_id: fromUserId,
                 instagram_user_id: myIgId,
-                username: fromUsername,
+                username: profileUsername,
+                name: profileName,
                 last_automation_id: auto.id,
                 last_active_automation_id: auto.id,
                 conversation_state: nextState,
@@ -475,9 +511,27 @@ async function processWebhookEvent(payload: any) {
               welcomeText = `${auto.welcome_dm}\n\nPor favor, informe o seu telefone/WhatsApp com DDD para prosseguir:`;
             }
 
+            // Obter ou atualizar informações de perfil (username/name)
+            const { data: existingContact } = await supabase
+              .from('contacts')
+              .select('name, username')
+              .eq('instagram_id', senderId)
+              .single();
+
+            let profileName = existingContact?.name || null;
+            let profileUsername = existingContact?.username || senderId;
+
+            if (!profileName || profileUsername === senderId) {
+              const profile = await fetchInstagramUserProfile(senderId, config.instagram_token);
+              if (profile.name) profileName = profile.name;
+              if (profile.username) profileUsername = profile.username;
+            }
+
             await supabase.from('contacts').upsert({
               instagram_id: senderId,
               instagram_user_id: myIgId,
+              username: profileUsername,
+              name: profileName,
               last_automation_id: auto.id,
               last_active_automation_id: auto.id,
               conversation_state: nextState,

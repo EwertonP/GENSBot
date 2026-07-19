@@ -1431,8 +1431,10 @@ export default function Dashboard() {
                 <table className="w-full text-sm text-left text-slate-600">
                   <thead className="text-xs uppercase text-slate-400 font-bold border-b border-slate-100">
                     <tr>
-                      <th className="py-3 px-4">Usuário ID</th>
-                      <th className="py-3 px-4">Gatilho Primário</th>
+                      <th className="py-3 px-4">Nome</th>
+                      <th className="py-3 px-4">Instagram</th>
+                      <th className="py-3 px-4">ID do Usuário</th>
+                      <th className="py-3 px-4">Dados Capturados</th>
                       <th className="py-3 px-4">Última Interação</th>
                       <th className="py-3 px-4">Cadastrado em</th>
                     </tr>
@@ -1440,17 +1442,39 @@ export default function Dashboard() {
                   <tbody className="divide-y divide-slate-100">
                     {contacts.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="py-12 text-center text-slate-400">Nenhum contato cadastrado no banco de dados até o momento.</td>
+                        <td colSpan={6} className="py-12 text-center text-slate-400">Nenhum contato cadastrado no banco de dados até o momento.</td>
                       </tr>
                     ) : (
                       contacts.map(item => (
-                        <tr key={item.id} className="hover:bg-slate-50/50">
-                          <td className="py-3.5 px-4 font-mono text-xs text-slate-700">@{item.instagram_id}</td>
-                          <td className="py-3.5 px-4 font-bold text-slate-600 text-xs">
-                            {item.last_automation_id ? `Fluxo: ${item.last_automation_id.substring(0, 8)}...` : 'Nenhum'}
+                        <tr key={item.instagram_id || item.id} className="hover:bg-slate-50/50">
+                          <td className="py-3.5 px-4 font-bold text-slate-800 text-sm">
+                            {item.name || <span className="text-slate-400 font-normal italic">Não informado</span>}
+                          </td>
+                          <td className="py-3.5 px-4 text-xs font-semibold text-violet-600">
+                            {item.username ? (
+                              <a
+                                href={`https://instagram.com/${item.username}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline inline-flex items-center gap-1"
+                              >
+                                @{item.username}
+                                <ExternalLink className="w-3 h-3 text-slate-400" />
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 italic">Desconhecido</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-xs text-slate-500">{item.instagram_id}</td>
+                          <td className="py-3.5 px-4 text-xs text-slate-600">
+                            <div className="flex flex-col gap-0.5">
+                              {item.email && <span className="text-slate-500">📧 {item.email}</span>}
+                              {item.phone && <span className="text-slate-500">📱 {item.phone}</span>}
+                              {!item.email && !item.phone && <span className="text-slate-450 italic">Nenhum</span>}
+                            </div>
                           </td>
                           <td className="py-3.5 px-4 text-xs text-slate-500">
-                            {item.last_response_at ? new Date(item.last_response_at).toLocaleString('pt-BR') : 'Não registrado'}
+                            {item.last_response_at ? new Date(item.last_response_at).toLocaleString('pt-BR') : 'Sem interação'}
                           </td>
                           <td className="py-3.5 px-4 text-xs text-slate-400">
                             {new Date(item.first_contact_at || item.created_at).toLocaleDateString('pt-BR')}
