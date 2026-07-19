@@ -443,13 +443,9 @@ export default function Dashboard() {
       {/* 1. Left Sidebar Navigation */}
       <aside className="w-64 bg-white text-slate-700 flex flex-col flex-shrink-0 select-none border-r border-slate-100">
         {/* Brand Header */}
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-650 flex items-center justify-center shadow-md shadow-violet-900/10">
-            <MessageSquare className="w-4.5 h-4.5 text-white fill-white/10" />
-          </div>
-          <div>
-            <h1 className="text-base font-black text-slate-800 tracking-tight">InstaFlow</h1>
-            <p className="text-[9px] text-violet-600 font-bold tracking-wider uppercase">eGrow Style</p>
+        <div className="px-6 py-5 border-b border-slate-100">
+          <div className="bg-[#CEF96F] text-[#0A3A20] font-black text-center py-2 px-4 rounded-xl tracking-wider text-xs uppercase shadow-2xs font-mono w-full">
+            Clean Mind
           </div>
         </div>
 
@@ -475,11 +471,11 @@ export default function Dashboard() {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
                     active
-                      ? 'bg-violet-50 text-violet-705 shadow-xs'
+                      ? 'bg-slate-100 text-[#0A3A20] font-bold'
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${active ? 'text-violet-600' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 ${active ? 'text-[#0A3A20]' : 'text-slate-400'}`} />
                   {item.label}
                 </button>
               );
@@ -503,11 +499,11 @@ export default function Dashboard() {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
                     active
-                      ? 'bg-violet-50 text-violet-705 shadow-xs'
+                      ? 'bg-slate-100 text-[#0A3A20] font-bold'
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${active ? 'text-violet-600' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 ${active ? 'text-[#0A3A20]' : 'text-slate-400'}`} />
                   {item.label}
                 </button>
               );
@@ -574,7 +570,7 @@ export default function Dashboard() {
             ) : (
               <button
                 onClick={handleConnectInstagram}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-550 text-white font-bold text-xs transition-all shadow-md shadow-violet-500/10 cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0A3A20] hover:bg-[#125835] text-white font-bold text-xs transition-all shadow-md shadow-emerald-950/10 cursor-pointer"
               >
                 <Instagram className="w-3.5 h-3.5" />
                 Conectar Instagram
@@ -675,7 +671,7 @@ export default function Dashboard() {
                 {/* Connection Box / Banner */}
                 <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between min-h-[250px]">
                   <div className="flex flex-col gap-2">
-                    <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Integração Oficial</span>
+                    <span className="text-xs font-bold text-[#0B3B24] uppercase tracking-wider">Integração Oficial</span>
                     <h3 className="text-xl font-bold text-slate-800">Conecte o Instagram e inicie seu funil reativo</h3>
                     <p className="text-sm text-slate-500 max-w-lg leading-relaxed">
                       O InstaFlow monitora comentários e envia DMs estruturadas de forma automática para quem comentar nos seus posts do Instagram. O sistema respeita as regras de conformidade da Meta e o limite de segurança de disparos.
@@ -691,7 +687,7 @@ export default function Dashboard() {
                     ) : (
                       <button
                         onClick={handleConnectInstagram}
-                        className="w-full sm:w-auto px-6 py-3 rounded-full bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-550 text-white font-bold text-sm shadow-md shadow-violet-500/10 cursor-pointer flex items-center justify-center gap-2"
+                        className="w-full sm:w-auto px-6 py-3 rounded-full bg-[#0A3A20] hover:bg-[#125835] text-white font-bold text-sm shadow-md shadow-emerald-950/10 cursor-pointer flex items-center justify-center gap-2"
                       >
                         <Instagram className="w-4 h-4" />
                         Vincular Conta do Instagram
@@ -705,10 +701,10 @@ export default function Dashboard() {
                   <h4 className="font-bold text-slate-800 text-sm">Funil de Conversão (Leads)</h4>
                   <div className="flex flex-col gap-3.5">
                     {[
-                      { label: 'Comentários Acionados', val: funnel.comments, color: 'bg-violet-500' },
-                      { label: 'DMs de Boas-Vindas', val: funnel.welcomeDms, color: 'bg-indigo-500' },
-                      { label: 'Cliques no Botão', val: funnel.clicks, color: 'bg-blue-500' },
-                      { label: 'Leads Qualificados', val: funnel.leads, color: 'bg-emerald-500' }
+                      { label: 'Comentários Acionados', val: funnel.comments, color: 'bg-[#0A3A20]' },
+                      { label: 'DMs de Boas-Vindas', val: funnel.welcomeDms, color: 'bg-[#1E5E3A]' },
+                      { label: 'Cliques no Botão', val: funnel.clicks, color: 'bg-[#CEF96F]' },
+                      { label: 'Leads Qualificados', val: funnel.leads, color: 'bg-[#22c55e]' }
                     ].map((step, idx, arr) => {
                       const maxVal = arr[0].val || 1;
                       const percent = Math.round((step.val / maxVal) * 100) || 0;
@@ -808,12 +804,12 @@ export default function Dashboard() {
                           onClick={() => setSelectedContactId(c.instagram_id)}
                           className={`p-3.5 rounded-xl cursor-pointer transition-all flex flex-col gap-1 ${
                             isSelected
-                              ? 'bg-white border border-violet-100 shadow-xs ring-1 ring-violet-500/5'
+                              ? 'bg-slate-50 border border-slate-200 shadow-xs ring-1 ring-[#0A3A20]/5'
                               : 'hover:bg-slate-100/70 border border-transparent'
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className={`text-xs font-bold ${isSelected ? 'text-violet-700' : 'text-slate-700'}`}>
+                            <span className={`text-xs font-bold ${isSelected ? 'text-[#0A3A20]' : 'text-slate-700'}`}>
                               @{c.username || c.instagram_id}
                             </span>
                             {c.conversation_state && c.conversation_state !== 'idle' && (
@@ -883,7 +879,7 @@ export default function Dashboard() {
                                 className={`p-3.5 rounded-2xl text-xs max-w-[75%] leading-relaxed ${
                                   isInbound
                                     ? 'bg-slate-100 text-slate-800 rounded-tl-xs border border-slate-200'
-                                    : 'bg-gradient-to-r from-violet-600 to-indigo-650 text-white rounded-tr-xs shadow-xs'
+                                    : 'bg-gradient-to-r from-[#0A3A20] to-[#125835] text-white rounded-tr-xs shadow-xs'
                                 }`}
                               >
                                 {msg.text}
@@ -904,12 +900,12 @@ export default function Dashboard() {
                         placeholder="Digite uma mensagem para enviar..."
                         value={chatInput}
                         onChange={e => setChatInput(e.target.value)}
-                        className="flex-1 bg-slate-50 border border-slate-200 focus:border-violet-500 rounded-full px-4 py-2.5 text-xs focus:outline-none text-slate-800 transition-all"
+                        className="flex-1 bg-slate-50 border border-slate-200 focus:border-[#0A3A20] rounded-full px-4 py-2.5 text-xs focus:outline-none text-slate-800 transition-all"
                       />
                       <button
                         type="submit"
                         disabled={sendingMessage || !chatInput.trim()}
-                        className="p-2.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-550 text-white transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
+                        className="p-2.5 rounded-full bg-[#0A3A20] hover:bg-[#125835] text-white transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
                       >
                         <Send className="w-4.5 h-4.5 text-white" />
                       </button>
@@ -917,8 +913,8 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-10">
-                    <div className="p-4 rounded-full bg-violet-50 text-violet-600 border border-violet-100">
-                      <MessageSquare className="w-8 h-8 text-violet-500" />
+                    <div className="p-4 rounded-full bg-[#F0FDF4] text-[#0A3A20] border border-[#CEF96F]/30">
+                      <MessageSquare className="w-8 h-8 text-[#0A3A20]" />
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-700">Selecione uma conversa</h4>
@@ -945,7 +941,7 @@ export default function Dashboard() {
                       resetForm();
                       setIsEditing(true);
                     }}
-                    className="flex items-center gap-1.5 text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-550 text-white px-4 py-2 rounded-full transition-all shadow-sm shadow-violet-500/10 cursor-pointer"
+                    className="flex items-center gap-1.5 text-xs font-bold bg-[#0A3A20] hover:bg-[#125835] text-white px-4 py-2 rounded-full transition-all shadow-sm shadow-emerald-950/10 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Novo Fluxo
@@ -974,7 +970,7 @@ export default function Dashboard() {
                           onClick={() => handleEditAutomation(auto)}
                           className={`bg-white border p-4 rounded-2xl cursor-pointer group transition-all flex gap-3 shadow-sm items-start ${
                             form.id === auto.id && isEditing
-                              ? 'border-violet-500 ring-2 ring-violet-500/10'
+                              ? 'border-[#0A3A20] ring-2 ring-[#0A3A20]/10'
                               : 'border-slate-200 hover:border-slate-350'
                           }`}
                         >
@@ -1025,7 +1021,7 @@ export default function Dashboard() {
                                 if (t === 'comment') label = 'Comentários';
                                 if (t === 'story') label = 'Stories';
                                 return (
-                                  <span key={t} className="text-[9px] bg-violet-50 text-violet-750 font-extrabold px-1.5 py-0.5 rounded-md border border-violet-100 uppercase tracking-wider">
+                                  <span key={t} className="text-[9px] bg-[#F0FDF4] text-[#0A3A20] font-extrabold px-1.5 py-0.5 rounded-md border border-[#CEF96F]/30 uppercase tracking-wider animate-fade-in">
                                     {label}
                                   </span>
                                 );
