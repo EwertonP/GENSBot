@@ -601,7 +601,7 @@ export default function Dashboard() {
                     val: stats.automations,
                     sub: 'vs últimos 30 dias',
                     trend: '↑ 14.3%',
-                    colorHex: '#7C3AED',
+                    colorHex: '#0A3A20',
                     wavePath: 'M0,35 Q20,10 40,30 T80,15 T120,35 T160,10'
                   },
                   {
@@ -609,7 +609,7 @@ export default function Dashboard() {
                     val: stats.contacts,
                     sub: 'vs últimos 30 dias',
                     trend: '↑ 24.5%',
-                    colorHex: '#10B981',
+                    colorHex: '#22C55E',
                     wavePath: 'M0,30 Q20,40 40,15 T80,25 T120,5 T160,20'
                   },
                   {
@@ -617,7 +617,7 @@ export default function Dashboard() {
                     val: stats.queue,
                     sub: 'vs últimos 30 dias',
                     trend: '↑ 5.2%',
-                    colorHex: '#F59E0B',
+                    colorHex: '#CEF96F',
                     wavePath: 'M0,20 Q20,5 40,25 T80,10 T120,30 T160,5'
                   },
                   {
@@ -625,21 +625,21 @@ export default function Dashboard() {
                     val: stats.events,
                     sub: 'vs últimos 30 dias',
                     trend: '↑ 32.8%',
-                    colorHex: '#3B82F6',
+                    colorHex: '#1E5E3A',
                     wavePath: 'M0,35 Q20,15 40,35 T80,10 T120,25 T160,15'
                   },
                 ].map((item, idx) => {
                   return (
-                    <div key={idx} className="bg-white border border-slate-150 rounded-2xl p-5 flex flex-col justify-between shadow-xs relative overflow-hidden group hover:border-slate-350 transition-all h-36">
-                      <div className="flex flex-col gap-1 Z-10">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.label}</span>
+                    <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-slate-350 transition-all h-36">
+                      <div className="flex flex-col gap-1 z-10">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{item.label}</span>
                         <div className="flex items-baseline gap-2.5 mt-1">
-                          <span className="text-2xl font-black text-slate-800 leading-tight">{item.val}</span>
-                          <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full font-bold">
+                          <span className="text-2xl font-black text-slate-900 leading-tight">{item.val}</span>
+                          <span className="text-[10px] text-[#0A3A20] bg-[#F0FDF4] border border-[#CEF96F]/30 px-1.5 py-0.5 rounded-full font-bold">
                             {item.trend}
                           </span>
                         </div>
-                        <span className="text-[10px] text-slate-400 font-medium mt-0.5">{item.sub}</span>
+                        <span className="text-[10px] text-slate-500 font-medium mt-0.5">{item.sub}</span>
                       </div>
                       
                       {/* Premium Glowing Wave Chart Sparkline */}
@@ -669,7 +669,7 @@ export default function Dashboard() {
               {/* Dashboard Layout columns */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Connection Box / Banner */}
-                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between min-h-[250px]">
+                <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between min-h-[250px]">
                   <div className="flex flex-col gap-2">
                     <span className="text-xs font-bold text-[#0B3B24] uppercase tracking-wider">Integração Oficial</span>
                     <h3 className="text-xl font-bold text-slate-800">Conecte o Instagram e inicie seu funil reativo</h3>
@@ -728,7 +728,7 @@ export default function Dashboard() {
               </div>
 
               {/* Activity Overview */}
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-slate-800">Envios Pendentes / Recentes na Fila</h4>
                   <button onClick={() => setActiveTab('logs')} className="text-xs font-bold text-blue-600 hover:text-blue-500 transition-colors">
@@ -792,40 +792,55 @@ export default function Dashboard() {
                   <h3 className="font-bold text-slate-800 text-sm">Conversas Recentes</h3>
                   <p className="text-[10px] text-slate-400">Clique para abrir o histórico de mensagens</p>
                 </div>
-                <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5">
+                <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2">
                   {contacts.length === 0 ? (
-                    <div className="text-center py-10 text-xs text-slate-400">Nenhum contato ativo.</div>
+                    <div className="text-center py-10 text-xs text-slate-500">Nenhum contato ativo.</div>
                   ) : (
                     contacts.map(c => {
                       const isSelected = selectedContactId === c.instagram_id;
+                      const displayName = c.full_name || c.username || 'User';
+                      const initials = displayName.slice(0, 2).toUpperCase();
                       return (
                         <div
                           key={c.instagram_id}
                           onClick={() => setSelectedContactId(c.instagram_id)}
-                          className={`p-3.5 rounded-xl cursor-pointer transition-all flex flex-col gap-1 ${
+                          className={`p-3 rounded-xl cursor-pointer transition-all flex items-center gap-3 border ${
                             isSelected
-                              ? 'bg-slate-50 border border-slate-200 shadow-xs ring-1 ring-[#0A3A20]/5'
-                              : 'hover:bg-slate-100/70 border border-transparent'
+                              ? 'bg-white border-slate-200 shadow-sm ring-1 ring-[#0A3A20]/5'
+                              : 'bg-transparent border-transparent hover:bg-slate-100/60'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className={`text-xs font-bold ${isSelected ? 'text-[#0A3A20]' : 'text-slate-700'}`}>
+                          {/* Circular Avatar */}
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${
+                            isSelected
+                              ? 'bg-[#0A3A20] text-white shadow-2xs'
+                              : 'bg-[#F0FDF4] text-[#0A3A20] border border-[#CEF96F]/30'
+                          }`}>
+                            {initials}
+                          </div>
+
+                          {/* Contact Info details */}
+                          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                            <div className="flex items-center justify-between gap-1.5">
+                              <span className={`text-xs font-bold truncate ${isSelected ? 'text-[#0A3A20]' : 'text-slate-800'}`}>
+                                {c.full_name || `@${c.username || c.instagram_id}`}
+                              </span>
+                              {c.conversation_state && c.conversation_state !== 'idle' && (
+                                <span className="text-[8px] bg-amber-50 text-amber-700 border border-amber-200 font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0">
+                                  Fila
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-500 truncate font-mono">
                               @{c.username || c.instagram_id}
                             </span>
-                            {c.conversation_state && c.conversation_state !== 'idle' && (
-                              <span className="text-[9px] bg-amber-50 text-amber-600 border border-amber-100 font-bold px-1.5 py-0.5 rounded-full">
-                                {c.conversation_state === 'waiting_email' ? 'Aguardando E-mail' : 'Aguardando Fone'}
-                              </span>
+                            {(c.email || c.phone) && (
+                              <div className="flex flex-col gap-0.5 text-[9px] text-slate-600 font-medium pt-0.5">
+                                {c.email && <span className="truncate">📧 {c.email}</span>}
+                                {c.phone && <span className="truncate">📱 {c.phone}</span>}
+                              </div>
                             )}
                           </div>
-                          {(c.email || c.phone) ? (
-                            <div className="flex flex-col gap-0.5 text-[9px] text-slate-400 font-medium">
-                              {c.email && <span>📧 {c.email}</span>}
-                              {c.phone && <span>📱 {c.phone}</span>}
-                            </div>
-                          ) : (
-                            <span className="text-[9px] text-slate-400">Sem dados de contato</span>
-                          )}
                         </div>
                       );
                     })
@@ -949,7 +964,7 @@ export default function Dashboard() {
                 </div>
 
                 {automations.length === 0 ? (
-                  <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center flex flex-col items-center gap-4 shadow-sm">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center flex flex-col items-center gap-4 shadow-sm">
                     <div className="p-3.5 rounded-full bg-slate-50 text-slate-400 border border-slate-200">
                       <Settings className="w-6 h-6" />
                     </div>
@@ -1057,35 +1072,35 @@ export default function Dashboard() {
                   <form onSubmit={handleSaveAutomation} className="flex flex-col gap-6">
                     
                     {/* Header of Flow Editor */}
-                    <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex items-center justify-between">
-                      <div>
+                    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
+                      <div className="flex-1">
                         <input
                           type="text"
                           required
                           value={form.name}
                           onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                           placeholder="Nome do Fluxo (ex: Capturar Leads)"
-                          className="font-bold text-slate-800 text-lg focus:outline-none border-b border-transparent focus:border-blue-500 pb-0.5"
+                          className="font-extrabold text-slate-900 text-lg focus:outline-none border-b border-slate-100 focus:border-[#0A3A20] pb-1 w-full max-w-sm transition-all"
                         />
-                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">Configuração do Sequenciamento</p>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1.5">Configuração do Sequenciamento</p>
                       </div>
                       
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         {/* Active toggle */}
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
                           <input
                             type="checkbox"
                             checked={form.active}
                             onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-violet-600 relative"></div>
+                          <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-350 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0A3A20] relative"></div>
                           <span className="text-xs font-bold text-slate-600">{form.active ? 'Ativo' : 'Pausado'}</span>
                         </label>
 
                         <button
                           type="submit"
-                          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-500 hover:to-indigo-550 text-white font-bold text-sm shadow-md shadow-violet-500/10 cursor-pointer transition-all"
+                          className="px-5 py-2.5 rounded-full bg-[#0A3A20] hover:bg-[#125835] text-white font-bold text-sm shadow-md shadow-emerald-950/10 cursor-pointer transition-all"
                         >
                           Salvar Fluxo
                         </button>
@@ -1093,14 +1108,13 @@ export default function Dashboard() {
                     </div>
 
                     {/* VERTICAL FLOW STEP CARDS CONTAINER */}
-                    <div className="flex flex-col gap-4 relative">
-                      
+                    <div className="flex flex-col gap-6 relative pl-9 before:content-[''] before:absolute before:left-[17px] before:top-4 before:bottom-4 before:w-[2px] before:bg-slate-200">
                       {/* Step 1: Gatilho / Trigger Card */}
-                      <div className="bg-white border border-slate-150 rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-slate-250 transition-colors">
+                      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                        <div className="w-7 h-7 rounded-full bg-[#0A3A20] text-[#CEF96F] flex items-center justify-center font-bold text-xs border-2 border-white shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                          1
+                        </div>
                         <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold text-xs border border-violet-100">
-                            1
-                          </div>
                           <h4 className="font-bold text-slate-800 text-sm">Configuração de Gatilhos de Entrada</h4>
                         </div>
 
@@ -1128,7 +1142,7 @@ export default function Dashboard() {
                                   }}
                                   className={`px-4 py-2 rounded-full text-xs font-bold transition-all border cursor-pointer ${
                                     active
-                                      ? 'bg-violet-50 border-violet-200 text-violet-700 shadow-2xs'
+                                      ? 'bg-[#0A3A20] border-[#0A3A20] text-white shadow-2xs'
                                       : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                                   }`}
                                 >
@@ -1148,7 +1162,7 @@ export default function Dashboard() {
                               placeholder="ex: quero, cupom, info"
                               value={form.keywords.join(', ')}
                               onChange={handleKeywordsChange}
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-400 transition-all font-mono"
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-400 transition-all font-mono"
                             />
                           </div>
 
@@ -1157,7 +1171,7 @@ export default function Dashboard() {
                             <select
                               value={form.match_type}
                               onChange={e => setForm(prev => ({ ...prev, match_type: e.target.value as any }))}
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-700 font-semibold cursor-pointer transition-all"
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-750 font-semibold cursor-pointer transition-all"
                             >
                               <option value="contains">Contém a palavra-chave</option>
                               <option value="exact">Exato (Palavra-chave exata)</option>
@@ -1181,7 +1195,7 @@ export default function Dashboard() {
                             {form.specific_post_id && (() => {
                               const selectedMedia = mediaList.find(m => m.id === form.specific_post_id);
                               return (
-                                <div className="flex items-center gap-3 bg-slate-50 border border-slate-150 rounded-xl p-2 animate-fade-in">
+                                <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-2 animate-fade-in">
                                   {selectedMedia && (
                                     <div className="w-12 h-12 rounded-lg overflow-hidden relative border border-slate-100 flex-shrink-0">
                                       <img
@@ -1196,7 +1210,7 @@ export default function Dashboard() {
                                       ID: {form.specific_post_id}
                                     </span>
                                     {selectedMedia?.caption && (
-                                      <span className="text-[9px] text-slate-405 truncate max-w-[180px]">
+                                      <span className="text-[9px] text-slate-500 truncate max-w-[180px]">
                                         {selectedMedia.caption}
                                       </span>
                                     )}
@@ -1215,17 +1229,12 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      {/* Connector Arrow */}
-                      <div className="flex justify-center h-4 items-center -my-2.5 z-10 pointer-events-none">
-                        <div className="h-6 w-[2px] bg-slate-200 relative after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:border-l-4 after:border-r-4 after:border-t-[6px] after:border-l-transparent after:border-r-transparent after:border-t-slate-350"></div>
-                      </div>
-
                       {/* Step 2: Resposta Pública Card */}
-                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                        <div className="w-7 h-7 rounded-full bg-[#0A3A20] text-[#CEF96F] flex items-center justify-center font-bold text-xs border-2 border-white shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                          2
+                        </div>
                         <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                            2
-                          </div>
                           <h4 className="font-bold text-slate-800 text-sm">Resposta Automática no Post (Comentário público)</h4>
                         </div>
 
@@ -1237,12 +1246,12 @@ export default function Dashboard() {
                               placeholder="ex: Te chamei no direct! Dá uma olhada lá."
                               value={publicReplyInput}
                               onChange={e => setPublicReplyInput(e.target.value)}
-                              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-850 placeholder-slate-400"
+                              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-400"
                             />
                             <button
                               type="button"
                               onClick={handleAddPublicReply}
-                              className="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors cursor-pointer"
+                              className="px-4 py-2.5 rounded-xl bg-[#0A3A20] text-white font-bold text-xs hover:bg-[#125835] transition-colors cursor-pointer"
                             >
                               Adicionar
                             </button>
@@ -1253,12 +1262,12 @@ export default function Dashboard() {
                         {form.public_replies.length > 0 && (
                           <div className="flex flex-col gap-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/60 max-h-[160px] overflow-y-auto">
                             {form.public_replies.map((reply, index) => (
-                              <div key={index} className="flex items-center justify-between gap-3 text-xs bg-white py-2 px-3.5 rounded-xl border border-slate-150 shadow-xs">
-                                <span className="text-slate-700 truncate">{reply}</span>
+                              <div key={index} className="flex items-center justify-between gap-3 text-xs bg-white py-2 px-3.5 rounded-xl border border-slate-200 shadow-xs animate-fade-in">
+                                <span className="text-slate-700 truncate font-semibold">{reply}</span>
                                 <button
                                   type="button"
                                   onClick={() => handleRemovePublicReply(index)}
-                                  className="text-slate-400 hover:text-rose-500 font-bold flex-shrink-0 cursor-pointer"
+                                  className="text-slate-500 hover:text-rose-500 font-bold flex-shrink-0 cursor-pointer text-[10px]"
                                 >
                                   Remover
                                 </button>
@@ -1268,17 +1277,12 @@ export default function Dashboard() {
                         )}
                       </div>
 
-                      {/* Connector Arrow */}
-                      <div className="flex justify-center h-4 items-center -my-2.5 z-10 pointer-events-none">
-                        <div className="h-6 w-[2px] bg-slate-200 relative after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:border-l-4 after:border-r-4 after:border-t-[6px] after:border-l-transparent after:border-r-transparent after:border-t-slate-350"></div>
-                      </div>
-
                       {/* Step 3: Mensagem DM com Quick Reply Card */}
-                      <div className="bg-white border border-slate-150 rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-slate-250 transition-colors">
+                      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                        <div className="w-7 h-7 rounded-full bg-[#0A3A20] text-[#CEF96F] flex items-center justify-center font-bold text-xs border-2 border-white shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                          3
+                        </div>
                         <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center font-bold text-xs border border-violet-100">
-                            3
-                          </div>
                           <h4 className="font-bold text-slate-800 text-sm">Mensagem Privada Inicial (DM no Direct)</h4>
                         </div>
 
@@ -1291,7 +1295,7 @@ export default function Dashboard() {
                               value={form.welcome_dm}
                               onChange={e => setForm(prev => ({ ...prev, welcome_dm: e.target.value }))}
                               rows={3}
-                              className="bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500 text-slate-800 placeholder-slate-450 transition-all resize-none"
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-400 transition-all resize-none"
                             />
                           </div>
 
@@ -1303,7 +1307,7 @@ export default function Dashboard() {
                               placeholder="Ex: Sim, quero!"
                               value={form.quick_reply_button || ''}
                               onChange={e => setForm(prev => ({ ...prev, quick_reply_button: e.target.value || null }))}
-                              className="bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500 text-slate-800 placeholder-slate-400 transition-all font-semibold"
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-400 transition-all font-semibold"
                             />
                           </div>
 
@@ -1316,7 +1320,7 @@ export default function Dashboard() {
                                   type="checkbox"
                                   checked={form.ask_email || false}
                                   onChange={e => setForm(prev => ({ ...prev, ask_email: e.target.checked }))}
-                                  className="rounded border-slate-350 text-violet-650 focus:ring-violet-500 w-4 h-4"
+                                  className="rounded border-slate-350 text-[#0A3A20] focus:ring-[#0A3A20] w-4 h-4"
                                 />
                                 <span className="text-xs text-slate-600 font-semibold">Solicitar E-mail</span>
                               </label>
@@ -1326,7 +1330,7 @@ export default function Dashboard() {
                                   type="checkbox"
                                   checked={form.ask_phone || false}
                                   onChange={e => setForm(prev => ({ ...prev, ask_phone: e.target.checked }))}
-                                  className="rounded border-slate-350 text-violet-650 focus:ring-violet-500 w-4 h-4"
+                                  className="rounded border-slate-350 text-[#0A3A20] focus:ring-[#0A3A20] w-4 h-4"
                                 />
                                 <span className="text-xs text-slate-600 font-semibold">Solicitar Telefone</span>
                               </label>
@@ -1340,7 +1344,7 @@ export default function Dashboard() {
                                   placeholder="https://hook.us1.make.com/..."
                                   value={form.webhook_url || ''}
                                   onChange={e => setForm(prev => ({ ...prev, webhook_url: e.target.value }))}
-                                  className="bg-slate-50 border border-slate-150 focus:border-violet-500 rounded-xl px-4 py-2 text-xs focus:outline-none text-slate-800 placeholder-slate-400 font-mono"
+                                  className="bg-slate-50 border border-slate-200 focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 rounded-xl px-4 py-2 text-xs focus:outline-none text-slate-800 placeholder-slate-400 font-mono"
                                 />
                               </div>
                             )}
@@ -1349,19 +1353,18 @@ export default function Dashboard() {
                       </div>
 
                       {/* Conditional Connector Dotted Line */}
-                      <div className="flex flex-col items-center -my-3 z-10 pointer-events-none select-none">
-                        <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                          Se o usuário clicar no botão
+                      <div className="relative my-1.5 z-10 pointer-events-none select-none">
+                        <span className="text-[9px] font-black text-[#0A3A20] bg-[#F0FDF4] border border-[#CEF96F]/50 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap animate-fade-in">
+                          Click
                         </span>
-                        <div className="h-6 w-[2px] border-l border-dashed border-blue-400 relative after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:border-l-4 after:border-r-4 after:border-t-[6px] after:border-l-transparent after:border-r-transparent after:border-t-blue-500"></div>
                       </div>
 
                       {/* Step 4: Card de Link DM */}
-                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                        <div className="w-7 h-7 rounded-full bg-[#0A3A20] text-[#CEF96F] flex items-center justify-center font-bold text-xs border-2 border-white shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                          4
+                        </div>
                         <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                            4
-                          </div>
                           <h4 className="font-bold text-slate-800 text-sm">Card de Envio do Link de Acesso</h4>
                         </div>
 
@@ -1373,7 +1376,7 @@ export default function Dashboard() {
                               value={form.link_text || ''}
                               onChange={e => setForm(prev => ({ ...prev, link_text: e.target.value || null }))}
                               rows={2}
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-450 transition-all resize-none"
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-455 transition-all resize-none"
                             />
                           </div>
 
@@ -1386,7 +1389,7 @@ export default function Dashboard() {
                                 placeholder="Acessar Conteúdo"
                                 value={form.link_button_label || ''}
                                 onChange={e => setForm(prev => ({ ...prev, link_button_label: e.target.value || null }))}
-                                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-400 font-semibold"
+                                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-400 font-semibold"
                               />
                             </div>
 
@@ -1397,24 +1400,24 @@ export default function Dashboard() {
                                 placeholder="https://sualandingpage.com"
                                 value={form.link_url || ''}
                                 onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
-                                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-400 font-mono"
+                                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-400 font-mono"
                               />
                             </div>
                           </div>
 
                           {/* Preview Card */}
-                          <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 flex flex-col gap-2.5 max-w-sm">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Visualização do Card DM</span>
+                          <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col gap-2.5 max-w-sm">
+                            <span className="text-[9px] font-bold text-slate-550 uppercase tracking-widest">Visualização do Card DM</span>
                             <div className="bg-white border border-slate-150 rounded-xl overflow-hidden shadow-xs flex flex-col">
                               {/* Abstract image gradient */}
-                              <div className="h-28 w-full bg-gradient-to-tr from-purple-600 via-pink-500 to-amber-400 flex items-center justify-center text-white/90 text-sm font-semibold select-none">
+                              <div className="h-28 w-full bg-gradient-to-tr from-[#0A3A20] via-[#125835] to-[#CEF96F] flex items-center justify-center text-white text-sm font-semibold select-none">
                                 Miniatura do Card
                               </div>
                               <div className="p-3 flex flex-col gap-1 border-b border-slate-100">
                                 <span className="font-bold text-slate-700 text-xs truncate">{form.link_text || 'Aqui está o seu link:'}</span>
-                                <span className="text-[10px] text-slate-400">Toque no botão para acessar</span>
+                                <span className="text-[10px] text-slate-500">Toque no botão para acessar</span>
                               </div>
-                              <div className="text-center py-2 text-blue-500 font-bold text-xs select-none">
+                              <div className="text-center py-2 text-[#0A3A20] font-bold text-xs select-none">
                                 {form.link_button_label || 'Acessar Link'}
                               </div>
                             </div>
@@ -1423,16 +1426,18 @@ export default function Dashboard() {
                       </div>
 
                       {/* Optional Connector */}
-                      <div className="flex justify-center h-4 items-center -my-2.5 z-10 pointer-events-none">
-                        <div className="h-6 w-[2px] bg-slate-200 relative after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:border-l-4 after:border-r-4 after:border-t-[6px] after:border-l-transparent after:border-r-transparent after:border-t-slate-350"></div>
+                      <div className="relative my-1.5 z-10 pointer-events-none select-none">
+                        <span className="text-[9px] font-black text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap">
+                          Aguardar
+                        </span>
                       </div>
 
                       {/* Step 5: Lembrete Card (Opcional) */}
-                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-slate-300 transition-colors">
+                        <div className="w-7 h-7 rounded-full bg-slate-400 text-white flex items-center justify-center font-bold text-xs border-2 border-white shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                          5
+                        </div>
                         <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs border border-amber-100">
-                            5
-                          </div>
                           <h4 className="font-bold text-slate-800 text-sm">Lembrete Automático (Follow-up de Contingência)</h4>
                         </div>
 
@@ -1444,7 +1449,7 @@ export default function Dashboard() {
                               value={form.reminder_text || ''}
                               onChange={e => setForm(prev => ({ ...prev, reminder_text: e.target.value || null }))}
                               rows={2}
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-450 transition-all resize-none"
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-450 transition-all resize-none"
                             />
                           </div>
 
@@ -1456,7 +1461,7 @@ export default function Dashboard() {
                               placeholder="Minutos"
                               value={form.reminder_delay_minutes || ''}
                               onChange={e => setForm(prev => ({ ...prev, reminder_delay_minutes: e.target.value ? parseInt(e.target.value) : null }))}
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 text-slate-800 placeholder-slate-400 font-bold"
+                              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-400 font-bold"
                             />
                           </div>
                         </div>
@@ -1465,9 +1470,9 @@ export default function Dashboard() {
                     </div>
                   </form>
                 ) : (
-                  <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center flex flex-col items-center gap-4 shadow-sm min-h-[400px] justify-center">
-                    <div className="p-4 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shadow-xs">
-                      <MessageSquare className="w-8 h-8 text-blue-500" />
+                  <div className="bg-white border border-slate-200 rounded-2xl p-16 text-center flex flex-col items-center gap-4 shadow-sm min-h-[400px] justify-center">
+                    <div className="p-4 rounded-xl bg-[#F0FDF4] text-[#0A3A20] border border-[#CEF96F]/30 shadow-xs animate-fade-in">
+                      <MessageSquare className="w-8 h-8 text-[#0A3A20]" />
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-700">Fluxo de Automação Reativo</h4>
@@ -1484,13 +1489,13 @@ export default function Dashboard() {
 
           {/* TAB 3: CONTACTS */}
           {activeTab === 'contacts' && (
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-slate-800 text-base">Audiência Cadastrada</h3>
                   <p className="text-xs text-slate-500 mt-0.5">Lista de usuários que interagiram com as suas automações.</p>
                 </div>
-                <span className="bg-blue-50 border border-blue-100 text-blue-600 font-bold text-xs px-3 py-1.5 rounded-xl">
+                <span className="bg-[#F0FDF4] border border-[#CEF96F]/30 text-[#0A3A20] font-bold text-xs px-3 py-1.5 rounded-xl">
                   {contacts.length} Contatos no Total
                 </span>
               </div>
@@ -1510,15 +1515,15 @@ export default function Dashboard() {
                   <tbody className="divide-y divide-slate-100">
                     {contacts.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-slate-400">Nenhum contato cadastrado no banco de dados até o momento.</td>
+                        <td colSpan={6} className="py-12 text-center text-slate-500">Nenhum contato cadastrado no banco de dados até o momento.</td>
                       </tr>
                     ) : (
                       contacts.map(item => (
-                        <tr key={item.instagram_id || item.id} className="hover:bg-slate-50/50">
+                        <tr key={item.instagram_id || item.id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="py-3.5 px-4 font-bold text-slate-800 text-sm">
-                            {item.name || <span className="text-slate-400 font-normal italic">Não informado</span>}
+                            {item.name || <span className="text-slate-500 font-normal italic">Não informado</span>}
                           </td>
-                          <td className="py-3.5 px-4 text-xs font-semibold text-violet-600">
+                          <td className="py-3.5 px-4 text-xs font-semibold text-[#0A3A20]">
                             {item.username ? (
                               <a
                                 href={`https://instagram.com/${item.username}`}
@@ -1530,21 +1535,21 @@ export default function Dashboard() {
                                 <ExternalLink className="w-3 h-3 text-slate-400" />
                               </a>
                             ) : (
-                              <span className="text-slate-400 italic">Desconhecido</span>
+                              <span className="text-slate-500 italic">Desconhecido</span>
                             )}
                           </td>
                           <td className="py-3.5 px-4 font-mono text-xs text-slate-500">{item.instagram_id}</td>
-                          <td className="py-3.5 px-4 text-xs text-slate-600">
+                          <td className="py-3.5 px-4 text-xs text-slate-700">
                             <div className="flex flex-col gap-0.5">
-                              {item.email && <span className="text-slate-500">📧 {item.email}</span>}
-                              {item.phone && <span className="text-slate-500">📱 {item.phone}</span>}
-                              {!item.email && !item.phone && <span className="text-slate-450 italic">Nenhum</span>}
+                              {item.email && <span className="text-slate-600">📧 {item.email}</span>}
+                              {item.phone && <span className="text-slate-600">📱 {item.phone}</span>}
+                              {!item.email && !item.phone && <span className="text-slate-500 italic">Nenhum</span>}
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 text-xs text-slate-500">
+                          <td className="py-3.5 px-4 text-xs text-slate-600">
                             {item.last_response_at ? new Date(item.last_response_at).toLocaleString('pt-BR') : 'Sem interação'}
                           </td>
-                          <td className="py-3.5 px-4 text-xs text-slate-400">
+                          <td className="py-3.5 px-4 text-xs text-slate-500">
                             {new Date(item.first_contact_at || item.created_at).toLocaleDateString('pt-BR')}
                           </td>
                         </tr>
@@ -1561,7 +1566,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Eventos Recentes */}
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
                 <div>
                   <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                     <FileText className="w-4 h-4 text-blue-600" />
@@ -1594,7 +1599,7 @@ export default function Dashboard() {
               </div>
 
               {/* Fila de Disparos Completa */}
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
                 <div>
                   <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                     <Clock className="w-4 h-4 text-amber-600" />
@@ -1655,7 +1660,7 @@ export default function Dashboard() {
       {/* Visual Post Selector Modal */}
       {showMediaModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-150 flex items-center justify-between">
