@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
 
 export async function GET() {
   try {
-    const { data: config } = await supabase.from('config').select('*').single();
+    const user = await getAuthUser();
+    if (!user) return unauthorizedResponse();
+
+    const { data: config } = await supabase
+      .from('config')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
     if (!config || !config.instagram_token || !config.instagram_user_id) {
       return NextResponse.json({ error: 'Instagram não conectado.' }, { status: 400 });
     }

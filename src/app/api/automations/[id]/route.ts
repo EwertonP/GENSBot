@@ -1,18 +1,22 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const user = await getAuthUser();
+    if (!user) return unauthorizedResponse();
+
     const { id } = await params;
     const body = await req.json();
 
-    // Buscar o ID da conta do Instagram conectada atualmente
     const { data: config } = await supabase
       .from('config')
       .select('instagram_user_id')
-      .single();
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    if (!config || !config.instagram_user_id) {
+    if (!config?.instagram_user_id) {
       return NextResponse.json({ error: 'Nenhuma conta do Instagram conectada.' }, { status: 400 });
     }
 
@@ -36,6 +40,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
+      .eq('user_id', user.id)
       .eq('instagram_user_id', config.instagram_user_id)
       .select()
       .single();
@@ -49,15 +54,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const user = await getAuthUser();
+    if (!user) return unauthorizedResponse();
+
     const { id } = await params;
 
-    // Buscar o ID da conta do Instagram conectada atualmente
     const { data: config } = await supabase
       .from('config')
       .select('instagram_user_id')
-      .single();
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    if (!config || !config.instagram_user_id) {
+    if (!config?.instagram_user_id) {
       return NextResponse.json({ error: 'Nenhuma conta do Instagram conectada.' }, { status: 400 });
     }
 
@@ -65,6 +73,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       .from('automations')
       .delete()
       .eq('id', id)
+      .eq('user_id', user.id)
       .eq('instagram_user_id', config.instagram_user_id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

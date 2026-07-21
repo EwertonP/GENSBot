@@ -13,13 +13,7 @@ async function handleDrain(req: Request) {
   }
 
   try {
-    // 1. Buscar configuração do Instagram
-    const { data: config } = await supabase.from('config').select('*').single();
-    if (!config || !config.instagram_token) {
-      return NextResponse.json({ error: 'Configuração ou token do Instagram não encontrado.' }, { status: 404 });
-    }
-
-    const token = config.instagram_token;
+    // Não buscamos a config globalmente aqui. Buscaremos a config específica para cada job.
 
     // 2. Verificar limite de DMs nas últimas 1 hora (limite de segurança ~200 DMs por hora)
     const oneHourAgo = new Date();
@@ -64,6 +58,20 @@ async function handleDrain(req: Request) {
       await sleep(500);
 
       try {
+        // Obter a configuração da conta dona deste job
+        const { data: config } = await supabase
+          .from('config')
+          .select('instagram_token, instagram_user_id, user_id')
+          .eq('instagram_user_id', job.instagram_user_id)
+          .maybeSingle();
+
+        if (!config || !config.instagram_token) {
+          await markJobFailed(job.id, 'Conta do Instagram não encontrada ou sem token.', job.automation_id, job.contact_id, job.type);
+          processedJobs.push({ id: job.id, status: 'failed', reason: 'missing_token' });
+          continue;
+        }
+
+        const token = config.instagram_token;
         // 4. Validar janela de 24h se for envio de DM direta (link_dm ou reminder_dm)
         if (job.type === 'link_dm' || job.type === 'reminder_dm') {
           const { data: contact } = await supabase
@@ -141,6 +149,7 @@ async function handleDrain(req: Request) {
             'Mensagem Estruturada';
 
           await supabase.from('messages').insert({
+            user_id: config.user_id,
             instagram_user_id: config.instagram_user_id,
             contact_id: job.contact_id,
             direction: 'outbound',
@@ -151,6 +160,7 @@ async function handleDrain(req: Request) {
           // Logar eventos de análise
           if (job.type === 'private_reply') {
             await supabase.from('analytics_events').insert({
+              user_id: config.user_id,
               instagram_user_id: config.instagram_user_id,
               contact_id: job.contact_id,
               automation_id: job.automation_id,
@@ -158,6 +168,7 @@ async function handleDrain(req: Request) {
             });
           } else if (job.type === 'reminder_dm') {
             await supabase.from('analytics_events').insert({
+              user_id: config.user_id,
               instagram_user_id: config.instagram_user_id,
               contact_id: job.contact_id,
               automation_id: job.automation_id,

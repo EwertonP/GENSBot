@@ -108,16 +108,24 @@ async function fetchInstagramUserProfile(senderId: string, accessToken: string) 
 async function processWebhookEvent(payload: any) {
   if (payload.object !== 'instagram' || !payload.entry) return;
 
-  // Buscar configurações da conta (ID do Instagram configurado)
-  const { data: config } = await supabase.from('config').select('*').single();
-  if (!config || !config.instagram_user_id) {
-    console.error('Instagram não configurado no banco de dados.');
-    return;
-  }
-
-  const myIgId = config.instagram_user_id;
-
   for (const entry of payload.entry) {
+    const myIgId = entry.id;
+    if (!myIgId) continue;
+
+    // Descobrir qual usuário do SaaS é dono desta conta do Instagram
+    const { data: accountConfig } = await supabase
+      .from('config')
+      .select('*')
+      .eq('instagram_user_id', myIgId)
+      .maybeSingle();
+
+    if (!accountConfig || !accountConfig.user_id) {
+      console.warn(`Webhook ignorado: Conta do Instagram ${myIgId} não encontrada no banco.`);
+      continue;
+    }
+
+    const ownerUserId = accountConfig.user_id;
+    const igToken = accountConfig.instagram_token;
     // 1. Processar Comentários (changes com field comments)
     if (entry.changes) {
       for (const change of entry.changes) {
@@ -136,6 +144,7 @@ async function processWebhookEvent(payload: any) {
 
           // Salvar comentário recebido no histórico de mensagens (inbound)
           await supabase.from('messages').insert({
+            user_id: ownerUserId,
             instagram_user_id: myIgId,
             contact_id: fromUserId,
             direction: 'inbound',
@@ -148,6 +157,7 @@ async function processWebhookEvent(payload: any) {
             .from('automations')
             .select('*')
             .eq('active', true)
+            .eq('user_id', ownerUserId)
             .eq('instagram_user_id', myIgId)
             .contains('triggers', ['comment']);
 
@@ -161,6 +171,7 @@ async function processWebhookEvent(payload: any) {
             if (matchesKeywords(text, auto.keywords, auto.match_type)) {
               // Log de evento analítico
               await supabase.from('analytics_events').insert({
+                user_id: ownerUserId,
                 instagram_user_id: myIgId,
                 contact_id: fromUserId,
                 automation_id: auto.id,
@@ -190,13 +201,14 @@ async function processWebhookEvent(payload: any) {
               let profileUsername = fromUsername || existingContact?.username || fromUserId;
 
               if (!profileName) {
-                const profile = await fetchInstagramUserProfile(fromUserId, config.instagram_token);
+                const profile = await fetchInstagramUserProfile(fromUserId, igToken);
                 profileName = profile.name;
                 if (profile.username) profileUsername = profile.username;
               }
 
               // Upsert do contato
               await supabase.from('contacts').upsert({
+                user_id: ownerUserId,
                 instagram_id: fromUserId,
                 instagram_user_id: myIgId,
                 username: profileUsername,
@@ -205,7 +217,7 @@ async function processWebhookEvent(payload: any) {
                 last_active_automation_id: auto.id,
                 conversation_state: nextState,
                 updated_at: new Date().toISOString(),
-              });
+              }, { onConflict: 'instagram_id' });
 
               // Enfileirar a resposta privada (welcome_dm)
               const welcomePayload = {
@@ -225,6 +237,8 @@ async function processWebhookEvent(payload: any) {
               };
 
               await supabase.from('queue').insert({
+                user_id: ownerUserId,
+                instagram_user_id: myIgId,
                 contact_id: fromUserId,
                 automation_id: auto.id,
                 type: 'private_reply',
@@ -239,6 +253,8 @@ async function processWebhookEvent(payload: any) {
                 const randomReply =
                   auto.public_replies[Math.floor(Math.random() * auto.public_replies.length)];
                 await supabase.from('queue').insert({
+                  user_id: ownerUserId,
+                  instagram_user_id: myIgId,
                   contact_id: fromUserId,
                   automation_id: auto.id,
                   type: 'public_reply',
@@ -277,6 +293,7 @@ async function processWebhookEvent(payload: any) {
 
         // Salvar mensagem recebida no Direct (inbound)
         await supabase.from('messages').insert({
+          user_id: ownerUserId,
           instagram_user_id: myIgId,
           contact_id: senderId,
           direction: 'inbound',
@@ -306,6 +323,7 @@ async function processWebhookEvent(payload: any) {
           if (auto) {
             // Registrar clique no botão nos eventos
             await supabase.from('analytics_events').insert({
+              user_id: ownerUserId,
               instagram_user_id: myIgId,
               contact_id: senderId,
               automation_id: auto.id,
@@ -314,16 +332,17 @@ async function processWebhookEvent(payload: any) {
 
             // Atualizar last_response_at do contato (abre janela de 24h)
             await supabase.from('contacts').upsert({
+              user_id: ownerUserId,
               instagram_id: senderId,
               instagram_user_id: myIgId,
               last_response_at: new Date().toISOString(),
               last_automation_id: auto.id,
               conversation_state: 'idle',
               updated_at: new Date().toISOString(),
-            });
+            }, { onConflict: 'instagram_id' });
 
             // Enfileirar os followups (link e lembrete)
-            await enqueueFollowups(senderId, auto);
+            await enqueueFollowups(senderId, auto, ownerUserId, myIgId);
             triggerQueueDrain();
           }
           continue;
@@ -339,6 +358,8 @@ async function processWebhookEvent(payload: any) {
             message: { text: 'Seus dados foram excluídos com sucesso do nosso banco de dados.' },
           };
           await supabase.from('queue').insert({
+            user_id: ownerUserId,
+            instagram_user_id: myIgId,
             contact_id: senderId,
             type: 'private_reply',
             recipient_id: senderId,
@@ -379,6 +400,8 @@ async function processWebhookEvent(payload: any) {
                   if (nextState === 'waiting_phone') {
                     // Perguntar telefone
                     await supabase.from('queue').insert({
+                      user_id: ownerUserId,
+                      instagram_user_id: myIgId,
                       contact_id: senderId,
                       automation_id: auto.id,
                       type: 'private_reply',
@@ -393,13 +416,14 @@ async function processWebhookEvent(payload: any) {
                   } else {
                     // Finalizou fluxo (apenas e-mail)
                     await supabase.from('analytics_events').insert({
+                      user_id: ownerUserId,
                       instagram_user_id: myIgId,
                       contact_id: senderId,
                       automation_id: auto.id,
                       event_type: 'lead_captured'
                     });
 
-                    await enqueueFollowups(senderId, auto);
+                    await enqueueFollowups(senderId, auto, ownerUserId, myIgId);
                     if (auto.webhook_url) {
                       triggerExternalWebhook(auto.webhook_url, { ...contact, email: emailCandidate }, auto);
                     }
@@ -409,6 +433,8 @@ async function processWebhookEvent(payload: any) {
                 } else {
                   // E-mail inválido
                   await supabase.from('queue').insert({
+                    user_id: ownerUserId,
+                    instagram_user_id: myIgId,
                     contact_id: senderId,
                     automation_id: auto.id,
                     type: 'private_reply',
@@ -441,13 +467,14 @@ async function processWebhookEvent(payload: any) {
                     .eq('instagram_id', senderId);
 
                   await supabase.from('analytics_events').insert({
+                    user_id: ownerUserId,
                     instagram_user_id: myIgId,
                     contact_id: senderId,
                     automation_id: auto.id,
                     event_type: 'lead_captured'
                   });
 
-                  await enqueueFollowups(senderId, auto);
+                  await enqueueFollowups(senderId, auto, ownerUserId, myIgId);
                   if (auto.webhook_url) {
                     triggerExternalWebhook(auto.webhook_url, { ...contact, phone: phoneCandidate }, auto);
                   }
@@ -456,6 +483,8 @@ async function processWebhookEvent(payload: any) {
                 } else {
                   // Telefone inválido
                   await supabase.from('queue').insert({
+                    user_id: ownerUserId,
+                    instagram_user_id: myIgId,
                     contact_id: senderId,
                     automation_id: auto.id,
                     type: 'private_reply',
@@ -484,6 +513,7 @@ async function processWebhookEvent(payload: any) {
           .from('automations')
           .select('*')
           .eq('active', true)
+          .eq('user_id', ownerUserId)
           .eq('instagram_user_id', myIgId)
           .contains('triggers', [requiredTrigger]);
 
@@ -493,6 +523,7 @@ async function processWebhookEvent(payload: any) {
           if (matchesKeywords(text, auto.keywords, auto.match_type)) {
             // Log do gatilho acionado
             await supabase.from('analytics_events').insert({
+              user_id: ownerUserId,
               instagram_user_id: myIgId,
               contact_id: senderId,
               automation_id: auto.id,
@@ -522,12 +553,13 @@ async function processWebhookEvent(payload: any) {
             let profileUsername = existingContact?.username || senderId;
 
             if (!profileName || profileUsername === senderId) {
-              const profile = await fetchInstagramUserProfile(senderId, config.instagram_token);
+              const profile = await fetchInstagramUserProfile(senderId, igToken);
               if (profile.name) profileName = profile.name;
               if (profile.username) profileUsername = profile.username;
             }
 
             await supabase.from('contacts').upsert({
+              user_id: ownerUserId,
               instagram_id: senderId,
               instagram_user_id: myIgId,
               username: profileUsername,
@@ -536,7 +568,7 @@ async function processWebhookEvent(payload: any) {
               last_active_automation_id: auto.id,
               conversation_state: nextState,
               updated_at: new Date().toISOString(),
-            });
+            }, { onConflict: 'instagram_id' });
 
             const welcomePayload = {
               recipient: { id: senderId },
@@ -555,6 +587,8 @@ async function processWebhookEvent(payload: any) {
             };
 
             await supabase.from('queue').insert({
+              user_id: ownerUserId,
+              instagram_user_id: myIgId,
               contact_id: senderId,
               automation_id: auto.id,
               type: 'private_reply',
@@ -602,7 +636,7 @@ async function triggerExternalWebhook(url: string, contact: any, auto: any) {
 }
 
 // Auxiliar: Enfileira a sequência de followups (Link e Lembrete)
-async function enqueueFollowups(contactId: string, auto: any) {
+async function enqueueFollowups(contactId: string, auto: any, userId: string, instagramUserId: string) {
   // 1. Enfileirar DM com o link
   // Conforme solicitação do usuário, removemos o card de link genérico e enviamos apenas texto simples com o link
   const linkPayload = {
@@ -614,6 +648,8 @@ async function enqueueFollowups(contactId: string, auto: any) {
 
   // Registra o progresso do followup 1 (Link)
   await supabase.from('followups').insert({
+    user_id: userId,
+    instagram_user_id: instagramUserId,
     automation_id: auto.id,
     contact_id: contactId,
     step: 1,
@@ -621,6 +657,8 @@ async function enqueueFollowups(contactId: string, auto: any) {
   });
 
   await supabase.from('queue').insert({
+    user_id: userId,
+    instagram_user_id: instagramUserId,
     contact_id: contactId,
     automation_id: auto.id,
     type: 'link_dm',
@@ -643,6 +681,8 @@ async function enqueueFollowups(contactId: string, auto: any) {
     };
 
     await supabase.from('followups').insert({
+      user_id: userId,
+      instagram_user_id: instagramUserId,
       automation_id: auto.id,
       contact_id: contactId,
       step: 2,
@@ -650,6 +690,8 @@ async function enqueueFollowups(contactId: string, auto: any) {
     });
 
     await supabase.from('queue').insert({
+      user_id: userId,
+      instagram_user_id: instagramUserId,
       contact_id: contactId,
       automation_id: auto.id,
       type: 'reminder_dm',

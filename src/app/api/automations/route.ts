@@ -1,21 +1,27 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
 
 export async function GET() {
   try {
-    // Buscar o ID da conta do Instagram conectada atualmente
+    const user = await getAuthUser();
+    if (!user) return unauthorizedResponse();
+
+    // Buscar config apenas do usuário autenticado
     const { data: config } = await supabase
       .from('config')
       .select('instagram_user_id')
-      .single();
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    if (!config || !config.instagram_user_id) {
+    if (!config?.instagram_user_id) {
       return NextResponse.json([]);
     }
 
     const { data, error } = await supabase
       .from('automations')
       .select('*')
+      .eq('user_id', user.id)
       .eq('instagram_user_id', config.instagram_user_id)
       .order('created_at', { ascending: false });
 
@@ -28,25 +34,30 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const user = await getAuthUser();
+    if (!user) return unauthorizedResponse();
+
     const body = await req.json();
 
     if (!body.name || !body.welcome_dm) {
       return NextResponse.json({ error: 'Nome e DM de boas-vindas são obrigatórios.' }, { status: 400 });
     }
 
-    // Buscar o ID da conta do Instagram conectada atualmente
+    // Buscar config apenas do usuário autenticado
     const { data: config } = await supabase
       .from('config')
       .select('instagram_user_id')
-      .single();
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    if (!config || !config.instagram_user_id) {
+    if (!config?.instagram_user_id) {
       return NextResponse.json({ error: 'Você precisa conectar uma conta do Instagram primeiro.' }, { status: 400 });
     }
 
     const { data, error } = await supabase
       .from('automations')
       .insert({
+        user_id: user.id,
         instagram_user_id: config.instagram_user_id,
         name: body.name,
         active: body.active ?? true,

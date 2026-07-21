@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Confirme seu e-mail – GENSBot</title>
+</head>
+<body style="margin:0;padding:0;background-color:#121212;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+
+  <!-- Email wrapper -->
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#121212;min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+
+        <!-- Email container -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:520px;width:100%;">
+
+          <!-- Logo / Brand Header -->
+          <tr>
+            <td align="center" style="padding-bottom:32px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="width:64px;height:64px;background:linear-gradient(135deg,#1DB954,#125835);border-radius:16px;text-align:center;vertical-align:middle;padding:16px;">
+                    <!-- Play triangle icon -->
+                    <div style="width:0;height:0;border-top:12px solid transparent;border-bottom:12px solid transparent;border-left:20px solid #000000;margin:0 auto;"></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:16px;">
+                    <span style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">GENSBot</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:4px;">
+                    <span style="font-size:12px;font-weight:500;color:#A7A7A7;">Automações para Instagram</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Card -->
+          <tr>
+            <td style="background-color:#1A1A1A;border:1px solid #282828;border-radius:20px;overflow:hidden;">
+
+              <!-- Green top accent bar -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="height:4px;background:linear-gradient(90deg,#1DB954,#15803d);"></td>
+                </tr>
+              </table>
+
+              <!-- Card content -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding:40px 40px 32px 40px;">
+
+                    <!-- Title -->
+                    <p style="margin:0 0 8px 0;font-size:24px;font-weight:800;color:#ffffff;line-height:1.3;">
+                      Confirme seu e-mail ✉️
+                    </p>
+
+                    <!-- Subtitle -->
+                    <p style="margin:0 0 32px 0;font-size:15px;color:#A7A7A7;line-height:1.7;">
+                      Olá! Obrigado por criar uma conta no <strong style="color:#ffffff;">GENSBot</strong>.<br />
+                      Clique no botão abaixo para confirmar seu endereço de e-mail e começar a automatizar o Instagram dos seus clientes.
+                    </p>
+
+                    <!-- CTA Button -->
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin-bottom:32px;">
+                      <tr>
+                        <td align="center">
+                          <a href="{{ .ConfirmationURL }}"
+                             target="_blank"
+                             style="display:inline-block;background-color:#1DB954;color:#000000;font-size:15px;font-weight:800;text-decoration:none;padding:16px 48px;border-radius:50px;letter-spacing:0.2px;">
+                            Ativar minha conta →
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Divider -->
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="height:1px;background-color:#282828;margin-bottom:24px;"></td>
+                      </tr>
+                    </table>
+
+                    <!-- Info box -->
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:24px;">
+                      <tr>
+                        <td style="background-color:#0f2818;border:1px solid #1DB95430;border-radius:12px;padding:16px 20px;">
+                          <p style="margin:0;font-size:12px;color:#A7A7A7;line-height:1.7;">
+                            🔒 <strong style="color:#1DB954;">Link seguro:</strong> Este link expira em <strong style="color:#ffffff;">24 horas</strong> e só pode ser usado uma vez.<br />
+                            Se você não criou uma conta no GENSBot, pode ignorar este e-mail.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Fallback link -->
+                    <p style="margin:24px 0 0 0;font-size:11px;color:#535353;line-height:1.7;">
+                      Se o botão não funcionar, copie e cole o link abaixo no seu navegador:<br />
+                      <a href="{{ .ConfirmationURL }}" style="color:#1DB954;text-decoration:underline;word-break:break-all;">
+                        {{ .ConfirmationURL }}
+                      </a>
+                    </p>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:28px 0 8px 0;text-align:center;">
+              <p style="margin:0 0 6px 0;font-size:13px;color:#535353;">
+                <strong style="color:#A7A7A7;">GENSBot</strong> · Automações profissionais para Instagram
+              </p>
+              <p style="margin:0;font-size:11px;color:#3E3E3E;line-height:1.6;">
+                Você recebeu este e-mail porque uma conta foi criada com este endereço.<br />
+                © 2025 GENSBot. Todos os direitos reservados.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Email container -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
