@@ -34,7 +34,7 @@ export default function LoginPage() {
         
         {/* Logo & Brand */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1DB954] to-[#125835] shadow-lg shadow-[#1DB954]/20 mb-5">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#BADF95] to-[#125835] shadow-lg shadow-[#BADF95]/20 mb-5">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="black"/>
             </svg>
@@ -57,7 +57,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all"
+                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/30 transition-all"
               />
             </div>
 
@@ -70,7 +70,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all"
+                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/30 transition-all"
               />
             </div>
 
@@ -84,7 +84,7 @@ export default function LoginPage() {
               id="login-submit"
               type="submit"
               disabled={loading}
-              className="mt-2 w-full py-3 rounded-xl bg-[#1DB954] hover:bg-[#1ED760] disabled:bg-[#282828] disabled:text-[#A7A7A7] text-black font-extrabold text-sm shadow-md cursor-pointer transition-all"
+              className="mt-2 w-full py-3 rounded-xl bg-[#BADF95] hover:bg-[#C8EAA3] disabled:bg-[#282828] disabled:text-[#A7A7A7] text-black font-extrabold text-sm shadow-md cursor-pointer transition-all"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
@@ -93,7 +93,7 @@ export default function LoginPage() {
           <div className="mt-6 pt-5 border-t border-[#282828] text-center">
             <p className="text-sm text-[#A7A7A7]">
               Ainda não tem conta?{' '}
-              <a href="/register" className="text-[#1DB954] hover:text-[#1ED760] font-bold transition-colors">
+              <a href="/register" className="text-[#BADF95] hover:text-[#C8EAA3] font-bold transition-colors">
                 Criar conta gratuita
               </a>
             </p>
@@ -102,7 +102,7 @@ export default function LoginPage() {
 
         <p className="text-center text-xs text-[#A7A7A7] mt-6">
           Ao entrar, você concorda com nossos{' '}
-          <a href="/privacidade" className="text-[#1DB954] hover:underline">Termos de Uso</a>
+          <a href="/privacidade" className="text-[#BADF95] hover:underline">Termos de Uso</a>
         </p>
       </div>
     </div>

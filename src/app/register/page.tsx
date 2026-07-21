@@ -52,7 +52,7 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
         <div className="w-full max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1DB954] to-[#125835] shadow-lg shadow-[#1DB954]/20 mb-5">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#BADF95] to-[#125835] shadow-lg shadow-[#BADF95]/20 mb-5">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="black"/>
             </svg>
@@ -63,7 +63,7 @@ export default function RegisterPage() {
           </p>
           <a
             href="/login"
-            className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-[#1DB954] hover:bg-[#1ED760] text-black font-extrabold text-sm shadow-md transition-all"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-[#BADF95] hover:bg-[#C8EAA3] text-black font-extrabold text-sm shadow-md transition-all"
           >
             Ir para o Login
           </a>
@@ -78,7 +78,7 @@ export default function RegisterPage() {
         
         {/* Logo & Brand */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1DB954] to-[#125835] shadow-lg shadow-[#1DB954]/20 mb-5">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#BADF95] to-[#125835] shadow-lg shadow-[#BADF95]/20 mb-5">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="black"/>
             </svg>
@@ -101,7 +101,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
-                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all"
+                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/30 transition-all"
               />
             </div>
 
@@ -114,7 +114,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all"
+                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/30 transition-all"
               />
             </div>
 
@@ -127,7 +127,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all"
+                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/30 transition-all"
               />
             </div>
 
@@ -140,7 +140,7 @@ export default function RegisterPage() {
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 required
-                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all"
+                className="bg-[#282828] border border-[#3E3E3E] text-white text-sm rounded-xl px-4 py-3 placeholder:text-[#A7A7A7]/50 focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/30 transition-all"
               />
             </div>
 
@@ -154,7 +154,7 @@ export default function RegisterPage() {
               id="register-submit"
               type="submit"
               disabled={loading}
-              className="mt-2 w-full py-3 rounded-xl bg-[#1DB954] hover:bg-[#1ED760] disabled:bg-[#282828] disabled:text-[#A7A7A7] text-black font-extrabold text-sm shadow-md cursor-pointer transition-all"
+              className="mt-2 w-full py-3 rounded-xl bg-[#BADF95] hover:bg-[#C8EAA3] disabled:bg-[#282828] disabled:text-[#A7A7A7] text-black font-extrabold text-sm shadow-md cursor-pointer transition-all"
             >
               {loading ? 'Criando conta...' : 'Criar Conta Gratuita'}
             </button>
@@ -163,7 +163,7 @@ export default function RegisterPage() {
           <div className="mt-6 pt-5 border-t border-[#282828] text-center">
             <p className="text-sm text-[#A7A7A7]">
               Já tem uma conta?{' '}
-              <a href="/login" className="text-[#1DB954] hover:text-[#1ED760] font-bold transition-colors">
+              <a href="/login" className="text-[#BADF95] hover:text-[#C8EAA3] font-bold transition-colors">
                 Entrar agora
               </a>
             </p>
@@ -172,7 +172,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-xs text-[#A7A7A7] mt-6">
           Ao criar uma conta, você concorda com nossa{' '}
-          <a href="/privacidade" className="text-[#1DB954] hover:underline">Política de Privacidade</a>
+          <a href="/privacidade" className="text-[#BADF95] hover:underline">Política de Privacidade</a>
         </p>
       </div>
     </div>
