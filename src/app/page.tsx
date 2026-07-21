@@ -1811,16 +1811,8 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* Modal Grid */}
-            <div 
-              className="p-5 overflow-y-auto flex-1 bg-[#121212]"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '12px',
-                alignContent: 'start'
-              }}
-            >
+            {/* Modal List (Vertical Stack) */}
+            <div className="p-5 overflow-y-auto flex-1 bg-[#121212] flex flex-col gap-4">
               {mediaList
                 .filter(media => {
                   if (mediaFilter === 'all') return true;
@@ -1838,23 +1830,27 @@ export default function Dashboard() {
                         setShowMediaModal(false);
                         showToast('Post selecionado com sucesso!', 'success');
                       }}
-                      className="bg-[#282828] border border-[#3E3E3E] hover:border-[#1DB954] rounded-xl overflow-hidden cursor-pointer group transition-all relative aspect-square w-full shadow-xs"
+                      className="bg-[#1A1A1A] border border-[#282828] hover:border-[#1DB954] rounded-2xl p-4 cursor-pointer group transition-all flex gap-4 items-center shadow-xs text-white"
                     >
-                      <img
-                        src={media.thumbnail_url || media.media_url}
-                        alt="Instagram media"
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
-                      />
-                      
-                      {/* Type Badge */}
-                      <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-full px-2 py-0.5 text-[8px] font-bold text-white select-none z-10">
-                        {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
+                      {/* Left side: Square Thumbnail */}
+                      <div className="w-16 h-16 rounded-xl bg-[#282828] overflow-hidden relative border border-[#3E3E3E] flex-shrink-0">
+                        <img
+                          src={media.thumbnail_url || media.media_url}
+                          alt="Instagram thumbnail"
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+                        />
                       </div>
 
-                      {/* Caption Overlay on Hover */}
-                      <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3.5 z-20 text-left">
-                        <p className="text-[10px] text-white line-clamp-3 leading-relaxed font-bold">
-                          {media.caption || <span className="italic opacity-60">Sem legenda</span>}
+                      {/* Right side: Post Details and Full Caption */}
+                      <div className="flex-1 flex flex-col gap-1.5 min-w-0 text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] bg-[#282828] border border-[#3E3E3E] text-[#1DB954] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                            {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
+                          </span>
+                          <span className="text-[9px] text-[#A7A7A7] font-mono">ID: {media.id}</span>
+                        </div>
+                        <p className="text-xs text-white leading-relaxed font-semibold break-words">
+                          {media.caption || <span className="italic text-[#A7A7A7] font-normal">Sem legenda</span>}
                         </p>
                       </div>
                     </div>
