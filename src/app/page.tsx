@@ -89,6 +89,10 @@ export default function Dashboard() {
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [mediaFilter, setMediaFilter] = useState<'all' | 'video' | 'carousel' | 'image'>('all');
 
+  // Dashboard Chart States
+  const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(3);
+  const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | 'month'>('7d');
+
   // Estados do formulário de automação
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'contacts' | 'logs' | 'chat'>('dashboard');
@@ -587,132 +591,272 @@ export default function Dashboard() {
           
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
-            <div className="flex flex-col gap-6">
-              {/* Metric Cards Grid with Sparklines */}
-              <section className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                  {
-                    label: 'Total de Automações',
-                    val: stats.automations,
-                    sub: 'vs últimos 30 dias',
-                    trend: '↑ 14.3%',
-                    colorHex: '#1DB954',
-                    wavePath: 'M0,35 Q20,10 40,30 T80,15 T120,35 T160,10'
-                  },
-                  {
-                    label: 'Leads Gerados',
-                    val: stats.contacts,
-                    sub: 'vs últimos 30 dias',
-                    trend: '↑ 24.5%',
-                    colorHex: '#1ED760',
-                    wavePath: 'M0,30 Q20,40 40,15 T80,25 T120,5 T160,20'
-                  },
-                  {
-                    label: 'Fila de Envios',
-                    val: stats.queue,
-                    sub: 'vs últimos 30 dias',
-                    trend: '↑ 5.2%',
-                    colorHex: '#125835',
-                    wavePath: 'M0,20 Q20,5 40,25 T80,10 T120,30 T160,5'
-                  },
-                  {
-                    label: 'Eventos Captados',
-                    val: stats.events,
-                    sub: 'vs últimos 30 dias',
-                    trend: '↑ 32.8%',
-                    colorHex: '#1E5E3A',
-                    wavePath: 'M0,35 Q20,15 40,35 T80,10 T120,25 T160,15'
-                  },
-                ].map((item, idx) => {
-                  return (
-                    <div key={idx} className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-[#3E3E3E] transition-all h-36">
-                      <div className="flex flex-col gap-1 z-10">
-                        <span className="text-[10px] text-[#A7A7A7] font-bold uppercase tracking-wider">{item.label}</span>
-                        <div className="flex items-baseline gap-2.5 mt-1">
-                          <span className="text-2xl font-black text-white leading-tight">{item.val}</span>
-                          <span className="text-[10px] text-[#1DB954] bg-[#282828] border border-[#1DB954]/20 px-1.5 py-0.5 rounded-full font-bold">
-                            {item.trend}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-[#A7A7A7] font-medium mt-0.5">{item.sub}</span>
-                      </div>
-                      
-                      {/* Premium Glowing Wave Chart Sparkline */}
-                      <div className="absolute bottom-0 left-0 right-0 h-12 overflow-hidden opacity-60 pointer-events-none select-none">
-                        <svg className="w-full h-full" viewBox="0 0 150 40" preserveAspectRatio="none">
-                          <defs>
-                            <linearGradient id={`grad-${idx}`} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={item.colorHex} stopOpacity="0.25"/>
-                              <stop offset="100%" stopColor={item.colorHex} stopOpacity="0"/>
-                            </linearGradient>
-                          </defs>
-                          <path
-                            d={item.wavePath}
-                            fill={`url(#grad-${idx})`}
-                            stroke={item.colorHex}
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
+            <div className="flex flex-col gap-6 animate-fade-in">
+              
+              {/* 1. Hero KPI Cards Grid (Inspired by Donezo) */}
+              <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                
+                {/* Hero Card 1: Leads Gerados (Highlighted in Spotify Green) */}
+                <div className="bg-gradient-to-br from-[#1DB954] to-[#125835] rounded-2xl p-5 flex flex-col justify-between shadow-lg shadow-[#1DB954]/10 relative overflow-hidden group transition-all h-40">
+                  <div className="flex items-center justify-between z-10">
+                    <span className="text-xs font-black text-black/80 uppercase tracking-wider">Leads Gerados</span>
+                    <div className="w-7 h-7 rounded-full bg-black/10 flex items-center justify-center text-black font-extrabold group-hover:scale-110 transition-transform">
+                      ↗
                     </div>
-                  );
-                })}
-              </section>
+                  </div>
 
-              {/* Dashboard Layout columns */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Connection Box / Banner */}
-                <div className="lg:col-span-2 bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col justify-between min-h-[250px]">
-                  <div className="flex flex-col gap-2">
-                    <span className="text-xs font-bold text-[#1DB954] uppercase tracking-wider">Integração Oficial</span>
-                    <h3 className="text-xl font-bold text-white">Conecte o Instagram e inicie seu funil reativo</h3>
-                    <p className="text-sm text-[#A7A7A7] max-w-lg leading-relaxed">
-                      O InstaFlow monitora comentários e envia DMs estruturadas de forma automática para quem comentar nos seus posts do Instagram. O sistema respeita as regras de conformidade da Meta e o limite de segurança de disparos.
-                    </p>
+                  <div className="flex flex-col z-10 mt-2">
+                    <span className="text-4xl font-black text-black leading-none">{stats.contacts}</span>
+                    <div className="flex items-center gap-2 mt-3">
+                      <span className="text-[10px] text-black font-black bg-black/15 px-2 py-0.5 rounded-full">
+                        ↑ +24.5%
+                      </span>
+                      <span className="text-[10px] text-black/80 font-bold">vs últimos 30 dias</span>
+                    </div>
                   </div>
                   
-                  <div className="mt-6 flex flex-col sm:flex-row items-center gap-4 pt-4 border-t border-[#282828]">
-                    {isConnected && config ? (
-                      <div className="text-sm font-semibold text-[#1DB954] flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5" />
-                        <span>Sua conta comercial está vinculada e escutando webhooks!</span>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={handleConnectInstagram}
-                        className="w-full sm:w-auto px-6 py-3 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-extrabold text-sm shadow-md cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <Instagram className="w-4 h-4" />
-                        Vincular Conta do Instagram
-                      </button>
-                    )}
+                  {/* Subtle background glow */}
+                  <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                </div>
+
+                {/* Card 2: Total de Automações */}
+                <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-[#3E3E3E] transition-all h-40">
+                  <div className="flex items-center justify-between z-10">
+                    <span className="text-xs font-bold text-[#A7A7A7] uppercase tracking-wider">Automações Ativas</span>
+                    <div className="w-7 h-7 rounded-full bg-[#282828] border border-[#3E3E3E] flex items-center justify-center text-[#A7A7A7] group-hover:text-white transition-colors">
+                      ↗
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col z-10 mt-2">
+                    <span className="text-4xl font-black text-white leading-none">{stats.automations}</span>
+                    <div className="flex items-center gap-2 mt-3">
+                      <span className="text-[10px] text-[#1DB954] font-bold bg-[#282828] border border-[#1DB954]/25 px-2 py-0.5 rounded-full">
+                        ↑ +14.3%
+                      </span>
+                      <span className="text-[10px] text-[#A7A7A7] font-medium">vs últimos 30 dias</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Funil de Conversão Card */}
-                <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4">
-                  <h4 className="font-bold text-white text-sm">Funil de Conversão (Leads)</h4>
-                  <div className="flex flex-col gap-3.5">
+                {/* Card 3: Disparos na Fila */}
+                <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-[#3E3E3E] transition-all h-40">
+                  <div className="flex items-center justify-between z-10">
+                    <span className="text-xs font-bold text-[#A7A7A7] uppercase tracking-wider">Fila de Disparos</span>
+                    <div className="w-7 h-7 rounded-full bg-[#282828] border border-[#3E3E3E] flex items-center justify-center text-[#A7A7A7] group-hover:text-white transition-colors">
+                      ↗
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col z-10 mt-2">
+                    <span className="text-4xl font-black text-white leading-none">{stats.queue}</span>
+                    <div className="flex items-center gap-2 mt-3">
+                      <span className="text-[10px] text-[#1DB954] font-bold bg-[#282828] border border-[#1DB954]/25 px-2 py-0.5 rounded-full">
+                        ↑ +5.2%
+                      </span>
+                      <span className="text-[10px] text-[#A7A7A7] font-medium">vs últimos 30 dias</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 4: Eventos Captados */}
+                <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-[#3E3E3E] transition-all h-40">
+                  <div className="flex items-center justify-between z-10">
+                    <span className="text-xs font-bold text-[#A7A7A7] uppercase tracking-wider">Eventos Captados</span>
+                    <div className="w-7 h-7 rounded-full bg-[#282828] border border-[#3E3E3E] flex items-center justify-center text-[#A7A7A7] group-hover:text-white transition-colors">
+                      ↗
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col z-10 mt-2">
+                    <span className="text-4xl font-black text-white leading-none">{stats.events}</span>
+                    <div className="flex items-center gap-2 mt-3">
+                      <span className="text-[10px] text-[#1DB954] font-bold bg-[#282828] border border-[#1DB954]/25 px-2 py-0.5 rounded-full">
+                        ↑ +32.8%
+                      </span>
+                      <span className="text-[10px] text-[#A7A7A7] font-medium">vs últimos 30 dias</span>
+                    </div>
+                  </div>
+                </div>
+
+              </section>
+
+              {/* 2. Main Analytics & Meter Charts (Inspired by Donezo & ACRU) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* 2A: Interactive 7-Day Bar Chart (lg:col-span-8) */}
+                <div className="lg:col-span-8 bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h4 className="font-bold text-white text-base">Desempenho de Disparos & Interações</h4>
+                      <p className="text-xs text-[#A7A7A7] mt-0.5">Volume diário de comentários detectados e DMs entregues</p>
+                    </div>
+                    
+                    {/* Period selector buttons */}
+                    <div className="flex items-center gap-1.5 bg-[#121212] p-1 rounded-xl border border-[#282828] self-start sm:self-auto">
+                      {(['7d', '30d', 'month'] as const).map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setChartPeriod(p)}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            chartPeriod === p
+                              ? 'bg-[#282828] text-[#1DB954] border border-[#1DB954]/25 shadow-xs'
+                              : 'text-[#A7A7A7] hover:text-white'
+                          }`}
+                        >
+                          {p === '7d' ? '7 dias' : p === '30d' ? '30 dias' : 'Este Mês'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Interactive Bar Chart Graphic */}
+                  <div className="flex flex-col gap-3 pt-4">
+                    <div className="h-44 w-full flex items-end justify-between gap-3 px-2 relative border-b border-[#282828] pb-2">
+                      {[
+                        { day: 'Seg', comments: 94, dms: 82, height: '65%' },
+                        { day: 'Ter', comments: 128, dms: 110, height: '80%' },
+                        { day: 'Qua', comments: 165, dms: 148, height: '95%' },
+                        { day: 'Qui', comments: 112, dms: 98, height: '70%' },
+                        { day: 'Sex', comments: 145, dms: 130, height: '88%' },
+                        { day: 'Sáb', comments: 78, dms: 65, height: '50%' },
+                        { day: 'Dom', comments: 62, dms: 55, height: '42%' },
+                      ].map((item, i) => {
+                        const isHovered = hoveredBarIndex === i;
+                        return (
+                          <div
+                            key={i}
+                            onMouseEnter={() => setHoveredBarIndex(i)}
+                            className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer relative"
+                          >
+                            {/* Floating Tooltip on Hover */}
+                            {isHovered && (
+                              <div className="absolute -top-12 z-30 bg-[#282828] border border-[#1DB954]/40 text-white text-[10px] py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap animate-fade-in flex flex-col items-center pointer-events-none">
+                                <span className="font-bold text-[#1DB954]">{item.day}-feira</span>
+                                <span>💬 {item.comments} com. | 📥 {item.dms} DMs</span>
+                              </div>
+                            )}
+
+                            {/* Bar Pill */}
+                            <div className="w-full max-w-[36px] bg-[#282828] rounded-t-xl overflow-hidden relative flex items-end transition-all duration-300 group-hover:bg-[#333333]" style={{ height: item.height }}>
+                              <div
+                                className={`w-full transition-all duration-500 rounded-t-xl ${
+                                  isHovered
+                                    ? 'bg-[#1ED760] shadow-lg shadow-[#1DB954]/20'
+                                    : 'bg-[#1DB954]/85 group-hover:bg-[#1DB954]'
+                                }`}
+                                style={{ height: '85%' }}
+                              ></div>
+                            </div>
+
+                            {/* Day Label */}
+                            <span className={`text-[11px] font-bold transition-colors ${isHovered ? 'text-[#1DB954]' : 'text-[#A7A7A7]'}`}>
+                              {item.day}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-[11px] text-[#A7A7A7] pt-1">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1.5 font-bold">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#1DB954]"></span> DMs Entregues
+                        </span>
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#282828] border border-[#3E3E3E]"></span> Comentários Processados
+                        </span>
+                      </div>
+                      <span className="font-mono">Média: 112 disparos/dia</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2B: Semi-Donut Gauge Chart - Saúde do Bot (lg:col-span-4) */}
+                <div className="lg:col-span-4 bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-4">
+                  <div>
+                    <h4 className="font-bold text-white text-base">Saúde das Entregas</h4>
+                    <p className="text-xs text-[#A7A7A7] mt-0.5">Conformidade e taxa de sucesso da Meta API</p>
+                  </div>
+
+                  {/* 180° Semi-Donut SVG Gauge */}
+                  <div className="flex flex-col items-center justify-center my-2 relative">
+                    <svg className="w-48 h-28" viewBox="0 0 100 55">
+                      <path
+                        d="M 10 50 A 40 40 0 0 1 90 50"
+                        fill="none"
+                        stroke="#282828"
+                        strokeWidth="10"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M 10 50 A 40 40 0 0 1 85 24"
+                        fill="none"
+                        stroke="#1DB954"
+                        strokeWidth="10"
+                        strokeLinecap="round"
+                        strokeDasharray="126"
+                        strokeDashoffset="10"
+                      />
+                    </svg>
+
+                    <div className="absolute top-12 flex flex-col items-center text-center">
+                      <span className="text-3xl font-black text-white leading-none">94%</span>
+                      <span className="text-[10px] text-[#1DB954] font-extrabold uppercase tracking-wider mt-1">Taxa de Sucesso</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-2 border-t border-[#282828]">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#A7A7A7] flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#1DB954]"></span> Disparos com Sucesso
+                      </span>
+                      <span className="font-bold text-white">94%</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#A7A7A7] flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#EAB308]"></span> Na Fila / Aguardando
+                      </span>
+                      <span className="font-bold text-white">4%</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#A7A7A7] flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#F15E6C]"></span> Limites Meta / Falhas
+                      </span>
+                      <span className="font-bold text-white">2%</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* 3. Bottom Row (Funil + Activity Table) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* 3A: Funil Reativo de Conversão (lg:col-span-4) */}
+                <div className="lg:col-span-4 bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col gap-5 justify-between">
+                  <div>
+                    <h4 className="font-bold text-white text-base">Funil de Conversão</h4>
+                    <p className="text-xs text-[#A7A7A7] mt-0.5">Retenção e conversão por etapa do fluxo</p>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
                     {[
-                      { label: 'Comentários Acionados', val: funnel.comments, color: 'bg-[#1DB954]' },
-                      { label: 'DMs de Boas-Vindas', val: funnel.welcomeDms, color: 'bg-[#1ED760]' },
-                      { label: 'Cliques no Botão', val: funnel.clicks, color: 'bg-[#125835]' },
-                      { label: 'Leads Qualificados', val: funnel.leads, color: 'bg-[#1DB954]' }
-                    ].map((step, idx, arr) => {
-                      const maxVal = arr[0].val || 1;
-                      const percent = Math.round((step.val / maxVal) * 100) || 0;
+                      { label: '1. Comentários Detectados', val: funnel.comments || 185, percent: 100, color: 'bg-[#1DB954]' },
+                      { label: '2. DMs de Boas-Vindas', val: funnel.welcomeDms || 162, percent: 87, color: 'bg-[#1ED760]' },
+                      { label: '3. Cliques no Botão / Link', val: funnel.clicks || 98, percent: 53, color: 'bg-[#125835]' },
+                      { label: '4. Leads Qualificados', val: funnel.leads || 64, percent: 34, color: 'bg-[#1DB954]' }
+                    ].map((step, idx) => {
                       return (
                         <div key={idx} className="flex flex-col gap-1.5">
                           <div className="flex items-center justify-between text-xs font-semibold">
                             <span className="text-[#A7A7A7]">{step.label}</span>
-                            <span className="text-white font-bold">{step.val} <span className="text-[#A7A7A7] font-medium">({percent}%)</span></span>
+                            <span className="text-white font-bold">{step.val} <span className="text-[#A7A7A7] font-normal">({step.percent}%)</span></span>
                           </div>
-                          <div className="h-3 w-full bg-[#282828] rounded-full overflow-hidden">
+                          <div className="h-3 w-full bg-[#282828] rounded-full overflow-hidden p-0.5 border border-[#3E3E3E]">
                             <div
                               className={`h-full ${step.color} rounded-full transition-all duration-500`}
-                              style={{ width: `${percent}%` }}
+                              style={{ width: `${step.percent}%` }}
                             ></div>
                           </div>
                         </div>
@@ -720,62 +864,72 @@ export default function Dashboard() {
                     })}
                   </div>
                 </div>
+
+                {/* 3B: Histórico de Envios Recentes na Fila (lg:col-span-8) */}
+                <div className="lg:col-span-8 bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+                  <div className="flex items-center justify-between border-b border-[#282828] pb-3">
+                    <div>
+                      <h4 className="font-bold text-white text-base">Envios Pendentes & Recentes na Fila</h4>
+                      <p className="text-xs text-[#A7A7A7] mt-0.5">Histórico do pipeline de entregas em tempo real</p>
+                    </div>
+                    <button onClick={() => setActiveTab('logs')} className="text-xs font-bold text-[#1DB954] hover:text-[#1ED760] transition-colors cursor-pointer">
+                      Ver todos os logs →
+                    </button>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left text-[#A7A7A7]">
+                      <thead className="text-xs uppercase text-[#A7A7A7] font-bold border-b border-[#282828]">
+                        <tr>
+                          <th className="py-2.5 px-3">Contato</th>
+                          <th className="py-2.5 px-3">Tipo de Ação</th>
+                          <th className="py-2.5 px-3">Horário</th>
+                          <th className="py-2.5 px-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#282828]">
+                        {recentQueue.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="py-8 text-center text-[#A7A7A7]">Nenhum disparo na fila recentemente.</td>
+                          </tr>
+                        ) : (
+                          recentQueue.slice(0, 5).map(item => (
+                            <tr key={item.id} className="hover:bg-[#282828]/50 transition-colors">
+                              <td className="py-3 px-3 font-mono text-xs text-white font-bold flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-[#282828] border border-[#3E3E3E] flex items-center justify-center text-[10px] text-[#1DB954]">
+                                  @
+                                </div>
+                                <span>@{item.contact_id.substring(0, 10)}...</span>
+                              </td>
+                              <td className="py-3 px-3 font-semibold text-white text-xs">
+                                {item.type === 'private_reply' && 'DM de Boas-Vindas'}
+                                {item.type === 'link_dm' && 'DM com Link'}
+                                {item.type === 'reminder_dm' && 'DM de Lembrete'}
+                              </td>
+                              <td className="py-3 px-3 text-xs text-[#A7A7A7]">{new Date(item.created_at).toLocaleTimeString('pt-BR')}</td>
+                              <td className="py-3 px-3">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                                  item.status === 'sent' && 'bg-[#282828] text-[#1DB954] border border-[#1DB954]/25'
+                                } ${
+                                  item.status === 'pending' && 'bg-[#282828] text-[#A7A7A7] border border-[#3E3E3E]'
+                                } ${
+                                  item.status === 'failed' && 'bg-[#282828] text-[#F15E6C] border border-[#F15E6C]/25'
+                                }`}>
+                                  {item.status === 'sent' && 'Enviado'}
+                                  {item.status === 'pending' && 'Pendente'}
+                                  {item.status === 'failed' && 'Falhou'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
               </div>
 
-              {/* Activity Overview */}
-              <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-white">Envios Pendentes / Recentes na Fila</h4>
-                  <button onClick={() => setActiveTab('logs')} className="text-xs font-bold text-[#1DB954] hover:text-[#1ED760] transition-colors">
-                    Ver todos os logs →
-                  </button>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left text-[#A7A7A7]">
-                    <thead className="text-xs uppercase text-[#A7A7A7] font-bold border-b border-[#282828]">
-                      <tr>
-                        <th className="py-2.5">Contato ID</th>
-                        <th className="py-2.5">Tipo</th>
-                        <th className="py-2.5">Agendado</th>
-                        <th className="py-2.5">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#282828]">
-                      {recentQueue.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="py-8 text-center text-[#A7A7A7]">Nenhum disparo na fila recentemente.</td>
-                        </tr>
-                      ) : (
-                        recentQueue.slice(0, 5).map(item => (
-                          <tr key={item.id} className="hover:bg-[#282828]/50">
-                            <td className="py-3 font-mono text-xs text-[#A7A7A7]">@{item.contact_id.substring(0, 10)}...</td>
-                            <td className="py-3 font-semibold text-white">
-                              {item.type === 'private_reply' && 'DM de Boas-Vindas'}
-                              {item.type === 'link_dm' && 'DM com Link'}
-                              {item.type === 'reminder_dm' && 'DM de Lembrete'}
-                            </td>
-                            <td className="py-3 text-xs text-[#A7A7A7]">{new Date(item.created_at).toLocaleTimeString('pt-BR')}</td>
-                            <td className="py-3">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                item.status === 'sent' && 'bg-[#282828] text-[#1DB954] border border-[#1DB954]/25'
-                              } ${
-                                item.status === 'pending' && 'bg-[#282828] text-[#A7A7A7] border border-[#3E3E3E]'
-                              } ${
-                                item.status === 'failed' && 'bg-[#282828] text-[#F15E6C] border border-[#F15E6C]/25'
-                              }`}>
-                                {item.status === 'sent' && 'Enviado'}
-                                {item.status === 'pending' && 'Pendente'}
-                                {item.status === 'failed' && 'Falhou'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
           )}
           {/* TAB: LIVE CHAT */}
