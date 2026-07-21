@@ -1812,7 +1812,15 @@ export default function Dashboard() {
             </div>
 
             {/* Modal Grid */}
-            <div className="p-5 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4 items-start bg-[#121212]">
+            <div 
+              className="p-5 overflow-y-auto flex-1 bg-[#121212]"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '12px',
+                alignContent: 'start'
+              }}
+            >
               {mediaList
                 .filter(media => {
                   if (mediaFilter === 'all') return true;
@@ -1822,8 +1830,6 @@ export default function Dashboard() {
                   return true;
                 })
                 .map(media => {
-                  const isVideo = media.media_type === 'VIDEO';
-                  
                   return (
                     <div
                       key={media.id}
@@ -1832,20 +1838,24 @@ export default function Dashboard() {
                         setShowMediaModal(false);
                         showToast('Post selecionado com sucesso!', 'success');
                       }}
-                      className="bg-[#282828] border border-[#3E3E3E] hover:border-[#1DB954] rounded-2xl overflow-hidden cursor-pointer group transition-all flex flex-col relative shadow-xs w-full"
+                      className="bg-[#282828] border border-[#3E3E3E] hover:border-[#1DB954] rounded-xl overflow-hidden cursor-pointer group transition-all relative aspect-square w-full shadow-xs"
                     >
-                      <div className="bg-[#1A1A1A] relative overflow-hidden w-full aspect-square">
-                        <img
-                          src={media.thumbnail_url || media.media_url}
-                          alt="Instagram media"
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
-                        />
-                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-full px-2 py-0.5 text-[9px] font-bold text-white select-none z-10">
-                          {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
-                        </div>
+                      <img
+                        src={media.thumbnail_url || media.media_url}
+                        alt="Instagram media"
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+                      />
+                      
+                      {/* Type Badge */}
+                      <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-full px-2 py-0.5 text-[8px] font-bold text-white select-none z-10">
+                        {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
                       </div>
-                      <div className="p-3 text-xs text-[#A7A7A7] line-clamp-2 leading-relaxed bg-[#282828] border-t border-[#3E3E3E] flex-1">
-                        {media.caption || <span className="text-[#A7A7A7] italic">Sem legenda</span>}
+
+                      {/* Caption Overlay on Hover */}
+                      <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3.5 z-20 text-left">
+                        <p className="text-[10px] text-white line-clamp-3 leading-relaxed font-bold">
+                          {media.caption || <span className="italic opacity-60">Sem legenda</span>}
+                        </p>
                       </div>
                     </div>
                   );
