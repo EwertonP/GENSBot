@@ -1830,10 +1830,10 @@ export default function Dashboard() {
                         setShowMediaModal(false);
                         showToast('Post selecionado com sucesso!', 'success');
                       }}
-                      className="bg-[#1A1A1A] border border-[#282828] hover:border-[#1DB954] rounded-2xl p-4 cursor-pointer group transition-all flex gap-4 items-center shadow-xs text-white"
+                      className="bg-[#1A1A1A] border border-[#282828] hover:border-[#1DB954] rounded-2xl p-3 cursor-pointer group transition-all flex gap-4 items-center shadow-xs text-white"
                     >
-                      {/* Left side: Square Thumbnail */}
-                      <div className="w-16 h-16 rounded-xl bg-[#282828] overflow-hidden relative border border-[#3E3E3E] flex-shrink-0">
+                      {/* Left side: Square Thumbnail (Increased Size) */}
+                      <div className="w-28 h-28 rounded-xl bg-[#282828] overflow-hidden relative border border-[#3E3E3E] flex-shrink-0">
                         <img
                           src={media.thumbnail_url || media.media_url}
                           alt="Instagram thumbnail"
@@ -1841,7 +1841,7 @@ export default function Dashboard() {
                         />
                       </div>
 
-                      {/* Right side: Post Details and Full Caption */}
+                      {/* Right side: Post Details and Clamped Caption */}
                       <div className="flex-1 flex flex-col gap-1.5 min-w-0 text-left">
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] bg-[#282828] border border-[#3E3E3E] text-[#1DB954] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
@@ -1849,7 +1849,7 @@ export default function Dashboard() {
                           </span>
                           <span className="text-[9px] text-[#A7A7A7] font-mono">ID: {media.id}</span>
                         </div>
-                        <p className="text-xs text-white leading-relaxed font-semibold break-words">
+                        <p className="text-[11px] text-[#A7A7A7] leading-relaxed font-medium break-words line-clamp-2">
                           {media.caption || <span className="italic text-[#A7A7A7] font-normal">Sem legenda</span>}
                         </p>
                       </div>
