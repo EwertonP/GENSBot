@@ -604,43 +604,13 @@ async function triggerExternalWebhook(url: string, contact: any, auto: any) {
 // Auxiliar: Enfileira a sequência de followups (Link e Lembrete)
 async function enqueueFollowups(contactId: string, auto: any) {
   // 1. Enfileirar DM com o link
-  // Usamos template genérico para renderizar o link como botão se houver rótulo
-  let linkPayload;
-  if (auto.link_button_label && auto.link_url) {
-    linkPayload = {
-      recipient: { id: contactId },
-      message: {
-        attachment: {
-          type: 'template',
-          payload: {
-            template_type: 'generic',
-            elements: [
-              {
-                title: auto.link_text || 'Aqui está o seu link:',
-                subtitle: 'Toque no botão para acessar',
-                image_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=60',
-                buttons: [
-                  {
-                    type: 'web_url',
-                    url: auto.link_url,
-                    title: auto.link_button_label.substring(0, 20),
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      },
-    };
-  } else {
-    // Se não tiver botão configurado, manda texto puro com o link
-    linkPayload = {
-      recipient: { id: contactId },
-      message: {
-        text: `${auto.link_text || 'Aqui está o seu link:'}\n\n${auto.link_url || ''}`.trim(),
-      },
-    };
-  }
+  // Conforme solicitação do usuário, removemos o card de link genérico e enviamos apenas texto simples com o link
+  const linkPayload = {
+    recipient: { id: contactId },
+    message: {
+      text: `${auto.link_text || 'Aqui está o seu link:'}\n\n${auto.link_url || ''}`.trim(),
+    },
+  };
 
   // Registra o progresso do followup 1 (Link)
   await supabase.from('followups').insert({

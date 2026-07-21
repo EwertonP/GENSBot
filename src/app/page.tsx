@@ -939,168 +939,183 @@ export default function Dashboard() {
           )}
 
           {/* TAB 2: AUTOMATIONS */}
+          {/* TAB 2: AUTOMATIONS */}
           {activeTab === 'automations' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              
-              {/* Left Side: List of Automations */}
-              <div className="lg:col-span-4 flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-white">Minhas Automações</h3>
-                  <button
-                    onClick={() => {
-                      resetForm();
-                      setIsEditing(true);
-                    }}
-                    className="flex items-center gap-1.5 text-xs font-extrabold bg-[#1DB954] hover:bg-[#1ED760] text-black px-4 py-2 rounded-full transition-all shadow-sm cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Novo Fluxo
-                  </button>
-                </div>
-
-                {automations.length === 0 ? (
-                  <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-10 text-center flex flex-col items-center gap-4 shadow-sm">
-                    <div className="p-3.5 rounded-full bg-[#282828] text-[#A7A7A7] border border-[#3E3E3E]">
-                      <Settings className="w-6 h-6" />
-                    </div>
+            <div className="w-full">
+              {!isEditing ? (
+                /* Screen 1: List of Automations (Full Width) */
+                <div className="flex flex-col gap-6 max-w-6xl mx-auto animate-fade-in">
+                  <div className="flex items-center justify-between border-b border-[#282828] pb-5">
                     <div>
-                      <h4 className="font-bold text-white text-sm">Nenhuma automação cadastrada</h4>
-                      <p className="text-xs text-[#A7A7A7] mt-1 max-w-[200px] mx-auto leading-relaxed">
-                        Crie o seu primeiro fluxo usando o botão superior "Novo Fluxo".
-                      </p>
+                      <h3 className="text-xl font-bold text-white">Minhas Automações</h3>
+                      <p className="text-xs text-[#A7A7A7] mt-1">Gerencie, crie e ative seus fluxos de resposta direta e reativa.</p>
                     </div>
+                    <button
+                      onClick={() => {
+                        resetForm();
+                        setIsEditing(true);
+                      }}
+                      className="flex items-center gap-2 text-xs font-extrabold bg-[#1DB954] hover:bg-[#1ED760] text-black px-5 py-2.5 rounded-full transition-all shadow-md cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Criar Novo Fluxo
+                    </button>
                   </div>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    {automations.map(auto => {
-                      const postMedia = auto.specific_post_id ? mediaList.find(m => m.id === auto.specific_post_id) : null;
-                      return (
-                        <div
-                          key={auto.id}
-                          onClick={() => handleEditAutomation(auto)}
-                          className={`bg-[#1A1A1A] border p-4 rounded-xl cursor-pointer group transition-all flex gap-3 shadow-sm items-start ${
-                            form.id === auto.id && isEditing
-                              ? 'border-[#1DB954] ring-2 ring-[#1DB954]/10'
-                              : 'border-[#282828] hover:border-[#3E3E3E]'
-                          }`}
-                        >
-                          {/* Quadradinho da imagem da publicação alvo se houver */}
-                          {auto.specific_post_id && (
-                            <div className="w-12 h-12 rounded-lg bg-[#282828] overflow-hidden relative border border-[#3E3E3E] flex-shrink-0 mt-0.5">
-                              {postMedia ? (
-                                <img
-                                  src={postMedia.thumbnail_url || postMedia.media_url}
-                                  alt="Post Capa"
-                                  className="absolute inset-0 w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-[#A7A7A7] bg-[#282828] text-center leading-3 p-0.5">
-                                  Post Selec.
+
+                  {automations.length === 0 ? (
+                    <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-16 text-center flex flex-col items-center gap-6 shadow-sm">
+                      <div className="p-4 rounded-full bg-[#282828] text-[#A7A7A7] border border-[#3E3E3E]">
+                        <Settings className="w-8 h-8" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white text-base">Nenhuma automação cadastrada</h4>
+                        <p className="text-xs text-[#A7A7A7] mt-1.5 max-w-[280px] mx-auto leading-relaxed">
+                          Comece agora mesmo! Crie seu primeiro fluxo de automação para responder comentários automaticamente.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {automations.map(auto => {
+                        const postMedia = auto.specific_post_id ? mediaList.find(m => m.id === auto.specific_post_id) : null;
+                        return (
+                          <div
+                            key={auto.id}
+                            onClick={() => handleEditAutomation(auto)}
+                            className="bg-[#1A1A1A] border border-[#282828] hover:border-[#3E3E3E] p-5 rounded-2xl cursor-pointer group transition-all flex flex-col justify-between gap-4 shadow-sm hover:shadow-md relative overflow-hidden"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              {auto.specific_post_id && (
+                                <div className="w-14 h-14 rounded-lg bg-[#282828] overflow-hidden relative border border-[#3E3E3E] flex-shrink-0">
+                                  {postMedia ? (
+                                    <img
+                                      src={postMedia.thumbnail_url || postMedia.media_url}
+                                      alt="Post Capa"
+                                      className="absolute inset-0 w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-[#A7A7A7] bg-[#282828] text-center leading-3 p-1">
+                                      Post Selec.
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex-1 min-w-0">
+                                <span className="font-extrabold text-white text-base truncate block group-hover:text-[#1DB954] transition-colors">{auto.name}</span>
+                                <div className="flex items-center gap-1.5 mt-1.5">
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                                    auto.active
+                                      ? 'bg-[#282828] text-[#1DB954] border border-[#1DB954]/25'
+                                      : 'bg-[#282828] text-[#A7A7A7] border border-[#3E3E3E]'
+                                  }`}>
+                                    {auto.active ? 'Ativo' : 'Pausado'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteAutomation(auto.id!);
+                                }}
+                                className="p-1.5 hover:bg-[#282828] text-[#A7A7A7] hover:text-rose-500 rounded-xl transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <div className="flex flex-col gap-2 pt-3 border-t border-[#282828] text-xs">
+                              <div className="flex items-center justify-between text-[#A7A7A7]">
+                                <span>Gatilho:</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  {auto.triggers.map(t => {
+                                    let label = 'DM';
+                                    if (t === 'comment') label = 'Comentários';
+                                    if (t === 'story') label = 'Stories';
+                                    return (
+                                      <span key={t} className="text-[9px] bg-[#282828] text-[#1DB954] font-extrabold px-1.5 py-0.5 rounded border border-[#1DB954]/20 uppercase tracking-wider">
+                                        {label}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {auto.keywords.length > 0 && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[#A7A7A7]">Palavras-chave:</span>
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    {auto.keywords.slice(0, 2).map((kw, i) => (
+                                      <span key={i} className="text-[9px] bg-[#282828] border border-[#3E3E3E] text-[#A7A7A7] px-1.5 py-0.5 rounded font-mono font-bold">
+                                        {kw}
+                                      </span>
+                                    ))}
+                                    {auto.keywords.length > 2 && (
+                                      <span className="text-[9px] text-[#A7A7A7] font-extrabold">+ {auto.keywords.length - 2}</span>
+                                    )}
+                                  </div>
                                 </div>
                               )}
                             </div>
-                          )}
-
-                          <div className="flex-1 flex flex-col gap-2 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-white text-sm truncate flex-1">{auto.name}</span>
-                              <div className="flex items-center gap-1.5 flex-shrink-0">
-                                <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
-                                  auto.active
-                                    ? 'bg-[#282828] text-[#1DB954] border border-[#1DB954]/25'
-                                    : 'bg-[#282828] text-[#A7A7A7] border border-[#3E3E3E]'
-                                }`}>
-                                  {auto.active ? 'Ativo' : 'Pausado'}
-                                </span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteAutomation(auto.id!);
-                                  }}
-                                  className="p-1 hover:bg-[#282828] text-[#A7A7A7] hover:text-rose-500 rounded-lg transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Badges de Gatilhos */}
-                            <div className="flex items-center gap-1 flex-wrap">
-                              {auto.triggers.map(t => {
-                                let label = 'DM';
-                                if (t === 'comment') label = 'Comentários';
-                                  if (t === 'story') label = 'Stories';
-                                return (
-                                  <span key={t} className="text-[9px] bg-[#282828] text-[#1DB954] font-extrabold px-1.5 py-0.5 rounded-md border border-[#1DB954]/20 uppercase tracking-wider animate-fade-in">
-                                    {label}
-                                  </span>
-                                );
-                              })}
-                            </div>
-
-                            {/* Summary of Keywords */}
-                            {auto.keywords.length > 0 ? (
-                              <div className="flex items-center gap-1 flex-wrap pt-0.5">
-                                {auto.keywords.slice(0, 3).map((kw, i) => (
-                                  <span key={i} className="text-[9px] bg-[#282828] border border-[#3E3E3E] text-[#A7A7A7] px-1.5 py-0.5 rounded font-medium font-mono">
-                                    {kw}
-                                  </span>
-                                ))}
-                                {auto.keywords.length > 3 && (
-                                  <span className="text-[9px] text-[#A7A7A7] font-bold">+ {auto.keywords.length - 3}</span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-[9px] text-[#A7A7A7] italic">Sem palavra-chave</span>
-                            )}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Right Side: Visual Flow Builder Sequence Editor */}
-              <div className="lg:col-span-8">
-                {isEditing ? (
-                  <form onSubmit={handleSaveAutomation} className="flex flex-col gap-6">
-                    
-                    {/* Header of Flow Editor */}
-                    <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 shadow-xs flex items-center justify-between">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          required
-                          value={form.name}
-                          onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="Nome do Fluxo (ex: Capturar Leads)"
-                          className="font-extrabold text-white text-lg focus:outline-none border-b border-[#3E3E3E] focus:border-[#1DB954] pb-1 w-full max-w-sm transition-all bg-transparent"
-                        />
-                        <p className="text-[10px] text-[#A7A7A7] font-bold uppercase tracking-wider mt-1.5">Configuração do Sequenciamento</p>
-                      </div>
-                      
-                      <div className="flex items-center gap-4">
-                        {/* Active toggle */}
-                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={form.active}
-                            onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
-                            className="sr-only peer"
-                          />
-                          <div className="w-9 h-5 bg-[#333333] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-[#3E3E3E] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1DB954] relative"></div>
-                          <span className="text-xs font-bold text-[#A7A7A7]">{form.active ? 'Ativo' : 'Pausado'}</span>
-                        </label>
-
-                        <button
-                          type="submit"
-                          className="px-5 py-2.5 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-extrabold text-sm shadow-md shadow-emerald-950/10 cursor-pointer transition-all"
-                        >
-                          Salvar Fluxo
-                        </button>
-                      </div>
+                        );
+                      })}
                     </div>
+                  )}
+                </div>
+              ) : (
+                /* Screen 2: Visual Flow Editor Screen (Full Width with iPhone Preview Mockup) */
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-in max-w-7xl mx-auto">
+                  
+                  {/* Left Column: Flow Builder Editor Form */}
+                  <div className="lg:col-span-8">
+                    <form onSubmit={handleSaveAutomation} className="flex flex-col gap-6">
+                      
+                      {/* Header of Flow Editor */}
+                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 shadow-xs flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <input
+                            type="text"
+                            required
+                            value={form.name}
+                            onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Nome do Fluxo (ex: Capturar Leads)"
+                            className="font-extrabold text-white text-lg focus:outline-none border-b border-[#3E3E3E] focus:border-[#1DB954] pb-1 w-full max-w-sm transition-all bg-transparent"
+                          />
+                          <p className="text-[10px] text-[#A7A7A7] font-bold uppercase tracking-wider mt-1.5">Configuração do Sequenciamento</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          {/* Active toggle */}
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={form.active}
+                              onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-[#333333] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-[#3E3E3E] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1DB954] relative"></div>
+                            <span className="text-xs font-bold text-[#A7A7A7]">{form.active ? 'Ativo' : 'Pausado'}</span>
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={() => setIsEditing(false)}
+                            className="text-xs font-bold text-[#A7A7A7] hover:text-white px-4 py-2.5 rounded-full hover:bg-[#282828] border border-[#3E3E3E] transition-all cursor-pointer animate-fade-in"
+                          >
+                            Voltar
+                          </button>
+
+                          <button
+                            type="submit"
+                            className="px-5 py-2.5 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-extrabold text-xs shadow-md cursor-pointer transition-all"
+                          >
+                            Salvar Fluxo
+                          </button>
+                        </div>
+                      </div>
+
 
                     {/* VERTICAL FLOW STEP CARDS CONTAINER */}
                     <div className="flex flex-col gap-6 relative pl-9 before:content-[''] before:absolute before:left-[17px] before:top-4 before:bottom-4 before:w-[2px] before:bg-[#3E3E3E]">
@@ -1360,61 +1375,40 @@ export default function Dashboard() {
                           4
                         </div>
                         <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-white text-sm">Card de Envio do Link de Acesso</h4>
+                          <h4 className="font-bold text-white text-sm">Envio do Link (Mensagem de Texto)</h4>
                         </div>
 
                         <div className="flex flex-col gap-4">
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-[#A7A7A7]">Texto do Link</label>
+                            <label className="text-xs font-bold text-[#A7A7A7]">Texto de Apoio (Mensagem com o Link)</label>
                             <textarea
                               placeholder="Perfeito! Aqui está o seu link exclusivo para acessar o conteúdo completo:"
                               value={form.link_text || ''}
                               onChange={e => setForm(prev => ({ ...prev, link_text: e.target.value || null }))}
                               rows={2}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/20 text-white placeholder-[#A7A7A7] transition-all resize-none"
+                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/20 text-white placeholder-[#A7A7A7] transition-all resize-none font-medium"
                             />
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-bold text-[#A7A7A7]">Rótulo do Botão (Ex: Acessar Conteúdo)</label>
-                              <input
-                                type="text"
-                                maxLength={20}
-                                placeholder="Acessar Conteúdo"
-                                value={form.link_button_label || ''}
-                                onChange={e => setForm(prev => ({ ...prev, link_button_label: e.target.value || null }))}
-                                className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/20 text-white placeholder-[#A7A7A7] transition-all font-semibold"
-                              />
-                            </div>
-
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-bold text-[#A7A7A7]">URL do Link</label>
-                              <input
-                                type="url"
-                                placeholder="https://sualandingpage.com"
-                                value={form.link_url || ''}
-                                onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
-                                className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/20 text-white placeholder-[#A7A7A7] font-mono"
-                              />
-                            </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-[#A7A7A7]">URL do Link</label>
+                            <input
+                              type="url"
+                              placeholder="https://sualandingpage.com"
+                              value={form.link_url || ''}
+                              onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
+                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/20 text-white placeholder-[#A7A7A7] font-mono font-bold"
+                            />
                           </div>
 
                           {/* Preview Card */}
                           <div className="border border-[#3E3E3E] rounded-xl p-4 bg-[#282828]/50 flex flex-col gap-2.5 max-w-sm">
-                            <span className="text-[9px] font-bold text-[#A7A7A7] uppercase tracking-widest">Visualização do Card DM</span>
-                            <div className="bg-[#1A1A1A] border border-[#282828] rounded-xl overflow-hidden shadow-xs flex flex-col">
-                              {/* Abstract image gradient */}
-                              <div className="h-28 w-full bg-gradient-to-tr from-[#1A1A1A] via-[#1E5E3A] to-[#1DB954] flex items-center justify-center text-white text-sm font-semibold select-none">
-                                Miniatura do Card
-                              </div>
-                              <div className="p-3 flex flex-col gap-1 border-b border-[#3E3E3E]">
-                                <span className="font-bold text-white text-xs truncate">{form.link_text || 'Aqui está o seu link:'}</span>
-                                <span className="text-[10px] text-[#A7A7A7]">Toque no botão para acessar</span>
-                              </div>
-                              <div className="text-center py-2 text-[#1DB954] font-bold text-xs select-none">
-                                {form.link_button_label || 'Acessar Link'}
-                              </div>
+                            <span className="text-[9px] font-bold text-[#A7A7A7] uppercase tracking-widest">Visualização do Envio</span>
+                            <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-3.5 text-xs text-white max-w-xs break-words leading-relaxed font-medium">
+                              <p>{form.link_text || 'Aqui está o seu link:'}</p>
+                              {form.link_url && (
+                                <p className="text-[#1DB954] underline mt-1.5 font-mono break-all font-bold">{form.link_url}</p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1462,22 +1456,148 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
-                  </form>
-                ) : (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-16 text-center flex flex-col items-center gap-4 shadow-sm min-h-[400px] justify-center">
-                    <div className="p-4 rounded-xl bg-[#F0FDF4] text-[#0A3A20] border border-[#CEF96F]/30 shadow-xs animate-fade-in">
-                      <MessageSquare className="w-8 h-8 text-[#0A3A20]" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-700">Fluxo de Automação Reativo</h4>
-                      <p className="text-xs text-slate-500 mt-1.5 max-w-sm mx-auto leading-relaxed">
-                        Selecione uma das suas automações listadas na barra lateral esquerda para editar a sequência de ações, ou clique em **Novo Fluxo** para desenhar um funil a partir do zero.
-                      </p>
+                    </form>
+                  </div>
+
+                  {/* Right Column: Phone Simulator Mockup */}
+                  <div className="lg:col-span-4 sticky top-6 flex flex-col items-center gap-3">
+                    <span className="text-[10px] font-extrabold text-[#A7A7A7] uppercase tracking-widest bg-[#1A1A1A] border border-[#282828] px-3 py-1.5 rounded-full shadow-xs">
+                      Visualização em Tempo Real (Direct)
+                    </span>
+                    
+                    <div className="w-[300px] h-[580px] border-[10px] border-[#3E3E3E] rounded-[48px] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none">
+                      {/* iPhone top notch/camera */}
+                      <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-5 bg-[#3E3E3E] rounded-full z-20 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#1A1A1A] ml-8 border border-[#282828]"></div>
+                      </div>
+                      
+                      {/* Status Bar */}
+                      <div className="flex justify-between items-center px-6 pt-3.5 pb-1 text-[9px] font-bold text-white bg-black/90 z-10">
+                        <span>09:41</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[7px]">5G</span>
+                          <div className="w-4 h-2 border border-white/60 rounded-[3px] p-[1px] flex items-center">
+                            <div className="w-full h-full bg-white rounded-[1px]"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Direct Chat Header */}
+                      <div className="flex items-center justify-between border-b border-[#282828] bg-[#1A1A1A] px-4 py-2 text-white">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-[#282828] border border-[#3E3E3E] flex items-center justify-center">
+                            <Instagram className="w-4.5 h-4.5 text-[#1DB954]" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-[10px] font-extrabold leading-none">@{config?.instagram_username || 'cliente'}</p>
+                            <p className="text-[8px] text-[#A7A7A7] mt-0.5 leading-none">InstaFlow Bot</p>
+                          </div>
+                        </div>
+                        <span className="text-[8px] font-bold text-[#1DB954] bg-[#1DB954]/10 border border-[#1DB954]/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Simulador</span>
+                      </div>
+
+                      {/* Chat Message Thread Body */}
+                      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-[#121212] scrollbar-none">
+                        
+                        {/* 1. Comment Trigger simulation */}
+                        {form.specific_post_id && (
+                          <div className="border border-[#282828] rounded-xl p-2.5 bg-[#1A1A1A]/80 flex flex-col gap-1.5 max-w-[240px] text-left self-start">
+                            <span className="text-[8px] font-bold text-[#A7A7A7] uppercase tracking-wider flex items-center gap-1">
+                              💬 Comentário no Post
+                            </span>
+                            <p className="text-[10px] text-white">
+                              <span className="font-bold text-[#1DB954]">@seguidor</span> comentou: "{keywordInput.split(',')[0] || 'quero'}"
+                            </p>
+                          </div>
+                        )}
+
+                        {/* 2. Direct message reply simulation */}
+                        {form.welcome_dm && (
+                          <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-1">
+                            <span className="text-[8px] font-bold text-[#A7A7A7] uppercase tracking-wider pl-1">📥 Mensagem Recebida (DM)</span>
+                            <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium">
+                              {form.welcome_dm}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 3. Quick Reply simulated button */}
+                        {form.quick_reply_button && (
+                          <div className="flex flex-col gap-1 self-center w-full max-w-[180px] mt-0.5">
+                            <div className="bg-[#1A1A1A] border border-[#1DB954] hover:bg-[#1DB954]/10 text-[#1DB954] text-[9px] py-1.5 px-3 rounded-full text-center font-extrabold cursor-pointer transition-all">
+                              {form.quick_reply_button}
+                            </div>
+                            <span className="text-[7px] text-[#A7A7A7] text-center italic mt-0.5">(Seguidor clica acima)</span>
+                          </div>
+                        )}
+
+                        {/* 4. Contact prompts simulation (if asked) */}
+                        {(form.ask_email || form.ask_phone) && (
+                          <div className="flex flex-col gap-2 mt-2">
+                            {form.ask_email && (
+                              <>
+                                <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none max-w-[220px] text-left self-start font-medium">
+                                  Por favor, digite seu e-mail para receber o acesso:
+                                </div>
+                                <div className="bg-[#1DB954] text-black text-[10px] p-2.5 rounded-2xl rounded-tr-none max-w-[180px] text-right self-end font-bold">
+                                  exemplo@email.com
+                                </div>
+                              </>
+                            )}
+                            {form.ask_phone && (
+                              <>
+                                <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none max-w-[220px] text-left self-start font-medium">
+                                  Por favor, informe seu WhatsApp para contato:
+                                </div>
+                                <div className="bg-[#1DB954] text-black text-[10px] p-2.5 rounded-2xl rounded-tr-none max-w-[180px] text-right self-end font-bold">
+                                  +55 11 99999-9999
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 5. Link Delivery simulation */}
+                        {form.link_text && (
+                          <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2">
+                            <span className="text-[8px] font-bold text-[#A7A7A7] uppercase tracking-wider pl-1">🔗 Envio do Link</span>
+                            <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words">
+                              <p>{form.link_text}</p>
+                              {form.link_url && (
+                                <p className="text-[#1DB954] underline mt-1.5 font-bold font-mono break-all">{form.link_url}</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 6. Reminder Delivery simulation */}
+                        {form.reminder_text && (
+                          <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2">
+                            <span className="text-[8px] font-bold text-[#F15E6C] uppercase tracking-wider pl-1 flex items-center gap-1">
+                              ⏰ Lembrete ({form.reminder_delay_minutes || 15}m depois)
+                            </span>
+                            <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium italic">
+                              {form.reminder_text}
+                            </div>
+                          </div>
+                        )}
+
+                      </div>
+
+                      {/* Phone Simulated Message Input Area */}
+                      <div className="border-t border-[#282828] bg-[#1A1A1A] p-2.5 flex items-center gap-2">
+                        <div className="flex-1 bg-[#282828] rounded-full px-3 py-1.5 text-[9px] text-[#A7A7A7] border border-[#3E3E3E] text-left">
+                          Enviar mensagem...
+                        </div>
+                        <div className="p-1.5 rounded-full bg-[#1DB954] text-black">
+                          <Send className="w-3 h-3" />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
 
+                </div>
+              )}
             </div>
           )}
 
@@ -1714,7 +1834,7 @@ export default function Dashboard() {
                       }}
                       className="bg-[#282828] border border-[#3E3E3E] hover:border-[#1DB954] rounded-2xl overflow-hidden cursor-pointer group transition-all flex flex-col relative shadow-xs w-full"
                     >
-                      <div className={`bg-[#1A1A1A] relative overflow-hidden w-full ${isVideo ? 'aspect-[9/16]' : 'aspect-square'}`}>
+                      <div className="bg-[#1A1A1A] relative overflow-hidden w-full aspect-square">
                         <img
                           src={media.thumbnail_url || media.media_url}
                           alt="Instagram media"
