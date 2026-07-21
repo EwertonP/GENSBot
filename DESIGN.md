@@ -1,29 +1,27 @@
-# Design System: Clean Mind style (DESIGN.md)
+# Design System: Spotify style (DESIGN.md)
 
-Este documento atua como o contrato de design e "fonte de verdade" visual (Single Source of Truth) para o desenvolvimento do **InstaFlow (GENSBot)**. Qualquer agente de IA ou desenvolvedor deve ler e seguir estritamente estas especificações para manter a consistência visual.
+Este documento atua como o contrato de design e "fonte de verdade" visual (Single Source of Truth) para o desenvolvimento do **InstaFlow (GENSBot)**. Qualquer agente de IA ou desenvolvedor deve ler e seguir estritamente estas especificações para manter a consistência visual baseada no design do Spotify.
 
 ---
 
 ## 1. Design Tokens
 
 ### Cores (Color Palette)
-* **Brand Primary (Forest Green)**: `#0A3A20`  
-  *Utilizado em botões principais, destaques ativos, títulos de cabeçalhos e estados de foco.*
-* **Brand Accent (Lime/Neon Green)**: `#CEF96F`  
-  *Utilizado em marcas de conexão ativa, caminhos ativos no fluxograma, e borders de badges destacados.*
-* **Soft Brand Background (Pastel Green)**: `#F0FDF4`  
-  *Utilizado como cor de fundo para alertas ativos, contatos selecionados e elementos em destaque suave.*
-* **Neutros (Neutrals)**:
-  * **Fundo Geral (Main Background)**: `#F8FAFC`
-  * **Bordas Principais (Borders)**: `#E2E8F0` (Slate 200) ou `#F1F5F9` (Slate 100)
-  * **Textos Principais**: `#0F172A` (Slate 900)
-  * **Textos Secundários**: `#475569` (Slate 600) *— Nota: Evitar cinzas mais claros que Slate 500 para garantir acessibilidade de contraste (WCAG).*
+* **Canvas (Main Background)**: `#121212` (Fundo principal do aplicativo).
+* **Surface 1 (Sidebar, Bottom Player Bars)**: `#1A1A1A`
+* **Surface 2 (Cards, hover backgrounds, active rows)**: `#282828`
+* **Surface 3 (Input fields, secondary hover states)**: `#333333`
+* **Border**: `#3E3E3E`
+* **Brand Primary (Spotify Green)**: `#1DB954`  
+  *Utilizado exclusivamente em botões de ação principal, status ativo, progresso e CTAs.*
+* **Brand Primary Hover**: `#1ED760`
+* **Muted Text / Secondary**: `#A7A7A7`
+* **White / Primary Text**: `#FFFFFF`
+* **Error**: `#F15E6C`
 
 ### Arredondamento (Border Radius Scale)
 * **Containers Externos, Cards Principais & Modais**: `rounded-2xl` (16px)  
-  *Garante consistência e visual amigável nas divisões do painel.*
 * **Inputs, Selects, Textareas e Tabs**: `rounded-xl` (12px)  
-  *Para áreas interativas compactas.*
 * **Botões de Ação Principais e Badges de Estado**: `rounded-full` (Pill format)
 
 ### Espaçamento (Spacing)
@@ -38,7 +36,7 @@ Este documento atua como o contrato de design e "fonte de verdade" visual (Singl
 
 ### Botão Primário (Primary Button)
 ```html
-<button className="px-5 py-2.5 rounded-full bg-[#0A3A20] hover:bg-[#125835] text-white font-bold text-sm shadow-md shadow-emerald-950/10 transition-all cursor-pointer">
+<button className="px-5 py-2.5 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-bold text-sm shadow-md shadow-emerald-950/10 transition-all cursor-pointer">
   Texto do Botão
 </button>
 ```
@@ -47,13 +45,13 @@ Este documento atua como o contrato de design e "fonte de verdade" visual (Singl
 ```html
 <input 
   type="text" 
-  className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-400 transition-all" 
+  className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/20 text-white placeholder-[#A7A7A7] transition-all" 
 />
 ```
 
 ### Badge de Gatilho / Tags
 ```html
-<span className="text-[9px] bg-[#F0FDF4] text-[#0A3A20] font-extrabold px-1.5 py-0.5 rounded-md border border-[#CEF96F]/30 uppercase tracking-wider">
+<span className="text-[9px] bg-[#282828] text-[#1DB954] font-extrabold px-1.5 py-0.5 rounded-md border border-[#1DB954]/20 uppercase tracking-wider">
   Tag
 </span>
 ```
@@ -62,7 +60,7 @@ Este documento atua como o contrato de design e "fonte de verdade" visual (Singl
 
 ## 3. Diretrizes de UX (Do's & Don'ts)
 
-* **DO**: Sempre conecte visualmente as etapas do fluxo de automação usando a linha vertical guia.
-* **DO**: Utilize avatares com iniciais coloridas para contatos no chat se não houver foto de perfil.
-* **DON'T**: Nunca introduza gradientes roxos, azuis ou vermelhos na interface padrão.
-* **DON'T**: Evite acumular múltiplos pesos de fonte na mesma seção (ex: evite misturar `font-black` com `font-extrabold` desnecessariamente). Use pesos padrão (`font-normal`, `font-semibold`, `font-bold` e `font-extrabold` para títulos principais).
+* **DO**: Utilize o fundo escuro `#121212` para todas as telas principais do aplicativo.
+* **DO**: Garanta que as fontes secundárias tenham contraste suficiente (mínimo de `#A7A7A7` para manter a legibilidade WCAG AA).
+* **DON'T**: Nunca introduza cores brilhantes e coloridas para elementos passivos; a cor de marca (`#1DB954`) é reservada para sinalizar "Ação" ou "Estado Ativo".
+* **DON'T**: Não use bordas brancas ou cinzas claras; as bordas e divisores devem usar `#3E3E3E` ou `#282828`.
