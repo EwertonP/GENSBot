@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -13,6 +15,32 @@ export async function GET(req: Request) {
       new URL('/?error=' + encodeURIComponent(errorDescription || 'Erro ao fazer login'), req.url)
     );
   }
+
+  // Obter o usuário autenticado via Supabase SSR
+  const cookieStore = await cookies();
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: (cookiesToSet) => {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch { /* Server component */ }
+        },
+      },
+    }
+  );
+
+  const { data: { user: authUser } } = await supabaseAuth.auth.getUser();
+  if (!authUser) {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  const userId = authUser.id;
 
   const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
   const clientSecret = process.env.INSTAGRAM_APP_SECRET;
@@ -81,7 +109,24 @@ export async function GET(req: Request) {
     const igUsername = profileData.username;
     const profilePictureUrl = profileData.profile_picture_url || null;
 
-    // 4. Salvar configurações no Supabase
+    // 4. Salvar na tabela `instagram_accounts` (multi-tenant)
+    const { error: accountError } = await supabase.from('instagram_accounts').upsert({
+      user_id: userId,
+      instagram_user_id: igUserId,
+      instagram_username: igUsername,
+      access_token: longToken,
+      token_expires_at: tokenExpiresAt.toISOString(),
+      profile_picture_url: profilePictureUrl,
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'user_id,instagram_user_id',
+    });
+
+    if (accountError) {
+      console.error('Erro ao salvar instagram_accounts:', accountError);
+    }
+
+    // 5. Salvar configurações principais no Supabase (mantém compatibilidade)
     const { error: dbError } = await supabase.from('config').upsert({
       id: true,
       instagram_token: longToken,
@@ -90,6 +135,7 @@ export async function GET(req: Request) {
       profile_picture_url: profilePictureUrl,
       token_expires_at: tokenExpiresAt.toISOString(),
       updated_at: new Date().toISOString(),
+      user_id: userId,
     });
 
     if (dbError) {
@@ -97,7 +143,7 @@ export async function GET(req: Request) {
       throw new Error('Erro ao gravar dados no banco de dados.');
     }
 
-    // 5. Assinar os webhooks para o aplicativo (comments, messages)
+    // 6. Assinar os webhooks para o aplicativo (comments, messages)
     const subscribeResponse = await fetch(
       `https://graph.instagram.com/v25.0/${igUserId}/subscribed_apps?subscribed_fields=comments,messages`,
       {

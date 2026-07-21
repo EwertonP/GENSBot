@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import {
   Settings,
   Plus,
@@ -72,6 +74,12 @@ interface IgMedia {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
+  const supabase = createSupabaseBrowserClient();
+
+  // Auth state
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
   // Configurações de estado do app
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
@@ -157,6 +165,14 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    // Get current authenticated user on load
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        router.push('/login');
+      } else {
+        setCurrentUser(user);
+      }
+    });
     fetchStatusAndData();
   }, []);
 
@@ -411,6 +427,10 @@ export default function Dashboard() {
     }
   };
 
+  const handleAppLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   if (loading) {
     return (
@@ -583,6 +603,28 @@ export default function Dashboard() {
             >
               <RefreshCw className="w-4 h-4 text-[#A7A7A7]" />
             </button>
+
+            {/* User Account Pill with Logout */}
+            {currentUser && (
+              <div className="flex items-center gap-2 border border-[#282828] rounded-full py-1 pl-3 pr-1.5 bg-[#1A1A1A]">
+                <div className="text-left leading-none hidden sm:block">
+                  <p className="text-[10px] text-[#A7A7A7] font-medium truncate max-w-[120px]">
+                    {currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0]}
+                  </p>
+                </div>
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#1DB954] to-[#125835] flex items-center justify-center text-black font-black text-[10px]">
+                  {(currentUser.user_metadata?.full_name || currentUser.email || '?')[0].toUpperCase()}
+                </div>
+                <button
+                  id="app-logout-button"
+                  onClick={handleAppLogout}
+                  title="Sair da conta"
+                  className="p-1.5 rounded-full hover:bg-[#282828] text-[#A7A7A7] hover:text-rose-400 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
