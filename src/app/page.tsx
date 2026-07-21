@@ -463,10 +463,13 @@ export default function Dashboard() {
       {/* 1. Left Sidebar Navigation */}
       <aside className="w-64 bg-[#1A1A1A] text-[#A7A7A7] flex flex-col flex-shrink-0 select-none border-r border-[#3E3E3E]">
         {/* Brand Header */}
-        <div className="px-6 py-5 border-b border-[#3E3E3E]">
-          <div className="bg-[#1DB954] text-black font-black text-center py-2 px-4 rounded-xl tracking-wider text-xs uppercase shadow-2xs font-mono w-full select-none">
-            Clean Mind
-          </div>
+        <div className="px-6 py-5 border-b border-[#3E3E3E] flex items-center justify-center">
+          {/* Logo enviada pelo usuário */}
+          <img 
+            src="/logo.png" 
+            alt="GENS Logo" 
+            className="h-8 w-auto object-contain select-none"
+          />
         </div>
 
         {/* Navigation Links */}
