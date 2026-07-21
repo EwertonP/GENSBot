@@ -1,46 +1,68 @@
----
-name: InstaFlow (eGrow Aesthetic)
-colors:
-  primary: "#7C3AED"         # Violet 600
-  primary-gradient: "from-[#7C3AED] to-[#4F46E5]" # Purple to Indigo
-  primary-light: "#F5F3FF"   # Violet 50 (active sidebar item background)
-  background: "#FAFAFC"      # Soft grey-blue page background
-  surface: "#FFFFFF"         # Pure white cards and sidebar
-  border: "#F0F2F5"          # Extremely subtle borders
-  text-primary: "#1E2024"    # Dark grey (main text)
-  text-secondary: "#7C808C"  # Slate grey (secondary/muted text)
-  success: "#10B981"         # Emerald Green
-  error: "#EF4444"           # Rose Red
-  warning: "#F59E0B"         # Amber
-typography:
-  fontFamily: Inter, sans-serif
-  h1:
-    fontSize: 28px
-    fontWeight: "700"
-    lineHeight: 36px
-  h2:
-    fontSize: 20px
-    fontWeight: "600"
-    lineHeight: 28px
-  body:
-    fontSize: 14px
-    fontWeight: "400"
-    lineHeight: 22px
-rounded:
-  sm: 8px
-  md: 12px
-  lg: 18px
-  xl: 24px
-  full: 9999px
+# Design System: Clean Mind style (DESIGN.md)
+
+Este documento atua como o contrato de design e "fonte de verdade" visual (Single Source of Truth) para o desenvolvimento do **InstaFlow (GENSBot)**. Qualquer agente de IA ou desenvolvedor deve ler e seguir estritamente estas especificações para manter a consistência visual.
+
 ---
 
-## Visual Philosophy
-Warm, executive, and incredibly clean. Replicates the premium dashboard aesthetic of modern analytics tools like eGrow. It features a bright white layout, soft gradients (Violet to Indigo), high-contrast yet elegant slate text, and deep card rounded corners to give a modular, modern desktop look.
+## 1. Design Tokens
 
-## Colors
-- **Primary Gradient (Violet to Indigo)**: Drives main calls-to-action (e.g. creating/saving campaigns/flows).
-- **Light Sidebar (#FFFFFF)**: Melds with the page, outlined only by a svelte `#F0F2F5` border. Focuses attention entirely on main content.
-- **Active Navigation Highlights (#F5F3FF)**: Highlights the current page with a soft, non-intrusive violet background and violet text.
+### Cores (Color Palette)
+* **Brand Primary (Forest Green)**: `#0A3A20`  
+  *Utilizado em botões principais, destaques ativos, títulos de cabeçalhos e estados de foco.*
+* **Brand Accent (Lime/Neon Green)**: `#CEF96F`  
+  *Utilizado em marcas de conexão ativa, caminhos ativos no fluxograma, e borders de badges destacados.*
+* **Soft Brand Background (Pastel Green)**: `#F0FDF4`  
+  *Utilizado como cor de fundo para alertas ativos, contatos selecionados e elementos em destaque suave.*
+* **Neutros (Neutrals)**:
+  * **Fundo Geral (Main Background)**: `#F8FAFC`
+  * **Bordas Principais (Borders)**: `#E2E8F0` (Slate 200) ou `#F1F5F9` (Slate 100)
+  * **Textos Principais**: `#0F172A` (Slate 900)
+  * **Textos Secundários**: `#475569` (Slate 600) *— Nota: Evitar cinzas mais claros que Slate 500 para garantir acessibilidade de contraste (WCAG).*
 
-## Profile UI
-The active Instagram account is rendered as a clean, rounded pill in the top-right header, matching standard executive settings bars.
+### Arredondamento (Border Radius Scale)
+* **Containers Externos, Cards Principais & Modais**: `rounded-2xl` (16px)  
+  *Garante consistência e visual amigável nas divisões do painel.*
+* **Inputs, Selects, Textareas e Tabs**: `rounded-xl` (12px)  
+  *Para áreas interativas compactas.*
+* **Botões de Ação Principais e Badges de Estado**: `rounded-full` (Pill format)
+
+### Espaçamento (Spacing)
+* Seguir estritamente a grade do Tailwind:
+  * Margens e paddings de cards: `p-6` (24px) para cards de fluxo e painéis.
+  * Distâncias internas de formulários: `gap-4` ou `gap-6`.
+  * Paddings de inputs: `px-4 py-2.5`.
+
+---
+
+## 2. Padrões de Componentes
+
+### Botão Primário (Primary Button)
+```html
+<button className="px-5 py-2.5 rounded-full bg-[#0A3A20] hover:bg-[#125835] text-white font-bold text-sm shadow-md shadow-emerald-950/10 transition-all cursor-pointer">
+  Texto do Botão
+</button>
+```
+
+### Campos de Entrada (Form Controls)
+```html
+<input 
+  type="text" 
+  className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0A3A20] focus:ring-1 focus:ring-[#0A3A20]/20 text-slate-800 placeholder-slate-400 transition-all" 
+/>
+```
+
+### Badge de Gatilho / Tags
+```html
+<span className="text-[9px] bg-[#F0FDF4] text-[#0A3A20] font-extrabold px-1.5 py-0.5 rounded-md border border-[#CEF96F]/30 uppercase tracking-wider">
+  Tag
+</span>
+```
+
+---
+
+## 3. Diretrizes de UX (Do's & Don'ts)
+
+* **DO**: Sempre conecte visualmente as etapas do fluxo de automação usando a linha vertical guia.
+* **DO**: Utilize avatares com iniciais coloridas para contatos no chat se não houver foto de perfil.
+* **DON'T**: Nunca introduza gradientes roxos, azuis ou vermelhos na interface padrão.
+* **DON'T**: Evite acumular múltiplos pesos de fonte na mesma seção (ex: evite misturar `font-black` com `font-extrabold` desnecessariamente). Use pesos padrão (`font-normal`, `font-semibold`, `font-bold` e `font-extrabold` para títulos principais).
