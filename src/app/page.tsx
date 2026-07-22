@@ -138,6 +138,9 @@ export default function Dashboard() {
   // Mensagens de alerta/sucesso
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // Layout states
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const fetchStatusAndData = async () => {
     try {
       const res = await fetch('/api/status');
@@ -460,8 +463,17 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 1. Left Sidebar Navigation */}
-      <aside className="w-64 bg-[#1A1A1A] text-[#A7A7A7] flex flex-col flex-shrink-0 select-none border-r border-[#3E3E3E]">
+      {/* Overlay para o Menu Mobile */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-40 md:hidden" 
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* 1. Left Sidebar Navigation (Off-canvas no mobile) */}
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#1A1A1A] text-[#A7A7A7] flex flex-col flex-shrink-0 select-none border-r border-[#3E3E3E] transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+
         {/* Brand Header */}
         <div className="px-6 py-5 border-b border-[#3E3E3E] flex items-center justify-center">
           {/* Logo enviada pelo usuário */}
@@ -541,11 +553,28 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* 2. Main Content Wrapper */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#121212]">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-black w-full relative">
         
+        {/* Mobile Top Bar (Só aparece em telas pequenas) */}
+        <div className="md:hidden flex items-center justify-between px-5 py-4 border-b border-[#3E3E3E] bg-[#1A1A1A]">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="text-[#A7A7A7] hover:text-white"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <img src="/logo.png" alt="GENS" className="h-6 w-auto object-contain" />
+          </div>
+          {/* Avatar na top bar mobile */}
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#BADF95] to-[#125835] flex items-center justify-center text-black font-black text-xs shadow-md">
+            {currentUser?.email?.substring(0, 1).toUpperCase()}
+          </div>
+        </div>
+
         {/* Top Header Bar */}
-        <header className="h-16 bg-[#1A1A1A] border-b border-[#3E3E3E] px-6 flex items-center justify-between flex-shrink-0">
+        <header className="hidden md:flex h-16 bg-[#1A1A1A] border-b border-[#3E3E3E] px-6 items-center justify-between flex-shrink-0">
           <div>
             <h2 className="text-lg font-black text-white tracking-tight">
               {activeTab === 'dashboard' && 'Dashboard'}
@@ -980,9 +1009,9 @@ export default function Dashboard() {
           )}
           {/* TAB: LIVE CHAT */}
           {activeTab === 'chat' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-[#1A1A1A] border border-[#282828] rounded-2xl overflow-hidden shadow-xs h-[calc(100vh-170px)]">
+            <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-6 bg-[#1A1A1A] border border-[#282828] rounded-2xl overflow-hidden shadow-xs h-[calc(100vh-170px)]">
               {/* Left Contacts List */}
-              <div className="lg:col-span-4 border-r border-[#282828] flex flex-col h-full overflow-hidden bg-[#121212]">
+              <div className={`lg:col-span-4 border-r border-[#282828] h-full overflow-hidden bg-[#121212] ${selectedContactId ? 'hidden lg:flex flex-col' : 'flex flex-col'}`}>
                 <div className="p-4 border-b border-[#282828] bg-[#1A1A1A]">
                   <h3 className="font-bold text-white text-sm">Conversas Recentes</h3>
                   <p className="text-[10px] text-[#A7A7A7]">Clique para abrir o histórico de mensagens</p>
@@ -1044,18 +1073,27 @@ export default function Dashboard() {
               </div>
 
               {/* Right Chat Pane */}
-              <div className="lg:col-span-8 flex flex-col h-full overflow-hidden bg-[#121212]">
+              <div className={`lg:col-span-8 h-full overflow-hidden bg-[#121212] ${!selectedContactId ? 'hidden lg:flex flex-col' : 'flex flex-col'}`}>
                 {selectedContactId ? (
                   <div className="flex flex-col h-full overflow-hidden">
                     {/* Chat Header */}
-                    <div className="p-4 border-b border-[#282828] flex items-center justify-between bg-[#1A1A1A]">
-                      <div>
-                        <h4 className="font-bold text-white text-sm">
-                          @{contacts.find(c => c.instagram_id === selectedContactId)?.username || selectedContactId}
-                        </h4>
-                        <span className="text-[9px] text-[#A7A7A7] font-medium">
-                          ID: {selectedContactId}
-                        </span>
+                    <div className="p-4 border-b border-[#282828] flex items-center justify-between bg-[#1A1A1A] gap-3">
+                      <div className="flex items-center gap-3">
+                        {/* Botão voltar no mobile */}
+                        <button
+                          onClick={() => setSelectedContactId(null)}
+                          className="lg:hidden p-1.5 -ml-2 rounded-xl text-[#A7A7A7] hover:bg-[#282828] hover:text-white transition-colors"
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        </button>
+                        <div>
+                          <h4 className="font-bold text-white text-sm">
+                            @{contacts.find(c => c.instagram_id === selectedContactId)?.username || selectedContactId}
+                          </h4>
+                          <span className="text-[9px] text-[#A7A7A7] font-medium">
+                            ID: {selectedContactId}
+                          </span>
+                        </div>
                       </div>
                       
                       {/* State status badge */}
@@ -1273,7 +1311,7 @@ export default function Dashboard() {
                     <form onSubmit={handleSaveAutomation} className="flex flex-col gap-6">
                       
                       {/* Header of Flow Editor */}
-                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 shadow-xs flex items-center justify-between gap-4">
+                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <input
                             type="text"
@@ -1286,7 +1324,7 @@ export default function Dashboard() {
                           <p className="text-[10px] text-[#A7A7A7] font-bold uppercase tracking-wider mt-1.5">Configuração do Sequenciamento</p>
                         </div>
                         
-                        <div className="flex items-center gap-4 flex-shrink-0">
+                        <div className="flex flex-wrap items-center gap-4 flex-shrink-0 w-full md:w-auto">
                           {/* Active toggle */}
                           <label className="flex items-center gap-2.5 cursor-pointer select-none">
                             <input
@@ -2011,8 +2049,8 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* Modal List (Vertical Stack) */}
-            <div className="p-5 overflow-y-auto flex-1 bg-[#121212] flex flex-col gap-4">
+            {/* Modal List (Feed Instagram Grid) */}
+            <div className="p-5 overflow-y-auto flex-1 bg-[#121212] grid grid-cols-1 sm:grid-cols-2 gap-6">
               {mediaList
                 .filter(media => {
                   if (mediaFilter === 'all') return true;
@@ -2030,27 +2068,27 @@ export default function Dashboard() {
                         setShowMediaModal(false);
                         showToast('Post selecionado com sucesso!', 'success');
                       }}
-                      className="bg-[#1A1A1A] border border-[#282828] hover:border-[#BADF95] rounded-2xl p-3 cursor-pointer group transition-all flex gap-4 items-center shadow-xs text-white"
+                      className="bg-[#1A1A1A] border border-[#282828] hover:border-[#BADF95] rounded-2xl cursor-pointer group transition-all flex flex-col overflow-hidden shadow-sm hover:shadow-md text-white"
                     >
-                      {/* Left side: Square Thumbnail (Increased Size) */}
-                      <div className="w-28 h-28 rounded-xl bg-[#282828] overflow-hidden relative border border-[#3E3E3E] flex-shrink-0">
+                      {/* Topo: Imagem Gigante (Aspect Square - Estilo Feed) */}
+                      <div className="w-full aspect-square bg-[#282828] relative overflow-hidden">
                         <img
                           src={media.thumbnail_url || media.media_url}
                           alt="Instagram thumbnail"
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
                         />
-                      </div>
-
-                      {/* Right side: Post Details and Clamped Caption */}
-                      <div className="flex-1 flex flex-col gap-1.5 min-w-0 text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] bg-[#282828] border border-[#3E3E3E] text-[#BADF95] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                        <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-lg">
+                          <span className="text-[9px] text-[#BADF95] font-black uppercase tracking-widest">
                             {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
                           </span>
-                          <span className="text-[9px] text-[#A7A7A7] font-mono">ID: {media.id}</span>
                         </div>
-                        <p className="text-[11px] text-[#A7A7A7] leading-relaxed font-medium break-words line-clamp-2">
-                          {media.caption || <span className="italic text-[#A7A7A7] font-normal">Sem legenda</span>}
+                      </div>
+
+                      {/* Base: Detalhes e Legenda Compacta */}
+                      <div className="p-4 flex flex-col gap-2 bg-[#1A1A1A]">
+                        <span className="text-[9px] text-[#A7A7A7] font-mono">ID: {media.id}</span>
+                        <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
+                          {media.caption || 'Sem legenda'}
                         </p>
                       </div>
                     </div>
