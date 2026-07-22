@@ -48,6 +48,10 @@ export async function GET(req: Request) {
 
 // POST: Recebe eventos do webhook da Meta
 export async function POST(req: Request) {
+  const host = req.headers.get('host') || 'localhost:3000';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const appUrl = `${protocol}://${host}`;
+
   const signatureHeader = req.headers.get('x-hub-signature-256');
   const rawBody = await req.text();
 
@@ -76,7 +80,7 @@ export async function POST(req: Request) {
   // Disparar o processamento do evento de forma assíncrona após responder
   after(async () => {
     try {
-      await processWebhookEvent(payload);
+      await processWebhookEvent(payload, appUrl);
     } catch (err) {
       console.error('Erro ao processar evento do webhook:', err);
     }
@@ -105,7 +109,7 @@ async function fetchInstagramUserProfile(senderId: string, accessToken: string) 
   return { username: null, name: null };
 }
 
-async function processWebhookEvent(payload: any) {
+async function processWebhookEvent(payload: any, appUrl: string) {
   if (payload.object !== 'instagram' || !payload.entry) return;
 
   for (const entry of payload.entry) {
@@ -268,7 +272,7 @@ async function processWebhookEvent(payload: any) {
               }
 
               // Executar a fila imediatamente
-              triggerQueueDrain();
+              triggerQueueDrain(appUrl);
               break;
             }
           }
@@ -344,7 +348,7 @@ async function processWebhookEvent(payload: any) {
 
             // Enfileirar os followups (link e lembrete)
             await enqueueFollowups(senderId, auto, ownerUserId, myIgId);
-            triggerQueueDrain();
+            triggerQueueDrain(appUrl);
           }
           continue;
         }
@@ -368,7 +372,7 @@ async function processWebhookEvent(payload: any) {
             status: 'pending',
             scheduled_at: new Date().toISOString(),
           });
-          triggerQueueDrain();
+          triggerQueueDrain(appUrl);
           continue;
         }
 
@@ -429,7 +433,7 @@ async function processWebhookEvent(payload: any) {
                       triggerExternalWebhook(auto.webhook_url, { ...contact, email: emailCandidate }, auto);
                     }
                   }
-                  triggerQueueDrain();
+                  triggerQueueDrain(appUrl);
                   continue;
                 } else {
                   // E-mail inválido
@@ -447,7 +451,7 @@ async function processWebhookEvent(payload: any) {
                     status: 'pending',
                     scheduled_at: new Date().toISOString()
                   });
-                  triggerQueueDrain();
+                  triggerQueueDrain(appUrl);
                   continue;
                 }
               }
@@ -479,7 +483,7 @@ async function processWebhookEvent(payload: any) {
                   if (auto.webhook_url) {
                     triggerExternalWebhook(auto.webhook_url, { ...contact, phone: phoneCandidate }, auto);
                   }
-                  triggerQueueDrain();
+                  triggerQueueDrain(appUrl);
                   continue;
                 } else {
                   // Telefone inválido
@@ -497,7 +501,7 @@ async function processWebhookEvent(payload: any) {
                     status: 'pending',
                     scheduled_at: new Date().toISOString()
                   });
-                  triggerQueueDrain();
+                  triggerQueueDrain(appUrl);
                   continue;
                 }
               }
@@ -603,7 +607,7 @@ async function processWebhookEvent(payload: any) {
               scheduled_at: new Date().toISOString(),
             });
 
-            triggerQueueDrain();
+            triggerQueueDrain(appUrl);
             break;
           }
         }
@@ -769,8 +773,7 @@ function matchesKeywords(text: string, keywords: string[], matchType: string): b
 }
 
 // Disparador assíncrono para o drain worker
-function triggerQueueDrain() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+function triggerQueueDrain(appUrl: string) {
   const cronSecret = process.env.CRON_SECRET || 'local_secret';
 
   fetch(`${appUrl}/api/cron/drain`, {

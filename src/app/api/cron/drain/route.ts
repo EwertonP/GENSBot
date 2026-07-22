@@ -72,8 +72,8 @@ async function handleDrain(req: Request) {
         }
 
         const token = config.instagram_token;
-        // 4. Validar janela de 24h se for envio de DM direta (link_dm ou reminder_dm)
-        if (job.type === 'link_dm' || job.type === 'reminder_dm') {
+        // 4. Validar janela de 24h se for envio de DM direta (link_dm, reminder_dm ou sequence_dm)
+        if (job.type === 'link_dm' || job.type === 'reminder_dm' || job.type === 'sequence_dm') {
           const { data: contact } = await supabase
             .from('contacts')
             .select('last_response_at')
@@ -166,25 +166,27 @@ async function handleDrain(req: Request) {
               automation_id: job.automation_id,
               event_type: 'welcome_dm_sent'
             });
-          } else if (job.type === 'reminder_dm') {
+          } else if (job.type === 'reminder_dm' || job.type === 'sequence_dm') {
             await supabase.from('analytics_events').insert({
               user_id: config.user_id,
               instagram_user_id: config.instagram_user_id,
               contact_id: job.contact_id,
               automation_id: job.automation_id,
-              event_type: 'reminder_sent'
+              event_type: job.type === 'sequence_dm' ? 'sequence_sent' : 'reminder_sent'
             });
           }
 
           // Atualizar o status da tabela followups correspondente se aplicável
-          if (job.type === 'link_dm' || job.type === 'reminder_dm') {
-            const step = job.type === 'link_dm' ? 1 : 2;
-            await supabase
-              .from('followups')
-              .update({ status: 'sent' })
-              .eq('automation_id', job.automation_id)
-              .eq('contact_id', job.contact_id)
-              .eq('step', step);
+          if (job.type === 'link_dm' || job.type === 'reminder_dm' || job.type === 'sequence_dm') {
+            if (job.type === 'link_dm' || job.type === 'reminder_dm') {
+              const step = job.type === 'link_dm' ? 1 : 2;
+              await supabase
+                .from('followups')
+                .update({ status: 'sent' })
+                .eq('automation_id', job.automation_id)
+                .eq('contact_id', job.contact_id)
+                .eq('step', step);
+            }
           }
 
           processedJobs.push({ id: job.id, status: 'sent' });
