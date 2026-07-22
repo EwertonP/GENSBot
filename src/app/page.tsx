@@ -1504,6 +1504,32 @@ export default function Dashboard() {
                               Adicionar
                             </button>
                           </div>
+                          {/* Sugestões de Respostas Rápidas */}
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {[
+                              "Te chamei no direct! Dá uma olhada lá.",
+                              "Link enviado na sua DM! 🚀",
+                              "Acabei de enviar no seu direct, confere lá!",
+                              "Oi! Dá uma olhadinha nas suas mensagens.",
+                              "Já mandei no seu privado! 😉"
+                            ].map((preset, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => {
+                                  if (!form.public_replies.includes(preset)) {
+                                    setForm(prev => ({ ...prev, public_replies: [...prev.public_replies, preset] }));
+                                    showToast('Resposta rápida adicionada!', 'success');
+                                  } else {
+                                    showToast('Essa resposta já foi adicionada!', 'error');
+                                  }
+                                }}
+                                className="text-[10px] bg-[#282828] text-[#A7A7A7] hover:bg-[#3E3E3E] hover:text-white px-3 py-1.5 rounded-full border border-[#3E3E3E] transition-colors cursor-pointer select-none"
+                              >
+                                + {preset}
+                              </button>
+                            ))}
+                          </div>
                         </div>
 
                         {/* List of responses */}
