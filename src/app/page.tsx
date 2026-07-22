@@ -1928,16 +1928,35 @@ export default function Dashboard() {
 
                         {/* 5. Link Delivery simulation */}
                         {form.link_text && (
-                          <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2">
+                          <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2 w-full">
                             <span className="text-[8px] font-bold text-[#A7A7A7] uppercase tracking-wider pl-1">🔗 Envio do Link</span>
-                            <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words">
+                            <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
                               <p>{form.link_text}</p>
                               {form.link_url && (
-                                <p className="text-[#BADF95] underline mt-1.5 font-bold font-mono break-all">{form.link_url}</p>
+                                <div className="mt-1 w-full flex justify-center border-t border-[#3E3E3E] pt-2">
+                                  <span className="text-[#BADF95] font-bold text-center block w-full">{form.link_button_label || 'Acessar Link'}</span>
+                                </div>
                               )}
                             </div>
                           </div>
                         )}
+
+                        {/* Sequência (Follow-ups) */}
+                        {form.followups && form.followups.map((f, i) => (
+                          <div key={f.id} className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2 w-full">
+                            <span className="text-[8px] font-bold text-[#F15E6C] uppercase tracking-wider pl-1 flex items-center gap-1">
+                              ⏰ Sequência ({f.delay_minutes}m depois)
+                            </span>
+                            <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
+                              <p>{f.text}</p>
+                              {f.link_url && (
+                                <div className="mt-1 w-full flex justify-center border-t border-[#3E3E3E] pt-2">
+                                  <span className="text-[#BADF95] font-bold text-center block w-full">{f.link_button_label || 'Acessar Link'}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
 
                         {/* 6. Reminder Delivery simulation */}
                         {form.reminder_text && (
