@@ -648,12 +648,34 @@ async function triggerExternalWebhook(url: string, contact: any, auto: any) {
 async function enqueueFollowups(contactId: string, auto: any, userId: string, instagramUserId: string) {
   // 1. Passo 4: Envio do Link Imediato (Se configurado)
   if (auto.link_url || auto.link_text) {
-    const linkPayload = {
+    let linkPayload: any = {
       recipient: { id: contactId },
       message: {
-        text: `${auto.link_text || 'Aqui está o seu link:'}\n\n${auto.link_url || ''}`.trim(),
+        text: (auto.link_text || 'Aqui está o seu link:').trim(),
       },
     };
+
+    if (auto.link_url) {
+      linkPayload = {
+        recipient: { id: contactId },
+        message: {
+          attachment: {
+            type: 'template',
+            payload: {
+              template_type: 'button',
+              text: (auto.link_text || 'Aqui está o seu link:').trim(),
+              buttons: [
+                {
+                  type: 'web_url',
+                  url: auto.link_url,
+                  title: (auto.link_button_label || 'Acessar Link').substring(0, 20)
+                }
+              ]
+            }
+          }
+        }
+      };
+    }
 
     await supabase.from('followups').insert({
       user_id: userId,
@@ -689,14 +711,33 @@ async function enqueueFollowups(contactId: string, auto: any, userId: string, in
       scheduledTime.setMinutes(scheduledTime.getMinutes() + cumulativeDelay);
       
       let messageText = f.text || '';
-      if (f.link_url) {
-        messageText += `\n\n${f.link_url}`;
-      }
       
-      const payload = {
+      let payload: any = {
         recipient: { id: contactId },
         message: { text: messageText.trim() }
       };
+
+      if (f.link_url) {
+        payload = {
+          recipient: { id: contactId },
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text: messageText.trim() || 'Acesse o link abaixo:',
+                buttons: [
+                  {
+                    type: 'web_url',
+                    url: f.link_url,
+                    title: (f.link_button_label || 'Acessar Link').substring(0, 20)
+                  }
+                ]
+              }
+            }
+          }
+        };
+      }
       
       await supabase.from('followups').insert({
         user_id: userId,

@@ -49,6 +49,7 @@ interface Followup {
   text: string;
   link_url?: string | null;
   link_text?: string | null;
+  link_button_label?: string | null;
 }
 
 interface Automation {
@@ -1665,24 +1666,39 @@ export default function Dashboard() {
                             />
                           </div>
 
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-[#A7A7A7]">URL do Link</label>
-                            <input
-                              type="url"
-                              placeholder="https://sualandingpage.com"
-                              value={form.link_url || ''}
-                              onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] font-mono font-bold"
-                            />
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-xs font-bold text-[#A7A7A7]">URL do Link</label>
+                              <input
+                                type="url"
+                                placeholder="https://sualandingpage.com"
+                                value={form.link_url || ''}
+                                onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
+                                className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] font-mono font-bold"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-xs font-bold text-[#A7A7A7]">Texto do Botão</label>
+                              <input
+                                type="text"
+                                placeholder="Acessar Link"
+                                maxLength={20}
+                                value={form.link_button_label || ''}
+                                onChange={e => setForm(prev => ({ ...prev, link_button_label: e.target.value || null }))}
+                                className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] font-bold"
+                              />
+                            </div>
                           </div>
 
                           {/* Preview Card */}
                           <div className="border border-[#3E3E3E] rounded-xl p-4 bg-[#282828]/50 flex flex-col gap-2.5 max-w-sm">
                             <span className="text-[9px] font-bold text-[#A7A7A7] uppercase tracking-widest">Visualização do Envio</span>
-                            <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-3.5 text-xs text-white max-w-xs break-words leading-relaxed font-medium">
+                            <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-3.5 text-xs text-white max-w-xs break-words leading-relaxed font-medium flex flex-col gap-3">
                               <p>{form.link_text || 'Aqui está o seu link:'}</p>
                               {form.link_url && (
-                                <p className="text-[#BADF95] underline mt-1.5 font-mono break-all font-bold">{form.link_url}</p>
+                                <div className="mt-1 w-full flex justify-center border-t border-[#3E3E3E] pt-3">
+                                  <span className="text-[#BADF95] font-bold text-center block w-full">{form.link_button_label || 'Acessar Link'}</span>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -1737,7 +1753,7 @@ export default function Dashboard() {
                                 />
                               </div>
                               
-                              <div className="grid grid-cols-2 gap-3">
+                              <div className="grid grid-cols-3 gap-3">
                                 <div className="flex flex-col gap-1.5">
                                   <label className="text-xs font-bold text-[#A7A7A7]">Aguardar (Minutos)</label>
                                   <input
@@ -1753,7 +1769,7 @@ export default function Dashboard() {
                                   />
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                  <label className="text-xs font-bold text-[#A7A7A7]">URL do Link (Opcional)</label>
+                                  <label className="text-xs font-bold text-[#A7A7A7]">URL (Opcional)</label>
                                   <input
                                     type="url"
                                     placeholder="https://..."
@@ -1761,6 +1777,21 @@ export default function Dashboard() {
                                     onChange={e => {
                                       const newFollowups = [...(form.followups || [])];
                                       newFollowups[index].link_url = e.target.value;
+                                      setForm(prev => ({ ...prev, followups: newFollowups }));
+                                    }}
+                                    className="bg-[#1A1A1A] border border-[#3E3E3E] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#BADF95] text-white font-mono"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-xs font-bold text-[#A7A7A7]">Texto do Botão</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Acessar"
+                                    maxLength={20}
+                                    value={followup.link_button_label || ''}
+                                    onChange={e => {
+                                      const newFollowups = [...(form.followups || [])];
+                                      newFollowups[index].link_button_label = e.target.value;
                                       setForm(prev => ({ ...prev, followups: newFollowups }));
                                     }}
                                     className="bg-[#1A1A1A] border border-[#3E3E3E] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#BADF95] text-white"
