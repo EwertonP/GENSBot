@@ -2049,8 +2049,8 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* Modal List (Feed Instagram Grid) */}
-            <div className="p-5 overflow-y-auto flex-1 bg-[#121212] grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Modal List (Lista 1 por linha com miniatura grande ao lado) */}
+            <div className="p-5 overflow-y-auto flex-1 bg-[#121212] flex flex-col gap-4">
               {mediaList
                 .filter(media => {
                   if (mediaFilter === 'all') return true;
@@ -2068,26 +2068,26 @@ export default function Dashboard() {
                         setShowMediaModal(false);
                         showToast('Post selecionado com sucesso!', 'success');
                       }}
-                      className="bg-[#1A1A1A] border border-[#282828] hover:border-[#BADF95] rounded-2xl cursor-pointer group transition-all flex flex-col overflow-hidden shadow-sm hover:shadow-md text-white"
+                      className="bg-[#1A1A1A] border border-[#282828] hover:border-[#BADF95] rounded-2xl p-4 cursor-pointer group transition-all flex flex-row gap-5 items-start shadow-sm hover:shadow-md text-white"
                     >
-                      {/* Topo: Imagem Gigante (Aspect Square - Estilo Feed) */}
-                      <div className="w-full aspect-square bg-[#282828] relative overflow-hidden">
+                      {/* Esquerda: Imagem Grande (Capa) */}
+                      <div className="w-28 h-28 sm:w-40 sm:h-40 rounded-xl bg-[#282828] relative overflow-hidden flex-shrink-0 border border-[#3E3E3E]">
                         <img
                           src={media.thumbnail_url || media.media_url}
                           alt="Instagram thumbnail"
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
                         />
-                        <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-lg">
+                        <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded-lg">
                           <span className="text-[9px] text-[#BADF95] font-black uppercase tracking-widest">
                             {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
                           </span>
                         </div>
                       </div>
 
-                      {/* Base: Detalhes e Legenda Compacta */}
-                      <div className="p-4 flex flex-col gap-2 bg-[#1A1A1A]">
-                        <span className="text-[9px] text-[#A7A7A7] font-mono">ID: {media.id}</span>
-                        <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
+                      {/* Direita: Detalhes e Legenda */}
+                      <div className="flex-1 flex flex-col gap-2 min-w-0 py-1">
+                        <span className="text-[10px] text-[#A7A7A7] font-mono">ID: {media.id}</span>
+                        <p className="text-sm text-white/90 line-clamp-4 sm:line-clamp-5 leading-relaxed">
                           {media.caption || 'Sem legenda'}
                         </p>
                       </div>
