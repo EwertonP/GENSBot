@@ -642,52 +642,7 @@ async function triggerExternalWebhook(url: string, contact: any, auto: any) {
 
 // Auxiliar: Enfileira a sequência de followups (Dinâmico ou Legado)
 async function enqueueFollowups(contactId: string, auto: any, userId: string, instagramUserId: string) {
-  // Novo Fluxo: Sequência Dinâmica (Followups)
-  if (auto.followups && Array.isArray(auto.followups) && auto.followups.length > 0) {
-    let cumulativeDelay = 0;
-    
-    for (let i = 0; i < auto.followups.length; i++) {
-      const f = auto.followups[i];
-      cumulativeDelay += (f.delay_minutes || 1);
-      
-      const scheduledTime = new Date();
-      scheduledTime.setMinutes(scheduledTime.getMinutes() + cumulativeDelay);
-      
-      let messageText = f.text || '';
-      if (f.link_url) {
-        messageText += `\n\n${f.link_url}`;
-      }
-      
-      const payload = {
-        recipient: { id: contactId },
-        message: { text: messageText.trim() }
-      };
-      
-      await supabase.from('followups').insert({
-        user_id: userId,
-        instagram_user_id: instagramUserId,
-        automation_id: auto.id,
-        contact_id: contactId,
-        step: i + 1,
-        status: 'queued',
-      });
-
-      await supabase.from('queue').insert({
-        user_id: userId,
-        instagram_user_id: instagramUserId,
-        contact_id: contactId,
-        automation_id: auto.id,
-        type: 'sequence_dm',
-        recipient_id: contactId,
-        payload: payload,
-        status: 'pending',
-        scheduled_at: scheduledTime.toISOString(),
-      });
-    }
-    return;
-  }
-
-  // Fluxo Antigo (Legado de Retrocompatibilidade)
+  // 1. Passo 4: Envio do Link Imediato (Se configurado)
   if (auto.link_url || auto.link_text) {
     const linkPayload = {
       recipient: { id: contactId },
@@ -718,7 +673,51 @@ async function enqueueFollowups(contactId: string, auto: any, userId: string, in
     });
   }
 
-  if (auto.reminder_text && auto.reminder_delay_minutes > 0) {
+  // 2. Passo 5: Sequência Dinâmica (Followups)
+  if (auto.followups && Array.isArray(auto.followups) && auto.followups.length > 0) {
+    let cumulativeDelay = 0;
+    
+    for (let i = 0; i < auto.followups.length; i++) {
+      const f = auto.followups[i];
+      cumulativeDelay += (f.delay_minutes || 1);
+      
+      const scheduledTime = new Date();
+      scheduledTime.setMinutes(scheduledTime.getMinutes() + cumulativeDelay);
+      
+      let messageText = f.text || '';
+      if (f.link_url) {
+        messageText += `\n\n${f.link_url}`;
+      }
+      
+      const payload = {
+        recipient: { id: contactId },
+        message: { text: messageText.trim() }
+      };
+      
+      await supabase.from('followups').insert({
+        user_id: userId,
+        instagram_user_id: instagramUserId,
+        automation_id: auto.id,
+        contact_id: contactId,
+        step: i + 2, // Começa do step 2 (assumindo que o link imediato foi step 1)
+        status: 'queued',
+      });
+
+      await supabase.from('queue').insert({
+        user_id: userId,
+        instagram_user_id: instagramUserId,
+        contact_id: contactId,
+        automation_id: auto.id,
+        type: 'sequence_dm',
+        recipient_id: contactId,
+        payload: payload,
+        status: 'pending',
+        scheduled_at: scheduledTime.toISOString(),
+      });
+    }
+  } 
+  // 3. Fallback Legado: Lembrete Único Antigo
+  else if (auto.reminder_text && auto.reminder_delay_minutes > 0) {
     const scheduledTime = new Date();
     scheduledTime.setMinutes(scheduledTime.getMinutes() + auto.reminder_delay_minutes);
 

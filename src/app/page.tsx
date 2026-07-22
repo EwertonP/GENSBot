@@ -1637,10 +1637,69 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      {/* Sequence Builder Step */}
-                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white mt-1.5">
+                      {/* Conditional Connector Dotted Line */}
+                      <div className="relative my-1.5 z-10 pointer-events-none select-none">
+                        <span className="text-[9px] font-black text-[#BADF95] bg-[#282828] border border-[#BADF95]/20 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap animate-fade-in">
+                          Click
+                        </span>
+                      </div>
+
+                      {/* Step 4: Card de Link DM */}
+                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white">
                         <div className="w-7 h-7 rounded-full bg-[#BADF95] text-black flex items-center justify-center font-black text-xs border-2 border-[#121212] shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           4
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-bold text-white text-sm">Envio do Link (Mensagem de Texto)</h4>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-[#A7A7A7]">Texto de Apoio (Mensagem com o Link)</label>
+                            <textarea
+                              placeholder="Perfeito! Aqui está o seu link exclusivo para acessar o conteúdo completo:"
+                              value={form.link_text || ''}
+                              onChange={e => setForm(prev => ({ ...prev, link_text: e.target.value || null }))}
+                              rows={2}
+                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] transition-all resize-none font-medium"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-[#A7A7A7]">URL do Link</label>
+                            <input
+                              type="url"
+                              placeholder="https://sualandingpage.com"
+                              value={form.link_url || ''}
+                              onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
+                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] font-mono font-bold"
+                            />
+                          </div>
+
+                          {/* Preview Card */}
+                          <div className="border border-[#3E3E3E] rounded-xl p-4 bg-[#282828]/50 flex flex-col gap-2.5 max-w-sm">
+                            <span className="text-[9px] font-bold text-[#A7A7A7] uppercase tracking-widest">Visualização do Envio</span>
+                            <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-3.5 text-xs text-white max-w-xs break-words leading-relaxed font-medium">
+                              <p>{form.link_text || 'Aqui está o seu link:'}</p>
+                              {form.link_url && (
+                                <p className="text-[#BADF95] underline mt-1.5 font-mono break-all font-bold">{form.link_url}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Optional Connector */}
+                      <div className="relative my-1.5 z-10 pointer-events-none select-none">
+                        <span className="text-[9px] font-black text-[#A7A7A7] bg-[#282828] border border-[#3E3E3E] px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap">
+                          Aguardar
+                        </span>
+                      </div>
+
+                      {/* Sequence Builder Step */}
+                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white mt-1.5">
+                        <div className="w-7 h-7 rounded-full bg-[#333333] text-[#A7A7A7] flex items-center justify-center font-bold text-xs border-2 border-[#121212] shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                          5
                         </div>
                         <div className="flex items-center gap-3">
                           <h4 className="font-bold text-white text-sm">Sequência de Follow-ups (Opcional)</h4>
