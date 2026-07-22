@@ -43,6 +43,14 @@ const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+interface Followup {
+  id: string;
+  delay_minutes: number;
+  text: string;
+  link_url?: string | null;
+  link_text?: string | null;
+}
+
 interface Automation {
   id?: string;
   name: string;
@@ -62,6 +70,7 @@ interface Automation {
   ask_email?: boolean;
   ask_phone?: boolean;
   webhook_url?: string | null;
+  followups?: Followup[];
   created_at?: string;
 }
 
@@ -123,6 +132,7 @@ export default function Dashboard() {
     ask_email: false,
     ask_phone: false,
     webhook_url: '',
+    followups: [],
   });
   
   // Live Chat States
@@ -1627,97 +1637,101 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      {/* Conditional Connector Dotted Line */}
-                      <div className="relative my-1.5 z-10 pointer-events-none select-none">
-                        <span className="text-[9px] font-black text-[#BADF95] bg-[#282828] border border-[#BADF95]/20 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap animate-fade-in">
-                          Click
-                        </span>
-                      </div>
-
-                      {/* Step 4: Card de Link DM */}
-                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white">
+                      {/* Sequence Builder Step */}
+                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white mt-1.5">
                         <div className="w-7 h-7 rounded-full bg-[#BADF95] text-black flex items-center justify-center font-black text-xs border-2 border-[#121212] shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           4
                         </div>
                         <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-white text-sm">Envio do Link (Mensagem de Texto)</h4>
+                          <h4 className="font-bold text-white text-sm">Sequência de Follow-ups (Opcional)</h4>
                         </div>
+                        <p className="text-[#A7A7A7] text-xs font-semibold mb-2">
+                          Crie uma sequência de mensagens para serem enviadas automaticamente. O tempo total acumulado não pode ultrapassar 24 horas.
+                        </p>
 
                         <div className="flex flex-col gap-4">
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-[#A7A7A7]">Texto de Apoio (Mensagem com o Link)</label>
-                            <textarea
-                              placeholder="Perfeito! Aqui está o seu link exclusivo para acessar o conteúdo completo:"
-                              value={form.link_text || ''}
-                              onChange={e => setForm(prev => ({ ...prev, link_text: e.target.value || null }))}
-                              rows={2}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] transition-all resize-none font-medium"
-                            />
-                          </div>
-
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-[#A7A7A7]">URL do Link</label>
-                            <input
-                              type="url"
-                              placeholder="https://sualandingpage.com"
-                              value={form.link_url || ''}
-                              onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] font-mono font-bold"
-                            />
-                          </div>
-
-                          {/* Preview Card */}
-                          <div className="border border-[#3E3E3E] rounded-xl p-4 bg-[#282828]/50 flex flex-col gap-2.5 max-w-sm">
-                            <span className="text-[9px] font-bold text-[#A7A7A7] uppercase tracking-widest">Visualização do Envio</span>
-                            <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-3.5 text-xs text-white max-w-xs break-words leading-relaxed font-medium">
-                              <p>{form.link_text || 'Aqui está o seu link:'}</p>
-                              {form.link_url && (
-                                <p className="text-[#BADF95] underline mt-1.5 font-mono break-all font-bold">{form.link_url}</p>
-                              )}
+                          {form.followups && form.followups.map((followup, index) => (
+                            <div key={followup.id} className="border border-[#3E3E3E] bg-[#282828] p-4 rounded-xl flex flex-col gap-3 relative animate-fade-in">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newFollowups = form.followups?.filter((_, i) => i !== index);
+                                  setForm(prev => ({ ...prev, followups: newFollowups }));
+                                }}
+                                className="absolute top-3 right-3 text-[#A7A7A7] hover:text-rose-500 cursor-pointer p-1"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              
+                              <div className="flex flex-col gap-1.5 pr-8">
+                                <label className="text-xs font-bold text-[#A7A7A7]">Mensagem {index + 1}</label>
+                                <textarea
+                                  placeholder="Digite a mensagem..."
+                                  value={followup.text}
+                                  onChange={e => {
+                                    const newFollowups = [...(form.followups || [])];
+                                    newFollowups[index].text = e.target.value;
+                                    setForm(prev => ({ ...prev, followups: newFollowups }));
+                                  }}
+                                  rows={2}
+                                  className="bg-[#1A1A1A] border border-[#3E3E3E] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#BADF95] text-white placeholder-[#A7A7A7] resize-none"
+                                />
+                              </div>
+                              
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-xs font-bold text-[#A7A7A7]">Aguardar (Minutos)</label>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={followup.delay_minutes}
+                                    onChange={e => {
+                                      const newFollowups = [...(form.followups || [])];
+                                      newFollowups[index].delay_minutes = parseInt(e.target.value) || 1;
+                                      setForm(prev => ({ ...prev, followups: newFollowups }));
+                                    }}
+                                    className="bg-[#1A1A1A] border border-[#3E3E3E] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#BADF95] text-white"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-xs font-bold text-[#A7A7A7]">URL do Link (Opcional)</label>
+                                  <input
+                                    type="url"
+                                    placeholder="https://..."
+                                    value={followup.link_url || ''}
+                                    onChange={e => {
+                                      const newFollowups = [...(form.followups || [])];
+                                      newFollowups[index].link_url = e.target.value;
+                                      setForm(prev => ({ ...prev, followups: newFollowups }));
+                                    }}
+                                    className="bg-[#1A1A1A] border border-[#3E3E3E] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#BADF95] text-white"
+                                  />
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </div>
+                          ))}
 
-                      {/* Optional Connector */}
-                      <div className="relative my-1.5 z-10 pointer-events-none select-none">
-                        <span className="text-[9px] font-black text-[#A7A7A7] bg-[#282828] border border-[#3E3E3E] px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap">
-                          Aguardar
-                        </span>
-                      </div>
-
-                      {/* Step 5: Lembrete Card (Opcional) */}
-                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white">
-                        <div className="w-7 h-7 rounded-full bg-[#333333] text-[#A7A7A7] flex items-center justify-center font-bold text-xs border-2 border-[#121212] shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
-                          5
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-white text-sm">Lembrete Automático (Follow-up de Contingência)</h4>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <div className="flex flex-col gap-1.5 md:col-span-3">
-                            <label className="text-xs font-bold text-[#A7A7A7]">Mensagem de Lembrete</label>
-                            <textarea
-                              placeholder="Passando para avisar que o seu link expira logo. Já conseguiu dar uma olhada no conteúdo?"
-                              value={form.reminder_text || ''}
-                              onChange={e => setForm(prev => ({ ...prev, reminder_text: e.target.value || null }))}
-                              rows={2}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] transition-all resize-none"
-                            />
-                          </div>
-
-                          <div className="flex flex-col gap-1.5 md:col-span-1">
-                            <label className="text-xs font-bold text-[#A7A7A7]">Tempo (Minutos)</label>
-                            <input
-                              type="number"
-                              min={1}
-                              placeholder="Minutos"
-                              value={form.reminder_delay_minutes || ''}
-                              onChange={e => setForm(prev => ({ ...prev, reminder_delay_minutes: e.target.value ? parseInt(e.target.value) : null }))}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] font-bold"
-                            />
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const totalMinutes = form.followups?.reduce((acc, f) => acc + f.delay_minutes, 0) || 0;
+                              if (totalMinutes >= 1440) {
+                                showToast('A sequência não pode ultrapassar 24h (1440 min).', 'error');
+                                return;
+                              }
+                              setForm(prev => ({
+                                ...prev,
+                                followups: [
+                                  ...(prev.followups || []),
+                                  { id: Math.random().toString(36).substr(2, 9), delay_minutes: 15, text: '', link_url: '' }
+                                ]
+                              }));
+                            }}
+                            className="flex items-center justify-center gap-2 border border-dashed border-[#A7A7A7] text-[#A7A7A7] bg-transparent hover:bg-[#282828] hover:text-white hover:border-[#BADF95] px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Adicionar Mensagem à Sequência
+                          </button>
                         </div>
                       </div>
                     </div>

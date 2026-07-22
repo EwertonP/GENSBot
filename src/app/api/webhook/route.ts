@@ -640,40 +640,84 @@ async function triggerExternalWebhook(url: string, contact: any, auto: any) {
   }
 }
 
-// Auxiliar: Enfileira a sequência de followups (Link e Lembrete)
+// Auxiliar: Enfileira a sequência de followups (Dinâmico ou Legado)
 async function enqueueFollowups(contactId: string, auto: any, userId: string, instagramUserId: string) {
-  // 1. Enfileirar DM com o link
-  // Conforme solicitação do usuário, removemos o card de link genérico e enviamos apenas texto simples com o link
-  const linkPayload = {
-    recipient: { id: contactId },
-    message: {
-      text: `${auto.link_text || 'Aqui está o seu link:'}\n\n${auto.link_url || ''}`.trim(),
-    },
-  };
+  // Novo Fluxo: Sequência Dinâmica (Followups)
+  if (auto.followups && Array.isArray(auto.followups) && auto.followups.length > 0) {
+    let cumulativeDelay = 0;
+    
+    for (let i = 0; i < auto.followups.length; i++) {
+      const f = auto.followups[i];
+      cumulativeDelay += (f.delay_minutes || 1);
+      
+      const scheduledTime = new Date();
+      scheduledTime.setMinutes(scheduledTime.getMinutes() + cumulativeDelay);
+      
+      let messageText = f.text || '';
+      if (f.link_url) {
+        messageText += `\n\n${f.link_url}`;
+      }
+      
+      const payload = {
+        recipient: { id: contactId },
+        message: { text: messageText.trim() }
+      };
+      
+      await supabase.from('followups').insert({
+        user_id: userId,
+        instagram_user_id: instagramUserId,
+        automation_id: auto.id,
+        contact_id: contactId,
+        step: i + 1,
+        status: 'queued',
+      });
 
-  // Registra o progresso do followup 1 (Link)
-  await supabase.from('followups').insert({
-    user_id: userId,
-    instagram_user_id: instagramUserId,
-    automation_id: auto.id,
-    contact_id: contactId,
-    step: 1,
-    status: 'queued',
-  });
+      await supabase.from('queue').insert({
+        user_id: userId,
+        instagram_user_id: instagramUserId,
+        contact_id: contactId,
+        automation_id: auto.id,
+        type: 'sequence_dm',
+        recipient_id: contactId,
+        payload: payload,
+        status: 'pending',
+        scheduled_at: scheduledTime.toISOString(),
+      });
+    }
+    return;
+  }
 
-  await supabase.from('queue').insert({
-    user_id: userId,
-    instagram_user_id: instagramUserId,
-    contact_id: contactId,
-    automation_id: auto.id,
-    type: 'link_dm',
-    recipient_id: contactId,
-    payload: linkPayload,
-    status: 'pending',
-    scheduled_at: new Date().toISOString(),
-  });
+  // Fluxo Antigo (Legado de Retrocompatibilidade)
+  if (auto.link_url || auto.link_text) {
+    const linkPayload = {
+      recipient: { id: contactId },
+      message: {
+        text: `${auto.link_text || 'Aqui está o seu link:'}\n\n${auto.link_url || ''}`.trim(),
+      },
+    };
 
-  // 2. Enfileirar Lembrete (se configurado)
+    await supabase.from('followups').insert({
+      user_id: userId,
+      instagram_user_id: instagramUserId,
+      automation_id: auto.id,
+      contact_id: contactId,
+      step: 1,
+      status: 'queued',
+    });
+
+    await supabase.from('queue').insert({
+      user_id: userId,
+      instagram_user_id: instagramUserId,
+      contact_id: contactId,
+      automation_id: auto.id,
+      type: 'link_dm',
+      recipient_id: contactId,
+      payload: linkPayload,
+      status: 'pending',
+      scheduled_at: new Date().toISOString(),
+    });
+  }
+
   if (auto.reminder_text && auto.reminder_delay_minutes > 0) {
     const scheduledTime = new Date();
     scheduledTime.setMinutes(scheduledTime.getMinutes() + auto.reminder_delay_minutes);
