@@ -289,7 +289,8 @@ async function processWebhookEvent(payload: any) {
         if (!messageData) continue;
         if (messageData.is_echo) continue;
 
-        const text = messageData.text;
+        const isStoryMention = !!messageData.story?.mention;
+        const text = messageData.text || (isStoryMention ? '[Menção no Story]' : '');
 
         // Salvar mensagem recebida no Direct (inbound)
         await supabase.from('messages').insert({
@@ -504,9 +505,12 @@ async function processWebhookEvent(payload: any) {
           }
         }
 
-        // Se o contato está IDLE, verificar gatilhos de palavras-chave
+        // Se o contato está IDLE, verificar gatilhos
         const isStoryReply = !!messageData.reply_to?.story;
-        const requiredTrigger = isStoryReply ? 'story' : 'dm';
+        
+        let requiredTrigger = 'dm';
+        if (isStoryReply) requiredTrigger = 'story';
+        if (isStoryMention) requiredTrigger = 'story_mention';
 
         // Buscar automações ativas com o gatilho correspondente
         const { data: automations } = await supabase
@@ -520,7 +524,8 @@ async function processWebhookEvent(payload: any) {
         if (!automations) continue;
 
         for (const auto of automations) {
-          if (matchesKeywords(text, auto.keywords, auto.match_type)) {
+          // Se for story mention, não precisa validar palavras-chave (assume true).
+          if (isStoryMention || matchesKeywords(text, auto.keywords, auto.match_type)) {
             // Log do gatilho acionado
             await supabase.from('analytics_events').insert({
               user_id: ownerUserId,

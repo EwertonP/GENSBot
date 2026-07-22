@@ -1373,7 +1373,8 @@ export default function Dashboard() {
                             {[
                               { id: 'comment', label: 'Comentários em Posts' },
                               { id: 'dm', label: 'Mensagens Diretas (DMs)' },
-                              { id: 'story', label: 'Respostas / Menções nos Stories' }
+                              { id: 'story', label: 'Respostas aos Meus Stories' },
+                              { id: 'story_mention', label: 'Menção nos Stories (Tag)' }
                             ].map(trigger => {
                               const active = form.triggers.includes(trigger.id);
                               return (
