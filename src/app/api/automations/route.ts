@@ -1,18 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
+import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
 
 export async function GET() {
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
 
-    // Buscar config apenas do usuário autenticado
-    const { data: config } = await supabase
-      .from('config')
-      .select('instagram_user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    // Buscar a conta do Instagram apenas do usuário autenticado
+    const config = await getActiveInstagramAccountForUser(user.id);
 
     if (!config?.instagram_user_id) {
       return NextResponse.json([]);
@@ -43,12 +40,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nome e DM de boas-vindas são obrigatórios.' }, { status: 400 });
     }
 
-    // Buscar config apenas do usuário autenticado
-    const { data: config } = await supabase
-      .from('config')
-      .select('instagram_user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    // Buscar a conta do Instagram apenas do usuário autenticado
+    const config = await getActiveInstagramAccountForUser(user.id);
 
     if (!config?.instagram_user_id) {
       return NextResponse.json({ error: 'Você precisa conectar uma conta do Instagram primeiro.' }, { status: 400 });

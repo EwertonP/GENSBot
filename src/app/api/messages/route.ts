@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
+import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
 
 // GET: Buscar histórico de mensagens de um contato
 export async function GET(req: Request) {
@@ -15,11 +16,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'contact_id é obrigatório.' }, { status: 400 });
     }
 
-    const { data: config } = await supabase
-      .from('config')
-      .select('instagram_user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const config = await getActiveInstagramAccountForUser(user.id);
 
     if (!config || !config.instagram_user_id) {
       return NextResponse.json([]);
@@ -53,13 +50,9 @@ export async function POST(req: Request) {
     }
 
     // 1. Buscar token ativo do Instagram do usuário logado
-    const { data: config } = await supabase
-      .from('config')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const config = await getActiveInstagramAccountForUser(user.id);
 
-    if (!config || !config.instagram_token || !config.instagram_user_id) {
+    if (!config || !config.access_token || !config.instagram_user_id) {
       return NextResponse.json({ error: 'Configuração ou token do Instagram não encontrado.' }, { status: 404 });
     }
 
@@ -74,7 +67,7 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.instagram_token}`,
+        Authorization: `Bearer ${config.access_token}`,
       },
       body: JSON.stringify(requestBody),
     });

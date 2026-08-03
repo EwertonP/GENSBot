@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
+import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
 
 export async function GET() {
   try {
@@ -9,12 +10,8 @@ export async function GET() {
 
     const userId = user.id;
 
-    // 1. Obter config do Instagram SOMENTE do usuário autenticado
-    const { data: config } = await supabase
-      .from('config')
-      .select('instagram_username, profile_picture_url, token_expires_at, instagram_user_id')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // 1. Obter conta do Instagram SOMENTE do usuário autenticado
+    const config = await getActiveInstagramAccountForUser(userId);
 
     const isConnected = !!config?.instagram_username;
     const activeUserId = config?.instagram_user_id;
@@ -106,7 +103,7 @@ export async function DELETE() {
     if (!user) return unauthorizedResponse();
 
     const { error } = await supabase
-      .from('config')
+      .from('instagram_accounts')
       .delete()
       .eq('user_id', user.id);
 

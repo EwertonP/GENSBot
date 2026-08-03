@@ -124,26 +124,10 @@ export async function GET(req: Request) {
 
     if (accountError) {
       console.error('Erro ao salvar instagram_accounts:', accountError);
-    }
-
-    // 5. Salvar configurações principais no Supabase (mantém compatibilidade)
-    const { error: dbError } = await supabase.from('config').upsert({
-      id: true,
-      instagram_token: longToken,
-      instagram_user_id: igUserId,
-      instagram_username: igUsername,
-      profile_picture_url: profilePictureUrl,
-      token_expires_at: tokenExpiresAt.toISOString(),
-      updated_at: new Date().toISOString(),
-      user_id: userId,
-    });
-
-    if (dbError) {
-      console.error('Erro ao salvar config no Supabase:', dbError);
       throw new Error('Erro ao gravar dados no banco de dados.');
     }
 
-    // 6. Assinar os webhooks para o aplicativo (comments, messages)
+    // 5. Assinar os webhooks para o aplicativo (comments, messages)
     const subscribeResponse = await fetch(
       `https://graph.instagram.com/v25.0/${igUserId}/subscribed_apps?subscribed_fields=comments,messages`,
       {
