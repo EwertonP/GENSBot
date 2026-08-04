@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
+import ThemeToggle from '@/components/theme-toggle';
 import {
   Settings,
   Plus,
@@ -869,9 +870,12 @@ export default function Dashboard() {
 
         {/* Sidebar Footer: Usuário logado no GENSBot + Sair */}
         <div className="p-4 border-t border-sidebar-border flex flex-col gap-3">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <HelpCircle className="w-3.5 h-3.5" />
-            <span>v1.3.0 • eGrow Edition</span>
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>v1.3.0 • eGrow Edition</span>
+            </div>
+            <ThemeToggle />
           </div>
           {currentUser && (
             <div className="flex items-center gap-2 rounded-2xl bg-muted p-2">
