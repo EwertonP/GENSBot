@@ -2,7 +2,9 @@
 
 Este documento atua como o contrato de design e "fonte de verdade" visual (Single Source of Truth) para o desenvolvimento do **InstaFlow (GENSBot)**. Qualquer agente de IA ou desenvolvedor deve ler e seguir estritamente estas especificações para manter a consistência visual.
 
-> **Atualização (v4 — "Oat & Clay")**: o projeto migrou da identidade fintech azul (iBanko/OFSPACE) para uma linguagem inspirada na **Claude** (fundo quente, um único acento clay/terracota, cor semântica usada com moderação) e na **Apple** (tipografia confiante com bastante respiro, sombra difusa em vez de borda, cantos generosos e consistentes). Fundo off-white *quente* (não mais cinza-azulado), cards brancos elevados por sombra também quente, clay como único acento de ação, e cards de métrica com **indicador semântico pontual** em vez de fundo pastel dominando o card inteiro. **Não existe modo escuro** — o app não tem toggle de tema e a classe `.dark` não é usada em nenhum lugar; `:root` em `globals.css` já contém os valores finais.
+> **Atualização (v4 — "Oat & Clay")**: o projeto migrou da identidade fintech azul (iBanko/OFSPACE) para uma linguagem inspirada na **Claude** (fundo quente, um único acento clay/terracota, cor semântica usada com moderação) e na **Apple** (tipografia confiante com bastante respiro, sombra difusa em vez de borda, cantos generosos e consistentes). Fundo off-white *quente* (não mais cinza-azulado), cards brancos elevados por sombra também quente, clay como único acento de ação, e cards de métrica com **indicador semântico pontual** em vez de fundo pastel dominando o card inteiro.
+>
+> **Atualização (v4.1 — modo escuro)**: o app agora tem tema escuro de verdade, com toggle manual (`src/components/theme-toggle.tsx`) persistido em `localStorage` (`gensbot_theme`) — no primeiro acesso segue `prefers-color-scheme` do SO, depois respeita a escolha explícita do usuário. A classe `.dark` no `<html>` troca todos os tokens da seção 1 pelo par escuro (bloco `.dark` em `globals.css`); um script inline em `layout.tsx` aplica a classe antes da hidratação pra não piscar o tema errado. **Nunca** monte cor condicional a tema num componente (`theme === 'dark' ? '#fff' : '#000'`) — o token já resolve isso sozinho via CSS var.
 >
 > Todos os componentes (`page.tsx`, `login`, `register`, `privacidade`, `exclusao-de-dados`) já foram migrados pros tokens semânticos abaixo — não deve sobrar nenhuma classe com `#hex` fixo no código.
 
@@ -10,7 +12,7 @@ Este documento atua como o contrato de design e "fonte de verdade" visual (Singl
 
 ## 1. Design Tokens
 
-Os tokens vivem como variáveis CSS em `:root` dentro de `globals.css` (não existe bloco `.dark` — é o único tema), e são expostos ao Tailwind v4 via `@theme inline`. **Nunca escreva um valor de cor literal (`#hex` ou `oklch(...)`) em um componente estrutural** — sempre use a classe utilitária correspondente ao token, inclusive para verde/âmbar/vermelho semânticos (`bg-success`/`bg-warning`/`bg-destructive`), que **não** devem mais usar a paleta padrão do Tailwind (`emerald-*`, `amber-*`, `blue-*`...) — ver seção 3.
+Os tokens vivem como variáveis CSS em `:root` (tema claro) e `.dark` (tema escuro, ver v4.1 acima) dentro de `globals.css`, e são expostos ao Tailwind v4 via `@theme inline`. **Nunca escreva um valor de cor literal (`#hex` ou `oklch(...)`) em um componente estrutural** — sempre use a classe utilitária correspondente ao token, inclusive para verde/âmbar/vermelho semânticos (`bg-success`/`bg-warning`/`bg-destructive`), que **não** devem mais usar a paleta padrão do Tailwind (`emerald-*`, `amber-*`, `blue-*`...) — ver seção 3.
 
 | Papel | Classe Tailwind | Variável CSS |
 |---|---|---|
