@@ -574,17 +574,110 @@ export default function Dashboard() {
       )}
 
       {/* 1. Left Sidebar Navigation (Off-canvas no mobile) */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-card text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-border transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-72 bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
 
         {/* Brand Header */}
-        <div className="px-6 py-5 border-b border-border flex items-center justify-center">
+        <div className="px-6 pt-6 pb-4 flex items-center">
           {/* Logo enviada pelo usuário */}
-          <img 
-            src="/logo.png" 
-            alt="GENS Logo" 
+          <img
+            src="/logo.png"
+            alt="GENS Logo"
             className="h-8 w-auto object-contain select-none"
           />
         </div>
+
+        {/* Seletor de Conta do Instagram (perfil ativo) */}
+        <div className="px-4 pb-4">
+          {accounts.length > 0 ? (
+            <div className="relative">
+              <button
+                onClick={() => setAccountMenuOpen(o => !o)}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-muted hover:bg-accent transition-colors cursor-pointer text-left"
+              >
+                {config?.profile_picture_url ? (
+                  <img
+                    src={config.profile_picture_url}
+                    alt="Instagram Profile"
+                    className="w-11 h-11 rounded-full object-cover border-2 border-card shadow-sm flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Instagram className="w-5 h-5 text-primary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 leading-tight">
+                  <p className="text-sm font-bold text-foreground truncate">@{config?.instagram_username || '...'}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conta conectada'}
+                  </p>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`text-muted-foreground flex-shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+
+              {accountMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setAccountMenuOpen(false)}
+                  />
+                  <div className="absolute left-0 top-full mt-2 w-full bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden">
+                    <div className="max-h-64 overflow-y-auto py-1">
+                      {accounts.map(acc => (
+                        <button
+                          key={acc.instagram_user_id}
+                          onClick={() => handleSelectAccount(acc.instagram_user_id)}
+                          className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer ${
+                            acc.instagram_user_id === selectedAccountId ? 'bg-accent' : ''
+                          }`}
+                        >
+                          {acc.profile_picture_url ? (
+                            <img src={acc.profile_picture_url} alt="" className="w-6 h-6 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                              <Instagram className="w-3 h-3 text-muted-foreground" />
+                            </div>
+                          )}
+                          <span className="text-[11px] font-semibold text-foreground flex-1 truncate">
+                            @{acc.instagram_username || acc.instagram_user_id}
+                          </span>
+                          {acc.instagram_user_id === selectedAccountId && (
+                            <CheckCircle className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="border-t border-border py-1">
+                      <button
+                        onClick={() => { setAccountMenuOpen(false); handleConnectInstagram(); }}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent text-primary text-[11px] font-bold cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Conectar outra conta
+                      </button>
+                      <button
+                        onClick={() => { setAccountMenuOpen(false); handleDisconnect(); }}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent text-destructive text-[11px] font-bold cursor-pointer"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        Desconectar esta conta
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={handleConnectInstagram}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs transition-all shadow-md shadow-primary/10 cursor-pointer"
+            >
+              <Instagram className="w-3.5 h-3.5" />
+              Conectar Instagram
+            </button>
+          )}
+        </div>
+
+        <div className="border-t border-sidebar-border" />
 
         {/* Navigation Links */}
         <nav className="flex-1 px-4 py-6 flex flex-col gap-6">
@@ -608,7 +701,7 @@ export default function Dashboard() {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
                     active
-                      ? 'bg-accent text-foreground font-bold border-l-4 border-primary rounded-l-none'
+                      ? 'bg-primary/10 text-primary font-bold'
                       : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
                   }`}
                 >
@@ -636,7 +729,7 @@ export default function Dashboard() {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
                     active
-                      ? 'bg-accent text-foreground font-bold border-l-4 border-primary rounded-l-none'
+                      ? 'bg-primary/10 text-primary font-bold'
                       : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
                   }`}
                 >
@@ -648,10 +741,30 @@ export default function Dashboard() {
           </div>
         </nav>
 
-        {/* Sidebar Footer / Help */}
-        <div className="p-4 border-t border-border flex items-center gap-3 text-xs text-muted-foreground">
-          <HelpCircle className="w-4 h-4 text-muted-foreground" />
-          <span>v1.3.0 • eGrow Edition</span>
+        {/* Sidebar Footer: Usuário logado no GENSBot + Sair */}
+        <div className="p-4 border-t border-sidebar-border flex flex-col gap-3">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>v1.3.0 • eGrow Edition</span>
+          </div>
+          {currentUser && (
+            <div className="flex items-center gap-2 rounded-2xl bg-muted p-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-black text-[11px] flex-shrink-0">
+                {(currentUser.user_metadata?.full_name || currentUser.email || '?')[0].toUpperCase()}
+              </div>
+              <p className="flex-1 min-w-0 text-xs text-foreground font-semibold truncate">
+                {currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0]}
+              </p>
+              <button
+                id="app-logout-button"
+                onClick={handleAppLogout}
+                title="Sair da conta"
+                className="p-1.5 rounded-full hover:bg-accent text-muted-foreground hover:text-destructive transition-colors cursor-pointer flex-shrink-0"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -676,7 +789,7 @@ export default function Dashboard() {
         </div>
 
         {/* Top Header Bar */}
-        <header className="hidden md:flex h-16 bg-card border-b border-border px-6 items-center justify-between flex-shrink-0">
+        <header className="hidden md:flex h-16 bg-background px-6 items-center justify-between flex-shrink-0">
           <div>
             <h2 className="text-lg font-black text-foreground tracking-tight">
               {activeTab === 'dashboard' && 'Dashboard'}
@@ -685,7 +798,7 @@ export default function Dashboard() {
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
-            <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
+            <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
               {activeTab === 'dashboard' && 'Bem-vindo de volta! Veja o que está acontecendo com sua automação.'}
               {activeTab === 'chat' && 'Converse em tempo real e faça atendimento manual no direct do Instagram.'}
               {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
@@ -694,125 +807,13 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Seletor de Conta / Badge de Conexão */}
-          <div className="flex items-center gap-3">
-            {accounts.length > 0 ? (
-              <div className="relative">
-                <button
-                  onClick={() => setAccountMenuOpen(o => !o)}
-                  className="flex items-center gap-2 border border-accent rounded-full py-1 pl-1 pr-3 bg-card shadow-xs cursor-pointer hover:border-border transition-colors"
-                >
-                  {config?.profile_picture_url ? (
-                    <img
-                      src={config.profile_picture_url}
-                      alt="Instagram Profile"
-                      className="w-6.5 h-6.5 rounded-full object-cover border border-accent"
-                    />
-                  ) : (
-                    <div className="w-6.5 h-6.5 rounded-full bg-accent flex items-center justify-center">
-                      <Instagram className="w-3.5 h-3.5 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="text-left leading-none">
-                    <p className="text-[11px] font-bold text-foreground">@{config?.instagram_username || '...'}</p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">
-                      {accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conectado'}
-                    </p>
-                  </div>
-                </button>
-
-                {accountMenuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setAccountMenuOpen(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden">
-                      <div className="max-h-64 overflow-y-auto py-1">
-                        {accounts.map(acc => (
-                          <button
-                            key={acc.instagram_user_id}
-                            onClick={() => handleSelectAccount(acc.instagram_user_id)}
-                            className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer ${
-                              acc.instagram_user_id === selectedAccountId ? 'bg-accent' : ''
-                            }`}
-                          >
-                            {acc.profile_picture_url ? (
-                              <img src={acc.profile_picture_url} alt="" className="w-6 h-6 rounded-full object-cover" />
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-                                <Instagram className="w-3 h-3 text-muted-foreground" />
-                              </div>
-                            )}
-                            <span className="text-[11px] font-semibold text-foreground flex-1 truncate">
-                              @{acc.instagram_username || acc.instagram_user_id}
-                            </span>
-                            {acc.instagram_user_id === selectedAccountId && (
-                              <CheckCircle className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="border-t border-border py-1">
-                        <button
-                          onClick={() => { setAccountMenuOpen(false); handleConnectInstagram(); }}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent text-primary text-[11px] font-bold cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          Conectar outra conta
-                        </button>
-                        <button
-                          onClick={() => { setAccountMenuOpen(false); handleDisconnect(); }}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent text-destructive text-[11px] font-bold cursor-pointer"
-                        >
-                          <LogOut className="w-3.5 h-3.5" />
-                          Desconectar esta conta
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <button
-                onClick={handleConnectInstagram}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs transition-all shadow-md shadow-primary/10 cursor-pointer"
-              >
-                <Instagram className="w-3.5 h-3.5" />
-                Conectar Instagram
-              </button>
-            )}
-
-            <button
-              onClick={handleManualDrain}
-              title="Forçar Processamento da Fila"
-              className="p-2 rounded-xl bg-accent hover:bg-muted border border-border transition-all cursor-pointer text-foreground"
-            >
-              <RefreshCw className="w-4 h-4 text-muted-foreground" />
-            </button>
-
-            {/* User Account Pill with Logout */}
-            {currentUser && (
-              <div className="flex items-center gap-2 border border-accent rounded-full py-1 pl-3 pr-1.5 bg-card">
-                <div className="text-left leading-none hidden sm:block">
-                  <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">
-                    {currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0]}
-                  </p>
-                </div>
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-black text-[10px]">
-                  {(currentUser.user_metadata?.full_name || currentUser.email || '?')[0].toUpperCase()}
-                </div>
-                <button
-                  id="app-logout-button"
-                  onClick={handleAppLogout}
-                  title="Sair da conta"
-                  className="p-1.5 rounded-full hover:bg-accent text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={handleManualDrain}
+            title="Forçar Processamento da Fila"
+            className="p-2.5 rounded-xl bg-card hover:bg-accent border border-border shadow-xs transition-all cursor-pointer text-muted-foreground hover:text-foreground"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </header>
 
         {/* 3. Tab-based Content Area */}
@@ -822,92 +823,33 @@ export default function Dashboard() {
           {activeTab === 'dashboard' && (
             <div className="flex flex-col gap-6 animate-fade-in">
               
-              {/* 1. Hero KPI Cards Grid (Inspired by Donezo) */}
+              {/* 1. Hero KPI Cards Grid — cards pastel, um por métrica */}
               <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                
-                {/* Hero Card 1: Leads Gerados (Highlighted in Spotify Green) */}
-                <div className="bg-gradient-to-br from-primary to-primary/30 rounded-2xl p-5 flex flex-col justify-between shadow-lg shadow-primary/10 relative overflow-hidden group transition-all h-40">
-                  <div className="flex items-center justify-between z-10">
-                    <span className="text-xs font-black text-primary-foreground/80 uppercase tracking-wider">Leads Gerados</span>
-                    <div className="w-7 h-7 rounded-full bg-primary-foreground/10 flex items-center justify-center text-primary-foreground font-extrabold group-hover:scale-110 transition-transform">
-                      ↗
+                {([
+                  { label: 'Leads Gerados', value: stats.contacts, change: '+24.5%', tint: 'bg-emerald-50', text: 'text-emerald-900', sub: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700', icon: 'bg-emerald-100 text-emerald-600' },
+                  { label: 'Automações Ativas', value: stats.automations, change: '+14.3%', tint: 'bg-blue-50', text: 'text-blue-900', sub: 'text-blue-700', badge: 'bg-blue-100 text-blue-700', icon: 'bg-blue-100 text-blue-600' },
+                  { label: 'Fila de Disparos', value: stats.queue, change: '+5.2%', tint: 'bg-amber-50', text: 'text-amber-900', sub: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', icon: 'bg-amber-100 text-amber-600' },
+                  { label: 'Eventos Captados', value: stats.events, change: '+32.8%', tint: 'bg-violet-50', text: 'text-violet-900', sub: 'text-violet-700', badge: 'bg-violet-100 text-violet-700', icon: 'bg-violet-100 text-violet-600' },
+                ] as const).map(card => (
+                  <div key={card.label} className={`${card.tint} rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group transition-all h-40`}>
+                    <div className="flex items-center justify-between z-10">
+                      <span className={`text-xs font-bold ${card.sub} uppercase tracking-wider`}>{card.label}</span>
+                      <div className={`w-7 h-7 rounded-full ${card.icon} flex items-center justify-center font-extrabold group-hover:scale-110 transition-transform`}>
+                        ↗
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col z-10 mt-2">
+                      <span className={`text-4xl font-black ${card.text} leading-none`}>{card.value}</span>
+                      <div className="flex items-center gap-2 mt-3">
+                        <span className={`text-[10px] font-black ${card.badge} px-2 py-0.5 rounded-full`}>
+                          ↑ {card.change}
+                        </span>
+                        <span className={`text-[10px] ${card.sub} font-bold`}>vs últimos 30 dias</span>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="flex flex-col z-10 mt-2">
-                    <span className="text-4xl font-black text-primary-foreground leading-none">{stats.contacts}</span>
-                    <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[10px] text-primary-foreground font-black bg-primary-foreground/15 px-2 py-0.5 rounded-full">
-                        ↑ +24.5%
-                      </span>
-                      <span className="text-[10px] text-primary-foreground/80 font-bold">vs últimos 30 dias</span>
-                    </div>
-                  </div>
-                  
-                  {/* Subtle background glow */}
-                  <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-foreground/10 rounded-full blur-2xl pointer-events-none"></div>
-                </div>
-
-                {/* Card 2: Total de Automações */}
-                <div className="bg-card border border-accent rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-border transition-all h-40">
-                  <div className="flex items-center justify-between z-10">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Automações Ativas</span>
-                    <div className="w-7 h-7 rounded-full bg-accent border border-border flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
-                      ↗
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col z-10 mt-2">
-                    <span className="text-4xl font-black text-foreground leading-none">{stats.automations}</span>
-                    <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[10px] text-primary font-bold bg-accent border border-primary/25 px-2 py-0.5 rounded-full">
-                        ↑ +14.3%
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-medium">vs últimos 30 dias</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card 3: Disparos na Fila */}
-                <div className="bg-card border border-accent rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-border transition-all h-40">
-                  <div className="flex items-center justify-between z-10">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Fila de Disparos</span>
-                    <div className="w-7 h-7 rounded-full bg-accent border border-border flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
-                      ↗
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col z-10 mt-2">
-                    <span className="text-4xl font-black text-foreground leading-none">{stats.queue}</span>
-                    <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[10px] text-primary font-bold bg-accent border border-primary/25 px-2 py-0.5 rounded-full">
-                        ↑ +5.2%
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-medium">vs últimos 30 dias</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card 4: Eventos Captados */}
-                <div className="bg-card border border-accent rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-border transition-all h-40">
-                  <div className="flex items-center justify-between z-10">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Eventos Captados</span>
-                    <div className="w-7 h-7 rounded-full bg-accent border border-border flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
-                      ↗
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col z-10 mt-2">
-                    <span className="text-4xl font-black text-foreground leading-none">{stats.events}</span>
-                    <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[10px] text-primary font-bold bg-accent border border-primary/25 px-2 py-0.5 rounded-full">
-                        ↑ +32.8%
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-medium">vs últimos 30 dias</span>
-                    </div>
-                  </div>
-                </div>
-
+                ))}
               </section>
 
               {/* 2. Main Analytics & Meter Charts (Inspired by Donezo & ACRU) */}
@@ -1071,10 +1013,10 @@ export default function Dashboard() {
 
                   <div className="flex flex-col gap-4">
                     {[
-                      { label: '1. Comentários Detectados', val: funnel.comments || 185, percent: 100, color: 'bg-primary' },
-                      { label: '2. DMs de Boas-Vindas', val: funnel.welcomeDms || 162, percent: 87, color: 'bg-primary/90' },
-                      { label: '3. Cliques no Botão / Link', val: funnel.clicks || 98, percent: 53, color: 'bg-primary/30' },
-                      { label: '4. Leads Qualificados', val: funnel.leads || 64, percent: 34, color: 'bg-primary' }
+                      { label: '1. Comentários Detectados', val: funnel.comments || 185, percent: 100, color: 'bg-blue-500' },
+                      { label: '2. DMs de Boas-Vindas', val: funnel.welcomeDms || 162, percent: 87, color: 'bg-emerald-500' },
+                      { label: '3. Cliques no Botão / Link', val: funnel.clicks || 98, percent: 53, color: 'bg-amber-500' },
+                      { label: '4. Leads Qualificados', val: funnel.leads || 64, percent: 34, color: 'bg-violet-500' }
                     ].map((step, idx) => {
                       return (
                         <div key={idx} className="flex flex-col gap-1.5">
@@ -1138,11 +1080,11 @@ export default function Dashboard() {
                               <td className="py-3 px-3 text-xs text-muted-foreground">{new Date(item.created_at).toLocaleTimeString('pt-BR')}</td>
                               <td className="py-3 px-3">
                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
-                                  item.status === 'sent' && 'bg-accent text-primary border border-primary/25'
+                                  item.status === 'sent' && 'bg-emerald-100 text-emerald-700'
                                 } ${
-                                  item.status === 'pending' && 'bg-accent text-muted-foreground border border-border'
+                                  item.status === 'pending' && 'bg-amber-100 text-amber-700'
                                 } ${
-                                  item.status === 'failed' && 'bg-accent text-destructive border border-destructive/25'
+                                  item.status === 'failed' && 'bg-red-100 text-red-700'
                                 }`}>
                                   {item.status === 'sent' && 'Enviado'}
                                   {item.status === 'pending' && 'Pendente'}
