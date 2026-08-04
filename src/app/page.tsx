@@ -540,26 +540,26 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#121212] text-white">
+      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
         <div className="flex flex-col items-center gap-4">
-          <RefreshCw className="w-12 h-12 animate-spin text-[#BADF95]" />
-          <p className="text-[#A7A7A7] font-medium">Carregando painel de automação...</p>
+          <RefreshCw className="w-12 h-12 animate-spin text-primary" />
+          <p className="text-muted-foreground font-medium">Carregando painel de automação...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white flex font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground flex font-sans antialiased overflow-x-hidden">
       {/* Toast Alert */}
       {toast && (
         <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl border border-[#3E3E3E] bg-[#1A1A1A] text-white shadow-lg transition-all duration-300 animate-slide-in`}
+          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-card text-foreground shadow-lg transition-all duration-300 animate-slide-in`}
         >
           {toast.type === 'success' ? (
-            <CheckCircle className="w-5 h-5 text-[#BADF95] flex-shrink-0" />
+            <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
           ) : (
-            <AlertCircle className="w-5 h-5 text-[#F15E6C] flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
           )}
           <p className="text-sm font-semibold">{toast.message}</p>
         </div>
@@ -568,16 +568,16 @@ export default function Dashboard() {
       {/* Overlay para o Menu Mobile */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/80 z-40 md:hidden" 
+          className="fixed inset-0 bg-background/80 z-40 md:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* 1. Left Sidebar Navigation (Off-canvas no mobile) */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#1A1A1A] text-[#A7A7A7] flex flex-col flex-shrink-0 select-none border-r border-[#3E3E3E] transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-card text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-border transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
 
         {/* Brand Header */}
-        <div className="px-6 py-5 border-b border-[#3E3E3E] flex items-center justify-center">
+        <div className="px-6 py-5 border-b border-border flex items-center justify-center">
           {/* Logo enviada pelo usuário */}
           <img 
             src="/logo.png" 
@@ -590,7 +590,7 @@ export default function Dashboard() {
         <nav className="flex-1 px-4 py-6 flex flex-col gap-6">
           {/* Operações Category */}
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold text-[#A7A7A7] uppercase tracking-widest px-4 mb-2">Operações</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4 mb-2">Operações</span>
             {[
               { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
               { id: 'chat', label: 'Live Chat Inbox', icon: MessageSquare },
@@ -608,11 +608,11 @@ export default function Dashboard() {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
                     active
-                      ? 'bg-[#282828] text-white font-bold border-l-4 border-[#BADF95] rounded-l-none'
-                      : 'text-[#A7A7A7] hover:bg-[#282828]/50 hover:text-white'
+                      ? 'bg-accent text-foreground font-bold border-l-4 border-primary rounded-l-none'
+                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${active ? 'text-[#BADF95]' : 'text-[#A7A7A7]'}`} />
+                  <Icon className={`w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
                   {item.label}
                 </button>
               );
@@ -621,7 +621,7 @@ export default function Dashboard() {
 
           {/* Sistema Category */}
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold text-[#A7A7A7] uppercase tracking-widest px-4 mb-2">Sistema</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4 mb-2">Sistema</span>
             {[
               { id: 'logs', label: 'Logs de Eventos', icon: FileCode },
             ].map(item => {
@@ -636,11 +636,11 @@ export default function Dashboard() {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
                     active
-                      ? 'bg-[#282828] text-white font-bold border-l-4 border-[#BADF95] rounded-l-none'
-                      : 'text-[#A7A7A7] hover:bg-[#282828]/50 hover:text-white'
+                      ? 'bg-accent text-foreground font-bold border-l-4 border-primary rounded-l-none'
+                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${active ? 'text-[#BADF95]' : 'text-[#A7A7A7]'}`} />
+                  <Icon className={`w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
                   {item.label}
                 </button>
               );
@@ -649,43 +649,43 @@ export default function Dashboard() {
         </nav>
 
         {/* Sidebar Footer / Help */}
-        <div className="p-4 border-t border-[#3E3E3E] flex items-center gap-3 text-xs text-[#A7A7A7]">
-          <HelpCircle className="w-4 h-4 text-[#A7A7A7]" />
+        <div className="p-4 border-t border-border flex items-center gap-3 text-xs text-muted-foreground">
+          <HelpCircle className="w-4 h-4 text-muted-foreground" />
           <span>v1.3.0 • eGrow Edition</span>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-black w-full relative">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-background w-full relative">
         
         {/* Mobile Top Bar (Só aparece em telas pequenas) */}
-        <div className="md:hidden flex items-center justify-between px-5 py-4 border-b border-[#3E3E3E] bg-[#1A1A1A]">
+        <div className="md:hidden flex items-center justify-between px-5 py-4 border-b border-border bg-card">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
-              className="text-[#A7A7A7] hover:text-white"
+              className="text-muted-foreground hover:text-foreground"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <img src="/logo.png" alt="GENS" className="h-6 w-auto object-contain" />
           </div>
           {/* Avatar na top bar mobile */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#BADF95] to-[#125835] flex items-center justify-center text-black font-black text-xs shadow-md">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-black text-xs shadow-md">
             {currentUser?.email?.substring(0, 1).toUpperCase()}
           </div>
         </div>
 
         {/* Top Header Bar */}
-        <header className="hidden md:flex h-16 bg-[#1A1A1A] border-b border-[#3E3E3E] px-6 items-center justify-between flex-shrink-0">
+        <header className="hidden md:flex h-16 bg-card border-b border-border px-6 items-center justify-between flex-shrink-0">
           <div>
-            <h2 className="text-lg font-black text-white tracking-tight">
+            <h2 className="text-lg font-black text-foreground tracking-tight">
               {activeTab === 'dashboard' && 'Dashboard'}
               {activeTab === 'chat' && 'Live Chat Inbox'}
               {activeTab === 'automations' && 'Automações'}
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
-            <p className="text-[10px] text-[#A7A7A7] font-medium mt-0.5">
+            <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
               {activeTab === 'dashboard' && 'Bem-vindo de volta! Veja o que está acontecendo com sua automação.'}
               {activeTab === 'chat' && 'Converse em tempo real e faça atendimento manual no direct do Instagram.'}
               {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
@@ -700,22 +700,22 @@ export default function Dashboard() {
               <div className="relative">
                 <button
                   onClick={() => setAccountMenuOpen(o => !o)}
-                  className="flex items-center gap-2 border border-[#282828] rounded-full py-1 pl-1 pr-3 bg-[#1A1A1A] shadow-xs cursor-pointer hover:border-[#3E3E3E] transition-colors"
+                  className="flex items-center gap-2 border border-accent rounded-full py-1 pl-1 pr-3 bg-card shadow-xs cursor-pointer hover:border-border transition-colors"
                 >
                   {config?.profile_picture_url ? (
                     <img
                       src={config.profile_picture_url}
                       alt="Instagram Profile"
-                      className="w-6.5 h-6.5 rounded-full object-cover border border-[#282828]"
+                      className="w-6.5 h-6.5 rounded-full object-cover border border-accent"
                     />
                   ) : (
-                    <div className="w-6.5 h-6.5 rounded-full bg-[#282828] flex items-center justify-center">
-                      <Instagram className="w-3.5 h-3.5 text-[#A7A7A7]" />
+                    <div className="w-6.5 h-6.5 rounded-full bg-accent flex items-center justify-center">
+                      <Instagram className="w-3.5 h-3.5 text-muted-foreground" />
                     </div>
                   )}
                   <div className="text-left leading-none">
-                    <p className="text-[11px] font-bold text-white">@{config?.instagram_username || '...'}</p>
-                    <p className="text-[9px] text-[#A7A7A7] mt-0.5">
+                    <p className="text-[11px] font-bold text-foreground">@{config?.instagram_username || '...'}</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">
                       {accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conectado'}
                     </p>
                   </div>
@@ -727,43 +727,43 @@ export default function Dashboard() {
                       className="fixed inset-0 z-40"
                       onClick={() => setAccountMenuOpen(false)}
                     />
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-[#1A1A1A] border border-[#3E3E3E] rounded-2xl shadow-xl z-50 overflow-hidden">
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden">
                       <div className="max-h-64 overflow-y-auto py-1">
                         {accounts.map(acc => (
                           <button
                             key={acc.instagram_user_id}
                             onClick={() => handleSelectAccount(acc.instagram_user_id)}
-                            className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-[#282828] transition-colors cursor-pointer ${
-                              acc.instagram_user_id === selectedAccountId ? 'bg-[#282828]' : ''
+                            className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer ${
+                              acc.instagram_user_id === selectedAccountId ? 'bg-accent' : ''
                             }`}
                           >
                             {acc.profile_picture_url ? (
                               <img src={acc.profile_picture_url} alt="" className="w-6 h-6 rounded-full object-cover" />
                             ) : (
-                              <div className="w-6 h-6 rounded-full bg-[#333333] flex items-center justify-center">
-                                <Instagram className="w-3 h-3 text-[#A7A7A7]" />
+                              <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                                <Instagram className="w-3 h-3 text-muted-foreground" />
                               </div>
                             )}
-                            <span className="text-[11px] font-semibold text-white flex-1 truncate">
+                            <span className="text-[11px] font-semibold text-foreground flex-1 truncate">
                               @{acc.instagram_username || acc.instagram_user_id}
                             </span>
                             {acc.instagram_user_id === selectedAccountId && (
-                              <CheckCircle className="w-3.5 h-3.5 text-[#BADF95] flex-shrink-0" />
+                              <CheckCircle className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                             )}
                           </button>
                         ))}
                       </div>
-                      <div className="border-t border-[#3E3E3E] py-1">
+                      <div className="border-t border-border py-1">
                         <button
                           onClick={() => { setAccountMenuOpen(false); handleConnectInstagram(); }}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-[#282828] text-[#BADF95] text-[11px] font-bold cursor-pointer"
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent text-primary text-[11px] font-bold cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           Conectar outra conta
                         </button>
                         <button
                           onClick={() => { setAccountMenuOpen(false); handleDisconnect(); }}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-[#282828] text-rose-500 text-[11px] font-bold cursor-pointer"
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent text-destructive text-[11px] font-bold cursor-pointer"
                         >
                           <LogOut className="w-3.5 h-3.5" />
                           Desconectar esta conta
@@ -776,7 +776,7 @@ export default function Dashboard() {
             ) : (
               <button
                 onClick={handleConnectInstagram}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#BADF95] hover:bg-[#C8EAA3] text-black font-extrabold text-xs transition-all shadow-md shadow-emerald-950/10 cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs transition-all shadow-md shadow-primary/10 cursor-pointer"
               >
                 <Instagram className="w-3.5 h-3.5" />
                 Conectar Instagram
@@ -786,27 +786,27 @@ export default function Dashboard() {
             <button
               onClick={handleManualDrain}
               title="Forçar Processamento da Fila"
-              className="p-2 rounded-xl bg-[#282828] hover:bg-[#333333] border border-[#3E3E3E] transition-all cursor-pointer text-white"
+              className="p-2 rounded-xl bg-accent hover:bg-muted border border-border transition-all cursor-pointer text-foreground"
             >
-              <RefreshCw className="w-4 h-4 text-[#A7A7A7]" />
+              <RefreshCw className="w-4 h-4 text-muted-foreground" />
             </button>
 
             {/* User Account Pill with Logout */}
             {currentUser && (
-              <div className="flex items-center gap-2 border border-[#282828] rounded-full py-1 pl-3 pr-1.5 bg-[#1A1A1A]">
+              <div className="flex items-center gap-2 border border-accent rounded-full py-1 pl-3 pr-1.5 bg-card">
                 <div className="text-left leading-none hidden sm:block">
-                  <p className="text-[10px] text-[#A7A7A7] font-medium truncate max-w-[120px]">
+                  <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">
                     {currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0]}
                   </p>
                 </div>
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#BADF95] to-[#125835] flex items-center justify-center text-black font-black text-[10px]">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-black text-[10px]">
                   {(currentUser.user_metadata?.full_name || currentUser.email || '?')[0].toUpperCase()}
                 </div>
                 <button
                   id="app-logout-button"
                   onClick={handleAppLogout}
                   title="Sair da conta"
-                  className="p-1.5 rounded-full hover:bg-[#282828] text-[#A7A7A7] hover:text-rose-400 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-full hover:bg-accent text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -816,7 +816,7 @@ export default function Dashboard() {
         </header>
 
         {/* 3. Tab-based Content Area */}
-        <main className="flex-1 overflow-y-auto p-6 bg-[#121212]">
+        <main className="flex-1 overflow-y-auto p-6 bg-background">
           
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
@@ -826,84 +826,84 @@ export default function Dashboard() {
               <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 
                 {/* Hero Card 1: Leads Gerados (Highlighted in Spotify Green) */}
-                <div className="bg-gradient-to-br from-[#BADF95] to-[#125835] rounded-2xl p-5 flex flex-col justify-between shadow-lg shadow-[#BADF95]/10 relative overflow-hidden group transition-all h-40">
+                <div className="bg-gradient-to-br from-primary to-primary/30 rounded-2xl p-5 flex flex-col justify-between shadow-lg shadow-primary/10 relative overflow-hidden group transition-all h-40">
                   <div className="flex items-center justify-between z-10">
-                    <span className="text-xs font-black text-black/80 uppercase tracking-wider">Leads Gerados</span>
-                    <div className="w-7 h-7 rounded-full bg-black/10 flex items-center justify-center text-black font-extrabold group-hover:scale-110 transition-transform">
+                    <span className="text-xs font-black text-primary-foreground/80 uppercase tracking-wider">Leads Gerados</span>
+                    <div className="w-7 h-7 rounded-full bg-primary-foreground/10 flex items-center justify-center text-primary-foreground font-extrabold group-hover:scale-110 transition-transform">
                       ↗
                     </div>
                   </div>
 
                   <div className="flex flex-col z-10 mt-2">
-                    <span className="text-4xl font-black text-black leading-none">{stats.contacts}</span>
+                    <span className="text-4xl font-black text-primary-foreground leading-none">{stats.contacts}</span>
                     <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[10px] text-black font-black bg-black/15 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] text-primary-foreground font-black bg-primary-foreground/15 px-2 py-0.5 rounded-full">
                         ↑ +24.5%
                       </span>
-                      <span className="text-[10px] text-black/80 font-bold">vs últimos 30 dias</span>
+                      <span className="text-[10px] text-primary-foreground/80 font-bold">vs últimos 30 dias</span>
                     </div>
                   </div>
                   
                   {/* Subtle background glow */}
-                  <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                  <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-foreground/10 rounded-full blur-2xl pointer-events-none"></div>
                 </div>
 
                 {/* Card 2: Total de Automações */}
-                <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-[#3E3E3E] transition-all h-40">
+                <div className="bg-card border border-accent rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-border transition-all h-40">
                   <div className="flex items-center justify-between z-10">
-                    <span className="text-xs font-bold text-[#A7A7A7] uppercase tracking-wider">Automações Ativas</span>
-                    <div className="w-7 h-7 rounded-full bg-[#282828] border border-[#3E3E3E] flex items-center justify-center text-[#A7A7A7] group-hover:text-white transition-colors">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Automações Ativas</span>
+                    <div className="w-7 h-7 rounded-full bg-accent border border-border flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
                       ↗
                     </div>
                   </div>
 
                   <div className="flex flex-col z-10 mt-2">
-                    <span className="text-4xl font-black text-white leading-none">{stats.automations}</span>
+                    <span className="text-4xl font-black text-foreground leading-none">{stats.automations}</span>
                     <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[10px] text-[#BADF95] font-bold bg-[#282828] border border-[#BADF95]/25 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] text-primary font-bold bg-accent border border-primary/25 px-2 py-0.5 rounded-full">
                         ↑ +14.3%
                       </span>
-                      <span className="text-[10px] text-[#A7A7A7] font-medium">vs últimos 30 dias</span>
+                      <span className="text-[10px] text-muted-foreground font-medium">vs últimos 30 dias</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Card 3: Disparos na Fila */}
-                <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-[#3E3E3E] transition-all h-40">
+                <div className="bg-card border border-accent rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-border transition-all h-40">
                   <div className="flex items-center justify-between z-10">
-                    <span className="text-xs font-bold text-[#A7A7A7] uppercase tracking-wider">Fila de Disparos</span>
-                    <div className="w-7 h-7 rounded-full bg-[#282828] border border-[#3E3E3E] flex items-center justify-center text-[#A7A7A7] group-hover:text-white transition-colors">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Fila de Disparos</span>
+                    <div className="w-7 h-7 rounded-full bg-accent border border-border flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
                       ↗
                     </div>
                   </div>
 
                   <div className="flex flex-col z-10 mt-2">
-                    <span className="text-4xl font-black text-white leading-none">{stats.queue}</span>
+                    <span className="text-4xl font-black text-foreground leading-none">{stats.queue}</span>
                     <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[10px] text-[#BADF95] font-bold bg-[#282828] border border-[#BADF95]/25 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] text-primary font-bold bg-accent border border-primary/25 px-2 py-0.5 rounded-full">
                         ↑ +5.2%
                       </span>
-                      <span className="text-[10px] text-[#A7A7A7] font-medium">vs últimos 30 dias</span>
+                      <span className="text-[10px] text-muted-foreground font-medium">vs últimos 30 dias</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Card 4: Eventos Captados */}
-                <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-[#3E3E3E] transition-all h-40">
+                <div className="bg-card border border-accent rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-border transition-all h-40">
                   <div className="flex items-center justify-between z-10">
-                    <span className="text-xs font-bold text-[#A7A7A7] uppercase tracking-wider">Eventos Captados</span>
-                    <div className="w-7 h-7 rounded-full bg-[#282828] border border-[#3E3E3E] flex items-center justify-center text-[#A7A7A7] group-hover:text-white transition-colors">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Eventos Captados</span>
+                    <div className="w-7 h-7 rounded-full bg-accent border border-border flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
                       ↗
                     </div>
                   </div>
 
                   <div className="flex flex-col z-10 mt-2">
-                    <span className="text-4xl font-black text-white leading-none">{stats.events}</span>
+                    <span className="text-4xl font-black text-foreground leading-none">{stats.events}</span>
                     <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[10px] text-[#BADF95] font-bold bg-[#282828] border border-[#BADF95]/25 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] text-primary font-bold bg-accent border border-primary/25 px-2 py-0.5 rounded-full">
                         ↑ +32.8%
                       </span>
-                      <span className="text-[10px] text-[#A7A7A7] font-medium">vs últimos 30 dias</span>
+                      <span className="text-[10px] text-muted-foreground font-medium">vs últimos 30 dias</span>
                     </div>
                   </div>
                 </div>
@@ -914,23 +914,23 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
                 {/* 2A: Interactive 7-Day Bar Chart (lg:col-span-8) */}
-                <div className="lg:col-span-8 bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-6">
+                <div className="lg:col-span-8 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <h4 className="font-bold text-white text-base">Desempenho de Disparos & Interações</h4>
-                      <p className="text-xs text-[#A7A7A7] mt-0.5">Volume diário de comentários detectados e DMs entregues</p>
+                      <h4 className="font-bold text-foreground text-base">Desempenho de Disparos & Interações</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">Volume diário de comentários detectados e DMs entregues</p>
                     </div>
                     
                     {/* Period selector buttons */}
-                    <div className="flex items-center gap-1.5 bg-[#121212] p-1 rounded-xl border border-[#282828] self-start sm:self-auto">
+                    <div className="flex items-center gap-1.5 bg-background p-1 rounded-xl border border-accent self-start sm:self-auto">
                       {(['7d', '30d', 'month'] as const).map(p => (
                         <button
                           key={p}
                           onClick={() => setChartPeriod(p)}
                           className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             chartPeriod === p
-                              ? 'bg-[#282828] text-[#BADF95] border border-[#BADF95]/25 shadow-xs'
-                              : 'text-[#A7A7A7] hover:text-white'
+                              ? 'bg-accent text-primary border border-primary/25 shadow-xs'
+                              : 'text-muted-foreground hover:text-foreground'
                           }`}
                         >
                           {p === '7d' ? '7 dias' : p === '30d' ? '30 dias' : 'Este Mês'}
@@ -941,7 +941,7 @@ export default function Dashboard() {
 
                   {/* Interactive Bar Chart Graphic */}
                   <div className="flex flex-col gap-3 pt-4">
-                    <div className="h-44 w-full flex items-end justify-between gap-3 px-2 relative border-b border-[#282828] pb-2">
+                    <div className="h-44 w-full flex items-end justify-between gap-3 px-2 relative border-b border-accent pb-2">
                       {[
                         { day: 'Seg', comments: 94, dms: 82, height: '65%' },
                         { day: 'Ter', comments: 128, dms: 110, height: '80%' },
@@ -960,26 +960,26 @@ export default function Dashboard() {
                           >
                             {/* Floating Tooltip on Hover */}
                             {isHovered && (
-                              <div className="absolute -top-12 z-30 bg-[#282828] border border-[#BADF95]/40 text-white text-[10px] py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap animate-fade-in flex flex-col items-center pointer-events-none">
-                                <span className="font-bold text-[#BADF95]">{item.day}-feira</span>
+                              <div className="absolute -top-12 z-30 bg-accent border border-primary/40 text-foreground text-[10px] py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap animate-fade-in flex flex-col items-center pointer-events-none">
+                                <span className="font-bold text-primary">{item.day}-feira</span>
                                 <span>💬 {item.comments} com. | 📥 {item.dms} DMs</span>
                               </div>
                             )}
 
                             {/* Bar Pill */}
-                            <div className="w-full max-w-[36px] bg-[#282828] rounded-t-xl overflow-hidden relative flex items-end transition-all duration-300 group-hover:bg-[#333333]" style={{ height: item.height }}>
+                            <div className="w-full max-w-[36px] bg-accent rounded-t-xl overflow-hidden relative flex items-end transition-all duration-300 group-hover:bg-muted" style={{ height: item.height }}>
                               <div
                                 className={`w-full transition-all duration-500 rounded-t-xl ${
                                   isHovered
-                                    ? 'bg-[#C8EAA3] shadow-lg shadow-[#BADF95]/20'
-                                    : 'bg-[#BADF95]/85 group-hover:bg-[#BADF95]'
+                                    ? 'bg-primary/90 shadow-lg shadow-primary/20'
+                                    : 'bg-primary/85 group-hover:bg-primary'
                                 }`}
                                 style={{ height: '85%' }}
                               ></div>
                             </div>
 
                             {/* Day Label */}
-                            <span className={`text-[11px] font-bold transition-colors ${isHovered ? 'text-[#BADF95]' : 'text-[#A7A7A7]'}`}>
+                            <span className={`text-[11px] font-bold transition-colors ${isHovered ? 'text-primary' : 'text-muted-foreground'}`}>
                               {item.day}
                             </span>
                           </div>
@@ -987,13 +987,13 @@ export default function Dashboard() {
                       })}
                     </div>
                     
-                    <div className="flex items-center justify-between text-[11px] text-[#A7A7A7] pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
                       <div className="flex items-center gap-4">
                         <span className="flex items-center gap-1.5 font-bold">
-                          <span className="w-2.5 h-2.5 rounded-full bg-[#BADF95]"></span> DMs Entregues
+                          <span className="w-2.5 h-2.5 rounded-full bg-primary"></span> DMs Entregues
                         </span>
                         <span className="flex items-center gap-1.5 font-medium">
-                          <span className="w-2.5 h-2.5 rounded-full bg-[#282828] border border-[#3E3E3E]"></span> Comentários Processados
+                          <span className="w-2.5 h-2.5 rounded-full bg-accent border border-border"></span> Comentários Processados
                         </span>
                       </div>
                       <span className="font-mono">Média: 112 disparos/dia</span>
@@ -1002,10 +1002,10 @@ export default function Dashboard() {
                 </div>
 
                 {/* 2B: Semi-Donut Gauge Chart - Saúde do Bot (lg:col-span-4) */}
-                <div className="lg:col-span-4 bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-4">
+                <div className="lg:col-span-4 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-4">
                   <div>
-                    <h4 className="font-bold text-white text-base">Saúde das Entregas</h4>
-                    <p className="text-xs text-[#A7A7A7] mt-0.5">Conformidade e taxa de sucesso da Meta API</p>
+                    <h4 className="font-bold text-foreground text-base">Saúde das Entregas</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Conformidade e taxa de sucesso da Meta API</p>
                   </div>
 
                   {/* 180° Semi-Donut SVG Gauge */}
@@ -1014,14 +1014,14 @@ export default function Dashboard() {
                       <path
                         d="M 10 50 A 40 40 0 0 1 90 50"
                         fill="none"
-                        stroke="#282828"
+                        stroke="var(--accent)"
                         strokeWidth="10"
                         strokeLinecap="round"
                       />
                       <path
                         d="M 10 50 A 40 40 0 0 1 85 24"
                         fill="none"
-                        stroke="#BADF95"
+                        stroke="var(--primary)"
                         strokeWidth="10"
                         strokeLinecap="round"
                         strokeDasharray="126"
@@ -1030,29 +1030,29 @@ export default function Dashboard() {
                     </svg>
 
                     <div className="absolute top-12 flex flex-col items-center text-center">
-                      <span className="text-3xl font-black text-white leading-none">94%</span>
-                      <span className="text-[10px] text-[#BADF95] font-extrabold uppercase tracking-wider mt-1">Taxa de Sucesso</span>
+                      <span className="text-3xl font-black text-foreground leading-none">94%</span>
+                      <span className="text-[10px] text-primary font-extrabold uppercase tracking-wider mt-1">Taxa de Sucesso</span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2 pt-2 border-t border-[#282828]">
+                  <div className="flex flex-col gap-2 pt-2 border-t border-accent">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#A7A7A7] flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-[#BADF95]"></span> Disparos com Sucesso
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-primary"></span> Disparos com Sucesso
                       </span>
-                      <span className="font-bold text-white">94%</span>
+                      <span className="font-bold text-foreground">94%</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#A7A7A7] flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-[#EAB308]"></span> Na Fila / Aguardando
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span> Na Fila / Aguardando
                       </span>
-                      <span className="font-bold text-white">4%</span>
+                      <span className="font-bold text-foreground">4%</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#A7A7A7] flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-[#F15E6C]"></span> Limites Meta / Falhas
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-destructive"></span> Limites Meta / Falhas
                       </span>
-                      <span className="font-bold text-white">2%</span>
+                      <span className="font-bold text-foreground">2%</span>
                     </div>
                   </div>
                 </div>
@@ -1063,26 +1063,26 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
                 {/* 3A: Funil Reativo de Conversão (lg:col-span-4) */}
-                <div className="lg:col-span-4 bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col gap-5 justify-between">
+                <div className="lg:col-span-4 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-5 justify-between">
                   <div>
-                    <h4 className="font-bold text-white text-base">Funil de Conversão</h4>
-                    <p className="text-xs text-[#A7A7A7] mt-0.5">Retenção e conversão por etapa do fluxo</p>
+                    <h4 className="font-bold text-foreground text-base">Funil de Conversão</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Retenção e conversão por etapa do fluxo</p>
                   </div>
 
                   <div className="flex flex-col gap-4">
                     {[
-                      { label: '1. Comentários Detectados', val: funnel.comments || 185, percent: 100, color: 'bg-[#BADF95]' },
-                      { label: '2. DMs de Boas-Vindas', val: funnel.welcomeDms || 162, percent: 87, color: 'bg-[#C8EAA3]' },
-                      { label: '3. Cliques no Botão / Link', val: funnel.clicks || 98, percent: 53, color: 'bg-[#125835]' },
-                      { label: '4. Leads Qualificados', val: funnel.leads || 64, percent: 34, color: 'bg-[#BADF95]' }
+                      { label: '1. Comentários Detectados', val: funnel.comments || 185, percent: 100, color: 'bg-primary' },
+                      { label: '2. DMs de Boas-Vindas', val: funnel.welcomeDms || 162, percent: 87, color: 'bg-primary/90' },
+                      { label: '3. Cliques no Botão / Link', val: funnel.clicks || 98, percent: 53, color: 'bg-primary/30' },
+                      { label: '4. Leads Qualificados', val: funnel.leads || 64, percent: 34, color: 'bg-primary' }
                     ].map((step, idx) => {
                       return (
                         <div key={idx} className="flex flex-col gap-1.5">
                           <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-[#A7A7A7]">{step.label}</span>
-                            <span className="text-white font-bold">{step.val} <span className="text-[#A7A7A7] font-normal">({step.percent}%)</span></span>
+                            <span className="text-muted-foreground">{step.label}</span>
+                            <span className="text-foreground font-bold">{step.val} <span className="text-muted-foreground font-normal">({step.percent}%)</span></span>
                           </div>
-                          <div className="h-3 w-full bg-[#282828] rounded-full overflow-hidden p-0.5 border border-[#3E3E3E]">
+                          <div className="h-3 w-full bg-accent rounded-full overflow-hidden p-0.5 border border-border">
                             <div
                               className={`h-full ${step.color} rounded-full transition-all duration-500`}
                               style={{ width: `${step.percent}%` }}
@@ -1095,20 +1095,20 @@ export default function Dashboard() {
                 </div>
 
                 {/* 3B: Histórico de Envios Recentes na Fila (lg:col-span-8) */}
-                <div className="lg:col-span-8 bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col gap-4">
-                  <div className="flex items-center justify-between border-b border-[#282828] pb-3">
+                <div className="lg:col-span-8 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+                  <div className="flex items-center justify-between border-b border-accent pb-3">
                     <div>
-                      <h4 className="font-bold text-white text-base">Envios Pendentes & Recentes na Fila</h4>
-                      <p className="text-xs text-[#A7A7A7] mt-0.5">Histórico do pipeline de entregas em tempo real</p>
+                      <h4 className="font-bold text-foreground text-base">Envios Pendentes & Recentes na Fila</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">Histórico do pipeline de entregas em tempo real</p>
                     </div>
-                    <button onClick={() => setActiveTab('logs')} className="text-xs font-bold text-[#BADF95] hover:text-[#C8EAA3] transition-colors cursor-pointer">
+                    <button onClick={() => setActiveTab('logs')} className="text-xs font-bold text-primary hover:text-primary/90 transition-colors cursor-pointer">
                       Ver todos os logs →
                     </button>
                   </div>
                   
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left text-[#A7A7A7]">
-                      <thead className="text-xs uppercase text-[#A7A7A7] font-bold border-b border-[#282828]">
+                    <table className="w-full text-sm text-left text-muted-foreground">
+                      <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-accent">
                         <tr>
                           <th className="py-2.5 px-3">Contato</th>
                           <th className="py-2.5 px-3">Tipo de Ação</th>
@@ -1116,33 +1116,33 @@ export default function Dashboard() {
                           <th className="py-2.5 px-3">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#282828]">
+                      <tbody className="divide-y divide-accent">
                         {recentQueue.length === 0 ? (
                           <tr>
-                            <td colSpan={4} className="py-8 text-center text-[#A7A7A7]">Nenhum disparo na fila recentemente.</td>
+                            <td colSpan={4} className="py-8 text-center text-muted-foreground">Nenhum disparo na fila recentemente.</td>
                           </tr>
                         ) : (
                           recentQueue.slice(0, 5).map(item => (
-                            <tr key={item.id} className="hover:bg-[#282828]/50 transition-colors">
-                              <td className="py-3 px-3 font-mono text-xs text-white font-bold flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-[#282828] border border-[#3E3E3E] flex items-center justify-center text-[10px] text-[#BADF95]">
+                            <tr key={item.id} className="hover:bg-accent/50 transition-colors">
+                              <td className="py-3 px-3 font-mono text-xs text-foreground font-bold flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-accent border border-border flex items-center justify-center text-[10px] text-primary">
                                   @
                                 </div>
                                 <span>@{item.contact_id.substring(0, 10)}...</span>
                               </td>
-                              <td className="py-3 px-3 font-semibold text-white text-xs">
+                              <td className="py-3 px-3 font-semibold text-foreground text-xs">
                                 {item.type === 'private_reply' && 'DM de Boas-Vindas'}
                                 {item.type === 'link_dm' && 'DM com Link'}
                                 {item.type === 'reminder_dm' && 'DM de Lembrete'}
                               </td>
-                              <td className="py-3 px-3 text-xs text-[#A7A7A7]">{new Date(item.created_at).toLocaleTimeString('pt-BR')}</td>
+                              <td className="py-3 px-3 text-xs text-muted-foreground">{new Date(item.created_at).toLocaleTimeString('pt-BR')}</td>
                               <td className="py-3 px-3">
                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
-                                  item.status === 'sent' && 'bg-[#282828] text-[#BADF95] border border-[#BADF95]/25'
+                                  item.status === 'sent' && 'bg-accent text-primary border border-primary/25'
                                 } ${
-                                  item.status === 'pending' && 'bg-[#282828] text-[#A7A7A7] border border-[#3E3E3E]'
+                                  item.status === 'pending' && 'bg-accent text-muted-foreground border border-border'
                                 } ${
-                                  item.status === 'failed' && 'bg-[#282828] text-[#F15E6C] border border-[#F15E6C]/25'
+                                  item.status === 'failed' && 'bg-accent text-destructive border border-destructive/25'
                                 }`}>
                                   {item.status === 'sent' && 'Enviado'}
                                   {item.status === 'pending' && 'Pendente'}
@@ -1163,16 +1163,16 @@ export default function Dashboard() {
           )}
           {/* TAB: LIVE CHAT */}
           {activeTab === 'chat' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-6 bg-[#1A1A1A] border border-[#282828] rounded-2xl overflow-hidden shadow-xs h-[calc(100vh-170px)]">
+            <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-6 bg-card border border-accent rounded-2xl overflow-hidden shadow-xs h-[calc(100vh-170px)]">
               {/* Left Contacts List */}
-              <div className={`lg:col-span-4 border-r border-[#282828] h-full overflow-hidden bg-[#121212] ${selectedContactId ? 'hidden lg:flex flex-col' : 'flex flex-col'}`}>
-                <div className="p-4 border-b border-[#282828] bg-[#1A1A1A]">
-                  <h3 className="font-bold text-white text-sm">Conversas Recentes</h3>
-                  <p className="text-[10px] text-[#A7A7A7]">Clique para abrir o histórico de mensagens</p>
+              <div className={`lg:col-span-4 border-r border-accent h-full overflow-hidden bg-background ${selectedContactId ? 'hidden lg:flex flex-col' : 'flex flex-col'}`}>
+                <div className="p-4 border-b border-accent bg-card">
+                  <h3 className="font-bold text-foreground text-sm">Conversas Recentes</h3>
+                  <p className="text-[10px] text-muted-foreground">Clique para abrir o histórico de mensagens</p>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2">
                   {contacts.length === 0 ? (
-                    <div className="text-center py-10 text-xs text-[#A7A7A7]">Nenhum contato ativo.</div>
+                    <div className="text-center py-10 text-xs text-muted-foreground">Nenhum contato ativo.</div>
                   ) : (
                     contacts.map(c => {
                       const isSelected = selectedContactId === c.instagram_id;
@@ -1184,15 +1184,15 @@ export default function Dashboard() {
                           onClick={() => setSelectedContactId(c.instagram_id)}
                           className={`p-3 rounded-xl cursor-pointer transition-all flex items-center gap-3 border ${
                             isSelected
-                              ? 'bg-[#282828] border-[#3E3E3E] shadow-sm'
-                              : 'bg-transparent border-transparent hover:bg-[#282828]/50'
+                              ? 'bg-accent border-border shadow-sm'
+                              : 'bg-transparent border-transparent hover:bg-accent/50'
                           }`}
                         >
                           {/* Circular Avatar */}
                           <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${
                             isSelected
-                              ? 'bg-[#BADF95] text-black shadow-2xs'
-                              : 'bg-[#282828] text-white border border-[#3E3E3E]'
+                              ? 'bg-primary text-primary-foreground shadow-2xs'
+                              : 'bg-accent text-foreground border border-border'
                           }`}>
                             {initials}
                           </div>
@@ -1200,20 +1200,20 @@ export default function Dashboard() {
                           {/* Contact Info details */}
                           <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                             <div className="flex items-center justify-between gap-1.5">
-                              <span className={`text-xs font-bold truncate ${isSelected ? 'text-[#BADF95]' : 'text-white'}`}>
+                              <span className={`text-xs font-bold truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
                                 {c.full_name || `@${c.username || c.instagram_id}`}
                               </span>
                               {c.conversation_state && c.conversation_state !== 'idle' && (
-                                <span className="text-[8px] bg-[#282828] text-[#BADF95] border border-[#BADF95]/20 font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0">
+                                <span className="text-[8px] bg-accent text-primary border border-primary/20 font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0">
                                   Fila
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-[#A7A7A7] truncate font-mono">
+                            <span className="text-[10px] text-muted-foreground truncate font-mono">
                               @{c.username || c.instagram_id}
                             </span>
                             {(c.email || c.phone) && (
-                              <div className="flex flex-col gap-0.5 text-[9px] text-[#A7A7A7] font-medium pt-0.5">
+                              <div className="flex flex-col gap-0.5 text-[9px] text-muted-foreground font-medium pt-0.5">
                                 {c.email && <span className="truncate">📧 {c.email}</span>}
                                 {c.phone && <span className="truncate">📱 {c.phone}</span>}
                               </div>
@@ -1227,24 +1227,24 @@ export default function Dashboard() {
               </div>
 
               {/* Right Chat Pane */}
-              <div className={`lg:col-span-8 h-full overflow-hidden bg-[#121212] ${!selectedContactId ? 'hidden lg:flex flex-col' : 'flex flex-col'}`}>
+              <div className={`lg:col-span-8 h-full overflow-hidden bg-background ${!selectedContactId ? 'hidden lg:flex flex-col' : 'flex flex-col'}`}>
                 {selectedContactId ? (
                   <div className="flex flex-col h-full overflow-hidden">
                     {/* Chat Header */}
-                    <div className="p-4 border-b border-[#282828] flex items-center justify-between bg-[#1A1A1A] gap-3">
+                    <div className="p-4 border-b border-accent flex items-center justify-between bg-card gap-3">
                       <div className="flex items-center gap-3">
                         {/* Botão voltar no mobile */}
                         <button
                           onClick={() => setSelectedContactId(null)}
-                          className="lg:hidden p-1.5 -ml-2 rounded-xl text-[#A7A7A7] hover:bg-[#282828] hover:text-white transition-colors"
+                          className="lg:hidden p-1.5 -ml-2 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                         >
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                         </button>
                         <div>
-                          <h4 className="font-bold text-white text-sm">
+                          <h4 className="font-bold text-foreground text-sm">
                             @{contacts.find(c => c.instagram_id === selectedContactId)?.username || selectedContactId}
                           </h4>
-                          <span className="text-[9px] text-[#A7A7A7] font-medium">
+                          <span className="text-[9px] text-muted-foreground font-medium">
                             ID: {selectedContactId}
                           </span>
                         </div>
@@ -1256,8 +1256,8 @@ export default function Dashboard() {
                         if (!c) return null;
                         return (
                           <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#BADF95] animate-pulse"></span>
-                            <span className="text-[10px] text-[#BADF95] font-bold uppercase tracking-wider">
+                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                            <span className="text-[10px] text-primary font-bold uppercase tracking-wider">
                               {c.conversation_state === 'idle' ? 'Disponível' : c.conversation_state === 'waiting_email' ? 'Lendo E-mail' : 'Lendo Fone'}
                             </span>
                           </div>
@@ -1266,9 +1266,9 @@ export default function Dashboard() {
                     </div>
 
                     {/* Chat Message list */}
-                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-[#121212]">
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-background">
                       {chatMessages.length === 0 ? (
-                        <div className="text-center py-20 text-xs text-[#A7A7A7]">Nenhuma mensagem registrada nesta conversa.</div>
+                        <div className="text-center py-20 text-xs text-muted-foreground">Nenhuma mensagem registrada nesta conversa.</div>
                       ) : (
                         chatMessages.map(msg => {
                           const isInbound = msg.direction === 'inbound';
@@ -1280,13 +1280,13 @@ export default function Dashboard() {
                               <div
                                 className={`p-3.5 rounded-2xl text-xs max-w-[75%] leading-relaxed ${
                                   isInbound
-                                    ? 'bg-[#282828] text-white rounded-tl-xs border border-[#3E3E3E]'
-                                    : 'bg-[#BADF95] text-black font-semibold rounded-tr-xs shadow-xs'
+                                    ? 'bg-accent text-foreground rounded-tl-xs border border-border'
+                                    : 'bg-primary text-primary-foreground font-semibold rounded-tr-xs shadow-xs'
                                 }`}
                               >
                                 {msg.text}
                               </div>
-                              <span className="text-[9px] text-[#A7A7A7] font-medium mt-1 px-1">
+                              <span className="text-[9px] text-muted-foreground font-medium mt-1 px-1">
                                 {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
@@ -1296,31 +1296,31 @@ export default function Dashboard() {
                     </div>
 
                     {/* Chat Input form */}
-                    <form onSubmit={handleSendMessage} className="p-4 border-t border-[#282828] flex items-center gap-2 bg-[#1A1A1A]">
+                    <form onSubmit={handleSendMessage} className="p-4 border-t border-accent flex items-center gap-2 bg-card">
                       <input
                         type="text"
                         placeholder="Digite uma mensagem para enviar..."
                         value={chatInput}
                         onChange={e => setChatInput(e.target.value)}
-                        className="flex-1 bg-[#282828] border border-[#3E3E3E] focus:border-[#BADF95] rounded-full px-4 py-2.5 text-xs focus:outline-none text-white placeholder-[#A7A7A7] transition-all"
+                        className="flex-1 bg-accent border border-border focus:border-primary rounded-full px-4 py-2.5 text-xs focus:outline-none text-foreground placeholder-muted-foreground transition-all"
                       />
                       <button
                         type="submit"
                         disabled={sendingMessage || !chatInput.trim()}
-                        className="p-2.5 rounded-full bg-[#BADF95] hover:bg-[#C8EAA3] text-black transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
+                        className="p-2.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
                       >
-                        <Send className="w-4.5 h-4.5 text-black" />
+                        <Send className="w-4.5 h-4.5 text-primary-foreground" />
                       </button>
                     </form>
                   </div>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-10 bg-[#121212]">
-                    <div className="p-4 rounded-full bg-[#1A1A1A] text-[#BADF95] border border-[#3E3E3E]">
-                      <MessageSquare className="w-8 h-8 text-[#BADF95]" />
+                  <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-10 bg-background">
+                    <div className="p-4 rounded-full bg-card text-primary border border-border">
+                      <MessageSquare className="w-8 h-8 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-white">Selecione uma conversa</h4>
-                      <p className="text-xs text-[#A7A7A7] mt-1 max-w-xs leading-relaxed">
+                      <h4 className="font-bold text-foreground">Selecione uma conversa</h4>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
                         Escolha um contato na lista à esquerda para carregar o histórico de mensagens e responder diretamente.
                       </p>
                     </div>
@@ -1337,17 +1337,17 @@ export default function Dashboard() {
               {!isEditing ? (
                 /* Screen 1: List of Automations (Full Width) */
                 <div className="flex flex-col gap-6 max-w-6xl mx-auto animate-fade-in">
-                  <div className="flex items-center justify-between border-b border-[#282828] pb-5">
+                  <div className="flex items-center justify-between border-b border-accent pb-5">
                     <div>
-                      <h3 className="text-xl font-bold text-white">Minhas Automações</h3>
-                      <p className="text-xs text-[#A7A7A7] mt-1">Gerencie, crie e ative seus fluxos de resposta direta e reativa.</p>
+                      <h3 className="text-xl font-bold text-foreground">Minhas Automações</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Gerencie, crie e ative seus fluxos de resposta direta e reativa.</p>
                     </div>
                     <button
                       onClick={() => {
                         resetForm();
                         setIsEditing(true);
                       }}
-                      className="flex items-center gap-2 text-xs font-extrabold bg-[#BADF95] hover:bg-[#C8EAA3] text-black px-5 py-2.5 rounded-full transition-all shadow-md cursor-pointer"
+                      className="flex items-center gap-2 text-xs font-extrabold bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-full transition-all shadow-md cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       Criar Novo Fluxo
@@ -1355,13 +1355,13 @@ export default function Dashboard() {
                   </div>
 
                   {automations.length === 0 ? (
-                    <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-16 text-center flex flex-col items-center gap-6 shadow-sm">
-                      <div className="p-4 rounded-full bg-[#282828] text-[#A7A7A7] border border-[#3E3E3E]">
+                    <div className="bg-card border border-accent rounded-2xl p-16 text-center flex flex-col items-center gap-6 shadow-sm">
+                      <div className="p-4 rounded-full bg-accent text-muted-foreground border border-border">
                         <Settings className="w-8 h-8" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-white text-base">Nenhuma automação cadastrada</h4>
-                        <p className="text-xs text-[#A7A7A7] mt-1.5 max-w-[280px] mx-auto leading-relaxed">
+                        <h4 className="font-bold text-foreground text-base">Nenhuma automação cadastrada</h4>
+                        <p className="text-xs text-muted-foreground mt-1.5 max-w-[280px] mx-auto leading-relaxed">
                           Comece agora mesmo! Crie seu primeiro fluxo de automação para responder comentários automaticamente.
                         </p>
                       </div>
@@ -1374,11 +1374,11 @@ export default function Dashboard() {
                           <div
                             key={auto.id}
                             onClick={() => handleEditAutomation(auto)}
-                            className="bg-[#1A1A1A] border border-[#282828] hover:border-[#3E3E3E] p-5 rounded-2xl cursor-pointer group transition-all flex flex-col justify-between gap-4 shadow-sm hover:shadow-md relative overflow-hidden"
+                            className="bg-card border border-accent hover:border-border p-5 rounded-2xl cursor-pointer group transition-all flex flex-col justify-between gap-4 shadow-sm hover:shadow-md relative overflow-hidden"
                           >
                             <div className="flex items-start justify-between gap-3">
                               {auto.specific_post_id && (
-                                <div className="w-14 h-14 rounded-lg bg-[#282828] overflow-hidden relative border border-[#3E3E3E] flex-shrink-0">
+                                <div className="w-14 h-14 rounded-lg bg-accent overflow-hidden relative border border-border flex-shrink-0">
                                   {postMedia ? (
                                     <img
                                       src={postMedia.thumbnail_url || postMedia.media_url}
@@ -1386,7 +1386,7 @@ export default function Dashboard() {
                                       className="absolute inset-0 w-full h-full object-cover"
                                     />
                                   ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-[#A7A7A7] bg-[#282828] text-center leading-3 p-1">
+                                    <div className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-muted-foreground bg-accent text-center leading-3 p-1">
                                       Post Selec.
                                     </div>
                                   )}
@@ -1394,12 +1394,12 @@ export default function Dashboard() {
                               )}
 
                               <div className="flex-1 min-w-0">
-                                <span className="font-extrabold text-white text-base truncate block group-hover:text-[#BADF95] transition-colors">{auto.name}</span>
+                                <span className="font-extrabold text-foreground text-base truncate block group-hover:text-primary transition-colors">{auto.name}</span>
                                 <div className="flex items-center gap-1.5 mt-1.5">
                                   <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
                                     auto.active
-                                      ? 'bg-[#282828] text-[#BADF95] border border-[#BADF95]/25'
-                                      : 'bg-[#282828] text-[#A7A7A7] border border-[#3E3E3E]'
+                                      ? 'bg-accent text-primary border border-primary/25'
+                                      : 'bg-accent text-muted-foreground border border-border'
                                   }`}>
                                     {auto.active ? 'Ativo' : 'Pausado'}
                                   </span>
@@ -1411,14 +1411,14 @@ export default function Dashboard() {
                                   e.stopPropagation();
                                   handleDeleteAutomation(auto.id!);
                                 }}
-                                className="p-1.5 hover:bg-[#282828] text-[#A7A7A7] hover:text-rose-500 rounded-xl transition-colors cursor-pointer"
+                                className="p-1.5 hover:bg-accent text-muted-foreground hover:text-destructive rounded-xl transition-colors cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
 
-                            <div className="flex flex-col gap-2 pt-3 border-t border-[#282828] text-xs">
-                              <div className="flex items-center justify-between text-[#A7A7A7]">
+                            <div className="flex flex-col gap-2 pt-3 border-t border-accent text-xs">
+                              <div className="flex items-center justify-between text-muted-foreground">
                                 <span>Gatilho:</span>
                                 <div className="flex gap-1 flex-wrap">
                                   {auto.triggers.map(t => {
@@ -1426,7 +1426,7 @@ export default function Dashboard() {
                                     if (t === 'comment') label = 'Comentários';
                                     if (t === 'story') label = 'Stories';
                                     return (
-                                      <span key={t} className="text-[9px] bg-[#282828] text-[#BADF95] font-extrabold px-1.5 py-0.5 rounded border border-[#BADF95]/20 uppercase tracking-wider">
+                                      <span key={t} className="text-[9px] bg-accent text-primary font-extrabold px-1.5 py-0.5 rounded border border-primary/20 uppercase tracking-wider">
                                         {label}
                                       </span>
                                     );
@@ -1436,15 +1436,15 @@ export default function Dashboard() {
 
                               {auto.keywords.length > 0 && (
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[#A7A7A7]">Palavras-chave:</span>
+                                  <span className="text-muted-foreground">Palavras-chave:</span>
                                   <div className="flex items-center gap-1 flex-wrap">
                                     {auto.keywords.slice(0, 2).map((kw, i) => (
-                                      <span key={i} className="text-[9px] bg-[#282828] border border-[#3E3E3E] text-[#A7A7A7] px-1.5 py-0.5 rounded font-mono font-bold">
+                                      <span key={i} className="text-[9px] bg-accent border border-border text-muted-foreground px-1.5 py-0.5 rounded font-mono font-bold">
                                         {kw}
                                       </span>
                                     ))}
                                     {auto.keywords.length > 2 && (
-                                      <span className="text-[9px] text-[#A7A7A7] font-extrabold">+ {auto.keywords.length - 2}</span>
+                                      <span className="text-[9px] text-muted-foreground font-extrabold">+ {auto.keywords.length - 2}</span>
                                     )}
                                   </div>
                                 </div>
@@ -1465,7 +1465,7 @@ export default function Dashboard() {
                     <form onSubmit={handleSaveAutomation} className="flex flex-col gap-6">
                       
                       {/* Header of Flow Editor */}
-                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <div className="bg-card border border-accent rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <input
                             type="text"
@@ -1473,9 +1473,9 @@ export default function Dashboard() {
                             value={form.name}
                             onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                             placeholder="Nome do Fluxo (ex: Capturar Leads)"
-                            className="font-extrabold text-white text-lg focus:outline-none border-b border-[#3E3E3E] focus:border-[#BADF95] pb-1 w-full max-w-sm transition-all bg-transparent"
+                            className="font-extrabold text-foreground text-lg focus:outline-none border-b border-border focus:border-primary pb-1 w-full max-w-sm transition-all bg-transparent"
                           />
-                          <p className="text-[10px] text-[#A7A7A7] font-bold uppercase tracking-wider mt-1.5">Configuração do Sequenciamento</p>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1.5">Configuração do Sequenciamento</p>
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-4 flex-shrink-0 w-full md:w-auto">
@@ -1487,21 +1487,21 @@ export default function Dashboard() {
                               onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
                               className="sr-only peer"
                             />
-                            <div className="w-9 h-5 bg-[#333333] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-[#3E3E3E] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#BADF95] relative"></div>
-                            <span className="text-xs font-bold text-[#A7A7A7]">{form.active ? 'Ativo' : 'Pausado'}</span>
+                            <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-foreground after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-foreground after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary relative"></div>
+                            <span className="text-xs font-bold text-muted-foreground">{form.active ? 'Ativo' : 'Pausado'}</span>
                           </label>
 
                           <button
                             type="button"
                             onClick={() => setIsEditing(false)}
-                            className="text-xs font-bold text-[#A7A7A7] hover:text-white px-4 py-2.5 rounded-full hover:bg-[#282828] border border-[#3E3E3E] transition-all cursor-pointer animate-fade-in"
+                            className="text-xs font-bold text-muted-foreground hover:text-foreground px-4 py-2.5 rounded-full hover:bg-accent border border-border transition-all cursor-pointer animate-fade-in"
                           >
                             Voltar
                           </button>
 
                           <button
                             type="submit"
-                            className="px-5 py-2.5 rounded-full bg-[#BADF95] hover:bg-[#C8EAA3] text-black font-extrabold text-xs shadow-md cursor-pointer transition-all"
+                            className="px-5 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-md cursor-pointer transition-all"
                           >
                             Salvar Fluxo
                           </button>
@@ -1510,19 +1510,19 @@ export default function Dashboard() {
 
 
                     {/* VERTICAL FLOW STEP CARDS CONTAINER */}
-                    <div className="flex flex-col gap-6 relative pl-9 before:content-[''] before:absolute before:left-[17px] before:top-4 before:bottom-4 before:w-[2px] before:bg-[#3E3E3E]">
+                    <div className="flex flex-col gap-6 relative pl-9 before:content-[''] before:absolute before:left-[17px] before:top-4 before:bottom-4 before:w-[2px] before:bg-border">
                       {/* Step 1: Gatilho / Trigger Card */}
-                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white">
-                        <div className="w-7 h-7 rounded-full bg-[#BADF95] text-black flex items-center justify-center font-black text-xs border-2 border-[#121212] shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                      <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
+                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-black text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           1
                         </div>
                         <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-white text-sm">Configuração de Gatilhos de Entrada</h4>
+                          <h4 className="font-bold text-foreground text-sm">Configuração de Gatilhos de Entrada</h4>
                         </div>
 
                         {/* Fontes do Gatilho */}
                         <div className="flex flex-col gap-2">
-                          <label className="text-xs font-bold text-[#A7A7A7]">Fontes do Gatilho (Selecione um ou mais)</label>
+                          <label className="text-xs font-bold text-muted-foreground">Fontes do Gatilho (Selecione um ou mais)</label>
                           <div className="flex items-center gap-2.5 flex-wrap">
                             {[
                               { id: 'comment', label: 'Comentários em Posts' },
@@ -1545,8 +1545,8 @@ export default function Dashboard() {
                                   }}
                                   className={`px-4 py-2 rounded-full text-xs font-bold transition-all border cursor-pointer ${
                                     active
-                                      ? 'bg-[#BADF95] border-[#BADF95] text-black shadow-2xs'
-                                      : 'bg-[#282828] border-[#3E3E3E] text-[#A7A7A7] hover:bg-[#333333] hover:text-white'
+                                      ? 'bg-primary border-primary text-primary-foreground shadow-2xs'
+                                      : 'bg-accent border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                                   }`}
                                 >
                                   {trigger.label}
@@ -1558,23 +1558,23 @@ export default function Dashboard() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-[#A7A7A7]">Palavras-chave (Separadas por vírgula)</label>
+                            <label className="text-xs font-bold text-muted-foreground">Palavras-chave (Separadas por vírgula)</label>
                             <input
                               type="text"
                               required
                               placeholder="ex: quero, cupom, info"
                               value={form.keywords.join(', ')}
                               onChange={handleKeywordsChange}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] transition-all font-mono"
+                              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all font-mono"
                             />
                           </div>
 
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-[#A7A7A7]">Tipo de Correspondência (Match Type)</label>
+                            <label className="text-xs font-bold text-muted-foreground">Tipo de Correspondência (Match Type)</label>
                             <select
                               value={form.match_type}
                               onChange={e => setForm(prev => ({ ...prev, match_type: e.target.value as any }))}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white font-semibold cursor-pointer transition-all"
+                              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground font-semibold cursor-pointer transition-all"
                             >
                               <option value="contains">Contém a palavra-chave</option>
                               <option value="exact">Exato (Palavra-chave exata)</option>
@@ -1585,12 +1585,12 @@ export default function Dashboard() {
 
                         {/* Post target selector */}
                         <div className="flex flex-col gap-1.5 pt-1">
-                          <label className="text-xs font-bold text-[#A7A7A7]">Publicação Alvo (Opcional)</label>
+                          <label className="text-xs font-bold text-muted-foreground">Publicação Alvo (Opcional)</label>
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
                               onClick={handleLoadMedia}
-                              className="px-4 py-2.5 rounded-xl border border-[#3E3E3E] bg-[#282828] hover:bg-[#333333] text-white text-xs font-bold cursor-pointer transition-all flex items-center gap-2"
+                              className="px-4 py-2.5 rounded-xl border border-border bg-accent hover:bg-muted text-foreground text-xs font-bold cursor-pointer transition-all flex items-center gap-2"
                             >
                               {form.specific_post_id ? 'Trocar Publicação Selecionada' : 'Selecionar Post Específico'}
                               <ExternalLink className="w-3.5 h-3.5" />
@@ -1598,9 +1598,9 @@ export default function Dashboard() {
                             {form.specific_post_id && (() => {
                               const selectedMedia = mediaList.find(m => m.id === form.specific_post_id);
                               return (
-                                <div className="flex items-center gap-3 bg-[#282828] border border-[#3E3E3E] rounded-xl p-2 animate-fade-in text-white">
+                                <div className="flex items-center gap-3 bg-accent border border-border rounded-xl p-2 animate-fade-in text-foreground">
                                   {selectedMedia && (
-                                    <div className="w-12 h-12 rounded-lg overflow-hidden relative border border-[#3E3E3E] flex-shrink-0">
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden relative border border-border flex-shrink-0">
                                       <img
                                         src={selectedMedia.thumbnail_url || selectedMedia.media_url}
                                         alt="Selected Post"
@@ -1609,11 +1609,11 @@ export default function Dashboard() {
                                     </div>
                                   )}
                                   <div className="flex flex-col min-w-0">
-                                    <span className="text-[10px] font-bold text-[#A7A7A7] font-mono truncate max-w-[150px]">
+                                    <span className="text-[10px] font-bold text-muted-foreground font-mono truncate max-w-[150px]">
                                       ID: {form.specific_post_id}
                                     </span>
                                     {selectedMedia?.caption && (
-                                      <span className="text-[9px] text-[#A7A7A7] truncate max-w-[180px]">
+                                      <span className="text-[9px] text-muted-foreground truncate max-w-[180px]">
                                         {selectedMedia.caption}
                                       </span>
                                     )}
@@ -1621,7 +1621,7 @@ export default function Dashboard() {
                                   <button
                                     type="button"
                                     onClick={() => setForm(prev => ({ ...prev, specific_post_id: null }))}
-                                    className="text-xs text-rose-455 hover:text-rose-500 font-bold ml-2 cursor-pointer"
+                                    className="text-xs text-muted-foreground hover:text-destructive font-bold ml-2 cursor-pointer"
                                   >
                                     Limpar
                                   </button>
@@ -1633,28 +1633,28 @@ export default function Dashboard() {
                       </div>
 
                       {/* Step 2: Resposta Pública Card */}
-                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white">
-                        <div className="w-7 h-7 rounded-full bg-[#BADF95] text-black flex items-center justify-center font-black text-xs border-2 border-[#121212] shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                      <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
+                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-black text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           2
                         </div>
                         <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-white text-sm">Resposta Automática no Post (Comentário público)</h4>
+                          <h4 className="font-bold text-foreground text-sm">Resposta Automática no Post (Comentário público)</h4>
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-[#A7A7A7]">Escreva uma frase de resposta e clique em Adicionar</label>
+                          <label className="text-xs font-bold text-muted-foreground">Escreva uma frase de resposta e clique em Adicionar</label>
                           <div className="flex gap-2">
                             <input
                               type="text"
                               placeholder="ex: Te chamei no direct! Dá uma olhada lá."
                               value={publicReplyInput}
                               onChange={e => setPublicReplyInput(e.target.value)}
-                              className="flex-1 bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7]"
+                              className="flex-1 bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground"
                             />
                             <button
                               type="button"
                               onClick={handleAddPublicReply}
-                              className="px-4 py-2.5 rounded-xl bg-[#BADF95] text-black font-extrabold text-xs hover:bg-[#C8EAA3] transition-colors cursor-pointer"
+                              className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-extrabold text-xs hover:bg-primary/90 transition-colors cursor-pointer"
                             >
                               Adicionar
                             </button>
@@ -1679,7 +1679,7 @@ export default function Dashboard() {
                                     showToast('Essa resposta já foi adicionada!', 'error');
                                   }
                                 }}
-                                className="text-[10px] bg-[#282828] text-[#A7A7A7] hover:bg-[#3E3E3E] hover:text-white px-3 py-1.5 rounded-full border border-[#3E3E3E] transition-colors cursor-pointer select-none"
+                                className="text-[10px] bg-accent text-muted-foreground hover:bg-border hover:text-foreground px-3 py-1.5 rounded-full border border-border transition-colors cursor-pointer select-none"
                               >
                                 + {preset}
                               </button>
@@ -1689,14 +1689,14 @@ export default function Dashboard() {
 
                         {/* List of responses */}
                         {form.public_replies.length > 0 && (
-                          <div className="flex flex-col gap-2 bg-[#282828]/50 p-3.5 rounded-xl border border-[#3E3E3E] max-h-[160px] overflow-y-auto">
+                          <div className="flex flex-col gap-2 bg-accent/50 p-3.5 rounded-xl border border-border max-h-[160px] overflow-y-auto">
                             {form.public_replies.map((reply, index) => (
-                              <div key={index} className="flex items-center justify-between gap-3 text-xs bg-[#282828] py-2 px-3.5 rounded-xl border border-[#3E3E3E] shadow-xs animate-fade-in text-white">
+                              <div key={index} className="flex items-center justify-between gap-3 text-xs bg-accent py-2 px-3.5 rounded-xl border border-border shadow-xs animate-fade-in text-foreground">
                                 <span className="truncate font-semibold">{reply}</span>
                                 <button
                                   type="button"
                                   onClick={() => handleRemovePublicReply(index)}
-                                  className="text-[#A7A7A7] hover:text-rose-500 font-bold flex-shrink-0 cursor-pointer text-[10px]"
+                                  className="text-muted-foreground hover:text-destructive font-bold flex-shrink-0 cursor-pointer text-[10px]"
                                 >
                                   Remover
                                 </button>
@@ -1707,51 +1707,51 @@ export default function Dashboard() {
                       </div>
 
                       {/* Step 3: Mensagem DM com Quick Reply Card */}
-                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white">
-                        <div className="w-7 h-7 rounded-full bg-[#BADF95] text-black flex items-center justify-center font-black text-xs border-2 border-[#121212] shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                      <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
+                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-black text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           3
                         </div>
                         <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-white text-sm">Mensagem Privada Inicial (DM no Direct)</h4>
+                          <h4 className="font-bold text-foreground text-sm">Mensagem Privada Inicial (DM no Direct)</h4>
                         </div>
 
                         <div className="flex flex-col gap-3">
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-[#A7A7A7]">Conteúdo do primeiro Direct</label>
+                            <label className="text-xs font-bold text-muted-foreground">Conteúdo do primeiro Direct</label>
                             <textarea
                               required
                               placeholder="Olá! Vi seu interesse no post. Para receber o seu link de acesso, clique no botão de resposta rápida abaixo:"
                               value={form.welcome_dm}
                               onChange={e => setForm(prev => ({ ...prev, welcome_dm: e.target.value }))}
                               rows={3}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] transition-all resize-none"
+                              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none"
                             />
                           </div>
 
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-[#A7A7A7]">Texto do Botão de Resposta Rápida (Máx 20 caracteres)</label>
+                            <label className="text-xs font-bold text-muted-foreground">Texto do Botão de Resposta Rápida (Máx 20 caracteres)</label>
                             <input
                               type="text"
                               maxLength={20}
                               placeholder="Ex: Sim, quero!"
                               value={form.quick_reply_button || ''}
                               onChange={e => setForm(prev => ({ ...prev, quick_reply_button: e.target.value || null }))}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] transition-all font-semibold"
+                              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all font-semibold"
                             />
                           </div>
 
                           {/* Lead Capture Options */}
-                          <div className="border-t border-[#3E3E3E] pt-4 mt-2 flex flex-col gap-3">
-                            <span className="text-xs font-bold text-white">Captura de Leads & Integração (Opcional)</span>
+                          <div className="border-t border-border pt-4 mt-2 flex flex-col gap-3">
+                            <span className="text-xs font-bold text-foreground">Captura de Leads & Integração (Opcional)</span>
                             <div className="grid grid-cols-2 gap-4">
                               <label className="flex items-center gap-2.5 cursor-pointer select-none">
                                 <input
                                   type="checkbox"
                                   checked={form.ask_email || false}
                                   onChange={e => setForm(prev => ({ ...prev, ask_email: e.target.checked }))}
-                                  className="rounded border-[#3E3E3E] bg-[#282828] text-[#BADF95] focus:ring-[#BADF95]/20 w-4 h-4"
+                                  className="rounded border-border bg-accent text-primary focus:ring-primary/20 w-4 h-4"
                                 />
-                                <span className="text-xs text-[#A7A7A7] font-semibold">Solicitar E-mail</span>
+                                <span className="text-xs text-muted-foreground font-semibold">Solicitar E-mail</span>
                               </label>
 
                               <label className="flex items-center gap-2.5 cursor-pointer select-none">
@@ -1759,21 +1759,21 @@ export default function Dashboard() {
                                   type="checkbox"
                                   checked={form.ask_phone || false}
                                   onChange={e => setForm(prev => ({ ...prev, ask_phone: e.target.checked }))}
-                                  className="rounded border-[#3E3E3E] bg-[#282828] text-[#BADF95] focus:ring-[#BADF95]/20 w-4 h-4"
+                                  className="rounded border-border bg-accent text-primary focus:ring-primary/20 w-4 h-4"
                                 />
-                                <span className="text-xs text-[#A7A7A7] font-semibold">Solicitar Telefone</span>
+                                <span className="text-xs text-muted-foreground font-semibold">Solicitar Telefone</span>
                               </label>
                             </div>
 
                             {(form.ask_email || form.ask_phone) && (
                               <div className="flex flex-col gap-1.5 animate-fade-in mt-1">
-                                <label className="text-[11px] font-bold text-[#A7A7A7]">URL do Webhook Externo (POST para Make/Zapier)</label>
+                                <label className="text-[11px] font-bold text-muted-foreground">URL do Webhook Externo (POST para Make/Zapier)</label>
                                 <input
                                   type="url"
                                   placeholder="https://hook.us1.make.com/..."
                                   value={form.webhook_url || ''}
                                   onChange={e => setForm(prev => ({ ...prev, webhook_url: e.target.value }))}
-                                  className="bg-[#282828] border border-[#3E3E3E] focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 rounded-xl px-4 py-2 text-xs focus:outline-none text-white placeholder-[#A7A7A7] font-mono"
+                                  className="bg-accent border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-xl px-4 py-2 text-xs focus:outline-none text-foreground placeholder-muted-foreground font-mono"
                                 />
                               </div>
                             )}
@@ -1783,64 +1783,64 @@ export default function Dashboard() {
 
                       {/* Conditional Connector Dotted Line */}
                       <div className="relative my-1.5 z-10 pointer-events-none select-none">
-                        <span className="text-[9px] font-black text-[#BADF95] bg-[#282828] border border-[#BADF95]/20 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap animate-fade-in">
+                        <span className="text-[9px] font-black text-primary bg-accent border border-primary/20 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap animate-fade-in">
                           Click
                         </span>
                       </div>
 
                       {/* Step 4: Card de Link DM */}
-                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white">
-                        <div className="w-7 h-7 rounded-full bg-[#BADF95] text-black flex items-center justify-center font-black text-xs border-2 border-[#121212] shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                      <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
+                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-black text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           4
                         </div>
                         <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-white text-sm">Envio do Link (Mensagem de Texto)</h4>
+                          <h4 className="font-bold text-foreground text-sm">Envio do Link (Mensagem de Texto)</h4>
                         </div>
 
                         <div className="flex flex-col gap-4">
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-[#A7A7A7]">Texto de Apoio (Mensagem com o Link)</label>
+                            <label className="text-xs font-bold text-muted-foreground">Texto de Apoio (Mensagem com o Link)</label>
                             <textarea
                               placeholder="Perfeito! Aqui está o seu link exclusivo para acessar o conteúdo completo:"
                               value={form.link_text || ''}
                               onChange={e => setForm(prev => ({ ...prev, link_text: e.target.value || null }))}
                               rows={2}
-                              className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] transition-all resize-none font-medium"
+                              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none font-medium"
                             />
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-bold text-[#A7A7A7]">URL do Link</label>
+                              <label className="text-xs font-bold text-muted-foreground">URL do Link</label>
                               <input
                                 type="url"
                                 placeholder="https://sualandingpage.com"
                                 value={form.link_url || ''}
                                 onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
-                                className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] font-mono font-bold"
+                                className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground font-mono font-bold"
                               />
                             </div>
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-bold text-[#A7A7A7]">Texto do Botão</label>
+                              <label className="text-xs font-bold text-muted-foreground">Texto do Botão</label>
                               <input
                                 type="text"
                                 placeholder="Acessar Link"
                                 maxLength={20}
                                 value={form.link_button_label || ''}
                                 onChange={e => setForm(prev => ({ ...prev, link_button_label: e.target.value || null }))}
-                                className="bg-[#282828] border border-[#3E3E3E] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#BADF95] focus:ring-1 focus:ring-[#BADF95]/20 text-white placeholder-[#A7A7A7] font-bold"
+                                className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground font-bold"
                               />
                             </div>
                           </div>
 
                           {/* Preview Card */}
-                          <div className="border border-[#3E3E3E] rounded-xl p-4 bg-[#282828]/50 flex flex-col gap-2.5 max-w-sm">
-                            <span className="text-[9px] font-bold text-[#A7A7A7] uppercase tracking-widest">Visualização do Envio</span>
-                            <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-3.5 text-xs text-white max-w-xs break-words leading-relaxed font-medium flex flex-col gap-3">
+                          <div className="border border-border rounded-xl p-4 bg-accent/50 flex flex-col gap-2.5 max-w-sm">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Visualização do Envio</span>
+                            <div className="bg-card border border-accent rounded-2xl p-3.5 text-xs text-foreground max-w-xs break-words leading-relaxed font-medium flex flex-col gap-3">
                               <p>{form.link_text || 'Aqui está o seu link:'}</p>
                               {form.link_url && (
-                                <div className="mt-1 w-full flex justify-center border-t border-[#3E3E3E] pt-3">
-                                  <span className="text-[#BADF95] font-bold text-center block w-full">{form.link_button_label || 'Acessar Link'}</span>
+                                <div className="mt-1 w-full flex justify-center border-t border-border pt-3">
+                                  <span className="text-primary font-bold text-center block w-full">{form.link_button_label || 'Acessar Link'}</span>
                                 </div>
                               )}
                             </div>
@@ -1850,39 +1850,39 @@ export default function Dashboard() {
 
                       {/* Optional Connector */}
                       <div className="relative my-1.5 z-10 pointer-events-none select-none">
-                        <span className="text-[9px] font-black text-[#A7A7A7] bg-[#282828] border border-[#3E3E3E] px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap">
+                        <span className="text-[9px] font-black text-muted-foreground bg-accent border border-border px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap">
                           Aguardar
                         </span>
                       </div>
 
                       {/* Sequence Builder Step */}
-                      <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-[#3E3E3E] transition-colors text-white mt-1.5">
-                        <div className="w-7 h-7 rounded-full bg-[#333333] text-[#A7A7A7] flex items-center justify-center font-bold text-xs border-2 border-[#121212] shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                      <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground mt-1.5">
+                        <div className="w-7 h-7 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           5
                         </div>
                         <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-white text-sm">Sequência de Follow-ups (Opcional)</h4>
+                          <h4 className="font-bold text-foreground text-sm">Sequência de Follow-ups (Opcional)</h4>
                         </div>
-                        <p className="text-[#A7A7A7] text-xs font-semibold mb-2">
+                        <p className="text-muted-foreground text-xs font-semibold mb-2">
                           Crie uma sequência de mensagens para serem enviadas automaticamente. O tempo total acumulado não pode ultrapassar 24 horas.
                         </p>
 
                         <div className="flex flex-col gap-4">
                           {form.followups && form.followups.map((followup, index) => (
-                            <div key={followup.id} className="border border-[#3E3E3E] bg-[#282828] p-4 rounded-xl flex flex-col gap-3 relative animate-fade-in">
+                            <div key={followup.id} className="border border-border bg-accent p-4 rounded-xl flex flex-col gap-3 relative animate-fade-in">
                               <button
                                 type="button"
                                 onClick={() => {
                                   const newFollowups = form.followups?.filter((_, i) => i !== index);
                                   setForm(prev => ({ ...prev, followups: newFollowups }));
                                 }}
-                                className="absolute top-3 right-3 text-[#A7A7A7] hover:text-rose-500 cursor-pointer p-1"
+                                className="absolute top-3 right-3 text-muted-foreground hover:text-destructive cursor-pointer p-1"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                               
                               <div className="flex flex-col gap-1.5 pr-8">
-                                <label className="text-xs font-bold text-[#A7A7A7]">Mensagem {index + 1}</label>
+                                <label className="text-xs font-bold text-muted-foreground">Mensagem {index + 1}</label>
                                 <textarea
                                   placeholder="Digite a mensagem..."
                                   value={followup.text}
@@ -1892,13 +1892,13 @@ export default function Dashboard() {
                                     setForm(prev => ({ ...prev, followups: newFollowups }));
                                   }}
                                   rows={2}
-                                  className="bg-[#1A1A1A] border border-[#3E3E3E] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#BADF95] text-white placeholder-[#A7A7A7] resize-none"
+                                  className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
                                 />
                               </div>
                               
                               <div className="grid grid-cols-3 gap-3">
                                 <div className="flex flex-col gap-1.5">
-                                  <label className="text-xs font-bold text-[#A7A7A7]">Aguardar (Minutos)</label>
+                                  <label className="text-xs font-bold text-muted-foreground">Aguardar (Minutos)</label>
                                   <input
                                     type="number"
                                     min={1}
@@ -1908,11 +1908,11 @@ export default function Dashboard() {
                                       newFollowups[index].delay_minutes = parseInt(e.target.value) || 1;
                                       setForm(prev => ({ ...prev, followups: newFollowups }));
                                     }}
-                                    className="bg-[#1A1A1A] border border-[#3E3E3E] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#BADF95] text-white"
+                                    className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
                                   />
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                  <label className="text-xs font-bold text-[#A7A7A7]">URL (Opcional)</label>
+                                  <label className="text-xs font-bold text-muted-foreground">URL (Opcional)</label>
                                   <input
                                     type="url"
                                     placeholder="https://..."
@@ -1922,11 +1922,11 @@ export default function Dashboard() {
                                       newFollowups[index].link_url = e.target.value;
                                       setForm(prev => ({ ...prev, followups: newFollowups }));
                                     }}
-                                    className="bg-[#1A1A1A] border border-[#3E3E3E] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#BADF95] text-white font-mono"
+                                    className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground font-mono"
                                   />
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                  <label className="text-xs font-bold text-[#A7A7A7]">Texto do Botão</label>
+                                  <label className="text-xs font-bold text-muted-foreground">Texto do Botão</label>
                                   <input
                                     type="text"
                                     placeholder="Acessar"
@@ -1937,7 +1937,7 @@ export default function Dashboard() {
                                       newFollowups[index].link_button_label = e.target.value;
                                       setForm(prev => ({ ...prev, followups: newFollowups }));
                                     }}
-                                    className="bg-[#1A1A1A] border border-[#3E3E3E] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#BADF95] text-white"
+                                    className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
                                   />
                                 </div>
                               </div>
@@ -1960,7 +1960,7 @@ export default function Dashboard() {
                                 ]
                               }));
                             }}
-                            className="flex items-center justify-center gap-2 border border-dashed border-[#A7A7A7] text-[#A7A7A7] bg-transparent hover:bg-[#282828] hover:text-white hover:border-[#BADF95] px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+                            className="flex items-center justify-center gap-2 border border-dashed border-muted-foreground text-muted-foreground bg-transparent hover:bg-accent hover:text-foreground hover:border-primary px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
                           >
                             <Plus className="w-4 h-4" />
                             Adicionar Mensagem à Sequência
@@ -1973,52 +1973,52 @@ export default function Dashboard() {
 
                   {/* Right Column: Phone Simulator Mockup */}
                   <div className="lg:col-span-4 sticky top-6 flex flex-col items-center gap-3">
-                    <span className="text-[10px] font-extrabold text-[#A7A7A7] uppercase tracking-widest bg-[#1A1A1A] border border-[#282828] px-3 py-1.5 rounded-full shadow-xs">
+                    <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest bg-card border border-accent px-3 py-1.5 rounded-full shadow-xs">
                       Visualização em Tempo Real (Direct)
                     </span>
                     
-                    <div className="w-[300px] h-[580px] border-[10px] border-[#3E3E3E] rounded-[48px] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none">
+                    <div className="w-[300px] h-[580px] border-[10px] border-border rounded-[48px] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none">
                       {/* iPhone top notch/camera */}
-                      <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-5 bg-[#3E3E3E] rounded-full z-20 flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#1A1A1A] ml-8 border border-[#282828]"></div>
+                      <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-5 bg-border rounded-full z-20 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-card ml-8 border border-accent"></div>
                       </div>
                       
                       {/* Status Bar */}
-                      <div className="flex justify-between items-center px-6 pt-3.5 pb-1 text-[9px] font-bold text-white bg-black/90 z-10">
+                      <div className="flex justify-between items-center px-6 pt-3.5 pb-1 text-[9px] font-bold text-foreground bg-background/90 z-10">
                         <span>09:41</span>
                         <div className="flex items-center gap-1">
                           <span className="text-[7px]">5G</span>
-                          <div className="w-4 h-2 border border-white/60 rounded-[3px] p-[1px] flex items-center">
-                            <div className="w-full h-full bg-white rounded-[1px]"></div>
+                          <div className="w-4 h-2 border border-foreground/60 rounded-[3px] p-[1px] flex items-center">
+                            <div className="w-full h-full bg-foreground rounded-[1px]"></div>
                           </div>
                         </div>
                       </div>
 
                       {/* Direct Chat Header */}
-                      <div className="flex items-center justify-between border-b border-[#282828] bg-[#1A1A1A] px-4 py-2 text-white">
+                      <div className="flex items-center justify-between border-b border-accent bg-card px-4 py-2 text-foreground">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-[#282828] border border-[#3E3E3E] flex items-center justify-center">
-                            <Instagram className="w-4.5 h-4.5 text-[#BADF95]" />
+                          <div className="w-8 h-8 rounded-full bg-accent border border-border flex items-center justify-center">
+                            <Instagram className="w-4.5 h-4.5 text-primary" />
                           </div>
                           <div className="text-left">
                             <p className="text-[10px] font-extrabold leading-none">@{config?.instagram_username || 'cliente'}</p>
-                            <p className="text-[8px] text-[#A7A7A7] mt-0.5 leading-none">InstaFlow Bot</p>
+                            <p className="text-[8px] text-muted-foreground mt-0.5 leading-none">InstaFlow Bot</p>
                           </div>
                         </div>
-                        <span className="text-[8px] font-bold text-[#BADF95] bg-[#BADF95]/10 border border-[#BADF95]/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Simulador</span>
+                        <span className="text-[8px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Simulador</span>
                       </div>
 
                       {/* Chat Message Thread Body */}
-                      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-[#121212] scrollbar-none">
+                      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-background scrollbar-none">
                         
                         {/* 1. Comment Trigger simulation */}
                         {form.specific_post_id && (
-                          <div className="border border-[#282828] rounded-xl p-2.5 bg-[#1A1A1A]/80 flex flex-col gap-1.5 max-w-[240px] text-left self-start">
-                            <span className="text-[8px] font-bold text-[#A7A7A7] uppercase tracking-wider flex items-center gap-1">
+                          <div className="border border-accent rounded-xl p-2.5 bg-card/80 flex flex-col gap-1.5 max-w-[240px] text-left self-start">
+                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                               💬 Comentário no Post
                             </span>
-                            <p className="text-[10px] text-white">
-                              <span className="font-bold text-[#BADF95]">@seguidor</span> comentou: "{keywordInput.split(',')[0] || 'quero'}"
+                            <p className="text-[10px] text-foreground">
+                              <span className="font-bold text-primary">@seguidor</span> comentou: "{keywordInput.split(',')[0] || 'quero'}"
                             </p>
                           </div>
                         )}
@@ -2026,8 +2026,8 @@ export default function Dashboard() {
                         {/* 2. Direct message reply simulation */}
                         {form.welcome_dm && (
                           <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-1">
-                            <span className="text-[8px] font-bold text-[#A7A7A7] uppercase tracking-wider pl-1">📥 Mensagem Recebida (DM)</span>
-                            <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium">
+                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider pl-1">📥 Mensagem Recebida (DM)</span>
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium">
                               {form.welcome_dm}
                             </div>
                           </div>
@@ -2036,10 +2036,10 @@ export default function Dashboard() {
                         {/* 3. Quick Reply simulated button */}
                         {form.quick_reply_button && (
                           <div className="flex flex-col gap-1 self-center w-full max-w-[180px] mt-0.5">
-                            <div className="bg-[#1A1A1A] border border-[#BADF95] hover:bg-[#BADF95]/10 text-[#BADF95] text-[9px] py-1.5 px-3 rounded-full text-center font-extrabold cursor-pointer transition-all">
+                            <div className="bg-card border border-primary hover:bg-primary/10 text-primary text-[9px] py-1.5 px-3 rounded-full text-center font-extrabold cursor-pointer transition-all">
                               {form.quick_reply_button}
                             </div>
-                            <span className="text-[7px] text-[#A7A7A7] text-center italic mt-0.5">(Seguidor clica acima)</span>
+                            <span className="text-[7px] text-muted-foreground text-center italic mt-0.5">(Seguidor clica acima)</span>
                           </div>
                         )}
 
@@ -2048,20 +2048,20 @@ export default function Dashboard() {
                           <div className="flex flex-col gap-2 mt-2">
                             {form.ask_email && (
                               <>
-                                <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none max-w-[220px] text-left self-start font-medium">
+                                <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none max-w-[220px] text-left self-start font-medium">
                                   Por favor, digite seu e-mail para receber o acesso:
                                 </div>
-                                <div className="bg-[#BADF95] text-black text-[10px] p-2.5 rounded-2xl rounded-tr-none max-w-[180px] text-right self-end font-bold">
+                                <div className="bg-primary text-primary-foreground text-[10px] p-2.5 rounded-2xl rounded-tr-none max-w-[180px] text-right self-end font-bold">
                                   exemplo@email.com
                                 </div>
                               </>
                             )}
                             {form.ask_phone && (
                               <>
-                                <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none max-w-[220px] text-left self-start font-medium">
+                                <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none max-w-[220px] text-left self-start font-medium">
                                   Por favor, informe seu WhatsApp para contato:
                                 </div>
-                                <div className="bg-[#BADF95] text-black text-[10px] p-2.5 rounded-2xl rounded-tr-none max-w-[180px] text-right self-end font-bold">
+                                <div className="bg-primary text-primary-foreground text-[10px] p-2.5 rounded-2xl rounded-tr-none max-w-[180px] text-right self-end font-bold">
                                   +55 11 99999-9999
                                 </div>
                               </>
@@ -2072,12 +2072,12 @@ export default function Dashboard() {
                         {/* 5. Link Delivery simulation */}
                         {form.link_text && (
                           <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2 w-full">
-                            <span className="text-[8px] font-bold text-[#A7A7A7] uppercase tracking-wider pl-1">🔗 Envio do Link</span>
-                            <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
+                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider pl-1">🔗 Envio do Link</span>
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
                               <p>{form.link_text}</p>
                               {form.link_url && (
-                                <div className="mt-1 w-full flex justify-center border-t border-[#3E3E3E] pt-2">
-                                  <span className="text-[#BADF95] font-bold text-center block w-full">{form.link_button_label || 'Acessar Link'}</span>
+                                <div className="mt-1 w-full flex justify-center border-t border-border pt-2">
+                                  <span className="text-primary font-bold text-center block w-full">{form.link_button_label || 'Acessar Link'}</span>
                                 </div>
                               )}
                             </div>
@@ -2087,14 +2087,14 @@ export default function Dashboard() {
                         {/* Sequência (Follow-ups) */}
                         {form.followups && form.followups.map((f, i) => (
                           <div key={f.id} className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2 w-full">
-                            <span className="text-[8px] font-bold text-[#F15E6C] uppercase tracking-wider pl-1 flex items-center gap-1">
+                            <span className="text-[8px] font-bold text-destructive uppercase tracking-wider pl-1 flex items-center gap-1">
                               ⏰ Sequência ({f.delay_minutes}m depois)
                             </span>
-                            <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
                               <p>{f.text}</p>
                               {f.link_url && (
-                                <div className="mt-1 w-full flex justify-center border-t border-[#3E3E3E] pt-2">
-                                  <span className="text-[#BADF95] font-bold text-center block w-full">{f.link_button_label || 'Acessar Link'}</span>
+                                <div className="mt-1 w-full flex justify-center border-t border-border pt-2">
+                                  <span className="text-primary font-bold text-center block w-full">{f.link_button_label || 'Acessar Link'}</span>
                                 </div>
                               )}
                             </div>
@@ -2104,10 +2104,10 @@ export default function Dashboard() {
                         {/* 6. Reminder Delivery simulation */}
                         {form.reminder_text && (
                           <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2">
-                            <span className="text-[8px] font-bold text-[#F15E6C] uppercase tracking-wider pl-1 flex items-center gap-1">
+                            <span className="text-[8px] font-bold text-destructive uppercase tracking-wider pl-1 flex items-center gap-1">
                               ⏰ Lembrete ({form.reminder_delay_minutes || 15}m depois)
                             </span>
-                            <div className="bg-[#282828] border border-[#3E3E3E] text-white text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium italic">
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium italic">
                               {form.reminder_text}
                             </div>
                           </div>
@@ -2116,11 +2116,11 @@ export default function Dashboard() {
                       </div>
 
                       {/* Phone Simulated Message Input Area */}
-                      <div className="border-t border-[#282828] bg-[#1A1A1A] p-2.5 flex items-center gap-2">
-                        <div className="flex-1 bg-[#282828] rounded-full px-3 py-1.5 text-[9px] text-[#A7A7A7] border border-[#3E3E3E] text-left">
+                      <div className="border-t border-accent bg-card p-2.5 flex items-center gap-2">
+                        <div className="flex-1 bg-accent rounded-full px-3 py-1.5 text-[9px] text-muted-foreground border border-border text-left">
                           Enviar mensagem...
                         </div>
-                        <div className="p-1.5 rounded-full bg-[#BADF95] text-black">
+                        <div className="p-1.5 rounded-full bg-primary text-primary-foreground">
                           <Send className="w-3 h-3" />
                         </div>
                       </div>
@@ -2134,20 +2134,20 @@ export default function Dashboard() {
 
           {/* TAB 3: CONTACTS */}
           {activeTab === 'contacts' && (
-            <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-white">
+            <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-white text-base">Audiência Cadastrada</h3>
-                  <p className="text-xs text-[#A7A7A7] mt-0.5">Lista de usuários que interagiram com as suas automações.</p>
+                  <h3 className="font-bold text-foreground text-base">Audiência Cadastrada</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Lista de usuários que interagiram com as suas automações.</p>
                 </div>
-                <span className="bg-[#282828] border border-[#BADF95]/25 text-[#BADF95] font-bold text-xs px-3 py-1.5 rounded-xl">
+                <span className="bg-accent border border-primary/25 text-primary font-bold text-xs px-3 py-1.5 rounded-xl">
                   {contacts.length} Contatos no Total
                 </span>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-[#A7A7A7]">
-                  <thead className="text-xs uppercase text-[#A7A7A7] font-bold border-b border-[#282828]">
+                <table className="w-full text-sm text-left text-muted-foreground">
+                  <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-accent">
                     <tr>
                       <th className="py-3 px-4">Nome</th>
                       <th className="py-3 px-4">Instagram</th>
@@ -2157,18 +2157,18 @@ export default function Dashboard() {
                       <th className="py-3 px-4">Cadastrado em</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#282828]">
+                  <tbody className="divide-y divide-accent">
                     {contacts.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-[#A7A7A7]">Nenhum contato cadastrado no banco de dados até o momento.</td>
+                        <td colSpan={6} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
                       </tr>
                     ) : (
                       contacts.map(item => (
-                        <tr key={item.instagram_id || item.id} className="hover:bg-[#1A1A1A]/70 transition-colors">
-                          <td className="py-3.5 px-4 font-bold text-white text-sm">
-                            {item.name || <span className="text-[#A7A7A7] font-normal italic">Não informado</span>}
+                        <tr key={item.instagram_id || item.id} className="hover:bg-card/70 transition-colors">
+                          <td className="py-3.5 px-4 font-bold text-foreground text-sm">
+                            {item.name || <span className="text-muted-foreground font-normal italic">Não informado</span>}
                           </td>
-                          <td className="py-3.5 px-4 text-xs font-semibold text-[#BADF95]">
+                          <td className="py-3.5 px-4 text-xs font-semibold text-primary">
                             {item.username ? (
                               <a
                                 href={`https://instagram.com/${item.username}`}
@@ -2177,24 +2177,24 @@ export default function Dashboard() {
                                 className="hover:underline inline-flex items-center gap-1"
                               >
                                 @{item.username}
-                                <ExternalLink className="w-3 h-3 text-[#A7A7A7]" />
+                                <ExternalLink className="w-3 h-3 text-muted-foreground" />
                               </a>
                             ) : (
-                              <span className="text-[#A7A7A7] italic">Desconhecido</span>
+                              <span className="text-muted-foreground italic">Desconhecido</span>
                             )}
                           </td>
-                          <td className="py-3.5 px-4 font-mono text-xs text-[#A7A7A7]">{item.instagram_id}</td>
-                          <td className="py-3.5 px-4 text-xs text-[#A7A7A7]">
+                          <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">{item.instagram_id}</td>
+                          <td className="py-3.5 px-4 text-xs text-muted-foreground">
                             <div className="flex flex-col gap-0.5">
-                              {item.email && <span className="text-[#A7A7A7]">📧 {item.email}</span>}
-                              {item.phone && <span className="text-[#A7A7A7]">📱 {item.phone}</span>}
-                              {!item.email && !item.phone && <span className="text-[#A7A7A7] italic">Nenhum</span>}
+                              {item.email && <span className="text-muted-foreground">📧 {item.email}</span>}
+                              {item.phone && <span className="text-muted-foreground">📱 {item.phone}</span>}
+                              {!item.email && !item.phone && <span className="text-muted-foreground italic">Nenhum</span>}
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 text-xs text-[#A7A7A7]">
+                          <td className="py-3.5 px-4 text-xs text-muted-foreground">
                             {item.last_response_at ? new Date(item.last_response_at).toLocaleString('pt-BR') : 'Sem interação'}
                           </td>
-                          <td className="py-3.5 px-4 text-xs text-[#A7A7A7]">
+                          <td className="py-3.5 px-4 text-xs text-muted-foreground">
                             {new Date(item.first_contact_at || item.created_at).toLocaleDateString('pt-BR')}
                           </td>
                         </tr>
@@ -2210,30 +2210,30 @@ export default function Dashboard() {
           {activeTab === 'logs' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Eventos Recentes */}
-              <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-white">
+              <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
                 <div>
-                  <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-[#BADF95]" />
+                  <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" />
                     Webhooks da Meta (Payload Bruto)
                   </h3>
-                  <p className="text-xs text-[#A7A7A7] mt-1">Logs em tempo real dos pacotes de eventos entregues pela Meta.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Logs em tempo real dos pacotes de eventos entregues pela Meta.</p>
                 </div>
 
                 <div className="flex flex-col gap-2.5 max-h-[500px] overflow-y-auto pr-1">
                   {recentEvents.length === 0 ? (
-                    <p className="text-xs text-[#A7A7A7] text-center py-10">Nenhum evento captado até o momento.</p>
+                    <p className="text-xs text-muted-foreground text-center py-10">Nenhum evento captado até o momento.</p>
                   ) : (
                     recentEvents.map(evt => (
-                      <div key={evt.id} className="bg-[#282828] border border-[#3E3E3E] p-4 rounded-xl flex flex-col gap-2">
+                      <div key={evt.id} className="bg-accent border border-border p-4 rounded-xl flex flex-col gap-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] bg-[#1A1A1A] border border-[#3E3E3E] text-[#A7A7A7] px-2 py-0.5 rounded font-mono">
+                          <span className="text-[10px] bg-card border border-border text-muted-foreground px-2 py-0.5 rounded font-mono">
                             ID: {evt.id.substring(0, 8)}
                           </span>
-                          <span className="text-[10px] text-[#A7A7A7]">
+                          <span className="text-[10px] text-muted-foreground">
                             {new Date(evt.created_at).toLocaleString('pt-BR')}
                           </span>
                         </div>
-                        <pre className="text-[10px] text-white font-mono bg-[#1A1A1A] p-2.5 rounded-lg border border-[#3E3E3E] overflow-x-auto max-h-[120px]">
+                        <pre className="text-[10px] text-foreground font-mono bg-card p-2.5 rounded-lg border border-border overflow-x-auto max-h-[120px]">
                           {JSON.stringify(evt.payload, null, 2)}
                         </pre>
                       </div>
@@ -2243,41 +2243,41 @@ export default function Dashboard() {
               </div>
 
               {/* Fila de Disparos Completa */}
-              <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-white">
+              <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
                 <div>
-                  <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#BADF95]" />
+                  <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
                     Fila de Disparos de DMs
                   </h3>
-                  <p className="text-xs text-[#A7A7A7] mt-1">Histórico e status do pipeline de entrega de mensagens.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Histórico e status do pipeline de entrega de mensagens.</p>
                 </div>
 
                 <div className="flex flex-col gap-2.5 max-h-[500px] overflow-y-auto pr-1">
                   {recentQueue.length === 0 ? (
-                    <p className="text-xs text-[#A7A7A7] text-center py-10">Nenhuma mensagem enfileirada no banco.</p>
+                    <p className="text-xs text-muted-foreground text-center py-10">Nenhuma mensagem enfileirada no banco.</p>
                   ) : (
                     recentQueue.map(item => (
-                      <div key={item.id} className="bg-[#282828] border border-[#3E3E3E] p-4 rounded-xl flex flex-col gap-2">
+                      <div key={item.id} className="bg-accent border border-border p-4 rounded-xl flex flex-col gap-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] bg-[#1A1A1A] border border-[#3E3E3E] text-[#A7A7A7] px-2 py-0.5 rounded font-mono">
+                          <span className="text-[10px] bg-card border border-border text-muted-foreground px-2 py-0.5 rounded font-mono">
                             Destino ID: {item.contact_id.substring(0, 10)}...
                           </span>
-                          <span className="text-[10px] text-[#A7A7A7]">
+                          <span className="text-[10px] text-muted-foreground">
                             {new Date(item.created_at).toLocaleTimeString('pt-BR')}
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-1">
-                          <span className="text-xs font-semibold text-white">
+                          <span className="text-xs font-semibold text-foreground">
                             {item.type === 'private_reply' && 'Resposta Privada'}
                             {item.type === 'link_dm' && 'DM de Link'}
                             {item.type === 'reminder_dm' && 'DM de Lembrete'}
                           </span>
                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                            item.status === 'sent' && 'bg-[#1A1A1A] text-[#BADF95] border border-[#BADF95]/25'
+                            item.status === 'sent' && 'bg-card text-primary border border-primary/25'
                           } ${
-                            item.status === 'pending' && 'bg-[#1A1A1A] text-[#A7A7A7] border border-[#3E3E3E]'
+                            item.status === 'pending' && 'bg-card text-muted-foreground border border-border'
                           } ${
-                            item.status === 'failed' && 'bg-[#1A1A1A] text-[#F15E6C] border border-[#F15E6C]/25'
+                            item.status === 'failed' && 'bg-card text-destructive border border-destructive/25'
                           }`}>
                             {item.status === 'sent' && 'Enviado'}
                             {item.status === 'pending' && 'Pendente'}
@@ -2285,7 +2285,7 @@ export default function Dashboard() {
                           </span>
                         </div>
                         {item.error_message && (
-                          <div className="text-[10px] text-[#F15E6C] bg-[#1A1A1A] p-2 rounded-lg border border-[#F15E6C]/25 font-mono mt-1">
+                          <div className="text-[10px] text-destructive bg-card p-2 rounded-lg border border-destructive/25 font-mono mt-1">
                             Erro: {item.error_message}
                           </div>
                         )}
@@ -2303,25 +2303,25 @@ export default function Dashboard() {
 
       {/* Visual Post Selector Modal */}
       {showMediaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in text-white">
-          <div className="bg-[#1A1A1A] border border-[#282828] rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-xs p-4 animate-fade-in text-foreground">
+          <div className="bg-card border border-accent rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             
             {/* Modal Header */}
-            <div className="p-5 border-b border-[#282828] flex items-center justify-between">
+            <div className="p-5 border-b border-accent flex items-center justify-between">
               <div>
-                <h4 className="font-bold text-white text-base">Selecionar Post ou Reels</h4>
-                <p className="text-xs text-[#A7A7A7]">Escolha a publicação para esta automação.</p>
+                <h4 className="font-bold text-foreground text-base">Selecionar Post ou Reels</h4>
+                <p className="text-xs text-muted-foreground">Escolha a publicação para esta automação.</p>
               </div>
               <button
                 onClick={() => setShowMediaModal(false)}
-                className="p-1.5 hover:bg-[#282828] rounded-lg text-[#A7A7A7] hover:text-white cursor-pointer transition-all"
+                className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground cursor-pointer transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Filter Tabs */}
-            <div className="flex border-b border-[#282828] bg-[#1A1A1A] px-5 py-3 gap-2 overflow-x-auto select-none scrollbar-none">
+            <div className="flex border-b border-accent bg-card px-5 py-3 gap-2 overflow-x-auto select-none scrollbar-none">
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'video', label: 'Reels' },
@@ -2333,8 +2333,8 @@ export default function Dashboard() {
                   onClick={() => setMediaFilter(tab.id as any)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                     mediaFilter === tab.id
-                      ? 'bg-[#282828] border border-[#BADF95]/25 text-[#BADF95] font-bold'
-                      : 'bg-[#1A1A1A] border border-[#282828] text-[#A7A7A7] hover:text-white'
+                      ? 'bg-accent border border-primary/25 text-primary font-bold'
+                      : 'bg-card border border-accent text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {tab.label}
@@ -2343,7 +2343,7 @@ export default function Dashboard() {
             </div>
 
             {/* Modal List (Lista 1 por linha com miniatura grande ao lado) */}
-            <div className="p-5 overflow-y-auto flex-1 bg-[#121212] flex flex-col gap-4">
+            <div className="p-5 overflow-y-auto flex-1 bg-background flex flex-col gap-4">
               {mediaList
                 .filter(media => {
                   if (mediaFilter === 'all') return true;
@@ -2361,17 +2361,17 @@ export default function Dashboard() {
                         setShowMediaModal(false);
                         showToast('Post selecionado com sucesso!', 'success');
                       }}
-                      className="bg-[#1A1A1A] border border-[#282828] hover:border-[#BADF95] rounded-2xl p-4 cursor-pointer group transition-all flex flex-row gap-5 items-start shadow-sm hover:shadow-md text-white"
+                      className="bg-card border border-accent hover:border-primary rounded-2xl p-4 cursor-pointer group transition-all flex flex-row gap-5 items-start shadow-sm hover:shadow-md text-foreground"
                     >
                       {/* Esquerda: Imagem Grande (Capa) */}
-                      <div className="w-28 h-28 sm:w-40 sm:h-40 rounded-xl bg-[#282828] relative overflow-hidden flex-shrink-0 border border-[#3E3E3E]">
+                      <div className="w-28 h-28 sm:w-40 sm:h-40 rounded-xl bg-accent relative overflow-hidden flex-shrink-0 border border-border">
                         <img
                           src={media.thumbnail_url || media.media_url}
                           alt="Instagram thumbnail"
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
                         />
-                        <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded-lg">
-                          <span className="text-[9px] text-[#BADF95] font-black uppercase tracking-widest">
+                        <div className="absolute top-2 right-2 bg-background/70 backdrop-blur-md border border-foreground/10 px-2 py-0.5 rounded-lg">
+                          <span className="text-[9px] text-primary font-black uppercase tracking-widest">
                             {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
                           </span>
                         </div>
@@ -2379,8 +2379,8 @@ export default function Dashboard() {
 
                       {/* Direita: Detalhes e Legenda */}
                       <div className="flex-1 flex flex-col gap-2 min-w-0 py-1">
-                        <span className="text-[10px] text-[#A7A7A7] font-mono">ID: {media.id}</span>
-                        <p className="text-sm text-white/90 line-clamp-4 sm:line-clamp-5 leading-relaxed">
+                        <span className="text-[10px] text-muted-foreground font-mono">ID: {media.id}</span>
+                        <p className="text-sm text-foreground/90 line-clamp-4 sm:line-clamp-5 leading-relaxed">
                           {media.caption || 'Sem legenda'}
                         </p>
                       </div>
@@ -2394,13 +2394,13 @@ export default function Dashboard() {
       )}
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-64 right-0 py-3 bg-[#1A1A1A] border-t border-[#3E3E3E] px-6 text-[10px] text-[#A7A7A7] flex items-center justify-between select-none z-30">
+      <footer className="fixed bottom-0 left-64 right-0 py-3 bg-card border-t border-border px-6 text-[10px] text-muted-foreground flex items-center justify-between select-none z-30">
         <p>© 2026 InstaFlow. Desenvolvido no padrão de design Spotify Dark Theme.</p>
         <div className="flex items-center gap-4">
-          <a href="/privacidade" target="_blank" className="hover:text-white transition-colors">
+          <a href="/privacidade" target="_blank" className="hover:text-foreground transition-colors">
             Política de Privacidade
           </a>
-          <a href="/exclusao-de-dados" target="_blank" className="hover:text-white transition-colors">
+          <a href="/exclusao-de-dados" target="_blank" className="hover:text-foreground transition-colors">
             Exclusão de Dados
           </a>
         </div>
