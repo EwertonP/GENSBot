@@ -1466,7 +1466,7 @@ export default function Dashboard() {
                       <button
                         type="submit"
                         disabled={sendingMessage || !chatInput.trim()}
-                        className="p-2.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
+                        className="p-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
                       >
                         <Send className="w-4.5 h-4.5 text-primary-foreground" />
                       </button>
@@ -1666,7 +1666,7 @@ export default function Dashboard() {
 
                           <button
                             type="submit"
-                            className="px-5 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-md cursor-pointer transition-all"
+                            className="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-md cursor-pointer transition-all"
                           >
                             Salvar Fluxo
                           </button>
