@@ -93,7 +93,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleRegister} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nome completo</label>
+              <label htmlFor="register-name" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nome completo</label>
               <input
                 id="register-name"
                 type="text"
@@ -106,7 +106,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">E-mail</label>
+              <label htmlFor="register-email" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">E-mail</label>
               <input
                 id="register-email"
                 type="email"
@@ -119,7 +119,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Senha</label>
+              <label htmlFor="register-password" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Senha</label>
               <input
                 id="register-password"
                 type="password"
@@ -132,7 +132,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Confirmar Senha</label>
+              <label htmlFor="register-confirm-password" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Confirmar Senha</label>
               <input
                 id="register-confirm-password"
                 type="password"
@@ -145,7 +145,7 @@ export default function RegisterPage() {
             </div>
 
             {error && (
-              <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3 text-sm text-destructive font-medium">
+              <div role="alert" className="bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3 text-sm text-destructive font-medium">
                 {error}
               </div>
             )}

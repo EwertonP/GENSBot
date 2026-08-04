@@ -49,7 +49,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">E-mail</label>
+              <label htmlFor="login-email" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">E-mail</label>
               <input
                 id="login-email"
                 type="email"
@@ -62,7 +62,7 @@ export default function LoginPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Senha</label>
+              <label htmlFor="login-password" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Senha</label>
               <input
                 id="login-password"
                 type="password"
@@ -75,7 +75,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3 text-sm text-destructive font-medium">
+              <div role="alert" className="bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3 text-sm text-destructive font-medium">
                 {error}
               </div>
             )}
