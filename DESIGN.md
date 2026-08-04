@@ -2,15 +2,15 @@
 
 Este documento atua como o contrato de design e "fonte de verdade" visual (Single Source of Truth) para o desenvolvimento do **InstaFlow (GENSBot)**. Qualquer agente de IA ou desenvolvedor deve ler e seguir estritamente estas especificações para manter a consistência visual.
 
-> **Atualização**: o projeto migrou de uma paleta com valores hex fixos (estilo Spotify) para um tema baseado em **shadcn/ui** (biblioteca de componentes **Base UI**, preset customizado via [tweakcn](https://tweakcn.com)), com tokens de cor em `oklch()` definidos em [src/app/globals.css](src/app/globals.css) e mapeados em [components.json](components.json).
+> **Atualização (v3 — tema claro)**: o projeto migrou de uma paleta dark hex fixa (estilo Spotify) para um tema **shadcn/ui** (Base UI + preset [tweakcn](https://tweakcn.com)) e depois para uma identidade **100% clara**, inspirada em dashboards fintech (iBanko/OFSPACE): fundo off-white, cards brancos elevados por sombra (não por borda), azul como único acento de ação, e cards de métrica com fundo pastel colorido por categoria. **Não existe modo escuro** — o app não tem toggle de tema e a classe `.dark` não é usada em nenhum lugar; `:root` em `globals.css` já contém os valores finais.
 >
-> **Importante**: essa migração trocou os *tokens* disponíveis, mas **não re-estilizou** as telas já existentes (`page.tsx`, `login`, `register`, etc.) — elas ainda usam classes com hex fixo (`bg-[#1A1A1A]`, `text-[#A7A7A7]`, etc.) e continuam renderizando visualmente como antes. A partir de agora, **todo componente novo** deve ser feito com os tokens semânticos abaixo; a migração das telas antigas é gradual (ver seção 4).
+> Todos os componentes (`page.tsx`, `login`, `register`, `privacidade`, `exclusao-de-dados`) já foram migrados pros tokens semânticos abaixo — não deve sobrar nenhuma classe com `#hex` fixo no código.
 
 ---
 
 ## 1. Design Tokens
 
-Os tokens vivem como variáveis CSS em `:root` (modo claro) e `.dark` (modo escuro) dentro de `globals.css`, e são expostos ao Tailwind v4 via `@theme inline`. **Nunca escreva um valor de cor literal (`#hex` ou `oklch(...)`) em um componente** — sempre use a classe utilitária correspondente ao token.
+Os tokens vivem como variáveis CSS em `:root` dentro de `globals.css` (não existe bloco `.dark` — é o único tema), e são expostos ao Tailwind v4 via `@theme inline`. **Nunca escreva um valor de cor literal (`#hex` ou `oklch(...)`) em um componente estrutural** — sempre use a classe utilitária correspondente ao token. A exceção são os *cards de métrica pastel* (seção 3), que usam a paleta padrão do Tailwind (`emerald`/`blue`/`amber`/`violet`) de propósito, para diferenciar categorias visualmente — ver seção 3.
 
 | Papel | Classe Tailwind | Variável CSS |
 |---|---|---|
@@ -29,10 +29,10 @@ Os tokens vivem como variáveis CSS em `:root` (modo claro) e `.dark` (modo escu
 | Gráficos (5 séries) | `text-chart-1` … `text-chart-5` | `--chart-1` … `--chart-5` |
 | Sidebar | `bg-sidebar text-sidebar-foreground` | `--sidebar` / `--sidebar-foreground` |
 
-* **Cor de marca / ação primária**: tom azul (`--primary: oklch(0.6112 0.1217 248.9572)` no claro / `oklch(0.6576 0.1208 252.0832)` no escuro) — substitui o antigo verde Spotify (`#1DB954`) como cor de CTA e estado ativo.
+* **Cor de marca / ação primária**: tom azul (`--primary: oklch(0.6112 0.1217 248.9572)`) — único acento de cor usado em CTAs, links, ícone ativo do menu e estado selecionado.
 * **Fontes**: `--font-sans: Inter, sans-serif` (texto geral), `--font-mono: monospace`, `--font-serif: Georgia, serif`.
-* **Raio base**: `--radius: 0.5rem`, com escalas derivadas `rounded-sm` → `rounded-4xl` calculadas a partir dele (ver `@theme inline` em `globals.css`).
-* **Sombras**: `--shadow-2xs` até `--shadow-2xl`, com opacidade maior no modo escuro (`--shadow-opacity: 0.3`) do que no claro (`0.1`).
+* **Raio base**: `--radius: 1rem` (generoso, tipo dashboard fintech), com escalas derivadas `rounded-sm` → `rounded-4xl` calculadas a partir dele.
+* **Sombras**: elevação vem de `--shadow-*` (sombra suave azulada, `--shadow-color: #1a2340`), não de borda — cards usam `shadow-sm`/`shadow-md` em vez de `border`. Use `border-border` só quando precisar de uma linha divisória fina (ex.: dentro de tabelas), não para "levantar" um card do fundo.
 
 ### Arredondamento (Border Radius Scale)
 * **Containers externos, cards principais & modais**: `rounded-2xl`
@@ -82,6 +82,22 @@ Isso garante que o componente já nasce usando os tokens da tabela acima, com va
   Tag
 </span>
 ```
+
+### Card de Métrica Pastel (KPI cards do Dashboard)
+Cada métrica ganha uma cor de categoria (não é sobre "bom/mau", é só pra diferenciar visualmente). Use sempre o par `tint`/`text`/`sub`/`badge`/`icon` de uma mesma família Tailwind — nunca misture famílias dentro do mesmo card:
+
+```html
+<div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
+  <span className="text-xs font-bold text-emerald-700 uppercase">Leads Gerados</span>
+  <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-600">↗</div>
+  <span className="text-4xl font-black text-emerald-900">128</span>
+  <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">↑ 24.5%</span>
+</div>
+```
+Famílias em uso hoje: `emerald` (leads/positivo), `blue` (automações), `amber` (fila/pendente), `violet` (eventos). Pra uma quinta categoria, use `rose` ou `cyan` antes de reutilizar uma cor já empregada em outro card da mesma tela.
+
+### Seletor de Conta na Sidebar
+O bloco de perfil no topo da sidebar (avatar + `@username` + contador de contas) funciona como o seletor de conta do Instagram — substitui o antigo dropdown no header. Ao clicar, abre lista de contas conectadas + "Conectar outra conta" + "Desconectar esta conta". Trocar de conta atualiza automaticamente todos os dados do dashboard (stats, automações, contatos, fila) via `handleSelectAccount`, sem precisar recarregar a página.
 
 ---
 
