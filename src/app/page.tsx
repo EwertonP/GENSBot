@@ -637,6 +637,8 @@ export default function Dashboard() {
       {/* Toast Alert */}
       {toast && (
         <div
+          role="status"
+          aria-live="polite"
           className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-card text-foreground shadow-lg transition-all duration-300 animate-slide-in`}
         >
           {toast.type === 'success' ? (
@@ -645,6 +647,14 @@ export default function Dashboard() {
             <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
           )}
           <p className="text-sm font-semibold">{toast.message}</p>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            aria-label="Fechar aviso"
+            className="p-1 -m-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer flex-shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -675,6 +685,8 @@ export default function Dashboard() {
             <div className="relative">
               <button
                 onClick={() => setAccountMenuOpen(o => !o)}
+                aria-haspopup="listbox"
+                aria-expanded={accountMenuOpen}
                 className="w-full flex items-center gap-3 p-3 rounded-2xl bg-muted hover:bg-accent transition-colors cursor-pointer text-left"
               >
                 {config?.profile_picture_url ? (
@@ -744,7 +756,7 @@ export default function Dashboard() {
                             {health && (health.status === 'warning' || health.status === 'expired') && (
                               <span
                                 title={health.status === 'expired' ? 'Token expirado' : `Token expira em ${health.daysRemaining} dia(s)`}
-                                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${health.status === 'expired' ? 'bg-destructive' : 'bg-amber-500'}`}
+                                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${health.status === 'expired' ? 'bg-destructive' : 'bg-warning'}`}
                               />
                             )}
                           </div>
@@ -863,7 +875,7 @@ export default function Dashboard() {
           </div>
           {currentUser && (
             <div className="flex items-center gap-2 rounded-2xl bg-muted p-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-black text-[11px] flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-bold text-[11px] flex-shrink-0">
                 {(currentUser.user_metadata?.full_name || currentUser.email || '?')[0].toUpperCase()}
               </div>
               <p className="flex-1 min-w-0 text-xs text-foreground font-semibold truncate">
@@ -888,8 +900,9 @@ export default function Dashboard() {
         {/* Mobile Top Bar (Só aparece em telas pequenas) */}
         <div className="md:hidden flex items-center justify-between px-5 py-4 border-b border-border bg-card">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Abrir menu de navegação"
               className="text-muted-foreground hover:text-foreground"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
@@ -897,7 +910,7 @@ export default function Dashboard() {
             <img src="/logo.png" alt="GENS" className="h-6 w-auto object-contain" />
           </div>
           {/* Avatar na top bar mobile */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-black text-xs shadow-md">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-bold text-xs shadow-md">
             {currentUser?.email?.substring(0, 1).toUpperCase()}
           </div>
         </div>
@@ -905,7 +918,7 @@ export default function Dashboard() {
         {/* Top Header Bar */}
         <header className="hidden md:flex h-16 bg-background px-6 items-center justify-between flex-shrink-0">
           <div>
-            <h2 className="text-lg font-black text-foreground tracking-tight">
+            <h2 className="text-lg font-bold text-foreground tracking-tight">
               {activeTab === 'dashboard' && 'Dashboard'}
               {activeTab === 'chat' && 'Live Chat Inbox'}
               {activeTab === 'automations' && 'Automações'}
@@ -931,7 +944,7 @@ export default function Dashboard() {
         </header>
 
         {/* 3. Tab-based Content Area */}
-        <main className="flex-1 overflow-y-auto p-6 bg-background">
+        <main className="flex-1 overflow-y-auto p-6 pb-14 bg-background">
           
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
@@ -944,7 +957,7 @@ export default function Dashboard() {
                     <div
                       key={i}
                       className={`flex items-start gap-3 px-4 py-3 rounded-2xl text-xs font-medium ${
-                        alert.level === 'critical' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                        alert.level === 'critical' ? 'bg-destructive/10 text-destructive' : 'bg-warning/15 text-warning-foreground'
                       }`}
                     >
                       <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -954,33 +967,31 @@ export default function Dashboard() {
                 </section>
               )}
 
-              {/* 1. Hero KPI Cards Grid — cards pastel, um por métrica */}
+              {/* 1. Hero KPI Cards Grid — card neutro, cor vira só indicador pontual */}
               <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {([
-                  { label: 'Leads Gerados', value: stats.contacts, change: trends.contacts, tint: 'bg-emerald-50', text: 'text-emerald-900', sub: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700', icon: 'bg-emerald-100 text-emerald-600' },
-                  { label: 'Automações Ativas', value: stats.automations, change: trends.automations, tint: 'bg-blue-50', text: 'text-blue-900', sub: 'text-blue-700', badge: 'bg-blue-100 text-blue-700', icon: 'bg-blue-100 text-blue-600' },
-                  { label: 'Fila de Disparos', value: stats.queue, change: trends.queue, tint: 'bg-amber-50', text: 'text-amber-900', sub: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', icon: 'bg-amber-100 text-amber-600' },
-                  { label: 'Eventos Captados', value: stats.events, change: trends.events, tint: 'bg-violet-50', text: 'text-violet-900', sub: 'text-violet-700', badge: 'bg-violet-100 text-violet-700', icon: 'bg-violet-100 text-violet-600' },
+                  { label: 'Leads Gerados', value: stats.contacts, change: trends.contacts, dot: 'bg-primary' },
+                  { label: 'Automações Ativas', value: stats.automations, change: trends.automations, dot: 'bg-success' },
+                  { label: 'Fila de Disparos', value: stats.queue, change: trends.queue, dot: 'bg-warning' },
+                  { label: 'Eventos Captados', value: stats.events, change: trends.events, dot: 'bg-muted-foreground' },
                 ] as const).map(card => (
-                  <div key={card.label} className={`${card.tint} rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group transition-all h-40`}>
-                    <div className="flex items-center justify-between z-10">
-                      <span className={`text-xs font-bold ${card.sub} uppercase tracking-wider`}>{card.label}</span>
-                      <div className={`w-7 h-7 rounded-full ${card.icon} flex items-center justify-center font-extrabold group-hover:scale-110 transition-transform`}>
-                        ↗
-                      </div>
+                  <div key={card.label} className="bg-card border border-border rounded-2xl p-5 flex flex-col justify-between shadow-sm transition-all h-40">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{card.label}</span>
+                      <span className={`w-1.75 h-1.75 rounded-full flex-shrink-0 ${card.dot}`} />
                     </div>
 
-                    <div className="flex flex-col z-10 mt-2">
-                      <span className={`text-4xl font-black ${card.text} leading-none`}>{card.value}</span>
+                    <div className="flex flex-col mt-2">
+                      <span className="text-4xl font-bold text-foreground leading-none tabular-nums">{card.value}</span>
                       <div className="flex items-center gap-2 mt-3">
                         {card.change === null ? (
-                          <span className={`text-[10px] font-black ${card.badge} px-2 py-0.5 rounded-full`}>Novo</span>
+                          <span className="text-[11px] font-semibold text-muted-foreground">Novo</span>
                         ) : (
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${card.change >= 0 ? card.badge : 'bg-rose-100 text-rose-700'}`}>
+                          <span className={`text-[11px] font-semibold tabular-nums ${card.change >= 0 ? 'text-success' : 'text-destructive'}`}>
                             {card.change >= 0 ? '↑' : '↓'} {Math.abs(card.change)}%
                           </span>
                         )}
-                        <span className={`text-[10px] ${card.sub} font-bold`}>vs 30 dias anteriores</span>
+                        <span className="text-[11px] text-muted-foreground font-medium">vs 30 dias anteriores</span>
                       </div>
                     </div>
                   </div>
@@ -1110,7 +1121,7 @@ export default function Dashboard() {
                     </svg>
 
                     <div className="absolute top-12 flex flex-col items-center text-center">
-                      <span className="text-3xl font-black text-foreground leading-none">
+                      <span className="text-3xl font-bold text-foreground leading-none tabular-nums">
                         {health.hasData ? `${health.sentPercent}%` : '—'}
                       </span>
                       <span className="text-[10px] text-primary font-extrabold uppercase tracking-wider mt-1">Taxa de Sucesso</span>
@@ -1130,7 +1141,7 @@ export default function Dashboard() {
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-amber-500"></span> Na Fila / Aguardando
+                            <span className="w-2 h-2 rounded-full bg-warning"></span> Na Fila / Aguardando
                           </span>
                           <span className="font-bold text-foreground">{health.pendingPercent}%</span>
                         </div>
@@ -1162,10 +1173,10 @@ export default function Dashboard() {
                   ) : (
                     <div className="flex flex-col gap-4">
                       {[
-                        { label: '1. Comentários Detectados', val: funnel.comments, color: 'bg-blue-500' },
-                        { label: '2. DMs de Boas-Vindas', val: funnel.welcomeDms, color: 'bg-emerald-500' },
-                        { label: '3. Cliques no Botão / Link', val: funnel.clicks, color: 'bg-amber-500' },
-                        { label: '4. Leads Qualificados', val: funnel.leads, color: 'bg-violet-500' }
+                        { label: '1. Comentários Detectados', val: funnel.comments, color: 'bg-primary' },
+                        { label: '2. DMs de Boas-Vindas', val: funnel.welcomeDms, color: 'bg-primary/75' },
+                        { label: '3. Cliques no Botão / Link', val: funnel.clicks, color: 'bg-primary/50' },
+                        { label: '4. Leads Qualificados', val: funnel.leads, color: 'bg-success' }
                       ].map((step, idx) => {
                         const percent = Math.round((step.val / funnel.comments) * 100);
                         return (
@@ -1231,11 +1242,11 @@ export default function Dashboard() {
                               <td className="py-3 px-3 text-xs text-muted-foreground">{new Date(item.created_at).toLocaleTimeString('pt-BR')}</td>
                               <td className="py-3 px-3">
                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
-                                  item.status === 'sent' && 'bg-emerald-100 text-emerald-700'
+                                  item.status === 'sent' && 'bg-success/15 text-success'
                                 } ${
-                                  item.status === 'pending' && 'bg-amber-100 text-amber-700'
+                                  item.status === 'pending' && 'bg-warning/20 text-warning-foreground'
                                 } ${
-                                  item.status === 'failed' && 'bg-red-100 text-red-700'
+                                  item.status === 'failed' && 'bg-destructive/10 text-destructive'
                                 }`}>
                                   {item.status === 'sent' && 'Enviado'}
                                   {item.status === 'pending' && 'Pendente'}
@@ -1266,7 +1277,7 @@ export default function Dashboard() {
                       {failureDiagnostics.map((f, i) => (
                         <div key={i} className="flex items-center justify-between gap-3 text-xs">
                           <span className="text-muted-foreground flex-1">{f.reason}</span>
-                          <span className="font-bold text-destructive bg-red-50 px-2 py-0.5 rounded-full flex-shrink-0">{f.count}x</span>
+                          <span className="font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full flex-shrink-0">{f.count}x</span>
                         </div>
                       ))}
                     </div>
@@ -1379,6 +1390,7 @@ export default function Dashboard() {
                         {/* Botão voltar no mobile */}
                         <button
                           onClick={() => setSelectedContactId(null)}
+                          aria-label="Voltar para a lista de conversas"
                           className="lg:hidden p-1.5 -ml-2 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                         >
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -1662,7 +1674,7 @@ export default function Dashboard() {
                     <div className="flex flex-col gap-6 relative pl-9 before:content-[''] before:absolute before:left-[17px] before:top-4 before:bottom-4 before:w-[2px] before:bg-border">
                       {/* Step 1: Gatilho / Trigger Card */}
                       <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
-                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-black text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           1
                         </div>
                         <div className="flex items-center gap-3">
@@ -1783,7 +1795,7 @@ export default function Dashboard() {
 
                       {/* Step 2: Resposta Pública Card */}
                       <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
-                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-black text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           2
                         </div>
                         <div className="flex items-center gap-3">
@@ -1857,7 +1869,7 @@ export default function Dashboard() {
 
                       {/* Step 3: Mensagem DM com Quick Reply Card */}
                       <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
-                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-black text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           3
                         </div>
                         <div className="flex items-center gap-3">
@@ -1932,14 +1944,14 @@ export default function Dashboard() {
 
                       {/* Conditional Connector Dotted Line */}
                       <div className="relative my-1.5 z-10 pointer-events-none select-none">
-                        <span className="text-[9px] font-black text-primary bg-accent border border-primary/20 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap animate-fade-in">
+                        <span className="text-[9px] font-extrabold text-primary bg-accent border border-primary/20 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap animate-fade-in">
                           Click
                         </span>
                       </div>
 
                       {/* Step 4: Card de Link DM */}
                       <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
-                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-black text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           4
                         </div>
                         <div className="flex items-center gap-3">
@@ -1999,7 +2011,7 @@ export default function Dashboard() {
 
                       {/* Optional Connector */}
                       <div className="relative my-1.5 z-10 pointer-events-none select-none">
-                        <span className="text-[9px] font-black text-muted-foreground bg-accent border border-border px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap">
+                        <span className="text-[9px] font-extrabold text-muted-foreground bg-accent border border-border px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap">
                           Aguardar
                         </span>
                       </div>
@@ -2375,9 +2387,9 @@ export default function Dashboard() {
                           <td className="py-3.5 px-4 text-xs">
                             <div className="flex flex-wrap items-center gap-1 max-w-[220px]">
                               {(item.tags || []).map((tag: string) => (
-                                <span key={tag} className="flex items-center gap-1 bg-violet-100 text-violet-700 font-bold px-2 py-0.5 rounded-full">
+                                <span key={tag} className="flex items-center gap-1 bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full border border-primary/20">
                                   {tag}
-                                  <button onClick={() => handleRemoveTag(item.instagram_id, item.tags || [], tag)} className="hover:text-red-600 cursor-pointer">
+                                  <button onClick={() => handleRemoveTag(item.instagram_id, item.tags || [], tag)} className="hover:text-destructive cursor-pointer">
                                     <X className="w-2.5 h-2.5" />
                                   </button>
                                 </span>
@@ -2552,6 +2564,7 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => setShowMediaModal(false)}
+                aria-label="Fechar seleção de publicação"
                 className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground cursor-pointer transition-all"
               >
                 <X className="w-5 h-5" />
@@ -2609,7 +2622,7 @@ export default function Dashboard() {
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
                         />
                         <div className="absolute top-2 right-2 bg-background/70 backdrop-blur-md border border-foreground/10 px-2 py-0.5 rounded-lg">
-                          <span className="text-[9px] text-primary font-black uppercase tracking-widest">
+                          <span className="text-[9px] text-primary font-extrabold uppercase tracking-widest">
                             {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
                           </span>
                         </div>
@@ -2632,8 +2645,8 @@ export default function Dashboard() {
       )}
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-64 right-0 py-3 bg-card border-t border-border px-6 text-[10px] text-muted-foreground flex items-center justify-between select-none z-30">
-        <p>© 2026 InstaFlow. Desenvolvido no padrão de design Spotify Dark Theme.</p>
+      <footer className="fixed bottom-0 left-0 md:left-72 right-0 py-3 bg-card border-t border-border px-6 text-[10px] text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-1 select-none z-30">
+        <p>© 2026 GENSBot. Todos os direitos reservados.</p>
         <div className="flex items-center gap-4">
           <a href="/privacidade" target="_blank" className="hover:text-foreground transition-colors">
             Política de Privacidade
