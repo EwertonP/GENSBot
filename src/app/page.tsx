@@ -112,6 +112,10 @@ export default function Dashboard() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [stats, setStats] = useState({ automations: 0, contacts: 0, queue: 0, events: 0 });
   const [funnel, setFunnel] = useState({ comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
+  const [weeklyChart, setWeeklyChart] = useState<{ day: string; comments: number; dms: number }[]>([]);
+  const [weeklyChartMax, setWeeklyChartMax] = useState(1);
+  const [health, setHealth] = useState({ sentPercent: 0, pendingPercent: 0, failedPercent: 0, hasData: false });
+  const [trends, setTrends] = useState<{ contacts: number | null; automations: number | null; queue: number | null; events: number | null }>({ contacts: null, automations: null, queue: null, events: null });
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [recentQueue, setRecentQueue] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -188,6 +192,10 @@ export default function Dashboard() {
         setRecentQueue(data.recentQueue);
         setContacts(data.contacts || []);
         setFunnel(data.funnel || { comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
+        setWeeklyChart(data.weeklyChart || []);
+        setWeeklyChartMax(data.weeklyChartMax || 1);
+        setHealth(data.health || { sentPercent: 0, pendingPercent: 0, failedPercent: 0, hasData: false });
+        setTrends(data.trends || { contacts: null, automations: null, queue: null, events: null });
       }
 
       const autRes = await fetch(withAccount('/api/automations', accountIdOverride));
@@ -826,10 +834,10 @@ export default function Dashboard() {
               {/* 1. Hero KPI Cards Grid — cards pastel, um por métrica */}
               <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {([
-                  { label: 'Leads Gerados', value: stats.contacts, change: '+24.5%', tint: 'bg-emerald-50', text: 'text-emerald-900', sub: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700', icon: 'bg-emerald-100 text-emerald-600' },
-                  { label: 'Automações Ativas', value: stats.automations, change: '+14.3%', tint: 'bg-blue-50', text: 'text-blue-900', sub: 'text-blue-700', badge: 'bg-blue-100 text-blue-700', icon: 'bg-blue-100 text-blue-600' },
-                  { label: 'Fila de Disparos', value: stats.queue, change: '+5.2%', tint: 'bg-amber-50', text: 'text-amber-900', sub: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', icon: 'bg-amber-100 text-amber-600' },
-                  { label: 'Eventos Captados', value: stats.events, change: '+32.8%', tint: 'bg-violet-50', text: 'text-violet-900', sub: 'text-violet-700', badge: 'bg-violet-100 text-violet-700', icon: 'bg-violet-100 text-violet-600' },
+                  { label: 'Leads Gerados', value: stats.contacts, change: trends.contacts, tint: 'bg-emerald-50', text: 'text-emerald-900', sub: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700', icon: 'bg-emerald-100 text-emerald-600' },
+                  { label: 'Automações Ativas', value: stats.automations, change: trends.automations, tint: 'bg-blue-50', text: 'text-blue-900', sub: 'text-blue-700', badge: 'bg-blue-100 text-blue-700', icon: 'bg-blue-100 text-blue-600' },
+                  { label: 'Fila de Disparos', value: stats.queue, change: trends.queue, tint: 'bg-amber-50', text: 'text-amber-900', sub: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', icon: 'bg-amber-100 text-amber-600' },
+                  { label: 'Eventos Captados', value: stats.events, change: trends.events, tint: 'bg-violet-50', text: 'text-violet-900', sub: 'text-violet-700', badge: 'bg-violet-100 text-violet-700', icon: 'bg-violet-100 text-violet-600' },
                 ] as const).map(card => (
                   <div key={card.label} className={`${card.tint} rounded-2xl p-5 flex flex-col justify-between shadow-sm relative overflow-hidden group transition-all h-40`}>
                     <div className="flex items-center justify-between z-10">
@@ -842,10 +850,14 @@ export default function Dashboard() {
                     <div className="flex flex-col z-10 mt-2">
                       <span className={`text-4xl font-black ${card.text} leading-none`}>{card.value}</span>
                       <div className="flex items-center gap-2 mt-3">
-                        <span className={`text-[10px] font-black ${card.badge} px-2 py-0.5 rounded-full`}>
-                          ↑ {card.change}
-                        </span>
-                        <span className={`text-[10px] ${card.sub} font-bold`}>vs últimos 30 dias</span>
+                        {card.change === null ? (
+                          <span className={`text-[10px] font-black ${card.badge} px-2 py-0.5 rounded-full`}>Novo</span>
+                        ) : (
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${card.change >= 0 ? card.badge : 'bg-rose-100 text-rose-700'}`}>
+                            {card.change >= 0 ? '↑' : '↓'} {Math.abs(card.change)}%
+                          </span>
+                        )}
+                        <span className={`text-[10px] ${card.sub} font-bold`}>vs 30 dias anteriores</span>
                       </div>
                     </div>
                   </div>
@@ -881,54 +893,54 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Interactive Bar Chart Graphic */}
+                  {/* Interactive Bar Chart Graphic — dados reais dos últimos 7 dias */}
                   <div className="flex flex-col gap-3 pt-4">
-                    <div className="h-44 w-full flex items-end justify-between gap-3 px-2 relative border-b border-accent pb-2">
-                      {[
-                        { day: 'Seg', comments: 94, dms: 82, height: '65%' },
-                        { day: 'Ter', comments: 128, dms: 110, height: '80%' },
-                        { day: 'Qua', comments: 165, dms: 148, height: '95%' },
-                        { day: 'Qui', comments: 112, dms: 98, height: '70%' },
-                        { day: 'Sex', comments: 145, dms: 130, height: '88%' },
-                        { day: 'Sáb', comments: 78, dms: 65, height: '50%' },
-                        { day: 'Dom', comments: 62, dms: 55, height: '42%' },
-                      ].map((item, i) => {
-                        const isHovered = hoveredBarIndex === i;
-                        return (
-                          <div
-                            key={i}
-                            onMouseEnter={() => setHoveredBarIndex(i)}
-                            className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer relative"
-                          >
-                            {/* Floating Tooltip on Hover */}
-                            {isHovered && (
-                              <div className="absolute -top-12 z-30 bg-accent border border-primary/40 text-foreground text-[10px] py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap animate-fade-in flex flex-col items-center pointer-events-none">
-                                <span className="font-bold text-primary">{item.day}-feira</span>
-                                <span>💬 {item.comments} com. | 📥 {item.dms} DMs</span>
+                    {weeklyChart.every(d => d.comments === 0 && d.dms === 0) ? (
+                      <div className="h-44 w-full flex items-center justify-center text-xs text-muted-foreground">
+                        Ainda sem comentários ou DMs registrados nos últimos 7 dias.
+                      </div>
+                    ) : (
+                      <div className="h-44 w-full flex items-end justify-between gap-3 px-2 relative border-b border-accent pb-2">
+                        {weeklyChart.map((item, i) => {
+                          const isHovered = hoveredBarIndex === i;
+                          const commentsHeight = Math.max(4, Math.round((item.comments / weeklyChartMax) * 100));
+                          const dmsHeight = item.comments > 0 ? Math.min(100, Math.round((item.dms / item.comments) * 100)) : 0;
+                          return (
+                            <div
+                              key={i}
+                              onMouseEnter={() => setHoveredBarIndex(i)}
+                              className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer relative"
+                            >
+                              {/* Floating Tooltip on Hover */}
+                              {isHovered && (
+                                <div className="absolute -top-12 z-30 bg-accent border border-primary/40 text-foreground text-[10px] py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap animate-fade-in flex flex-col items-center pointer-events-none">
+                                  <span className="font-bold text-primary">{item.day}-feira</span>
+                                  <span>💬 {item.comments} com. | 📥 {item.dms} DMs</span>
+                                </div>
+                              )}
+
+                              {/* Bar Pill */}
+                              <div className="w-full max-w-[36px] bg-accent rounded-t-xl overflow-hidden relative flex items-end transition-all duration-300 group-hover:bg-muted" style={{ height: `${commentsHeight}%` }}>
+                                <div
+                                  className={`w-full transition-all duration-500 rounded-t-xl ${
+                                    isHovered
+                                      ? 'bg-primary/90 shadow-lg shadow-primary/20'
+                                      : 'bg-primary/85 group-hover:bg-primary'
+                                  }`}
+                                  style={{ height: `${dmsHeight}%` }}
+                                ></div>
                               </div>
-                            )}
 
-                            {/* Bar Pill */}
-                            <div className="w-full max-w-[36px] bg-accent rounded-t-xl overflow-hidden relative flex items-end transition-all duration-300 group-hover:bg-muted" style={{ height: item.height }}>
-                              <div
-                                className={`w-full transition-all duration-500 rounded-t-xl ${
-                                  isHovered
-                                    ? 'bg-primary/90 shadow-lg shadow-primary/20'
-                                    : 'bg-primary/85 group-hover:bg-primary'
-                                }`}
-                                style={{ height: '85%' }}
-                              ></div>
+                              {/* Day Label */}
+                              <span className={`text-[11px] font-bold transition-colors ${isHovered ? 'text-primary' : 'text-muted-foreground'}`}>
+                                {item.day}
+                              </span>
                             </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                            {/* Day Label */}
-                            <span className={`text-[11px] font-bold transition-colors ${isHovered ? 'text-primary' : 'text-muted-foreground'}`}>
-                              {item.day}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
                       <div className="flex items-center gap-4">
                         <span className="flex items-center gap-1.5 font-bold">
@@ -938,7 +950,9 @@ export default function Dashboard() {
                           <span className="w-2.5 h-2.5 rounded-full bg-accent border border-border"></span> Comentários Processados
                         </span>
                       </div>
-                      <span className="font-mono">Média: 112 disparos/dia</span>
+                      <span className="font-mono">
+                        Média: {Math.round(weeklyChart.reduce((sum, d) => sum + d.dms, 0) / Math.max(1, weeklyChart.length))} disparos/dia
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -950,7 +964,7 @@ export default function Dashboard() {
                     <p className="text-xs text-muted-foreground mt-0.5">Conformidade e taxa de sucesso da Meta API</p>
                   </div>
 
-                  {/* 180° Semi-Donut SVG Gauge */}
+                  {/* 180° Semi-Donut SVG Gauge — arco proporcional à taxa de sucesso real */}
                   <div className="flex flex-col items-center justify-center my-2 relative">
                     <svg className="w-48 h-28" viewBox="0 0 100 55">
                       <path
@@ -960,42 +974,51 @@ export default function Dashboard() {
                         strokeWidth="10"
                         strokeLinecap="round"
                       />
-                      <path
-                        d="M 10 50 A 40 40 0 0 1 85 24"
-                        fill="none"
-                        stroke="var(--primary)"
-                        strokeWidth="10"
-                        strokeLinecap="round"
-                        strokeDasharray="126"
-                        strokeDashoffset="10"
-                      />
+                      {health.hasData && (
+                        <path
+                          d="M 10 50 A 40 40 0 0 1 90 50"
+                          fill="none"
+                          stroke="var(--primary)"
+                          strokeWidth="10"
+                          strokeLinecap="round"
+                          strokeDasharray={`${(health.sentPercent / 100) * 125.6} 125.6`}
+                        />
+                      )}
                     </svg>
 
                     <div className="absolute top-12 flex flex-col items-center text-center">
-                      <span className="text-3xl font-black text-foreground leading-none">94%</span>
+                      <span className="text-3xl font-black text-foreground leading-none">
+                        {health.hasData ? `${health.sentPercent}%` : '—'}
+                      </span>
                       <span className="text-[10px] text-primary font-extrabold uppercase tracking-wider mt-1">Taxa de Sucesso</span>
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2 pt-2 border-t border-accent">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-primary"></span> Disparos com Sucesso
-                      </span>
-                      <span className="font-bold text-foreground">94%</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-amber-500"></span> Na Fila / Aguardando
-                      </span>
-                      <span className="font-bold text-foreground">4%</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-destructive"></span> Limites Meta / Falhas
-                      </span>
-                      <span className="font-bold text-foreground">2%</span>
-                    </div>
+                    {!health.hasData ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">Ainda não há disparos suficientes pra calcular a saúde das entregas.</p>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-primary"></span> Disparos com Sucesso
+                          </span>
+                          <span className="font-bold text-foreground">{health.sentPercent}%</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-500"></span> Na Fila / Aguardando
+                          </span>
+                          <span className="font-bold text-foreground">{health.pendingPercent}%</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-destructive"></span> Limites Meta / Falhas
+                          </span>
+                          <span className="font-bold text-foreground">{health.failedPercent}%</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -1011,29 +1034,34 @@ export default function Dashboard() {
                     <p className="text-xs text-muted-foreground mt-0.5">Retenção e conversão por etapa do fluxo</p>
                   </div>
 
-                  <div className="flex flex-col gap-4">
-                    {[
-                      { label: '1. Comentários Detectados', val: funnel.comments || 185, percent: 100, color: 'bg-blue-500' },
-                      { label: '2. DMs de Boas-Vindas', val: funnel.welcomeDms || 162, percent: 87, color: 'bg-emerald-500' },
-                      { label: '3. Cliques no Botão / Link', val: funnel.clicks || 98, percent: 53, color: 'bg-amber-500' },
-                      { label: '4. Leads Qualificados', val: funnel.leads || 64, percent: 34, color: 'bg-violet-500' }
-                    ].map((step, idx) => {
-                      return (
-                        <div key={idx} className="flex flex-col gap-1.5">
-                          <div className="flex items-center justify-between text-xs font-semibold">
-                            <span className="text-muted-foreground">{step.label}</span>
-                            <span className="text-foreground font-bold">{step.val} <span className="text-muted-foreground font-normal">({step.percent}%)</span></span>
+                  {funnel.comments === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Ainda não há comentários registrados pra calcular o funil.</p>
+                  ) : (
+                    <div className="flex flex-col gap-4">
+                      {[
+                        { label: '1. Comentários Detectados', val: funnel.comments, color: 'bg-blue-500' },
+                        { label: '2. DMs de Boas-Vindas', val: funnel.welcomeDms, color: 'bg-emerald-500' },
+                        { label: '3. Cliques no Botão / Link', val: funnel.clicks, color: 'bg-amber-500' },
+                        { label: '4. Leads Qualificados', val: funnel.leads, color: 'bg-violet-500' }
+                      ].map((step, idx) => {
+                        const percent = Math.round((step.val / funnel.comments) * 100);
+                        return (
+                          <div key={idx} className="flex flex-col gap-1.5">
+                            <div className="flex items-center justify-between text-xs font-semibold">
+                              <span className="text-muted-foreground">{step.label}</span>
+                              <span className="text-foreground font-bold">{step.val} <span className="text-muted-foreground font-normal">({percent}%)</span></span>
+                            </div>
+                            <div className="h-3 w-full bg-accent rounded-full overflow-hidden p-0.5 border border-border">
+                              <div
+                                className={`h-full ${step.color} rounded-full transition-all duration-500`}
+                                style={{ width: `${percent}%` }}
+                              ></div>
+                            </div>
                           </div>
-                          <div className="h-3 w-full bg-accent rounded-full overflow-hidden p-0.5 border border-border">
-                            <div
-                              className={`h-full ${step.color} rounded-full transition-all duration-500`}
-                              style={{ width: `${step.percent}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* 3B: Histórico de Envios Recentes na Fila (lg:col-span-8) */}
