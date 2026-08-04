@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import ThemeToggle from '@/components/theme-toggle';
+import AutomationTable from '@/components/automation-table';
 import {
   Settings,
   Plus,
@@ -1041,8 +1042,9 @@ export default function Dashboard() {
                       <div className="h-44 w-full flex items-end justify-between gap-3 px-2 relative border-b border-accent pb-2">
                         {weeklyChart.map((item, i) => {
                           const isHovered = hoveredBarIndex === i;
-                          const commentsHeight = Math.max(4, Math.round((item.comments / weeklyChartMax) * 100));
-                          const dmsHeight = item.comments > 0 ? Math.min(100, Math.round((item.dms / item.comments) * 100)) : 0;
+                          const max = Math.max(weeklyChartMax, 1);
+                          const commentsHeight = Math.max(4, Math.round((item.comments / max) * 100));
+                          const dmsHeight = Math.round((item.dms / max) * 100);
                           return (
                             <div
                               key={i}
@@ -1051,20 +1053,16 @@ export default function Dashboard() {
                             >
                               {/* Floating Tooltip on Hover */}
                               {isHovered && (
-                                <div className="absolute -top-12 z-30 bg-accent border border-primary/40 text-foreground text-[10px] py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap animate-fade-in flex flex-col items-center pointer-events-none">
-                                  <span className="font-bold text-primary">{item.day}-feira</span>
-                                  <span>💬 {item.comments} com. | 📥 {item.dms} DMs</span>
+                                <div className="absolute -top-12 z-30 bg-card border border-border text-foreground text-[10px] py-1.5 px-3 rounded-lg text-center whitespace-nowrap flex flex-col items-center pointer-events-none font-mono">
+                                  <span className="font-bold">{item.day}f</span>
+                                  <span className="text-[9px]">💬 {item.comments} · 📥 {item.dms}</span>
                                 </div>
                               )}
 
                               {/* Bar Pill */}
-                              <div className="w-full max-w-[36px] bg-accent rounded-t-xl overflow-hidden relative flex items-end transition-all duration-300 group-hover:bg-muted" style={{ height: `${commentsHeight}%` }}>
+                              <div className="w-full max-w-[32px] bg-accent/40 rounded-sm overflow-hidden relative flex items-end" style={{ height: `${commentsHeight}%` }}>
                                 <div
-                                  className={`w-full transition-all duration-500 rounded-t-xl ${
-                                    isHovered
-                                      ? 'bg-primary/90 shadow-lg shadow-primary/20'
-                                      : 'bg-primary/85 group-hover:bg-primary'
-                                  }`}
+                                  className="w-full rounded-sm bg-primary transition-opacity duration-200 group-hover:opacity-90"
                                   style={{ height: `${dmsHeight}%` }}
                                 ></div>
                               </div>
@@ -1437,10 +1435,10 @@ export default function Dashboard() {
                               className={`flex flex-col ${isInbound ? 'items-start' : 'items-end'}`}
                             >
                               <div
-                                className={`p-3.5 rounded-2xl text-xs max-w-[75%] leading-relaxed ${
+                                className={`p-3 rounded-lg text-xs max-w-[75%] leading-relaxed border ${
                                   isInbound
-                                    ? 'bg-accent text-foreground rounded-tl-xs border border-border'
-                                    : 'bg-primary text-primary-foreground font-semibold rounded-tr-xs shadow-xs'
+                                    ? 'bg-accent text-foreground rounded-tl-none border-border'
+                                    : 'bg-primary text-primary-foreground font-semibold rounded-tr-none border-primary/30'
                                 }`}
                               >
                                 {msg.text}
@@ -1466,7 +1464,7 @@ export default function Dashboard() {
                       <button
                         type="submit"
                         disabled={sendingMessage || !chatInput.trim()}
-                        className="p-2.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
+                        className="p-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
                       >
                         <Send className="w-4.5 h-4.5 text-primary-foreground" />
                       </button>
@@ -1519,6 +1517,18 @@ export default function Dashboard() {
                     </button>
                   </div>
 
+                  <AutomationTable
+                    automations={automations}
+                    onEdit={handleEditAutomation}
+                    onDelete={handleDeleteAutomation}
+                    onCreate={() => {
+                      resetForm();
+                      setIsEditing(true);
+                    }}
+                    mediaList={mediaList}
+                  />
+
+                  {/* LEGACY: Old grid view (commented out for now)
                   {automations.length === 0 ? (
                     <div className="bg-card border border-accent rounded-2xl p-16 text-center flex flex-col items-center gap-6 shadow-sm">
                       <div className="p-4 rounded-full bg-accent text-muted-foreground border border-border">
@@ -1620,6 +1630,7 @@ export default function Dashboard() {
                       })}
                     </div>
                   )}
+                  */}
                 </div>
               ) : (
                 /* Screen 2: Visual Flow Editor Screen (Full Width with iPhone Preview Mockup) */
@@ -1666,7 +1677,7 @@ export default function Dashboard() {
 
                           <button
                             type="submit"
-                            className="px-5 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-md cursor-pointer transition-all"
+                            className="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-md cursor-pointer transition-all"
                           >
                             Salvar Fluxo
                           </button>
@@ -2192,7 +2203,7 @@ export default function Dashboard() {
                         {form.welcome_dm && (
                           <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-1">
                             <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider pl-1">📥 Mensagem Recebida (DM)</span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium">
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium">
                               {form.welcome_dm}
                             </div>
                           </div>
@@ -2213,20 +2224,20 @@ export default function Dashboard() {
                           <div className="flex flex-col gap-2 mt-2">
                             {form.ask_email && (
                               <>
-                                <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none max-w-[220px] text-left self-start font-medium">
+                                <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none max-w-[220px] text-left self-start font-medium">
                                   Por favor, digite seu e-mail para receber o acesso:
                                 </div>
-                                <div className="bg-primary text-primary-foreground text-[10px] p-2.5 rounded-2xl rounded-tr-none max-w-[180px] text-right self-end font-bold">
+                                <div className="bg-primary text-primary-foreground text-[10px] p-3 rounded-lg rounded-tr-none max-w-[180px] text-right self-end font-bold">
                                   exemplo@email.com
                                 </div>
                               </>
                             )}
                             {form.ask_phone && (
                               <>
-                                <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none max-w-[220px] text-left self-start font-medium">
+                                <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none max-w-[220px] text-left self-start font-medium">
                                   Por favor, informe seu WhatsApp para contato:
                                 </div>
-                                <div className="bg-primary text-primary-foreground text-[10px] p-2.5 rounded-2xl rounded-tr-none max-w-[180px] text-right self-end font-bold">
+                                <div className="bg-primary text-primary-foreground text-[10px] p-3 rounded-lg rounded-tr-none max-w-[180px] text-right self-end font-bold">
                                   +55 11 99999-9999
                                 </div>
                               </>
@@ -2238,7 +2249,7 @@ export default function Dashboard() {
                         {form.link_text && (
                           <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2 w-full">
                             <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider pl-1">🔗 Envio do Link</span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
                               <p>{form.link_text}</p>
                               {form.link_url && (
                                 <div className="mt-1 w-full flex justify-center border-t border-border pt-2">
@@ -2255,7 +2266,7 @@ export default function Dashboard() {
                             <span className="text-[8px] font-bold text-destructive uppercase tracking-wider pl-1 flex items-center gap-1">
                               ⏰ Sequência ({f.delay_minutes}m depois)
                             </span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
                               <p>{f.text}</p>
                               {f.link_url && (
                                 <div className="mt-1 w-full flex justify-center border-t border-border pt-2">
@@ -2272,7 +2283,7 @@ export default function Dashboard() {
                             <span className="text-[8px] font-bold text-destructive uppercase tracking-wider pl-1 flex items-center gap-1">
                               ⏰ Lembrete ({form.reminder_delay_minutes || 15}m depois)
                             </span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium italic">
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium italic">
                               {form.reminder_text}
                             </div>
                           </div>
