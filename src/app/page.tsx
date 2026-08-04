@@ -1041,8 +1041,9 @@ export default function Dashboard() {
                       <div className="h-44 w-full flex items-end justify-between gap-3 px-2 relative border-b border-accent pb-2">
                         {weeklyChart.map((item, i) => {
                           const isHovered = hoveredBarIndex === i;
-                          const commentsHeight = Math.max(4, Math.round((item.comments / weeklyChartMax) * 100));
-                          const dmsHeight = item.comments > 0 ? Math.min(100, Math.round((item.dms / item.comments) * 100)) : 0;
+                          const max = Math.max(weeklyChartMax, 1);
+                          const commentsHeight = Math.max(4, Math.round((item.comments / max) * 100));
+                          const dmsHeight = Math.round((item.dms / max) * 100);
                           return (
                             <div
                               key={i}
@@ -1051,20 +1052,16 @@ export default function Dashboard() {
                             >
                               {/* Floating Tooltip on Hover */}
                               {isHovered && (
-                                <div className="absolute -top-12 z-30 bg-accent border border-primary/40 text-foreground text-[10px] py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap animate-fade-in flex flex-col items-center pointer-events-none">
-                                  <span className="font-bold text-primary">{item.day}-feira</span>
-                                  <span>💬 {item.comments} com. | 📥 {item.dms} DMs</span>
+                                <div className="absolute -top-12 z-30 bg-card border border-border text-foreground text-[10px] py-1.5 px-3 rounded-lg text-center whitespace-nowrap flex flex-col items-center pointer-events-none font-mono">
+                                  <span className="font-bold">{item.day}f</span>
+                                  <span className="text-[9px]">💬 {item.comments} · 📥 {item.dms}</span>
                                 </div>
                               )}
 
                               {/* Bar Pill */}
-                              <div className="w-full max-w-[36px] bg-accent rounded-t-xl overflow-hidden relative flex items-end transition-all duration-300 group-hover:bg-muted" style={{ height: `${commentsHeight}%` }}>
+                              <div className="w-full max-w-[32px] bg-accent/40 rounded-sm overflow-hidden relative flex items-end" style={{ height: `${commentsHeight}%` }}>
                                 <div
-                                  className={`w-full transition-all duration-500 rounded-t-xl ${
-                                    isHovered
-                                      ? 'bg-primary/90 shadow-lg shadow-primary/20'
-                                      : 'bg-primary/85 group-hover:bg-primary'
-                                  }`}
+                                  className="w-full rounded-sm bg-primary transition-opacity duration-200 group-hover:opacity-90"
                                   style={{ height: `${dmsHeight}%` }}
                                 ></div>
                               </div>
