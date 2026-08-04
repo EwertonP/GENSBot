@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import ThemeToggle from '@/components/theme-toggle';
+import AutomationTable from '@/components/automation-table';
 import {
   Settings,
   Plus,
@@ -1516,6 +1517,18 @@ export default function Dashboard() {
                     </button>
                   </div>
 
+                  <AutomationTable
+                    automations={automations}
+                    onEdit={handleEditAutomation}
+                    onDelete={handleDeleteAutomation}
+                    onCreate={() => {
+                      resetForm();
+                      setIsEditing(true);
+                    }}
+                    mediaList={mediaList}
+                  />
+
+                  {/* LEGACY: Old grid view (commented out for now)
                   {automations.length === 0 ? (
                     <div className="bg-card border border-accent rounded-2xl p-16 text-center flex flex-col items-center gap-6 shadow-sm">
                       <div className="p-4 rounded-full bg-accent text-muted-foreground border border-border">
@@ -1617,6 +1630,7 @@ export default function Dashboard() {
                       })}
                     </div>
                   )}
+                  */}
                 </div>
               ) : (
                 /* Screen 2: Visual Flow Editor Screen (Full Width with iPhone Preview Mockup) */
