@@ -249,20 +249,21 @@ export function buildAlerts(
   tokenHealth: Awaited<ReturnType<typeof getTokenHealth>>,
   health: { failedPercent: number; hasData: boolean },
   automations: { id: string; name: string; active: boolean; created_at?: string }[],
-  automationRanking: { id: string; leads: number; clicks: number; welcomeDms: number; comments: number }[]
+  automationRanking: { id: string; leads: number; clicks: number; welcomeDms: number; comments: number }[],
+  healthScopeKey = 'combined'
 ) {
-  const alerts: { level: 'critical' | 'warning'; message: string }[] = [];
+  const alerts: { level: 'critical' | 'warning'; message: string; key: string }[] = [];
 
   for (const acc of tokenHealth) {
     if (acc.status === 'expired') {
-      alerts.push({ level: 'critical', message: `O token da conta @${acc.instagram_username || acc.instagram_user_id} expirou. Reconecte a conta para as automações voltarem a funcionar.` });
+      alerts.push({ level: 'critical', key: `token:${acc.instagram_user_id}`, message: `O token da conta @${acc.instagram_username || acc.instagram_user_id} expirou. Reconecte a conta para as automações voltarem a funcionar.` });
     } else if (acc.status === 'warning') {
-      alerts.push({ level: 'warning', message: `O token da conta @${acc.instagram_username || acc.instagram_user_id} expira em ${acc.daysRemaining} dia(s). A renovação automática deve cobrir isso, mas vale confirmar.` });
+      alerts.push({ level: 'warning', key: `token:${acc.instagram_user_id}`, message: `O token da conta @${acc.instagram_username || acc.instagram_user_id} expira em ${acc.daysRemaining} dia(s). A renovação automática deve cobrir isso, mas vale confirmar.` });
     }
   }
 
   if (health.hasData && health.failedPercent >= 20) {
-    alerts.push({ level: 'warning', message: `${health.failedPercent}% dos disparos recentes falharam. Veja o diagnóstico de falhas para entender o motivo.` });
+    alerts.push({ level: 'warning', key: `failure_rate:${healthScopeKey}`, message: `${health.failedPercent}% dos disparos recentes falharam. Veja o diagnóstico de falhas para entender o motivo.` });
   }
 
   const rankingByAutomation = new Map(automationRanking.map(r => [r.id, r]));
@@ -276,7 +277,7 @@ export function buildAlerts(
     const activity = rankingByAutomation.get(auto.id);
     const totalActivity = activity ? activity.comments + activity.clicks + activity.welcomeDms : 0;
     if (totalActivity === 0) {
-      alerts.push({ level: 'warning', message: `A automação "${auto.name}" está ativa mas não teve nenhuma interação registrada. Confira se os gatilhos ainda fazem sentido.` });
+      alerts.push({ level: 'warning', key: `automation_inactive:${auto.id}`, message: `A automação "${auto.name}" está ativa mas não teve nenhuma interação registrada. Confira se os gatilhos ainda fazem sentido.` });
     }
   }
 
