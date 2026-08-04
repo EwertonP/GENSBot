@@ -1437,10 +1437,10 @@ export default function Dashboard() {
                               className={`flex flex-col ${isInbound ? 'items-start' : 'items-end'}`}
                             >
                               <div
-                                className={`p-3.5 rounded-2xl text-xs max-w-[75%] leading-relaxed ${
+                                className={`p-3 rounded-lg text-xs max-w-[75%] leading-relaxed border ${
                                   isInbound
-                                    ? 'bg-accent text-foreground rounded-tl-xs border border-border'
-                                    : 'bg-primary text-primary-foreground font-semibold rounded-tr-xs shadow-xs'
+                                    ? 'bg-accent text-foreground rounded-tl-none border-border'
+                                    : 'bg-primary text-primary-foreground font-semibold rounded-tr-none border-primary/30'
                                 }`}
                               >
                                 {msg.text}
@@ -2192,7 +2192,7 @@ export default function Dashboard() {
                         {form.welcome_dm && (
                           <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-1">
                             <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider pl-1">📥 Mensagem Recebida (DM)</span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium">
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium">
                               {form.welcome_dm}
                             </div>
                           </div>
@@ -2213,20 +2213,20 @@ export default function Dashboard() {
                           <div className="flex flex-col gap-2 mt-2">
                             {form.ask_email && (
                               <>
-                                <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none max-w-[220px] text-left self-start font-medium">
+                                <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none max-w-[220px] text-left self-start font-medium">
                                   Por favor, digite seu e-mail para receber o acesso:
                                 </div>
-                                <div className="bg-primary text-primary-foreground text-[10px] p-2.5 rounded-2xl rounded-tr-none max-w-[180px] text-right self-end font-bold">
+                                <div className="bg-primary text-primary-foreground text-[10px] p-3 rounded-lg rounded-tr-none max-w-[180px] text-right self-end font-bold">
                                   exemplo@email.com
                                 </div>
                               </>
                             )}
                             {form.ask_phone && (
                               <>
-                                <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none max-w-[220px] text-left self-start font-medium">
+                                <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none max-w-[220px] text-left self-start font-medium">
                                   Por favor, informe seu WhatsApp para contato:
                                 </div>
-                                <div className="bg-primary text-primary-foreground text-[10px] p-2.5 rounded-2xl rounded-tr-none max-w-[180px] text-right self-end font-bold">
+                                <div className="bg-primary text-primary-foreground text-[10px] p-3 rounded-lg rounded-tr-none max-w-[180px] text-right self-end font-bold">
                                   +55 11 99999-9999
                                 </div>
                               </>
@@ -2238,7 +2238,7 @@ export default function Dashboard() {
                         {form.link_text && (
                           <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2 w-full">
                             <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider pl-1">🔗 Envio do Link</span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
                               <p>{form.link_text}</p>
                               {form.link_url && (
                                 <div className="mt-1 w-full flex justify-center border-t border-border pt-2">
@@ -2255,7 +2255,7 @@ export default function Dashboard() {
                             <span className="text-[8px] font-bold text-destructive uppercase tracking-wider pl-1 flex items-center gap-1">
                               ⏰ Sequência ({f.delay_minutes}m depois)
                             </span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
                               <p>{f.text}</p>
                               {f.link_url && (
                                 <div className="mt-1 w-full flex justify-center border-t border-border pt-2">
@@ -2272,7 +2272,7 @@ export default function Dashboard() {
                             <span className="text-[8px] font-bold text-destructive uppercase tracking-wider pl-1 flex items-center gap-1">
                               ⏰ Lembrete ({form.reminder_delay_minutes || 15}m depois)
                             </span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-2.5 rounded-2xl rounded-tl-none leading-relaxed font-medium italic">
+                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium italic">
                               {form.reminder_text}
                             </div>
                           </div>
