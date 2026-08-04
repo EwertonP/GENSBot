@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import ThemeToggle from '@/components/theme-toggle';
 import AutomationTable from '@/components/automation-table';
+import Logo from '@/components/logo';
+import type { Automation, Followup } from '@/types/automation';
 import {
   Settings,
   Plus,
@@ -44,38 +46,6 @@ const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
     <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
   </svg>
 );
-
-interface Followup {
-  id: string;
-  delay_minutes: number;
-  text: string;
-  link_url?: string | null;
-  link_text?: string | null;
-  link_button_label?: string | null;
-}
-
-interface Automation {
-  id?: string;
-  name: string;
-  active: boolean;
-  triggers: string[];
-  keywords: string[];
-  match_type: 'contains' | 'exact' | 'any';
-  specific_post_id?: string | null;
-  public_replies: string[];
-  welcome_dm: string;
-  quick_reply_button?: string | null;
-  link_text?: string | null;
-  link_button_label?: string | null;
-  link_url?: string | null;
-  reminder_text?: string | null;
-  reminder_delay_minutes?: number | null;
-  ask_email?: boolean;
-  ask_phone?: boolean;
-  webhook_url?: string | null;
-  followups?: Followup[];
-  created_at?: string;
-}
 
 interface IgMedia {
   id: string;
@@ -673,12 +643,7 @@ export default function Dashboard() {
 
         {/* Brand Header */}
         <div className="px-6 pt-6 pb-4 flex items-center">
-          {/* Logo enviada pelo usuário */}
-          <img
-            src="/logo.png"
-            alt="GENS Logo"
-            className="h-8 w-auto object-contain select-none"
-          />
+          <Logo className="h-8" />
         </div>
 
         {/* Seletor de Conta do Instagram (perfil ativo) */}
@@ -912,7 +877,7 @@ export default function Dashboard() {
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
-            <img src="/logo.png" alt="GENS" className="h-6 w-auto object-contain" />
+            <Logo className="h-6" />
           </div>
           {/* Avatar na top bar mobile */}
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-bold text-xs shadow-md">
@@ -1525,112 +1490,8 @@ export default function Dashboard() {
                       resetForm();
                       setIsEditing(true);
                     }}
-                    mediaList={mediaList}
                   />
 
-                  {/* LEGACY: Old grid view (commented out for now)
-                  {automations.length === 0 ? (
-                    <div className="bg-card border border-accent rounded-2xl p-16 text-center flex flex-col items-center gap-6 shadow-sm">
-                      <div className="p-4 rounded-full bg-accent text-muted-foreground border border-border">
-                        <Settings className="w-8 h-8" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-foreground text-base">Nenhuma automação cadastrada</h4>
-                        <p className="text-xs text-muted-foreground mt-1.5 max-w-[280px] mx-auto leading-relaxed">
-                          Comece agora mesmo! Crie seu primeiro fluxo de automação para responder comentários automaticamente.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {automations.map(auto => {
-                        const postMedia = auto.specific_post_id ? mediaList.find(m => m.id === auto.specific_post_id) : null;
-                        return (
-                          <div
-                            key={auto.id}
-                            onClick={() => handleEditAutomation(auto)}
-                            className="bg-card border border-accent hover:border-border p-5 rounded-2xl cursor-pointer group transition-all flex flex-col justify-between gap-4 shadow-sm hover:shadow-md relative overflow-hidden"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              {auto.specific_post_id && (
-                                <div className="w-14 h-14 rounded-lg bg-accent overflow-hidden relative border border-border flex-shrink-0">
-                                  {postMedia ? (
-                                    <img
-                                      src={postMedia.thumbnail_url || postMedia.media_url}
-                                      alt="Post Capa"
-                                      className="absolute inset-0 w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-muted-foreground bg-accent text-center leading-3 p-1">
-                                      Post Selec.
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                              <div className="flex-1 min-w-0">
-                                <span className="font-extrabold text-foreground text-base truncate block group-hover:text-primary transition-colors">{auto.name}</span>
-                                <div className="flex items-center gap-1.5 mt-1.5">
-                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                                    auto.active
-                                      ? 'bg-accent text-primary border border-primary/25'
-                                      : 'bg-accent text-muted-foreground border border-border'
-                                  }`}>
-                                    {auto.active ? 'Ativo' : 'Pausado'}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteAutomation(auto.id!);
-                                }}
-                                className="p-1.5 hover:bg-accent text-muted-foreground hover:text-destructive rounded-xl transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-
-                            <div className="flex flex-col gap-2 pt-3 border-t border-accent text-xs">
-                              <div className="flex items-center justify-between text-muted-foreground">
-                                <span>Gatilho:</span>
-                                <div className="flex gap-1 flex-wrap">
-                                  {auto.triggers.map(t => {
-                                    let label = 'DM';
-                                    if (t === 'comment') label = 'Comentários';
-                                    if (t === 'story') label = 'Stories';
-                                    return (
-                                      <span key={t} className="text-[9px] bg-accent text-primary font-extrabold px-1.5 py-0.5 rounded border border-primary/20 uppercase tracking-wider">
-                                        {label}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
-                              {auto.keywords.length > 0 && (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-muted-foreground">Palavras-chave:</span>
-                                  <div className="flex items-center gap-1 flex-wrap">
-                                    {auto.keywords.slice(0, 2).map((kw, i) => (
-                                      <span key={i} className="text-[9px] bg-accent border border-border text-muted-foreground px-1.5 py-0.5 rounded font-mono font-bold">
-                                        {kw}
-                                      </span>
-                                    ))}
-                                    {auto.keywords.length > 2 && (
-                                      <span className="text-[9px] text-muted-foreground font-extrabold">+ {auto.keywords.length - 2}</span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  */}
                 </div>
               ) : (
                 /* Screen 2: Visual Flow Editor Screen (Full Width with iPhone Preview Mockup) */

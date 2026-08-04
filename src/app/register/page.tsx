@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/theme-toggle';
+import { LogoMark } from '@/components/logo';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -81,10 +82,8 @@ export default function RegisterPage() {
 
         {/* Logo & Brand */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/30 shadow-lg shadow-primary/20 mb-5 text-primary-foreground">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="currentColor"/>
-            </svg>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/20 mb-5 text-primary-foreground">
+            <LogoMark className="w-9 h-9" />
           </div>
           <h1 className="text-2xl font-black text-foreground tracking-tight">GENSBot</h1>
           <p className="text-sm text-muted-foreground mt-1.5 font-medium">Crie sua conta para começar</p>
