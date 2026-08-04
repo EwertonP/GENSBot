@@ -1,24 +1,21 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
+import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
 
-    const { data: config } = await supabase
-      .from('config')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const accountParam = new URL(req.url).searchParams.get('account');
+    const config = await getActiveInstagramAccountForUser(user.id, accountParam);
 
-    if (!config || !config.instagram_token || !config.instagram_user_id) {
+    if (!config || !config.access_token || !config.instagram_user_id) {
       return NextResponse.json({ error: 'Instagram não conectado.' }, { status: 400 });
     }
 
     const response = await fetch(
-      `https://graph.instagram.com/v25.0/${config.instagram_user_id}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink,timestamp&limit=25&access_token=${config.instagram_token}`
+      `https://graph.instagram.com/v25.0/${config.instagram_user_id}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink,timestamp&limit=25&access_token=${config.access_token}`
     );
     const data = await response.json();
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
+import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -9,12 +10,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const { id } = await params;
     const body = await req.json();
+    const accountParam = new URL(req.url).searchParams.get('account');
 
-    const { data: config } = await supabase
-      .from('config')
-      .select('instagram_user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const config = await getActiveInstagramAccountForUser(user.id, accountParam);
 
     if (!config?.instagram_user_id) {
       return NextResponse.json({ error: 'Nenhuma conta do Instagram conectada.' }, { status: 400 });
@@ -58,12 +56,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if (!user) return unauthorizedResponse();
 
     const { id } = await params;
+    const accountParam = new URL(req.url).searchParams.get('account');
 
-    const { data: config } = await supabase
-      .from('config')
-      .select('instagram_user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const config = await getActiveInstagramAccountForUser(user.id, accountParam);
 
     if (!config?.instagram_user_id) {
       return NextResponse.json({ error: 'Nenhuma conta do Instagram conectada.' }, { status: 400 });

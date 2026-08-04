@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { supabase } from '@/lib/supabase';
 import { after } from 'next/server';
+import { getInstagramAccountByInstagramUserId } from '@/lib/instagram-account';
+import { drainQueue } from '@/lib/drain';
 
 // Função para verificar a assinatura X-Hub-Signature-256 da Meta
 function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
@@ -48,10 +50,6 @@ export async function GET(req: Request) {
 
 // POST: Recebe eventos do webhook da Meta
 export async function POST(req: Request) {
-  const host = req.headers.get('host') || 'localhost:3000';
-  const protocol = host.includes('localhost') ? 'http' : 'https';
-  const appUrl = `${protocol}://${host}`;
-
   const signatureHeader = req.headers.get('x-hub-signature-256');
   const rawBody = await req.text();
 
@@ -77,10 +75,13 @@ export async function POST(req: Request) {
     return new Response('Assinatura inválida', { status: 401 });
   }
 
-  // Disparar o processamento do evento de forma assíncrona após responder
+  // Disparar o processamento do evento de forma assíncrona após responder.
+  // O next/server `after()` mantém a função viva até essa promise resolver,
+  // então é seguro (e necessário) aguardar o drain da fila aqui dentro —
+  // ao contrário de um fetch solto, que podia ser cortado antes de completar.
   after(async () => {
     try {
-      await processWebhookEvent(payload, appUrl);
+      await processWebhookEvent(payload);
     } catch (err) {
       console.error('Erro ao processar evento do webhook:', err);
     }
@@ -109,19 +110,17 @@ async function fetchInstagramUserProfile(senderId: string, accessToken: string) 
   return { username: null, name: null };
 }
 
-async function processWebhookEvent(payload: any, appUrl: string) {
+async function processWebhookEvent(payload: any) {
   if (payload.object !== 'instagram' || !payload.entry) return;
+
+  let queueDrainNeeded = false;
 
   for (const entry of payload.entry) {
     const myIgId = entry.id;
     if (!myIgId) continue;
 
     // Descobrir qual usuário do SaaS é dono desta conta do Instagram
-    const { data: accountConfig } = await supabase
-      .from('config')
-      .select('*')
-      .eq('instagram_user_id', myIgId)
-      .maybeSingle();
+    const accountConfig = await getInstagramAccountByInstagramUserId(myIgId);
 
     if (!accountConfig || !accountConfig.user_id) {
       console.warn(`Webhook ignorado: Conta do Instagram ${myIgId} não encontrada no banco.`);
@@ -129,7 +128,7 @@ async function processWebhookEvent(payload: any, appUrl: string) {
     }
 
     const ownerUserId = accountConfig.user_id;
-    const igToken = accountConfig.instagram_token;
+    const igToken = accountConfig.access_token;
     // 1. Processar Comentários (changes com field comments)
     if (entry.changes) {
       for (const change of entry.changes) {
@@ -272,7 +271,7 @@ async function processWebhookEvent(payload: any, appUrl: string) {
               }
 
               // Executar a fila imediatamente
-              triggerQueueDrain(appUrl);
+              queueDrainNeeded = true;
               break;
             }
           }
@@ -348,7 +347,7 @@ async function processWebhookEvent(payload: any, appUrl: string) {
 
             // Enfileirar os followups (link e lembrete)
             await enqueueFollowups(senderId, auto, ownerUserId, myIgId);
-            triggerQueueDrain(appUrl);
+            queueDrainNeeded = true;
           }
           continue;
         }
@@ -372,7 +371,7 @@ async function processWebhookEvent(payload: any, appUrl: string) {
             status: 'pending',
             scheduled_at: new Date().toISOString(),
           });
-          triggerQueueDrain(appUrl);
+          queueDrainNeeded = true;
           continue;
         }
 
@@ -433,7 +432,7 @@ async function processWebhookEvent(payload: any, appUrl: string) {
                       triggerExternalWebhook(auto.webhook_url, { ...contact, email: emailCandidate }, auto);
                     }
                   }
-                  triggerQueueDrain(appUrl);
+                  queueDrainNeeded = true;
                   continue;
                 } else {
                   // E-mail inválido
@@ -451,7 +450,7 @@ async function processWebhookEvent(payload: any, appUrl: string) {
                     status: 'pending',
                     scheduled_at: new Date().toISOString()
                   });
-                  triggerQueueDrain(appUrl);
+                  queueDrainNeeded = true;
                   continue;
                 }
               }
@@ -483,7 +482,7 @@ async function processWebhookEvent(payload: any, appUrl: string) {
                   if (auto.webhook_url) {
                     triggerExternalWebhook(auto.webhook_url, { ...contact, phone: phoneCandidate }, auto);
                   }
-                  triggerQueueDrain(appUrl);
+                  queueDrainNeeded = true;
                   continue;
                 } else {
                   // Telefone inválido
@@ -501,7 +500,7 @@ async function processWebhookEvent(payload: any, appUrl: string) {
                     status: 'pending',
                     scheduled_at: new Date().toISOString()
                   });
-                  triggerQueueDrain(appUrl);
+                  queueDrainNeeded = true;
                   continue;
                 }
               }
@@ -607,11 +606,19 @@ async function processWebhookEvent(payload: any, appUrl: string) {
               scheduled_at: new Date().toISOString(),
             });
 
-            triggerQueueDrain(appUrl);
+            queueDrainNeeded = true;
             break;
           }
         }
       }
+    }
+  }
+
+  if (queueDrainNeeded) {
+    try {
+      await drainQueue();
+    } catch (err) {
+      console.error('Erro ao drenar a fila após o webhook:', err);
     }
   }
 }
@@ -811,20 +818,4 @@ function matchesKeywords(text: string, keywords: string[], matchType: string): b
   }
 
   return false;
-}
-
-// Disparador assíncrono para o drain worker
-function triggerQueueDrain(appUrl: string) {
-  const cronSecret = process.env.CRON_SECRET || 'local_secret';
-
-  fetch(`${appUrl}/api/cron/drain`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${cronSecret}`,
-    },
-  }).catch(err => {
-    // Silencia o erro para não quebrar o webhook principal
-    console.error('Erro ao disparar drain da fila:', err);
-  });
 }

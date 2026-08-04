@@ -84,6 +84,16 @@ interface IgMedia {
   permalink: string;
 }
 
+interface InstagramAccountSummary {
+  id: string;
+  instagram_user_id: string;
+  instagram_username: string | null;
+  profile_picture_url: string | null;
+  token_expires_at: string | null;
+}
+
+const SELECTED_ACCOUNT_STORAGE_KEY = 'gensbot_selected_account';
+
 export default function Dashboard() {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
@@ -95,6 +105,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [config, setConfig] = useState<any>(null);
+
+  // Seletor de múltiplas contas do Instagram conectadas ao mesmo login
+  const [accounts, setAccounts] = useState<InstagramAccountSummary[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [stats, setStats] = useState({ automations: 0, contacts: 0, queue: 0, events: 0 });
   const [funnel, setFunnel] = useState({ comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
@@ -152,9 +167,18 @@ export default function Dashboard() {
   // Layout states
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const fetchStatusAndData = async () => {
+  // Anexa ?account=<instagram_user_id> na URL, para as rotas de API saberem
+  // qual conta conectada operar (o seletor de contas no header troca esse valor).
+  const withAccount = (url: string, accountIdOverride?: string | null) => {
+    const id = accountIdOverride !== undefined ? accountIdOverride : selectedAccountId;
+    if (!id) return url;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}account=${encodeURIComponent(id)}`;
+  };
+
+  const fetchStatusAndData = async (accountIdOverride?: string | null) => {
     try {
-      const res = await fetch('/api/status');
+      const res = await fetch(withAccount('/api/status', accountIdOverride));
       const data = await res.json();
       if (res.ok) {
         setIsConnected(data.isConnected);
@@ -165,8 +189,8 @@ export default function Dashboard() {
         setContacts(data.contacts || []);
         setFunnel(data.funnel || { comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
       }
-      
-      const autRes = await fetch('/api/automations');
+
+      const autRes = await fetch(withAccount('/api/automations', accountIdOverride));
       const autData = await autRes.json();
       if (autRes.ok) {
         setAutomations(autData);
@@ -179,6 +203,54 @@ export default function Dashboard() {
     }
   };
 
+  // Busca todas as contas do Instagram conectadas pelo usuário logado e decide
+  // qual delas exibir: a que veio do redirect do OAuth, a última selecionada
+  // (salva no navegador) ou, por padrão, a conectada mais recentemente.
+  const loadAccounts = async (preferredAccountId?: string | null) => {
+    try {
+      const res = await fetch('/api/instagram/accounts');
+      const data: InstagramAccountSummary[] = await res.json();
+      if (!res.ok) {
+        setLoading(false);
+        return;
+      }
+
+      setAccounts(data);
+
+      const stored = typeof window !== 'undefined' ? localStorage.getItem(SELECTED_ACCOUNT_STORAGE_KEY) : null;
+      let nextSelected: string | null = null;
+
+      if (preferredAccountId && data.some(a => a.instagram_user_id === preferredAccountId)) {
+        nextSelected = preferredAccountId;
+      } else if (stored && data.some(a => a.instagram_user_id === stored)) {
+        nextSelected = stored;
+      } else if (data.length > 0) {
+        nextSelected = data[0].instagram_user_id;
+      }
+
+      setSelectedAccountId(nextSelected);
+      if (typeof window !== 'undefined') {
+        if (nextSelected) localStorage.setItem(SELECTED_ACCOUNT_STORAGE_KEY, nextSelected);
+        else localStorage.removeItem(SELECTED_ACCOUNT_STORAGE_KEY);
+      }
+
+      await fetchStatusAndData(nextSelected);
+    } catch (err) {
+      console.error('Erro ao carregar contas conectadas:', err);
+      setLoading(false);
+    }
+  };
+
+  const handleSelectAccount = (accountId: string) => {
+    setAccountMenuOpen(false);
+    if (accountId === selectedAccountId) return;
+    setSelectedAccountId(accountId);
+    if (typeof window !== 'undefined') localStorage.setItem(SELECTED_ACCOUNT_STORAGE_KEY, accountId);
+    setLoading(true);
+    setMediaList([]);
+    fetchStatusAndData(accountId);
+  };
+
   useEffect(() => {
     // Get current authenticated user on load
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -188,12 +260,17 @@ export default function Dashboard() {
         setCurrentUser(user);
       }
     });
-    fetchStatusAndData();
+
+    // Se acabou de voltar do OAuth do Instagram, a URL traz ?account=<id> da
+    // conta recém-conectada — usamos isso pra já selecioná-la automaticamente.
+    const params = new URLSearchParams(window.location.search);
+    const accountFromRedirect = params.get('account');
+    loadAccounts(accountFromRedirect);
   }, []);
 
   useEffect(() => {
-    if (isConnected) {
-      fetch('/api/instagram/media')
+    if (isConnected && selectedAccountId) {
+      fetch(withAccount('/api/instagram/media', selectedAccountId))
         .then(res => res.json())
         .then(data => {
           if (data && data.data) {
@@ -202,7 +279,7 @@ export default function Dashboard() {
         })
         .catch(err => console.error('Erro silencioso ao carregar mídias:', err));
     }
-  }, [isConnected]);
+  }, [isConnected, selectedAccountId]);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -211,7 +288,7 @@ export default function Dashboard() {
 
   const fetchChatMessages = async (contactId: string) => {
     try {
-      const res = await fetch(`/api/messages?contact_id=${contactId}`);
+      const res = await fetch(withAccount(`/api/messages?contact_id=${contactId}`));
       const data = await res.json();
       if (res.ok) {
         setChatMessages(data);
@@ -237,7 +314,7 @@ export default function Dashboard() {
 
     setSendingMessage(true);
     try {
-      const res = await fetch('/api/messages', {
+      const res = await fetch(withAccount('/api/messages'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -285,7 +362,7 @@ export default function Dashboard() {
     }
     setLoadingMedia(true);
     try {
-      const res = await fetch('/api/instagram/media');
+      const res = await fetch(withAccount('/api/instagram/media'));
       const data = await res.json();
       if (res.ok && data.data) {
         setMediaList(data.data);
@@ -427,13 +504,27 @@ export default function Dashboard() {
     }
   };
 
-  // Desconectar o Instagram limpando o banco
+  // Desconecta apenas a conta atualmente selecionada no seletor, sem afetar
+  // as outras contas conectadas pelo mesmo login.
   const handleDisconnect = async () => {
-    if (!confirm('Deseja realmente desconectar esta conta do Instagram?')) return;
+    if (!selectedAccountId) return;
+    const account = accounts.find(a => a.instagram_user_id === selectedAccountId);
+    if (!confirm(`Deseja realmente desconectar a conta @${account?.instagram_username || selectedAccountId}?`)) return;
+
     try {
-      const res = await fetch('/api/status', { method: 'DELETE' });
+      const res = await fetch(withAccount('/api/status'), { method: 'DELETE' });
       if (res.ok) {
         showToast('Conta desconectada com sucesso.', 'success');
+        const remaining = accounts.filter(a => a.instagram_user_id !== selectedAccountId);
+        setAccounts(remaining);
+        const next = remaining.length > 0 ? remaining[0].instagram_user_id : null;
+        setSelectedAccountId(next);
+        if (typeof window !== 'undefined') {
+          if (next) localStorage.setItem(SELECTED_ACCOUNT_STORAGE_KEY, next);
+          else localStorage.removeItem(SELECTED_ACCOUNT_STORAGE_KEY);
+        }
+        setMediaList([]);
+        fetchStatusAndData(next);
       } else {
         showToast('Erro ao desconectar a conta.', 'error');
       }
@@ -603,32 +694,84 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Connection Status Badge in Pill */}
+          {/* Seletor de Conta / Badge de Conexão */}
           <div className="flex items-center gap-3">
-            {isConnected && config ? (
-              <div className="flex items-center gap-3 border border-[#282828] rounded-full py-1 pl-1 pr-3 bg-[#1A1A1A] shadow-xs">
-                {config.profile_picture_url ? (
-                  <img
-                    src={config.profile_picture_url}
-                    alt="Instagram Profile"
-                    className="w-6.5 h-6.5 rounded-full object-cover border border-[#282828]"
-                  />
-                ) : (
-                  <div className="w-6.5 h-6.5 rounded-full bg-[#282828] flex items-center justify-center">
-                    <Instagram className="w-3.5 h-3.5 text-[#A7A7A7]" />
-                  </div>
-                )}
-                <div className="text-left leading-none">
-                  <p className="text-[11px] font-bold text-white">@{config.instagram_username}</p>
-                  <p className="text-[9px] text-[#A7A7A7] mt-0.5">Conectado</p>
-                </div>
+            {accounts.length > 0 ? (
+              <div className="relative">
                 <button
-                  onClick={handleDisconnect}
-                  title="Desconectar Conta"
-                  className="ml-1 p-1 rounded-full hover:bg-[#282828] text-[#A7A7A7] hover:text-rose-500 transition-colors cursor-pointer"
+                  onClick={() => setAccountMenuOpen(o => !o)}
+                  className="flex items-center gap-2 border border-[#282828] rounded-full py-1 pl-1 pr-3 bg-[#1A1A1A] shadow-xs cursor-pointer hover:border-[#3E3E3E] transition-colors"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  {config?.profile_picture_url ? (
+                    <img
+                      src={config.profile_picture_url}
+                      alt="Instagram Profile"
+                      className="w-6.5 h-6.5 rounded-full object-cover border border-[#282828]"
+                    />
+                  ) : (
+                    <div className="w-6.5 h-6.5 rounded-full bg-[#282828] flex items-center justify-center">
+                      <Instagram className="w-3.5 h-3.5 text-[#A7A7A7]" />
+                    </div>
+                  )}
+                  <div className="text-left leading-none">
+                    <p className="text-[11px] font-bold text-white">@{config?.instagram_username || '...'}</p>
+                    <p className="text-[9px] text-[#A7A7A7] mt-0.5">
+                      {accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conectado'}
+                    </p>
+                  </div>
                 </button>
+
+                {accountMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setAccountMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-[#1A1A1A] border border-[#3E3E3E] rounded-2xl shadow-xl z-50 overflow-hidden">
+                      <div className="max-h-64 overflow-y-auto py-1">
+                        {accounts.map(acc => (
+                          <button
+                            key={acc.instagram_user_id}
+                            onClick={() => handleSelectAccount(acc.instagram_user_id)}
+                            className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-[#282828] transition-colors cursor-pointer ${
+                              acc.instagram_user_id === selectedAccountId ? 'bg-[#282828]' : ''
+                            }`}
+                          >
+                            {acc.profile_picture_url ? (
+                              <img src={acc.profile_picture_url} alt="" className="w-6 h-6 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-[#333333] flex items-center justify-center">
+                                <Instagram className="w-3 h-3 text-[#A7A7A7]" />
+                              </div>
+                            )}
+                            <span className="text-[11px] font-semibold text-white flex-1 truncate">
+                              @{acc.instagram_username || acc.instagram_user_id}
+                            </span>
+                            {acc.instagram_user_id === selectedAccountId && (
+                              <CheckCircle className="w-3.5 h-3.5 text-[#BADF95] flex-shrink-0" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="border-t border-[#3E3E3E] py-1">
+                        <button
+                          onClick={() => { setAccountMenuOpen(false); handleConnectInstagram(); }}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-[#282828] text-[#BADF95] text-[11px] font-bold cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Conectar outra conta
+                        </button>
+                        <button
+                          onClick={() => { setAccountMenuOpen(false); handleDisconnect(); }}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-[#282828] text-rose-500 text-[11px] font-bold cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          Desconectar esta conta
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               <button

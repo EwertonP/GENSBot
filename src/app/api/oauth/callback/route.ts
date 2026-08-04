@@ -124,26 +124,10 @@ export async function GET(req: Request) {
 
     if (accountError) {
       console.error('Erro ao salvar instagram_accounts:', accountError);
-    }
-
-    // 5. Salvar configurações principais no Supabase (mantém compatibilidade)
-    const { error: dbError } = await supabase.from('config').upsert({
-      id: true,
-      instagram_token: longToken,
-      instagram_user_id: igUserId,
-      instagram_username: igUsername,
-      profile_picture_url: profilePictureUrl,
-      token_expires_at: tokenExpiresAt.toISOString(),
-      updated_at: new Date().toISOString(),
-      user_id: userId,
-    });
-
-    if (dbError) {
-      console.error('Erro ao salvar config no Supabase:', dbError);
       throw new Error('Erro ao gravar dados no banco de dados.');
     }
 
-    // 6. Assinar os webhooks para o aplicativo (comments, messages)
+    // 5. Assinar os webhooks para o aplicativo (comments, messages)
     const subscribeResponse = await fetch(
       `https://graph.instagram.com/v25.0/${igUserId}/subscribed_apps?subscribed_fields=comments,messages`,
       {
@@ -159,8 +143,11 @@ export async function GET(req: Request) {
       console.error('Erro ao assinar webhooks:', subscribeData);
     }
 
-    // Redirecionar de volta para o dashboard com sucesso
-    return NextResponse.redirect(new URL('/?success=connected', req.url));
+    // Redirecionar de volta para o dashboard com sucesso, indicando qual conta
+    // foi conectada para que o seletor de contas já a selecione automaticamente.
+    return NextResponse.redirect(
+      new URL(`/?success=connected&account=${encodeURIComponent(igUserId)}`, req.url)
+    );
   } catch (err: any) {
     console.error('Erro geral no callback OAuth:', err);
     return NextResponse.redirect(
