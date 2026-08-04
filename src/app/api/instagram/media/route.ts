@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
 import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
 
-    const config = await getActiveInstagramAccountForUser(user.id);
+    const accountParam = new URL(req.url).searchParams.get('account');
+    const config = await getActiveInstagramAccountForUser(user.id, accountParam);
 
     if (!config || !config.access_token || !config.instagram_user_id) {
       return NextResponse.json({ error: 'Instagram não conectado.' }, { status: 400 });

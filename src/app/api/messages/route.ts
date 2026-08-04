@@ -16,7 +16,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'contact_id é obrigatório.' }, { status: 400 });
     }
 
-    const config = await getActiveInstagramAccountForUser(user.id);
+    const config = await getActiveInstagramAccountForUser(user.id, searchParams.get('account'));
 
     if (!config || !config.instagram_user_id) {
       return NextResponse.json([]);
@@ -49,8 +49,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'contact_id e text são obrigatórios.' }, { status: 400 });
     }
 
+    const accountParam = new URL(req.url).searchParams.get('account');
+
     // 1. Buscar token ativo do Instagram do usuário logado
-    const config = await getActiveInstagramAccountForUser(user.id);
+    const config = await getActiveInstagramAccountForUser(user.id, accountParam);
 
     if (!config || !config.access_token || !config.instagram_user_id) {
       return NextResponse.json({ error: 'Configuração ou token do Instagram não encontrado.' }, { status: 404 });

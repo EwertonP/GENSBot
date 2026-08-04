@@ -143,8 +143,11 @@ export async function GET(req: Request) {
       console.error('Erro ao assinar webhooks:', subscribeData);
     }
 
-    // Redirecionar de volta para o dashboard com sucesso
-    return NextResponse.redirect(new URL('/?success=connected', req.url));
+    // Redirecionar de volta para o dashboard com sucesso, indicando qual conta
+    // foi conectada para que o seletor de contas já a selecione automaticamente.
+    return NextResponse.redirect(
+      new URL(`/?success=connected&account=${encodeURIComponent(igUserId)}`, req.url)
+    );
   } catch (err: any) {
     console.error('Erro geral no callback OAuth:', err);
     return NextResponse.redirect(

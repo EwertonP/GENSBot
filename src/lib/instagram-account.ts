@@ -28,18 +28,39 @@ export async function getInstagramAccountByInstagramUserId(instagramUserId: stri
 }
 
 /**
- * Busca a conta do Instagram mais recentemente conectada por um usuário logado.
- * Mantém o comportamento de "uma conta ativa por usuário" que as rotas de API
- * já assumiam via `config`, mas sem o bug de single-row global.
+ * Lista todas as contas do Instagram conectadas por um usuário, mais recente
+ * primeiro. Usada para popular o seletor de contas no dashboard.
  */
-export async function getActiveInstagramAccountForUser(userId: string) {
+export async function listInstagramAccountsForUser(userId: string) {
   const { data, error } = await supabase
     .from('instagram_accounts')
-    .select('*')
+    .select('id, instagram_user_id, instagram_username, profile_picture_url, token_expires_at, created_at')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle<InstagramAccount>();
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Busca a conta do Instagram "ativa" para as rotas de API. Se `instagramUserId`
+ * for informado (vindo do seletor de contas no dashboard), busca exatamente
+ * essa conta do usuário. Caso contrário, cai para a conta conectada mais
+ * recentemente — mantém funcionando quem ainda não usou o seletor.
+ */
+export async function getActiveInstagramAccountForUser(userId: string, instagramUserId?: string | null) {
+  let query = supabase
+    .from('instagram_accounts')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (instagramUserId) {
+    query = query.eq('instagram_user_id', instagramUserId);
+  } else {
+    query = query.order('created_at', { ascending: false });
+  }
+
+  const { data, error } = await query.limit(1).maybeSingle<InstagramAccount>();
 
   if (error) throw error;
   return data;
