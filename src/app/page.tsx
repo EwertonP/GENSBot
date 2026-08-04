@@ -116,6 +116,14 @@ export default function Dashboard() {
   const [weeklyChartMax, setWeeklyChartMax] = useState(1);
   const [health, setHealth] = useState({ sentPercent: 0, pendingPercent: 0, failedPercent: 0, hasData: false });
   const [trends, setTrends] = useState<{ contacts: number | null; automations: number | null; queue: number | null; events: number | null }>({ contacts: null, automations: null, queue: null, events: null });
+  const [failureDiagnostics, setFailureDiagnostics] = useState<{ reason: string; count: number }[]>([]);
+  const [automationRanking, setAutomationRanking] = useState<{ id: string; name: string; comments: number; welcomeDms: number; clicks: number; leads: number }[]>([]);
+  const [tokenHealth, setTokenHealth] = useState<{ instagram_user_id: string; instagram_username: string | null; daysRemaining: number | null; status: 'ok' | 'warning' | 'expired' | 'unknown' }[]>([]);
+  const [alerts, setAlerts] = useState<{ level: 'critical' | 'warning'; message: string }[]>([]);
+  const [isAggregateView, setIsAggregateView] = useState(false);
+  const [tagFilter, setTagFilter] = useState<string>('');
+  const [editingTagsFor, setEditingTagsFor] = useState<string | null>(null);
+  const [tagInputValue, setTagInputValue] = useState('');
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [recentQueue, setRecentQueue] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -196,6 +204,11 @@ export default function Dashboard() {
         setWeeklyChartMax(data.weeklyChartMax || 1);
         setHealth(data.health || { sentPercent: 0, pendingPercent: 0, failedPercent: 0, hasData: false });
         setTrends(data.trends || { contacts: null, automations: null, queue: null, events: null });
+        setFailureDiagnostics(data.failureDiagnostics || []);
+        setAutomationRanking(data.automationRanking || []);
+        setTokenHealth(data.tokenHealth || []);
+        setAlerts(data.alerts || []);
+        setIsAggregateView(!!data.isAggregate);
       }
 
       const autRes = await fetch(withAccount('/api/automations', accountIdOverride));
@@ -230,6 +243,8 @@ export default function Dashboard() {
 
       if (preferredAccountId && data.some(a => a.instagram_user_id === preferredAccountId)) {
         nextSelected = preferredAccountId;
+      } else if (stored === 'all' && data.length > 1) {
+        nextSelected = 'all';
       } else if (stored && data.some(a => a.instagram_user_id === stored)) {
         nextSelected = stored;
       } else if (data.length > 0) {
@@ -277,7 +292,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (isConnected && selectedAccountId) {
+    if (isConnected && selectedAccountId && selectedAccountId !== 'all') {
       fetch(withAccount('/api/instagram/media', selectedAccountId))
         .then(res => res.json())
         .then(data => {
@@ -515,7 +530,7 @@ export default function Dashboard() {
   // Desconecta apenas a conta atualmente selecionada no seletor, sem afetar
   // as outras contas conectadas pelo mesmo login.
   const handleDisconnect = async () => {
-    if (!selectedAccountId) return;
+    if (!selectedAccountId || selectedAccountId === 'all') return;
     const account = accounts.find(a => a.instagram_user_id === selectedAccountId);
     if (!confirm(`Deseja realmente desconectar a conta @${account?.instagram_username || selectedAccountId}?`)) return;
 
@@ -544,6 +559,66 @@ export default function Dashboard() {
   const handleAppLogout = async () => {
     await supabase.auth.signOut();
     router.push('/login');
+  };
+
+  // Adiciona uma tag a um contato e sincroniza a lista local sem recarregar tudo
+  const handleAddTag = async (contactId: string, currentTags: string[], newTag: string) => {
+    const tag = newTag.trim();
+    if (!tag || currentTags.includes(tag)) return;
+    const nextTags = [...currentTags, tag];
+    try {
+      const res = await fetch(withAccount(`/api/contacts/${contactId}`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: nextTags }),
+      });
+      if (res.ok) {
+        setContacts(prev => prev.map(c => c.instagram_id === contactId ? { ...c, tags: nextTags } : c));
+      } else {
+        showToast('Erro ao adicionar tag.', 'error');
+      }
+    } catch {
+      showToast('Erro de conexão ao adicionar tag.', 'error');
+    }
+  };
+
+  const handleRemoveTag = async (contactId: string, currentTags: string[], tagToRemove: string) => {
+    const nextTags = currentTags.filter(t => t !== tagToRemove);
+    try {
+      const res = await fetch(withAccount(`/api/contacts/${contactId}`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: nextTags }),
+      });
+      if (res.ok) {
+        setContacts(prev => prev.map(c => c.instagram_id === contactId ? { ...c, tags: nextTags } : c));
+      } else {
+        showToast('Erro ao remover tag.', 'error');
+      }
+    } catch {
+      showToast('Erro de conexão ao remover tag.', 'error');
+    }
+  };
+
+  // Gera e baixa um CSV a partir de uma lista de objetos, direto no navegador
+  const exportToCsv = (filename: string, rows: Record<string, any>[]) => {
+    if (rows.length === 0) {
+      showToast('Nada para exportar ainda.', 'error');
+      return;
+    }
+    const headers = Object.keys(rows[0]);
+    const escapeCell = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+    const csv = [
+      headers.join(','),
+      ...rows.map(row => headers.map(h => escapeCell(row[h])).join(',')),
+    ].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -630,7 +705,27 @@ export default function Dashboard() {
                   />
                   <div className="absolute left-0 top-full mt-2 w-full bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden">
                     <div className="max-h-64 overflow-y-auto py-1">
-                      {accounts.map(acc => (
+                      {accounts.length > 1 && (
+                        <button
+                          onClick={() => handleSelectAccount('all')}
+                          className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer ${
+                            selectedAccountId === 'all' ? 'bg-accent' : ''
+                          }`}
+                        >
+                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Users className="w-3 h-3 text-primary" />
+                          </div>
+                          <span className="text-[11px] font-semibold text-foreground flex-1 truncate">
+                            Todas as contas ({accounts.length})
+                          </span>
+                          {selectedAccountId === 'all' && (
+                            <CheckCircle className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                          )}
+                        </button>
+                      )}
+                      {accounts.map(acc => {
+                        const health = tokenHealth.find(t => t.instagram_user_id === acc.instagram_user_id);
+                        return (
                         <button
                           key={acc.instagram_user_id}
                           onClick={() => handleSelectAccount(acc.instagram_user_id)}
@@ -638,13 +733,21 @@ export default function Dashboard() {
                             acc.instagram_user_id === selectedAccountId ? 'bg-accent' : ''
                           }`}
                         >
-                          {acc.profile_picture_url ? (
-                            <img src={acc.profile_picture_url} alt="" className="w-6 h-6 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-                              <Instagram className="w-3 h-3 text-muted-foreground" />
-                            </div>
-                          )}
+                          <div className="relative flex-shrink-0">
+                            {acc.profile_picture_url ? (
+                              <img src={acc.profile_picture_url} alt="" className="w-6 h-6 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                                <Instagram className="w-3 h-3 text-muted-foreground" />
+                              </div>
+                            )}
+                            {health && (health.status === 'warning' || health.status === 'expired') && (
+                              <span
+                                title={health.status === 'expired' ? 'Token expirado' : `Token expira em ${health.daysRemaining} dia(s)`}
+                                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${health.status === 'expired' ? 'bg-destructive' : 'bg-amber-500'}`}
+                              />
+                            )}
+                          </div>
                           <span className="text-[11px] font-semibold text-foreground flex-1 truncate">
                             @{acc.instagram_username || acc.instagram_user_id}
                           </span>
@@ -652,7 +755,8 @@ export default function Dashboard() {
                             <CheckCircle className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                           )}
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="border-t border-border py-1">
                       <button
@@ -662,13 +766,15 @@ export default function Dashboard() {
                         <Plus className="w-3.5 h-3.5" />
                         Conectar outra conta
                       </button>
-                      <button
-                        onClick={() => { setAccountMenuOpen(false); handleDisconnect(); }}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent text-destructive text-[11px] font-bold cursor-pointer"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                        Desconectar esta conta
-                      </button>
+                      {selectedAccountId !== 'all' && (
+                        <button
+                          onClick={() => { setAccountMenuOpen(false); handleDisconnect(); }}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent text-destructive text-[11px] font-bold cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          Desconectar esta conta
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>
@@ -830,7 +936,24 @@ export default function Dashboard() {
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
             <div className="flex flex-col gap-6 animate-fade-in">
-              
+
+              {/* 0. Alertas do Sistema */}
+              {alerts.length > 0 && (
+                <section className="flex flex-col gap-2">
+                  {alerts.map((alert, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-start gap-3 px-4 py-3 rounded-2xl text-xs font-medium ${
+                        alert.level === 'critical' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span>{alert.message}</span>
+                    </div>
+                  ))}
+                </section>
+              )}
+
               {/* 1. Hero KPI Cards Grid — cards pastel, um por métrica */}
               <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {([
@@ -1129,10 +1252,60 @@ export default function Dashboard() {
 
               </div>
 
+              {/* 4. Diagnóstico de Falhas + Ranking de Automações */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-6 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+                  <div>
+                    <h4 className="font-bold text-foreground text-base">Diagnóstico de Falhas</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Motivos mais comuns de falha nos últimos 90 dias</p>
+                  </div>
+                  {failureDiagnostics.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Nenhuma falha registrada. 🎉</p>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {failureDiagnostics.map((f, i) => (
+                        <div key={i} className="flex items-center justify-between gap-3 text-xs">
+                          <span className="text-muted-foreground flex-1">{f.reason}</span>
+                          <span className="font-bold text-destructive bg-red-50 px-2 py-0.5 rounded-full flex-shrink-0">{f.count}x</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="lg:col-span-6 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+                  <div>
+                    <h4 className="font-bold text-foreground text-base">Ranking de Automações</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Quais automações mais convertem leads</p>
+                  </div>
+                  {automationRanking.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Nenhuma automação com interações ainda.</p>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {automationRanking.map((auto, i) => (
+                        <div key={auto.id} className="flex items-center gap-3 text-xs">
+                          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                          <span className="text-foreground font-semibold flex-1 truncate">{auto.name}</span>
+                          <span className="text-muted-foreground flex-shrink-0">{auto.comments} com. · {auto.clicks} cliques</span>
+                          <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full flex-shrink-0">{auto.leads} leads</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
             </div>
           )}
           {/* TAB: LIVE CHAT */}
-          {activeTab === 'chat' && (
+          {activeTab === 'chat' && isAggregateView && (
+            <div className="bg-card border border-accent rounded-2xl p-10 text-center">
+              <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm font-bold text-foreground">Selecione uma conta específica</p>
+              <p className="text-xs text-muted-foreground mt-1">O Live Chat funciona com uma conta do Instagram por vez. Escolha uma no seletor da sidebar.</p>
+            </div>
+          )}
+          {activeTab === 'chat' && !isAggregateView && (
             <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-6 bg-card border border-accent rounded-2xl overflow-hidden shadow-xs h-[calc(100vh-170px)]">
               {/* Left Contacts List */}
               <div className={`lg:col-span-4 border-r border-accent h-full overflow-hidden bg-background ${selectedContactId ? 'hidden lg:flex flex-col' : 'flex flex-col'}`}>
@@ -1301,8 +1474,14 @@ export default function Dashboard() {
           )}
 
           {/* TAB 2: AUTOMATIONS */}
-          {/* TAB 2: AUTOMATIONS */}
-          {activeTab === 'automations' && (
+          {activeTab === 'automations' && isAggregateView && (
+            <div className="bg-card border border-accent rounded-2xl p-10 text-center">
+              <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm font-bold text-foreground">Selecione uma conta específica</p>
+              <p className="text-xs text-muted-foreground mt-1">Automações são criadas e editadas por conta. Escolha uma no seletor da sidebar pra gerenciar.</p>
+            </div>
+          )}
+          {activeTab === 'automations' && !isAggregateView && (
             <div className="w-full">
               {!isEditing ? (
                 /* Screen 1: List of Automations (Full Width) */
@@ -2103,16 +2282,47 @@ export default function Dashboard() {
           )}
 
           {/* TAB 3: CONTACTS */}
-          {activeTab === 'contacts' && (
+          {activeTab === 'contacts' && (() => {
+            const allTags = Array.from(new Set(contacts.flatMap(c => c.tags || []))).sort();
+            const filteredContacts = tagFilter ? contacts.filter(c => (c.tags || []).includes(tagFilter)) : contacts;
+            return (
             <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="font-bold text-foreground text-base">Audiência Cadastrada</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Lista de usuários que interagiram com as suas automações.</p>
                 </div>
-                <span className="bg-accent border border-primary/25 text-primary font-bold text-xs px-3 py-1.5 rounded-xl">
-                  {contacts.length} Contatos no Total
-                </span>
+                <div className="flex items-center gap-2">
+                  {allTags.length > 0 && (
+                    <select
+                      value={tagFilter}
+                      onChange={e => setTagFilter(e.target.value)}
+                      className="bg-accent border border-border rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
+                    >
+                      <option value="">Todas as tags</option>
+                      {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
+                    </select>
+                  )}
+                  <button
+                    onClick={() => exportToCsv('contatos.csv', filteredContacts.map(c => ({
+                      nome: c.name || '',
+                      username: c.username || '',
+                      instagram_id: c.instagram_id,
+                      email: c.email || '',
+                      telefone: c.phone || '',
+                      tags: (c.tags || []).join('; '),
+                      ultima_interacao: c.last_response_at || '',
+                      cadastrado_em: c.first_contact_at || c.created_at || '',
+                    })))}
+                    className="flex items-center gap-1.5 bg-accent hover:bg-muted border border-border rounded-xl px-3 py-1.5 text-xs font-bold text-foreground cursor-pointer transition-colors"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Exportar CSV
+                  </button>
+                  <span className="bg-accent border border-primary/25 text-primary font-bold text-xs px-3 py-1.5 rounded-xl">
+                    {filteredContacts.length} Contatos
+                  </span>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -2123,17 +2333,18 @@ export default function Dashboard() {
                       <th className="py-3 px-4">Instagram</th>
                       <th className="py-3 px-4">ID do Usuário</th>
                       <th className="py-3 px-4">Dados Capturados</th>
+                      <th className="py-3 px-4">Tags</th>
                       <th className="py-3 px-4">Última Interação</th>
                       <th className="py-3 px-4">Cadastrado em</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-accent">
-                    {contacts.length === 0 ? (
+                    {filteredContacts.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
+                        <td colSpan={7} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
                       </tr>
                     ) : (
-                      contacts.map(item => (
+                      filteredContacts.map(item => (
                         <tr key={item.instagram_id || item.id} className="hover:bg-card/70 transition-colors">
                           <td className="py-3.5 px-4 font-bold text-foreground text-sm">
                             {item.name || <span className="text-muted-foreground font-normal italic">Não informado</span>}
@@ -2161,6 +2372,46 @@ export default function Dashboard() {
                               {!item.email && !item.phone && <span className="text-muted-foreground italic">Nenhum</span>}
                             </div>
                           </td>
+                          <td className="py-3.5 px-4 text-xs">
+                            <div className="flex flex-wrap items-center gap-1 max-w-[220px]">
+                              {(item.tags || []).map((tag: string) => (
+                                <span key={tag} className="flex items-center gap-1 bg-violet-100 text-violet-700 font-bold px-2 py-0.5 rounded-full">
+                                  {tag}
+                                  <button onClick={() => handleRemoveTag(item.instagram_id, item.tags || [], tag)} className="hover:text-red-600 cursor-pointer">
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </span>
+                              ))}
+                              {editingTagsFor === item.instagram_id ? (
+                                <input
+                                  autoFocus
+                                  value={tagInputValue}
+                                  onChange={e => setTagInputValue(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                      handleAddTag(item.instagram_id, item.tags || [], tagInputValue);
+                                      setTagInputValue('');
+                                      setEditingTagsFor(null);
+                                    } else if (e.key === 'Escape') {
+                                      setEditingTagsFor(null);
+                                      setTagInputValue('');
+                                    }
+                                  }}
+                                  onBlur={() => { setEditingTagsFor(null); setTagInputValue(''); }}
+                                  placeholder="nova tag..."
+                                  className="w-20 bg-accent border border-border rounded-full px-2 py-0.5 text-[10px] focus:outline-none focus:border-primary"
+                                />
+                              ) : (
+                                <button
+                                  onClick={() => setEditingTagsFor(item.instagram_id)}
+                                  className="w-5 h-5 rounded-full bg-accent hover:bg-muted flex items-center justify-center text-muted-foreground cursor-pointer"
+                                  title="Adicionar tag"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
                           <td className="py-3.5 px-4 text-xs text-muted-foreground">
                             {item.last_response_at ? new Date(item.last_response_at).toLocaleString('pt-BR') : 'Sem interação'}
                           </td>
@@ -2174,7 +2425,8 @@ export default function Dashboard() {
                 </table>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* TAB 4: LOGS */}
           {activeTab === 'logs' && (
@@ -2214,12 +2466,28 @@ export default function Dashboard() {
 
               {/* Fila de Disparos Completa */}
               <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
-                <div>
-                  <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-primary" />
-                    Fila de Disparos de DMs
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">Histórico e status do pipeline de entrega de mensagens.</p>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-primary" />
+                      Fila de Disparos de DMs
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">Histórico e status do pipeline de entrega de mensagens.</p>
+                  </div>
+                  <button
+                    onClick={() => exportToCsv('fila_de_disparos.csv', recentQueue.map(item => ({
+                      contato: item.contact_id,
+                      tipo: item.type,
+                      status: item.status,
+                      erro: item.error_message || '',
+                      criado_em: item.created_at,
+                      enviado_em: item.sent_at || '',
+                    })))}
+                    className="flex items-center gap-1.5 bg-accent hover:bg-muted border border-border rounded-xl px-3 py-1.5 text-xs font-bold text-foreground cursor-pointer transition-colors flex-shrink-0"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    CSV
+                  </button>
                 </div>
 
                 <div className="flex flex-col gap-2.5 max-h-[500px] overflow-y-auto pr-1">
