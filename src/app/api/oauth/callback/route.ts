@@ -109,6 +109,29 @@ export async function GET(req: Request) {
     const igUsername = profileData.username;
     const profilePictureUrl = profileData.profile_picture_url || null;
 
+    // 3.5. Impedir que a mesma conta do Instagram seja vinculada a dois
+    // usuários do SaaS diferentes ao mesmo tempo. O webhook da Meta só manda
+    // o instagram_user_id (não sabe de qual usuário do GENSBot é), então uma
+    // segunda vinculação torna a resolução do dono ambígua e derruba o
+    // processamento de TODOS os eventos dessa conta, silenciosamente.
+    const { data: existingOwner } = await supabase
+      .from('instagram_accounts')
+      .select('user_id')
+      .eq('instagram_user_id', igUserId)
+      .neq('user_id', userId)
+      .maybeSingle();
+
+    if (existingOwner) {
+      return NextResponse.redirect(
+        new URL(
+          '/?error=' + encodeURIComponent(
+            `A conta @${igUsername} do Instagram já está conectada a outro usuário do GENSBot. Desconecte-a lá antes de vincular por aqui.`
+          ),
+          req.url
+        )
+      );
+    }
+
     // 4. Salvar na tabela `instagram_accounts` (multi-tenant)
     const { error: accountError } = await supabase.from('instagram_accounts').upsert({
       user_id: userId,
