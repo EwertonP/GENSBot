@@ -103,7 +103,7 @@ export default function LoginPage() {
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           Ao entrar, você concorda com nossos{' '}
-          <a href="/privacidade" className="text-primary hover:underline">Termos de Uso</a>
+          <a href="/termos" className="text-primary hover:underline">Termos de Uso</a>
         </p>
       </div>
     </div>
