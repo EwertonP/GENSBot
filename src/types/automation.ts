@@ -15,6 +15,8 @@ export interface Automation {
   keywords: string[];
   match_type: 'contains' | 'exact' | 'any';
   specific_post_id?: string | null;
+  /** Story próprio ao qual o gatilho "Respostas aos Stories" fica restrito. */
+  specific_story_id?: string | null;
   public_replies: string[];
   welcome_dm: string;
   quick_reply_button?: string | null;

@@ -510,7 +510,8 @@ async function processWebhookEvent(payload: any) {
 
         // Se o contato está IDLE, verificar gatilhos
         const isStoryReply = !!messageData.reply_to?.story;
-        
+        const repliedStoryId = messageData.reply_to?.story?.id;
+
         let requiredTrigger = 'dm';
         if (isStoryReply) requiredTrigger = 'story';
         if (isStoryMention) requiredTrigger = 'story_mention';
@@ -527,6 +528,10 @@ async function processWebhookEvent(payload: any) {
         if (!automations) continue;
 
         for (const auto of automations) {
+          // Se a automação está restrita a uma story específica, ignora
+          // respostas a qualquer outra story sua.
+          if (isStoryReply && auto.specific_story_id && auto.specific_story_id !== repliedStoryId) continue;
+
           // Se for story mention, não precisa validar palavras-chave (assume true).
           if (isStoryMention || matchesKeywords(text, auto.keywords, auto.match_type)) {
             // Log do gatilho acionado

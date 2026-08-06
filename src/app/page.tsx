@@ -7,7 +7,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import ThemeToggle from '@/components/theme-toggle';
 import AutomationTable from '@/components/automation-table';
 import Logo from '@/components/logo';
-import type { Automation, Followup } from '@/types/automation';
+import type { Automation } from '@/types/automation';
 import {
   Settings,
   Plus,
@@ -29,6 +29,10 @@ import {
   Users,
   BarChart3,
   HelpCircle,
+  MessageCircle,
+  Camera,
+  AtSign,
+  ChevronLeft,
 } from 'lucide-react';
 
 const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
@@ -53,6 +57,15 @@ interface IgMedia {
   media_url: string;
   thumbnail_url?: string;
   caption?: string;
+  permalink: string;
+}
+
+interface IgStory {
+  id: string;
+  media_type: string;
+  media_url: string;
+  thumbnail_url?: string;
+  timestamp: string;
   permalink: string;
 }
 
@@ -107,6 +120,11 @@ export default function Dashboard() {
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [mediaFilter, setMediaFilter] = useState<'all' | 'video' | 'carousel' | 'image'>('all');
 
+  // Stories ativas do Instagram (só as das últimas 24h ficam disponíveis)
+  const [storyList, setStoryList] = useState<IgStory[]>([]);
+  const [loadingStories, setLoadingStories] = useState(false);
+  const [showStoryModal, setShowStoryModal] = useState(false);
+
   // Dashboard Chart States
   const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(3);
   const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | 'month'>('7d');
@@ -121,6 +139,7 @@ export default function Dashboard() {
     keywords: [],
     match_type: 'contains',
     specific_post_id: null,
+    specific_story_id: null,
     public_replies: [],
     welcome_dm: '',
     quick_reply_button: 'Quero!',
@@ -372,6 +391,26 @@ export default function Dashboard() {
     }
   };
 
+  const handleLoadStories = async () => {
+    // Diferente de posts, stories expiram — sempre busca de novo em vez de
+    // usar cache, pra não mostrar uma story que já sumiu.
+    setLoadingStories(true);
+    try {
+      const res = await fetch(withAccount('/api/instagram/stories'));
+      const data = await res.json();
+      if (res.ok && data.data) {
+        setStoryList(data.data);
+        setShowStoryModal(true);
+      } else {
+        showToast(data.error || 'Erro ao carregar stories do Instagram.', 'error');
+      }
+    } catch (err) {
+      showToast('Erro de conexão ao carregar stories.', 'error');
+    } finally {
+      setLoadingStories(false);
+    }
+  };
+
   const handleSaveAutomation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.welcome_dm) {
@@ -431,6 +470,7 @@ export default function Dashboard() {
       keywords: [],
       match_type: 'contains',
       specific_post_id: null,
+      specific_story_id: null,
       public_replies: [],
       welcome_dm: '',
       quick_reply_button: 'Quero!',
@@ -779,7 +819,7 @@ export default function Dashboard() {
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4 mb-2">Operações</span>
             {[
               { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-              { id: 'chat', label: 'Live Chat Inbox', icon: MessageSquare },
+              { id: 'chat', label: 'Direct', icon: MessageSquare },
               { id: 'automations', label: 'Automações', icon: Settings },
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
             ].map(item => {
@@ -890,7 +930,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-lg font-bold text-foreground tracking-tight">
               {activeTab === 'dashboard' && 'Dashboard'}
-              {activeTab === 'chat' && 'Live Chat Inbox'}
+              {activeTab === 'chat' && 'Direct'}
               {activeTab === 'automations' && 'Automações'}
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'logs' && 'Logs de Eventos'}
@@ -1280,7 +1320,7 @@ export default function Dashboard() {
             <div className="bg-card border border-accent rounded-2xl p-10 text-center">
               <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-bold text-foreground">Selecione uma conta específica</p>
-              <p className="text-xs text-muted-foreground mt-1">O Live Chat funciona com uma conta do Instagram por vez. Escolha uma no seletor da sidebar.</p>
+              <p className="text-xs text-muted-foreground mt-1">O Direct funciona com uma conta do Instagram por vez. Escolha uma no seletor da sidebar.</p>
             </div>
           )}
           {activeTab === 'chat' && !isAggregateView && (
@@ -1560,14 +1600,15 @@ export default function Dashboard() {
                         {/* Fontes do Gatilho */}
                         <div className="flex flex-col gap-2">
                           <label className="text-xs font-bold text-muted-foreground">Fontes do Gatilho (Selecione um ou mais)</label>
-                          <div className="flex items-center gap-2.5 flex-wrap">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             {[
-                              { id: 'comment', label: 'Comentários em Posts' },
-                              { id: 'dm', label: 'Mensagens Diretas (DMs)' },
-                              { id: 'story', label: 'Respostas aos Meus Stories' },
-                              { id: 'story_mention', label: 'Menção nos Stories (Tag)' }
+                              { id: 'comment', label: 'Comentários em Posts', icon: MessageCircle },
+                              { id: 'dm', label: 'Mensagens Diretas', icon: Send },
+                              { id: 'story', label: 'Respostas aos Stories', icon: Camera },
+                              { id: 'story_mention', label: 'Menção nos Stories', icon: AtSign },
                             ].map(trigger => {
                               const active = form.triggers.includes(trigger.id);
+                              const Icon = trigger.icon;
                               return (
                                 <button
                                   type="button"
@@ -1579,14 +1620,22 @@ export default function Dashboard() {
                                     if (nextTriggers.length > 0) {
                                       setForm(prev => ({ ...prev, triggers: nextTriggers }));
                                     }
+                                    // Ao ativar "Respostas aos Stories", já abre o seletor de
+                                    // stories ativos pra vincular a automação a um específico
+                                    // (diferente de "Menção", que é story de outra pessoa —
+                                    // não existe "qual story meu" nesse caso).
+                                    if (trigger.id === 'story' && !active) {
+                                      handleLoadStories();
+                                    }
                                   }}
-                                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                                  className={`flex flex-col items-center justify-center gap-2 p-4 rounded-lg border-2 text-center transition-all cursor-pointer ${
                                     active
-                                      ? 'bg-primary border-primary text-primary-foreground shadow-2xs'
-                                      : 'bg-accent border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+                                      ? 'bg-primary/10 border-primary text-primary'
+                                      : 'bg-card border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground'
                                   }`}
                                 >
-                                  {trigger.label}
+                                  <Icon className="w-5 h-5" />
+                                  <span className="text-xs font-bold leading-tight">{trigger.label}</span>
                                 </button>
                               );
                             })}
@@ -1667,6 +1716,58 @@ export default function Dashboard() {
                             })()}
                           </div>
                         </div>
+
+                        {/* Story target selector — só faz sentido pro gatilho "Respostas
+                            aos Stories", já que aí existe um story SEU específico pra
+                            restringir. Ao contrário de posts, a API só devolve stories
+                            ativas nas últimas 24h. */}
+                        {form.triggers.includes('story') && (
+                          <div className="flex flex-col gap-1.5 pt-1">
+                            <label className="text-xs font-bold text-muted-foreground">Story Alvo (Opcional)</label>
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={handleLoadStories}
+                                disabled={loadingStories}
+                                className="px-4 py-2.5 rounded-xl border border-border bg-accent hover:bg-muted text-foreground text-xs font-bold cursor-pointer transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait"
+                              >
+                                {loadingStories
+                                  ? 'Carregando stories...'
+                                  : form.specific_story_id ? 'Trocar Story Selecionado' : 'Selecionar Story Ativo'}
+                                <Camera className="w-3.5 h-3.5" />
+                              </button>
+                              {form.specific_story_id && (() => {
+                                const selectedStory = storyList.find(s => s.id === form.specific_story_id);
+                                return (
+                                  <div className="flex items-center gap-3 bg-accent border border-border rounded-xl p-2 animate-fade-in text-foreground">
+                                    {selectedStory && (
+                                      <div className="w-12 h-12 rounded-lg overflow-hidden relative border border-border flex-shrink-0">
+                                        <img
+                                          src={selectedStory.thumbnail_url || selectedStory.media_url}
+                                          alt="Story selecionado"
+                                          className="absolute inset-0 w-full h-full object-cover"
+                                        />
+                                      </div>
+                                    )}
+                                    <span className="text-[10px] font-bold text-muted-foreground font-mono truncate max-w-[150px]">
+                                      ID: {form.specific_story_id}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setForm(prev => ({ ...prev, specific_story_id: null }))}
+                                      className="text-xs text-muted-foreground hover:text-destructive font-bold ml-2 cursor-pointer"
+                                    >
+                                      Limpar
+                                    </button>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              Sem story ativo? A API só lista stories publicadas nas últimas 24h. Sem seleção, a automação responde a respostas de qualquer story seu.
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Step 2: Resposta Pública Card */}
@@ -2013,153 +2114,148 @@ export default function Dashboard() {
                     <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest bg-card border border-accent px-3 py-1.5 rounded-full shadow-xs">
                       Visualização em Tempo Real (Direct)
                     </span>
-                    
-                    <div className="w-[300px] h-[580px] border-[10px] border-border rounded-[48px] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none">
-                      {/* iPhone top notch/camera */}
+
+                    <div className="w-[300px] h-[600px] border-[10px] border-border rounded-[48px] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none">
+                      {/* iPhone top notch */}
                       <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-5 bg-border rounded-full z-20 flex items-center justify-center">
                         <div className="w-1.5 h-1.5 rounded-full bg-card ml-8 border border-accent"></div>
                       </div>
-                      
+
                       {/* Status Bar */}
-                      <div className="flex justify-between items-center px-6 pt-3.5 pb-1 text-[9px] font-bold text-foreground bg-background/90 z-10">
+                      <div className="flex justify-between items-center px-6 pt-3.5 pb-1 text-[9px] font-bold text-[#262626] bg-white z-10">
                         <span>09:41</span>
                         <div className="flex items-center gap-1">
                           <span className="text-[7px]">5G</span>
-                          <div className="w-4 h-2 border border-foreground/60 rounded-[3px] p-[1px] flex items-center">
-                            <div className="w-full h-full bg-foreground rounded-[1px]"></div>
+                          <div className="w-4 h-2 border border-[#262626]/60 rounded-[3px] p-[1px] flex items-center">
+                            <div className="w-full h-full bg-[#262626] rounded-[1px]"></div>
                           </div>
                         </div>
                       </div>
 
+                      {/* A partir daqui simula o Direct de verdade — cores fixas
+                          (não os tokens de tema do GENSBot), porque o objetivo é
+                          fidelidade ao Instagram, não à identidade visual do app. */}
+
                       {/* Direct Chat Header */}
-                      <div className="flex items-center justify-between border-b border-accent bg-card px-4 py-2 text-foreground">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-accent border border-border flex items-center justify-center">
-                            <Instagram className="w-4.5 h-4.5 text-primary" />
-                          </div>
-                          <div className="text-left">
-                            <p className="text-[10px] font-extrabold leading-none">@{config?.instagram_username || 'cliente'}</p>
-                            <p className="text-[8px] text-muted-foreground mt-0.5 leading-none">InstaFlow Bot</p>
+                      <div className="flex items-center gap-2 border-b border-[#dbdbdb] bg-white px-3 py-2.5">
+                        <ChevronLeft className="w-5 h-5 text-[#262626] flex-shrink-0" />
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#feda75] via-[#d62976] to-[#4f5bd5] p-[1.5px] flex-shrink-0">
+                          <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                            <Instagram className="w-4 h-4 text-[#262626]" />
                           </div>
                         </div>
-                        <span className="text-[8px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Simulador</span>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-[11px] font-bold text-[#262626] leading-none truncate">
+                            {config?.instagram_username || 'seu_perfil'}
+                          </p>
+                          <p className="text-[9px] text-[#8e8e8e] mt-1 leading-none">Ativo agora</p>
+                        </div>
+                        <Camera className="w-4.5 h-4.5 text-[#262626] flex-shrink-0" />
                       </div>
 
                       {/* Chat Message Thread Body */}
-                      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-background scrollbar-none">
-                        
-                        {/* 1. Comment Trigger simulation */}
+                      <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col bg-white scrollbar-none">
+                        <span className="text-[9px] text-[#8e8e8e] text-center font-semibold mb-2">Hoje 14:41</span>
+
+                        {/* 1. Contexto de gatilho (post) — como o Instagram mostra
+                            "respondeu ao seu post/story" antes da mensagem em si */}
                         {form.specific_post_id && (
-                          <div className="border border-accent rounded-xl p-2.5 bg-card/80 flex flex-col gap-1.5 max-w-[240px] text-left self-start">
-                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                              💬 Comentário no Post
-                            </span>
-                            <p className="text-[10px] text-foreground">
-                              <span className="font-bold text-primary">@seguidor</span> comentou: "{keywordInput.split(',')[0] || 'quero'}"
-                            </p>
-                          </div>
+                          <>
+                            <div className="self-start max-w-[75%] bg-[#efefef] rounded-2xl rounded-bl-md overflow-hidden flex items-center gap-2 p-1.5 pr-3 mb-0.5">
+                              <div className="w-7 h-7 rounded-lg bg-[#dbdbdb] flex-shrink-0"></div>
+                              <span className="text-[9px] text-[#262626] font-medium">Respondeu ao seu post</span>
+                            </div>
+                            <div className="self-start max-w-[75%] bg-[#efefef] text-[#262626] text-[12px] px-3 py-2 rounded-2xl rounded-bl-md leading-snug mb-2">
+                              {keywordInput.split(',')[0]?.trim() || 'quero'}
+                            </div>
+                          </>
                         )}
 
-                        {/* 2. Direct message reply simulation */}
+                        {/* 2. Resposta automática — sai da conta (direita, gradiente) */}
                         {form.welcome_dm && (
-                          <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-1">
-                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider pl-1">📥 Mensagem Recebida (DM)</span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium">
+                          <>
+                            <div className="self-end flex gap-1 items-center bg-gradient-to-br from-[#4f5bd5] to-[#a3348e] rounded-2xl rounded-br-md px-3 py-2.5 mb-0.5 w-fit opacity-70">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
+                            <div className="self-end max-w-[75%] bg-gradient-to-br from-[#4f5bd5] to-[#a3348e] text-white text-[12px] px-3 py-2 rounded-2xl rounded-br-md leading-snug mb-2">
                               {form.welcome_dm}
                             </div>
-                          </div>
+                          </>
                         )}
 
-                        {/* 3. Quick Reply simulated button */}
-                        {form.quick_reply_button && (
-                          <div className="flex flex-col gap-1 self-center w-full max-w-[180px] mt-0.5">
-                            <div className="bg-card border border-primary hover:bg-primary/10 text-primary text-[9px] py-1.5 px-3 rounded-full text-center font-extrabold cursor-pointer transition-all">
-                              {form.quick_reply_button}
+                        {/* 3. Captura de e-mail/telefone */}
+                        {form.ask_email && (
+                          <>
+                            <div className="self-end max-w-[75%] bg-gradient-to-br from-[#4f5bd5] to-[#a3348e] text-white text-[12px] px-3 py-2 rounded-2xl rounded-br-md leading-snug mb-2">
+                              Por favor, digite seu e-mail para receber o acesso:
                             </div>
-                            <span className="text-[7px] text-muted-foreground text-center italic mt-0.5">(Seguidor clica acima)</span>
-                          </div>
+                            <div className="self-start max-w-[75%] bg-[#efefef] text-[#262626] text-[12px] px-3 py-2 rounded-2xl rounded-bl-md leading-snug mb-2">
+                              exemplo@email.com
+                            </div>
+                          </>
+                        )}
+                        {form.ask_phone && (
+                          <>
+                            <div className="self-end max-w-[75%] bg-gradient-to-br from-[#4f5bd5] to-[#a3348e] text-white text-[12px] px-3 py-2 rounded-2xl rounded-br-md leading-snug mb-2">
+                              Por favor, informe seu WhatsApp com DDD:
+                            </div>
+                            <div className="self-start max-w-[75%] bg-[#efefef] text-[#262626] text-[12px] px-3 py-2 rounded-2xl rounded-bl-md leading-snug mb-2">
+                              (11) 99999-9999
+                            </div>
+                          </>
                         )}
 
-                        {/* 4. Contact prompts simulation (if asked) */}
-                        {(form.ask_email || form.ask_phone) && (
-                          <div className="flex flex-col gap-2 mt-2">
-                            {form.ask_email && (
-                              <>
-                                <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none max-w-[220px] text-left self-start font-medium">
-                                  Por favor, digite seu e-mail para receber o acesso:
-                                </div>
-                                <div className="bg-primary text-primary-foreground text-[10px] p-3 rounded-lg rounded-tr-none max-w-[180px] text-right self-end font-bold">
-                                  exemplo@email.com
-                                </div>
-                              </>
-                            )}
-                            {form.ask_phone && (
-                              <>
-                                <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none max-w-[220px] text-left self-start font-medium">
-                                  Por favor, informe seu WhatsApp para contato:
-                                </div>
-                                <div className="bg-primary text-primary-foreground text-[10px] p-3 rounded-lg rounded-tr-none max-w-[180px] text-right self-end font-bold">
-                                  +55 11 99999-9999
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        )}
-
-                        {/* 5. Link Delivery simulation */}
+                        {/* 4. Envio de link */}
                         {form.link_text && (
-                          <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2 w-full">
-                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider pl-1">🔗 Envio do Link</span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
-                              <p>{form.link_text}</p>
-                              {form.link_url && (
-                                <div className="mt-1 w-full flex justify-center border-t border-border pt-2">
-                                  <span className="text-primary font-bold text-center block w-full">{form.link_button_label || 'Acessar Link'}</span>
-                                </div>
-                              )}
-                            </div>
+                          <div className="self-end max-w-[75%] bg-gradient-to-br from-[#4f5bd5] to-[#a3348e] text-white text-[12px] px-3 py-2 rounded-2xl rounded-br-md leading-snug mb-2 flex flex-col gap-2">
+                            <p>{form.link_text}</p>
+                            {form.link_url && (
+                              <div className="border-t border-white/25 pt-2 text-center font-bold">
+                                {form.link_button_label || 'Acessar Link'}
+                              </div>
+                            )}
                           </div>
                         )}
 
-                        {/* Sequência (Follow-ups) */}
-                        {form.followups && form.followups.map((f, i) => (
-                          <div key={f.id} className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2 w-full">
-                            <span className="text-[8px] font-bold text-destructive uppercase tracking-wider pl-1 flex items-center gap-1">
-                              ⏰ Sequência ({f.delay_minutes}m depois)
-                            </span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium break-words flex flex-col gap-2">
-                              <p>{f.text}</p>
-                              {f.link_url && (
-                                <div className="mt-1 w-full flex justify-center border-t border-border pt-2">
-                                  <span className="text-primary font-bold text-center block w-full">{f.link_button_label || 'Acessar Link'}</span>
-                                </div>
-                              )}
-                            </div>
+                        {/* Sequência (follow-ups agendados) */}
+                        {form.followups && form.followups.map(f => (
+                          <div key={f.id} className="self-end max-w-[75%] bg-gradient-to-br from-[#4f5bd5] to-[#a3348e] text-white text-[12px] px-3 py-2 rounded-2xl rounded-br-md leading-snug mb-2 flex flex-col gap-2">
+                            <p>{f.text}</p>
+                            {f.link_url && (
+                              <div className="border-t border-white/25 pt-2 text-center font-bold">
+                                {f.link_button_label || 'Acessar Link'}
+                              </div>
+                            )}
                           </div>
                         ))}
 
-                        {/* 6. Reminder Delivery simulation */}
+                        {/* Lembrete */}
                         {form.reminder_text && (
-                          <div className="flex flex-col gap-1.5 self-start max-w-[220px] text-left mt-2">
-                            <span className="text-[8px] font-bold text-destructive uppercase tracking-wider pl-1 flex items-center gap-1">
-                              ⏰ Lembrete ({form.reminder_delay_minutes || 15}m depois)
-                            </span>
-                            <div className="bg-accent border border-border text-foreground text-[10px] p-3 rounded-lg rounded-tl-none leading-relaxed font-medium italic">
-                              {form.reminder_text}
-                            </div>
+                          <div className="self-end max-w-[75%] bg-gradient-to-br from-[#4f5bd5] to-[#a3348e] text-white text-[12px] px-3 py-2 rounded-2xl rounded-br-md leading-snug italic mb-2">
+                            {form.reminder_text}
                           </div>
                         )}
-
                       </div>
 
-                      {/* Phone Simulated Message Input Area */}
-                      <div className="border-t border-accent bg-card p-2.5 flex items-center gap-2">
-                        <div className="flex-1 bg-accent rounded-full px-3 py-1.5 text-[9px] text-muted-foreground border border-border text-left">
-                          Enviar mensagem...
+                      {/* Quick reply — fixo acima do campo de digitação, como no
+                          Instagram real (não solto no meio da conversa) */}
+                      {form.quick_reply_button && (
+                        <div className="border-t border-[#dbdbdb] bg-white px-3 py-2 flex">
+                          <span className="border border-[#dbdbdb] text-[#262626] text-[11px] font-semibold px-3 py-1.5 rounded-full">
+                            {form.quick_reply_button}
+                          </span>
                         </div>
-                        <div className="p-1.5 rounded-full bg-primary text-primary-foreground">
-                          <Send className="w-3 h-3" />
+                      )}
+
+                      {/* Barra de digitação */}
+                      <div className="border-t border-[#dbdbdb] bg-white px-3 py-2 flex items-center gap-2">
+                        <Camera className="w-5 h-5 text-[#262626] flex-shrink-0" />
+                        <div className="flex-1 bg-white border border-[#dbdbdb] rounded-full px-3 py-1.5 text-[11px] text-[#8e8e8e]">
+                          Mensagem...
                         </div>
+                        <Send className="w-4.5 h-4.5 text-[#3797f0] flex-shrink-0" />
                       </div>
                     </div>
                   </div>
@@ -2514,6 +2610,71 @@ export default function Dashboard() {
                     </div>
                   );
                 })}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {showStoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-xs p-4 animate-fade-in text-foreground">
+          <div className="bg-card border border-accent rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+
+            {/* Modal Header */}
+            <div className="p-5 border-b border-accent flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-foreground text-base">Selecionar Story Ativo</h4>
+                <p className="text-xs text-muted-foreground">Só aparecem stories publicadas nas últimas 24h.</p>
+              </div>
+              <button
+                onClick={() => setShowStoryModal(false)}
+                aria-label="Fechar seleção de story"
+                className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground cursor-pointer transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Grid */}
+            <div className="p-5 overflow-y-auto flex-1 bg-background">
+              {storyList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                  <Camera className="w-8 h-8 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Nenhuma story ativa agora</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                      Publique uma story no Instagram e volte aqui — ela some da lista 24h depois de postada.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {storyList.map(story => (
+                    <div
+                      key={story.id}
+                      onClick={() => {
+                        setForm(prev => ({ ...prev, specific_story_id: story.id }));
+                        setShowStoryModal(false);
+                        showToast('Story selecionada com sucesso!', 'success');
+                      }}
+                      className="bg-card border border-accent hover:border-primary rounded-2xl overflow-hidden cursor-pointer group transition-all shadow-sm hover:shadow-md text-foreground"
+                    >
+                      <div className="aspect-[9/16] bg-accent relative overflow-hidden border-b border-border">
+                        <img
+                          src={story.thumbnail_url || story.media_url}
+                          alt="Story do Instagram"
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
+                        />
+                      </div>
+                      <div className="px-2.5 py-2">
+                        <span className="text-[9px] text-muted-foreground font-mono">
+                          {new Date(story.timestamp).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
           </div>
