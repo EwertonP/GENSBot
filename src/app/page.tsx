@@ -295,6 +295,17 @@ export default function Dashboard() {
     }
   }, [isConnected, selectedAccountId]);
 
+  // Atualiza o dashboard (KPIs, gráficos, fila, diagnósticos) sozinho a cada
+  // 15s enquanto a aba estiver ativa — evita ter que apertar reload pra ver
+  // dados novos chegando de automações disparando em produção.
+  useEffect(() => {
+    if (!isConnected || activeTab !== 'dashboard') return;
+    const interval = setInterval(() => {
+      fetchStatusAndData();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [isConnected, activeTab, selectedAccountId]);
+
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 5000);
