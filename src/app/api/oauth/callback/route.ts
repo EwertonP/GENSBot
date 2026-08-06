@@ -79,8 +79,13 @@ export async function GET(req: Request) {
     const shortToken = tokenData.access_token;
 
     // 2. Trocar pelo Token de Acesso Longo (60 dias)
+    // client_secret/shortToken vão via encodeURIComponent — tokens do
+    // Instagram podem conter caracteres reservados de URL (+, /, =), e sem
+    // encoding a query string quebra silenciosamente: a Meta devolve um erro
+    // genérico ("Unsupported request - method type: get") em vez de apontar
+    // o parsing malformado, o que mascarava a causa real.
     const longTokenResponse = await fetch(
-      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortToken}`
+      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(clientSecret)}&access_token=${encodeURIComponent(shortToken)}`
     );
     const longTokenData = await longTokenResponse.json();
 
@@ -96,7 +101,7 @@ export async function GET(req: Request) {
 
     // 3. Buscar perfil do usuário
     const profileResponse = await fetch(
-      `https://graph.instagram.com/me?fields=user_id,username,name,profile_picture_url&access_token=${longToken}`
+      `https://graph.instagram.com/me?fields=user_id,username,name,profile_picture_url&access_token=${encodeURIComponent(longToken)}`
     );
     const profileData = await profileResponse.json();
 
