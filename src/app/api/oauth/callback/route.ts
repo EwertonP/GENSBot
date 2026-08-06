@@ -78,6 +78,20 @@ export async function GET(req: Request) {
 
     const shortToken = tokenData.access_token;
 
+    // DEBUG TEMPORÁRIO: já descartamos encoding, método HTTP e endpoint
+    // errados (batem com 3 fontes independentes da doc da Meta) — o erro
+    // "Unsupported request - method type: get" no passo 2 persiste mesmo
+    // assim. Preciso ver a forma real do token/resposta do passo 1 pra
+    // não continuar chutando. Remover depois de diagnosticar.
+    console.log('DEBUG token curto:', {
+      keys: Object.keys(tokenData),
+      tokenType: typeof shortToken,
+      tokenLength: shortToken?.length,
+      tokenPreview: shortToken ? `${shortToken.slice(0, 10)}...${shortToken.slice(-6)}` : null,
+      userId: tokenData.user_id,
+      permissions: tokenData.permissions,
+    });
+
     // 2. Trocar pelo Token de Acesso Longo (60 dias)
     // client_secret/shortToken vão via encodeURIComponent — tokens do
     // Instagram podem conter caracteres reservados de URL (+, /, =), e sem
