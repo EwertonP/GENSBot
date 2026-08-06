@@ -27,6 +27,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         keywords: body.keywords,
         match_type: body.match_type,
         specific_post_id: body.specific_post_id || null,
+        specific_story_id: body.specific_story_id || null,
         public_replies: body.public_replies,
         welcome_dm: body.welcome_dm,
         quick_reply_button: body.quick_reply_button || null,
