@@ -5,6 +5,28 @@ import { after } from 'next/server';
 import { getInstagramAccountByInstagramUserId } from '@/lib/instagram-account';
 import { drainQueue } from '@/lib/drain';
 
+// `messages.contact_id` tem FK pra `contacts.instagram_id` — pra um
+// comentarista/remetente de primeira vez (ainda sem linha em `contacts`,
+// já que o upsert completo só acontece depois, ao bater uma automação),
+// inserir em `messages` antes disso violava a FK. Como o client do
+// Supabase não lança exceção em erro de escrita (só devolve `{error}`,
+// que este arquivo não checava em nenhum insert), a falha era 100%
+// silenciosa: a mensagem nunca aparecia no histórico e ninguém via erro
+// nenhum. Isso garante a linha mínima antes de qualquer insert em `messages`.
+async function ensureContactExists(fields: {
+  user_id: string;
+  instagram_id: string;
+  instagram_user_id: string;
+}) {
+  const { error } = await supabase.from('contacts').upsert(fields, {
+    onConflict: 'instagram_id',
+    ignoreDuplicates: true,
+  });
+  if (error) {
+    console.error('Erro ao garantir existência do contato antes do log de mensagem:', error);
+  }
+}
+
 // Função para verificar a assinatura X-Hub-Signature-256 da Meta
 function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
   if (!signatureHeader) return false;
@@ -93,7 +115,11 @@ export async function POST(req: Request) {
 // Processador do payload do webhook
 async function fetchInstagramUserProfile(senderId: string, accessToken: string) {
   try {
-    const res = await fetch(`https://graph.facebook.com/v20.0/${senderId}?fields=username,name&access_token=${accessToken}`);
+    // Token do Instagram Business Login só é válido contra graph.instagram.com
+    // (mesmo host usado no resto do arquivo) — graph.facebook.com rejeitava
+    // com "Cannot parse access token", silenciosamente engolido pelo catch
+    // abaixo, então nunca aparecia como o motivo real de nada quebrar.
+    const res = await fetch(`https://graph.instagram.com/v25.0/${senderId}?fields=username,name&access_token=${accessToken}`);
     if (res.ok) {
       const data = await res.json();
       return {
@@ -145,8 +171,17 @@ async function processWebhookEvent(payload: any) {
           // Ignorar comentários da própria conta
           if (fromUserId === myIgId) continue;
 
+          // Garante que o contato exista antes de logar a mensagem (ver
+          // ensureContactExists) — evita violar a FK messages.contact_id
+          // pra quem comenta pela primeira vez.
+          await ensureContactExists({
+            user_id: ownerUserId,
+            instagram_id: fromUserId,
+            instagram_user_id: myIgId,
+          });
+
           // Salvar comentário recebido no histórico de mensagens (inbound)
-          await supabase.from('messages').insert({
+          const { error: commentMsgError } = await supabase.from('messages').insert({
             user_id: ownerUserId,
             instagram_user_id: myIgId,
             contact_id: fromUserId,
@@ -154,6 +189,7 @@ async function processWebhookEvent(payload: any) {
             text: `[Comentário no Post] ${text}`,
             payload: value
           });
+          if (commentMsgError) console.error('Erro ao salvar comentário em messages:', commentMsgError);
 
           // Buscar automações ativas com gatilho de comentário pertencentes a esta conta
           const { data: automations } = await supabase
@@ -239,7 +275,7 @@ async function processWebhookEvent(payload: any) {
                 },
               };
 
-              await supabase.from('queue').insert({
+              const { error: queueCommentError } = await supabase.from('queue').insert({
                 user_id: ownerUserId,
                 instagram_user_id: myIgId,
                 contact_id: fromUserId,
@@ -250,6 +286,7 @@ async function processWebhookEvent(payload: any) {
                 status: 'pending',
                 scheduled_at: new Date().toISOString(),
               });
+              if (queueCommentError) console.error('Erro ao enfileirar resposta de comentário:', queueCommentError);
 
               // Se não estiver capturando dados e houver respostas públicas configuradas, sortear uma e enfileirar
               if (auto.public_replies && auto.public_replies.length > 0) {
@@ -295,8 +332,16 @@ async function processWebhookEvent(payload: any) {
         const isStoryMention = !!messageData.story?.mention;
         const text = messageData.text || (isStoryMention ? '[Menção no Story]' : '');
 
+        // Garante que o contato exista antes de logar a mensagem — mesma
+        // razão do bloco de comentários acima.
+        await ensureContactExists({
+          user_id: ownerUserId,
+          instagram_id: senderId,
+          instagram_user_id: myIgId,
+        });
+
         // Salvar mensagem recebida no Direct (inbound)
-        await supabase.from('messages').insert({
+        const { error: dmMsgError } = await supabase.from('messages').insert({
           user_id: ownerUserId,
           instagram_user_id: myIgId,
           contact_id: senderId,
@@ -304,6 +349,7 @@ async function processWebhookEvent(payload: any) {
           text: text || 'Mensagem / Mídia recebida',
           payload: messageEvent
         });
+        if (dmMsgError) console.error('Erro ao salvar DM em messages:', dmMsgError);
 
         // Buscar dados do contato existente para ver o estado da conversa
         const { data: contact } = await supabase
@@ -599,7 +645,7 @@ async function processWebhookEvent(payload: any) {
               },
             };
 
-            await supabase.from('queue').insert({
+            const { error: queueDmError } = await supabase.from('queue').insert({
               user_id: ownerUserId,
               instagram_user_id: myIgId,
               contact_id: senderId,
@@ -610,6 +656,7 @@ async function processWebhookEvent(payload: any) {
               status: 'pending',
               scheduled_at: new Date().toISOString(),
             });
+            if (queueDmError) console.error('Erro ao enfileirar resposta de DM:', queueDmError);
 
             queueDrainNeeded = true;
             break;
