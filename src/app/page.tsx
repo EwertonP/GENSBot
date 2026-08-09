@@ -6,8 +6,14 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import ThemeToggle from '@/components/theme-toggle';
 import AutomationTable from '@/components/automation-table';
+import SequenceManager from '@/components/sequence-manager';
 import Logo from '@/components/logo';
 import type { Automation } from '@/types/automation';
+// Aliasado pra não colidir com `export const dynamic = 'force-dynamic'` (route segment config) acima.
+// @xyflow/react é client-only (usa ResizeObserver) — ssr:false confirmado como padrão válido
+// em node_modules/next/dist/docs/01-app/02-guides/lazy-loading.md pra este Next 16 canary.
+import nextDynamicImport from 'next/dynamic';
+const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
 import {
   Settings,
   Plus,
@@ -33,6 +39,7 @@ import {
   Camera,
   AtSign,
   ChevronLeft,
+  Layers,
 } from 'lucide-react';
 
 const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
@@ -113,6 +120,8 @@ export default function Dashboard() {
   const [recentQueue, setRecentQueue] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [automations, setAutomations] = useState<Automation[]>([]);
+  // Editor visual (canvas) — coexiste com o form linear abaixo; abre em tela cheia quando preenchido.
+  const [flowBuilderAutomation, setFlowBuilderAutomation] = useState<Automation | null>(null);
   
   // Mídias do Instagram para o seletor visual
   const [mediaList, setMediaList] = useState<IgMedia[]>([]);
@@ -131,7 +140,7 @@ export default function Dashboard() {
 
   // Estados do formulário de automação
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'contacts' | 'logs' | 'chat'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'sequences' | 'contacts' | 'logs' | 'chat'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -832,6 +841,7 @@ export default function Dashboard() {
               { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
               { id: 'chat', label: 'Direct', icon: MessageSquare },
               { id: 'automations', label: 'Automações', icon: Settings },
+              { id: 'sequences', label: 'Sequências', icon: Layers },
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
             ].map(item => {
               const Icon = item.icon;
@@ -943,6 +953,7 @@ export default function Dashboard() {
               {activeTab === 'dashboard' && 'Dashboard'}
               {activeTab === 'chat' && 'Direct'}
               {activeTab === 'automations' && 'Automações'}
+              {activeTab === 'sequences' && 'Sequências'}
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
@@ -950,6 +961,7 @@ export default function Dashboard() {
               {activeTab === 'dashboard' && 'Bem-vindo de volta! Veja o que está acontecendo com sua automação.'}
               {activeTab === 'chat' && 'Converse em tempo real e faça atendimento manual no direct do Instagram.'}
               {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
+              {activeTab === 'sequences' && 'Séries de mensagens reutilizáveis entre automações.'}
               {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
               {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
             </p>
@@ -1541,7 +1553,19 @@ export default function Dashboard() {
                       resetForm();
                       setIsEditing(true);
                     }}
+                    onOpenFlowBuilder={setFlowBuilderAutomation}
                   />
+
+                  {flowBuilderAutomation && (
+                    <FlowBuilder
+                      automation={flowBuilderAutomation}
+                      onClose={() => setFlowBuilderAutomation(null)}
+                      onSaved={(updated) => {
+                        setAutomations((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+                        setFlowBuilderAutomation(null);
+                      }}
+                    />
+                  )}
 
                 </div>
               ) : (
@@ -2273,6 +2297,13 @@ export default function Dashboard() {
 
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB: SEQUENCES */}
+          {activeTab === 'sequences' && (
+            <div className="animate-fade-in max-w-4xl mx-auto">
+              <SequenceManager />
             </div>
           )}
 

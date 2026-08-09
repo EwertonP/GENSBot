@@ -1,6 +1,13 @@
 import { supabase } from '@/lib/supabase';
+import { resumeFlow } from '@/lib/flow-engine/runner';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Tipos de job que representam envio real de DM (checam a janela de 24h da Meta).
+// `flow_send` é o equivalente, pro motor de fluxo novo, de link_dm/reminder_dm/sequence_dm.
+function isDirectMessageJob(type: string): boolean {
+  return type === 'link_dm' || type === 'reminder_dm' || type === 'sequence_dm' || type === 'flow_send';
+}
 
 /**
  * Processa a fila de mensagens pendentes (queue), respeitando o limite de
@@ -67,8 +74,43 @@ export async function drainQueue() {
       }
 
       const token = account.access_token;
-      // Validar janela de 24h se for envio de DM direta (link_dm, reminder_dm ou sequence_dm)
-      if (job.type === 'link_dm' || job.type === 'reminder_dm' || job.type === 'sequence_dm') {
+
+      // Job de retomada de um nó `delay` do motor de fluxo novo — não envia
+      // nada na Graph API diretamente; caminha o grafo a partir do nó pausado,
+      // que por sua vez pode gerar um novo job `flow_send` real.
+      if (job.type === 'flow_resume') {
+        const { data: automation } = await supabase
+          .from('automations')
+          .select('*')
+          .eq('id', job.automation_id)
+          .single();
+
+        if (automation?.flow_definition && job.payload?.node_id) {
+          await resumeFlow(
+            automation,
+            {
+              ownerUserId: account.user_id,
+              instagramUserId: account.instagram_user_id,
+              contactId: job.contact_id,
+              text: '',
+              triggerType: 'dm',
+              recipientRef: { id: job.contact_id },
+              resolveProfile: async () => ({ username: null, name: null }),
+            },
+            job.payload.node_id,
+          );
+        }
+
+        await supabase
+          .from('queue')
+          .update({ status: 'sent', sent_at: new Date().toISOString() })
+          .eq('id', job.id);
+        processedJobs.push({ id: job.id, status: 'sent' });
+        continue;
+      }
+
+      // Validar janela de 24h se for envio de DM direta
+      if (isDirectMessageJob(job.type)) {
         const { data: contact } = await supabase
           .from('contacts')
           .select('last_response_at')

@@ -32,4 +32,7 @@ export interface Automation {
   created_at?: string;
   /** Só é preenchido depois da primeira edição — pode vir nulo. */
   updated_at?: string | null;
+  /** Presente = automação já migrada para o canvas visual (ver src/types/flow.ts). Null/ausente = modelo legado (campos acima). */
+  flow_definition?: import('./flow').FlowDefinition | null;
+  flow_version?: number;
 }
