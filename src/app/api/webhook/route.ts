@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { after } from 'next/server';
 import { getInstagramAccountByInstagramUserId } from '@/lib/instagram-account';
 import { drainQueue } from '@/lib/drain';
+import { runFlow } from '@/lib/flow-engine/runner';
+import { matchesKeywords } from '@/lib/flow-engine/evaluator';
 
 // `messages.contact_id` tem FK pra `contacts.instagram_id` — pra um
 // comentarista/remetente de primeira vez (ainda sem linha em `contacts`,
@@ -203,6 +205,34 @@ async function processWebhookEvent(payload: any) {
           if (!automations) continue;
 
           for (const auto of automations) {
+            // Automação já migrada pro canvas visual: motor novo cuida de tudo
+            // (match de trigger, envio, condição/ação/delay) — não passa pelo
+            // caminho legado abaixo.
+            if (auto.flow_definition) {
+              const result = await runFlow(auto, {
+                ownerUserId,
+                instagramUserId: myIgId,
+                contactId: fromUserId,
+                text,
+                triggerType: 'comment',
+                mediaId,
+                recipientRef: { comment_id: commentId },
+                resolveProfile: (id) => fetchInstagramUserProfile(id, igToken),
+              });
+              if (result.matched) {
+                await supabase.from('analytics_events').insert({
+                  user_id: ownerUserId,
+                  instagram_user_id: myIgId,
+                  contact_id: fromUserId,
+                  automation_id: auto.id,
+                  event_type: 'comment',
+                });
+                queueDrainNeeded = true;
+                break;
+              }
+              continue;
+            }
+
             // Verificar se é para post específico
             if (auto.specific_post_id && auto.specific_post_id !== mediaId) continue;
 
@@ -574,6 +604,32 @@ async function processWebhookEvent(payload: any) {
         if (!automations) continue;
 
         for (const auto of automations) {
+          // Automação já migrada pro canvas visual: motor novo cuida de tudo.
+          if (auto.flow_definition) {
+            const result = await runFlow(auto, {
+              ownerUserId,
+              instagramUserId: myIgId,
+              contactId: senderId,
+              text,
+              triggerType: requiredTrigger as 'dm' | 'story' | 'story_mention',
+              storyId: repliedStoryId,
+              recipientRef: { id: senderId },
+              resolveProfile: (id) => fetchInstagramUserProfile(id, igToken),
+            });
+            if (result.matched) {
+              await supabase.from('analytics_events').insert({
+                user_id: ownerUserId,
+                instagram_user_id: myIgId,
+                contact_id: senderId,
+                automation_id: auto.id,
+                event_type: 'welcome_dm_sent',
+              });
+              queueDrainNeeded = true;
+              break;
+            }
+            continue;
+          }
+
           // Se a automação está restrita a uma story específica, ignora
           // respostas a qualquer outra story sua.
           if (isStoryReply && auto.specific_story_id && auto.specific_story_id !== repliedStoryId) continue;
@@ -855,19 +911,5 @@ async function enqueueFollowups(contactId: string, auto: any, userId: string, in
   }
 }
 
-// Auxiliar: Valida se o texto dá match com as palavras-chave
-function matchesKeywords(text: string, keywords: string[], matchType: string): boolean {
-  if (matchType === 'any' || keywords.length === 0) return true;
-
-  const normalizedText = text.trim().toLowerCase();
-
-  if (matchType === 'exact') {
-    return keywords.some(kw => normalizedText === kw.trim().toLowerCase());
-  }
-
-  if (matchType === 'contains') {
-    return keywords.some(kw => normalizedText.includes(kw.trim().toLowerCase()));
-  }
-
-  return false;
-}
+// matchesKeywords foi movida para src/lib/flow-engine/evaluator.ts (importada no topo do arquivo) —
+// reaproveitada tanto pelo caminho legado abaixo quanto pelo motor de fluxo novo.

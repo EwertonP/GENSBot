@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, Trash2, Search, Settings } from 'lucide-react';
+import { Plus, Trash2, Search, Settings, Workflow } from 'lucide-react';
 import type { Automation } from '@/types/automation';
 
 interface AutomationTableProps {
@@ -9,6 +9,8 @@ interface AutomationTableProps {
   onEdit: (automation: Automation) => void;
   onDelete: (id: string) => void;
   onCreate: () => void;
+  /** Abre a automação no editor visual (canvas) em vez do form linear. */
+  onOpenFlowBuilder: (automation: Automation) => void;
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
@@ -30,6 +32,7 @@ export default function AutomationTable({
   onEdit,
   onDelete,
   onCreate,
+  onOpenFlowBuilder,
 }: AutomationTableProps) {
   const [search, setSearch] = React.useState('');
 
@@ -165,16 +168,29 @@ export default function AutomationTable({
                   </td>
 
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        if (auto.id) onDelete(auto.id);
-                      }}
-                      aria-label={`Excluir automação ${auto.name}`}
-                      className="p-1.5 hover:bg-accent text-muted-foreground hover:text-destructive rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          onOpenFlowBuilder(auto);
+                        }}
+                        aria-label={`Abrir ${auto.name} no editor visual`}
+                        title="Editor visual (canvas)"
+                        className="p-1.5 hover:bg-accent text-muted-foreground hover:text-primary rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Workflow className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (auto.id) onDelete(auto.id);
+                        }}
+                        aria-label={`Excluir automação ${auto.name}`}
+                        className="p-1.5 hover:bg-accent text-muted-foreground hover:text-destructive rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
