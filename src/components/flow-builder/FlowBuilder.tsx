@@ -14,7 +14,7 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { X, Save, AlertTriangle } from 'lucide-react';
+import { X, Save, AlertTriangle, History, RotateCcw } from 'lucide-react';
 import type { Automation } from '@/types/automation';
 import type { FlowDefinition, FlowNode, FlowNodeType, FlowNodeConfig } from '@/types/flow';
 import { nodeTypes } from './nodes';
@@ -22,6 +22,7 @@ import NodePalette from './NodePalette';
 import { NodeConfigPanel } from './panels';
 import { validateFlow, type FlowValidationIssue } from './flowValidation';
 import { legacyAutomationToFlowDefinition } from '@/lib/flow-engine/compat';
+import VersionHistoryPanel from './VersionHistoryPanel';
 
 let idCounter = 0;
 function nextId(type: FlowNodeType) {
@@ -71,6 +72,9 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [sequences, setSequences] = useState<{ id?: string; name: string }[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [viewing, setViewing] = useState<{ versionId: string; flow: FlowDefinition } | null>(null);
+  const [currentAutomation, setCurrentAutomation] = useState(automation);
 
   useEffect(() => {
     fetch('/api/sequences')
@@ -121,20 +125,44 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await fetch(`/api/automations/${automation.id}`, {
+      const res = await fetch(`/api/automations/${currentAutomation.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...automation, flow_definition: flow }),
+        body: JSON.stringify({ ...currentAutomation, flow_definition: flow }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar o fluxo.');
+      setCurrentAutomation(data);
       onSaved(data);
     } catch (err: any) {
       setSaveError(err.message || 'Erro ao salvar o fluxo.');
     } finally {
       setSaving(false);
     }
-  }, [automation, buildFlowDefinition, onSaved]);
+  }, [currentAutomation, buildFlowDefinition, onSaved]);
+
+  const handleViewVersion = useCallback((flow: FlowDefinition, versionId: string) => {
+    setViewing({ versionId, flow });
+    setSelectedId(null);
+  }, []);
+
+  const handleRestoreVersion = useCallback(
+    async (versionId: string) => {
+      setSaveError(null);
+      try {
+        const res = await fetch(`/api/automations/${currentAutomation.id}/versions/${versionId}/restore`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao restaurar versão.');
+        setCurrentAutomation(data);
+        setNodes(toRfNodes(data.flow_definition));
+        setEdges(toRfEdges(data.flow_definition));
+        setViewing(null);
+      } catch (err: any) {
+        setSaveError(err.message || 'Erro ao restaurar versão.');
+      }
+    },
+    [currentAutomation.id, setNodes, setEdges],
+  );
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -150,8 +178,17 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
         <div className="flex items-center gap-2">
           {saveError && <span className="text-[10px] text-destructive font-bold">{saveError}</span>}
           <button
+            onClick={() => setShowHistory((v) => !v)}
+            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer border ${
+              showHistory ? 'bg-accent border-primary text-primary' : 'border-border text-muted-foreground hover:bg-accent'
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            Histórico
+          </button>
+          <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !!viewing}
             className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground text-xs font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
@@ -173,18 +210,38 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
         </div>
       )}
 
+      {viewing && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between">
+          <span className="text-[10px] font-bold text-amber-600">Visualizando uma versão antiga (somente leitura).</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleRestoreVersion(viewing.versionId)}
+              className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/90 cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" /> Restaurar esta versão
+            </button>
+            <button onClick={() => setViewing(null)} className="text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer">
+              Voltar para edição
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 flex overflow-hidden">
-        <NodePalette onAdd={handleAddNode} />
+        {!viewing && <NodePalette onAdd={handleAddNode} />}
 
         <div className="flex-1">
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={(_, node) => setSelectedId(node.id)}
-            onPaneClick={() => setSelectedId(null)}
+            nodes={viewing ? toRfNodes(viewing.flow) : nodes}
+            edges={viewing ? toRfEdges(viewing.flow) : edges}
+            onNodesChange={viewing ? undefined : onNodesChange}
+            onEdgesChange={viewing ? undefined : onEdgesChange}
+            onConnect={viewing ? undefined : onConnect}
+            onNodeClick={viewing ? undefined : (_, node) => setSelectedId(node.id)}
+            onPaneClick={viewing ? undefined : () => setSelectedId(null)}
+            nodesDraggable={!viewing}
+            nodesConnectable={!viewing}
+            elementsSelectable={!viewing}
             nodeTypes={nodeTypes}
             fitView
           >
@@ -194,7 +251,17 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
           </ReactFlow>
         </div>
 
-        {selectedNode && (
+        {showHistory && (
+          <VersionHistoryPanel
+            automationId={currentAutomation.id!}
+            onClose={() => setShowHistory(false)}
+            onView={handleViewVersion}
+            onRestore={handleRestoreVersion}
+            viewingVersionId={viewing?.versionId ?? null}
+          />
+        )}
+
+        {!viewing && !showHistory && selectedNode && (
           <NodeConfigPanel
             node={{ id: selectedNode.id, type: selectedNode.type, position: selectedNode.position, data: selectedNode.data as any }}
             onChange={handleNodeDataChange}
