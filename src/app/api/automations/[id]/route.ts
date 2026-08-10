@@ -19,14 +19,27 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     // Se o body trouxer flow_definition, é um save vindo do editor visual (Fase 3) —
-    // busca a versão atual de flow_version pra incrementar (histórico de versões
-    // propriamente dito entra na Fase 5).
+    // antes de sobrescrever, guarda um snapshot do flow_definition ANTERIOR em
+    // automation_versions (Fase 5 — histórico de versões). Snapshot do estado
+    // anterior, não do novo: o atual já fica em `automations`, então versionar
+    // o anterior evita duplicar o mesmo estado em duas tabelas.
     let flowVersionUpdate: { flow_definition: unknown; flow_version: number } | null = null;
     if (body.flow_definition) {
-      const { data: current } = await supabase.from('automations').select('flow_version').eq('id', id).single();
+      const { data: current } = await supabase.from('automations').select('flow_definition, flow_version').eq('id', id).single();
+      const previousVersion = current?.flow_version || 0;
+
+      if (current?.flow_definition) {
+        await supabase.from('automation_versions').insert({
+          automation_id: id,
+          user_id: user.id,
+          version_number: previousVersion,
+          flow_definition: current.flow_definition,
+        });
+      }
+
       flowVersionUpdate = {
         flow_definition: body.flow_definition,
-        flow_version: (current?.flow_version || 0) + 1,
+        flow_version: previousVersion + 1,
       };
     }
 
