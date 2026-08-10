@@ -13,6 +13,7 @@ import type { Automation } from '@/types/automation';
 // @xyflow/react é client-only (usa ResizeObserver) — ssr:false confirmado como padrão válido
 // em node_modules/next/dist/docs/01-app/02-guides/lazy-loading.md pra este Next 16 canary.
 import nextDynamicImport from 'next/dynamic';
+import UtmLinkBuilder from '@/components/utm-link-builder';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
 import {
   Settings,
@@ -40,6 +41,7 @@ import {
   AtSign,
   ChevronLeft,
   Layers,
+  Link2,
 } from 'lucide-react';
 
 const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
@@ -140,7 +142,7 @@ export default function Dashboard() {
 
   // Estados do formulário de automação
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'sequences' | 'contacts' | 'logs' | 'chat'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'sequences' | 'utm' | 'contacts' | 'logs' | 'chat'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -842,6 +844,7 @@ export default function Dashboard() {
               { id: 'chat', label: 'Direct', icon: MessageSquare },
               { id: 'automations', label: 'Automações', icon: Settings },
               { id: 'sequences', label: 'Sequências', icon: Layers },
+              { id: 'utm', label: 'Links UTM', icon: Link2 },
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
             ].map(item => {
               const Icon = item.icon;
@@ -954,6 +957,7 @@ export default function Dashboard() {
               {activeTab === 'chat' && 'Direct'}
               {activeTab === 'automations' && 'Automações'}
               {activeTab === 'sequences' && 'Sequências'}
+              {activeTab === 'utm' && 'Links UTM'}
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
@@ -962,6 +966,7 @@ export default function Dashboard() {
               {activeTab === 'chat' && 'Converse em tempo real e faça atendimento manual no direct do Instagram.'}
               {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
               {activeTab === 'sequences' && 'Séries de mensagens reutilizáveis entre automações.'}
+              {activeTab === 'utm' && 'Gere links rastreáveis pra saber de onde vêm seus leads.'}
               {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
               {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
             </p>
@@ -2304,6 +2309,13 @@ export default function Dashboard() {
           {activeTab === 'sequences' && (
             <div className="animate-fade-in max-w-4xl mx-auto">
               <SequenceManager />
+            </div>
+          )}
+
+          {/* TAB: UTM LINKS */}
+          {activeTab === 'utm' && (
+            <div className="animate-fade-in max-w-4xl mx-auto">
+              <UtmLinkBuilder />
             </div>
           )}
 
