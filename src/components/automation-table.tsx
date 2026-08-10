@@ -3,6 +3,8 @@
 import React from 'react';
 import { Plus, Trash2, Search, Settings, Workflow } from 'lucide-react';
 import type { Automation } from '@/types/automation';
+import { getEffectiveTrigger } from '@/lib/automation-display';
+import AutomationMediaThumb from '@/components/automation-media-thumb';
 
 interface AutomationTableProps {
   automations: Automation[];
@@ -97,6 +99,7 @@ export default function AutomationTable({
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-border bg-muted/40">
+                <th scope="col" className="px-4 py-2.5 w-14"><span className="sr-only">Mídia</span></th>
                 <th scope="col" className="px-4 py-2.5 font-bold text-foreground">Nome</th>
                 <th scope="col" className="px-4 py-2.5 font-bold text-foreground">Gatilhos</th>
                 <th scope="col" className="px-4 py-2.5 font-bold text-foreground">Palavras-chave</th>
@@ -106,17 +109,29 @@ export default function AutomationTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map(auto => (
+              {filtered.map(auto => {
+                const effectiveTrigger = getEffectiveTrigger(auto);
+                const mediaId = effectiveTrigger.specific_post_id || effectiveTrigger.specific_story_id;
+                const mediaKind: 'post' | 'story' | null = effectiveTrigger.specific_post_id
+                  ? 'post'
+                  : effectiveTrigger.specific_story_id
+                  ? 'story'
+                  : null;
+                return (
                 <tr
                   key={auto.id}
                   onClick={() => onEdit(auto)}
                   className="hover:bg-accent/50 transition-colors cursor-pointer"
                 >
+                  <td className="px-4 py-3">
+                    <AutomationMediaThumb mediaId={mediaId} kind={mediaKind} triggers={effectiveTrigger.triggers} />
+                  </td>
+
                   <td className="px-4 py-3 font-bold text-foreground">{auto.name}</td>
 
                   <td className="px-4 py-3">
                     <div className="flex gap-1 flex-wrap">
-                      {auto.triggers.map(t => (
+                      {effectiveTrigger.triggers.map(t => (
                         <span
                           key={t}
                           className="text-[9px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded border border-primary/20 uppercase tracking-wider"
@@ -193,7 +208,8 @@ export default function AutomationTable({
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
