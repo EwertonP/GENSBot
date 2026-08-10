@@ -4,9 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Trash2, Save, X, Layers } from 'lucide-react';
 import type { Sequence } from '@/types/sequence';
 import type { Followup } from '@/types/automation';
-
-const inputCls =
-  'w-full bg-background border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground transition-colors';
+import { fieldInputClass, fieldLabelClass } from '@/lib/form-styles';
 
 function emptyStep(): Followup {
   return { id: crypto.randomUUID(), delay_minutes: 5, text: '' };
@@ -72,13 +70,13 @@ export default function SequenceManager() {
         {error && <p className="text-[11px] text-destructive font-bold">{error}</p>}
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nome</label>
-          <input className={inputCls} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+          <label className={fieldLabelClass}>Nome</label>
+          <input className={fieldInputClass} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
         </div>
 
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Passos</label>
+            <label className={fieldLabelClass}>Passos</label>
             <button
               onClick={() => setEditing({ ...editing, steps: [...editing.steps, emptyStep()] })}
               className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/90 cursor-pointer"
@@ -101,11 +99,11 @@ export default function SequenceManager() {
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-2 items-start">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-muted-foreground">Atraso (min)</label>
+                  <label className="text-xs text-muted-foreground">Atraso (min)</label>
                   <input
                     type="number"
                     min={0}
-                    className={inputCls}
+                    className={fieldInputClass}
                     value={step.delay_minutes}
                     onChange={(e) => {
                       const steps = editing.steps.map((s) => (s.id === step.id ? { ...s, delay_minutes: Number(e.target.value) } : s));
@@ -114,10 +112,10 @@ export default function SequenceManager() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-muted-foreground">Texto</label>
+                  <label className="text-xs text-muted-foreground">Texto</label>
                   <textarea
                     rows={2}
-                    className={inputCls}
+                    className={fieldInputClass}
                     value={step.text}
                     onChange={(e) => {
                       const steps = editing.steps.map((s) => (s.id === step.id ? { ...s, text: e.target.value } : s));

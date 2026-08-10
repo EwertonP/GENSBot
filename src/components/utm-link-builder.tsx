@@ -4,10 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Copy, Trash2, Link2, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import type { UtmLink } from '@/types/utm-link';
 import { buildUtmUrl } from '@/lib/utm';
-
-const inputCls =
-  'w-full bg-background border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground transition-colors';
-const labelCls = 'text-[10px] font-bold text-muted-foreground uppercase tracking-wider';
+import { fieldInputClass as inputCls, fieldLabelClass as labelCls } from '@/lib/form-styles';
 
 const SOURCE_SUGGESTIONS = ['instagram', 'whatsapp', 'email', 'facebook'];
 const MEDIUM_SUGGESTIONS = ['bio', 'dm_automation', 'story', 'post', 'anuncio'];
