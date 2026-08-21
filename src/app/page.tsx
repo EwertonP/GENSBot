@@ -1763,48 +1763,65 @@ export default function Dashboard() {
                             ativas nas últimas 24h. */}
                         {form.triggers.includes('story') && (
                           <div className="flex flex-col gap-1.5 pt-1">
-                            <label className="text-xs font-bold text-muted-foreground">Story Alvo (Opcional)</label>
-                            <div className="flex items-center gap-3">
+                            <label className="text-xs font-bold text-muted-foreground">Story Alvo</label>
+
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setForm(prev => ({ ...prev, specific_story_id: null }))}
+                                className={`flex-1 px-4 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                                  !form.specific_story_id
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border bg-accent text-muted-foreground hover:bg-muted'
+                                }`}
+                              >
+                                Todos os Stories
+                              </button>
                               <button
                                 type="button"
                                 onClick={handleLoadStories}
                                 disabled={loadingStories}
-                                className="px-4 py-2.5 rounded-xl border border-border bg-accent hover:bg-muted text-foreground text-xs font-bold cursor-pointer transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait"
+                                className={`flex-1 px-4 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-wait ${
+                                  form.specific_story_id
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border bg-accent text-muted-foreground hover:bg-muted'
+                                }`}
                               >
-                                {loadingStories
-                                  ? 'Carregando stories...'
-                                  : form.specific_story_id ? 'Trocar Story Selecionado' : 'Selecionar Story Ativo'}
-                                <Camera className="w-3.5 h-3.5" />
+                                {loadingStories ? 'Carregando...' : 'Story Específico'}
                               </button>
-                              {form.specific_story_id && (() => {
-                                const selectedStory = storyList.find(s => s.id === form.specific_story_id);
-                                return (
-                                  <div className="flex items-center gap-3 bg-accent border border-border rounded-xl p-2 animate-fade-in text-foreground">
-                                    {selectedStory && (
-                                      <div className="w-12 h-12 rounded-lg overflow-hidden relative border border-border flex-shrink-0">
-                                        <img
-                                          src={selectedStory.thumbnail_url || selectedStory.media_url}
-                                          alt="Story selecionado"
-                                          className="absolute inset-0 w-full h-full object-cover"
-                                        />
-                                      </div>
-                                    )}
-                                    <span className="text-[10px] font-bold text-muted-foreground font-mono truncate max-w-[150px]">
-                                      ID: {form.specific_story_id}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => setForm(prev => ({ ...prev, specific_story_id: null }))}
-                                      className="text-xs text-muted-foreground hover:text-destructive font-bold ml-2 cursor-pointer"
-                                    >
-                                      Limpar
-                                    </button>
-                                  </div>
-                                );
-                              })()}
                             </div>
+
+                            {form.specific_story_id && (() => {
+                              const selectedStory = storyList.find(s => s.id === form.specific_story_id);
+                              return (
+                                <div className="flex items-center gap-3 bg-accent border border-border rounded-xl p-2 animate-fade-in text-foreground">
+                                  {selectedStory && (
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden relative border border-border flex-shrink-0">
+                                      <img
+                                        src={selectedStory.thumbnail_url || selectedStory.media_url}
+                                        alt="Story selecionado"
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                  <span className="text-[10px] font-bold text-muted-foreground font-mono truncate max-w-[150px]">
+                                    ID: {form.specific_story_id}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={handleLoadStories}
+                                    className="text-xs text-primary hover:text-primary/90 font-bold ml-auto cursor-pointer"
+                                  >
+                                    Trocar
+                                  </button>
+                                </div>
+                              );
+                            })()}
+
                             <p className="text-[10px] text-muted-foreground">
-                              Sem story ativo? A API só lista stories publicadas nas últimas 24h. Sem seleção, a automação responde a respostas de qualquer story seu.
+                              {form.specific_story_id
+                                ? 'A API só lista pra escolher as stories publicadas nas últimas 24h.'
+                                : 'Responde a respostas de qualquer story seu — hoje e nos próximos dias, sem precisar trocar a seleção a cada story novo.'}
                             </p>
                           </div>
                         )}
