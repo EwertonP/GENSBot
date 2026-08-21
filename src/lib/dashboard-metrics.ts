@@ -64,7 +64,7 @@ export async function getTokenHealth(userId: string) {
 export async function getDashboardMetrics(userId: string, accountIds: string[]) {
   if (accountIds.length === 0) {
     return {
-      stats: { automations: 0, contacts: 0, queue: 0, events: 0 },
+      stats: { automations: 0, contacts: 0, queue: 0, events: 0, leadsGenerated: 0 },
       contacts: [],
       recentEvents: [],
       recentQueue: [],
@@ -72,7 +72,7 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
       weeklyChart: [] as { day: string; comments: number; dms: number }[],
       weeklyChartMax: 1,
       health: { sentPercent: 0, pendingPercent: 0, failedPercent: 0, hasData: false },
-      trends: { contacts: null, automations: null, queue: null, events: null } as Record<string, number | null>,
+      trends: { contacts: null, automations: null, queue: null, events: null, leadsGenerated: null } as Record<string, number | null>,
       failureDiagnostics: [] as { reason: string; count: number }[],
       automationRanking: [] as { id: string; name: string; comments: number; welcomeDms: number; clicks: number; leads: number }[],
       automationsRaw: [] as { id: string; name: string; active: boolean; created_at?: string }[],
@@ -102,7 +102,7 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     supabase.from('queue').select('id, contact_id, type, status, error_message, created_at, sent_at')
       .eq('user_id', userId).in('instagram_user_id', accountIds)
       .order('created_at', { ascending: false }).limit(20),
-    supabase.from('analytics_events').select('event_type, automation_id, created_at').in('instagram_user_id', accountIds),
+    supabase.from('analytics_events').select('event_type, automation_id, contact_id, created_at').in('instagram_user_id', accountIds),
     base('automations').select('*'),
   ]);
 
@@ -114,6 +114,22 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     else if (evt.event_type === 'link_clicked') funnel.clicks++;
     else if (evt.event_type === 'lead_captured') funnel.leads++;
   }
+
+  // "Leads Gerados" = pessoas DISTINTAS que de fato interagiram com uma automação
+  // (bateram um gatilho e receberam a resposta inicial), não qualquer contato que
+  // já mandou DM. 'comment'/'welcome_dm_sent' são logados exatamente nesse
+  // momento (ver src/app/api/webhook/route.ts); `stats.contacts` (contagem crua
+  // de `contacts`) inclui gente que só mandou mensagem sem bater nenhum gatilho,
+  // por isso não serve pra essa métrica.
+  const firstLeadDateByContact = new Map<string, Date>();
+  for (const evt of analyticsEvents || []) {
+    if (!evt.contact_id) continue;
+    if (evt.event_type !== 'comment' && evt.event_type !== 'welcome_dm_sent') continue;
+    const d = new Date(evt.created_at);
+    const existing = firstLeadDateByContact.get(evt.contact_id);
+    if (!existing || d < existing) firstLeadDateByContact.set(evt.contact_id, d);
+  }
+  const leadsGeneratedCount = firstLeadDateByContact.size;
 
   // Gráfico dos últimos 7 dias
   const sevenDaysAgo = new Date();
@@ -178,11 +194,19 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     countBetween('events', userId, accountIds, previousPeriodStart, periodStart),
   ]);
 
+  let leadsGeneratedCurrent = 0;
+  let leadsGeneratedPrevious = 0;
+  for (const d of firstLeadDateByContact.values()) {
+    if (d >= periodStart && d < now) leadsGeneratedCurrent++;
+    else if (d >= previousPeriodStart && d < periodStart) leadsGeneratedPrevious++;
+  }
+
   const trends = {
     contacts: percentChange(contactsCurrent, contactsPrevious),
     automations: percentChange(automationsCurrent, automationsPrevious),
     queue: percentChange(queueCurrent, queuePrevious),
     events: percentChange(eventsCurrent, eventsPrevious),
+    leadsGenerated: percentChange(leadsGeneratedCurrent, leadsGeneratedPrevious),
   };
 
   // Diagnóstico de falhas: motivos mais comuns de erro na fila (últimos 90 dias)
@@ -226,6 +250,7 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
       contacts: contactsCount || 0,
       queue: queueCount || 0,
       events: eventsCount || 0,
+      leadsGenerated: leadsGeneratedCount,
     },
     contacts: contactsList || [],
     recentEvents: recentEvents || [],

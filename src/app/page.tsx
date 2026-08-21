@@ -104,12 +104,12 @@ export default function Dashboard() {
   const [accounts, setAccounts] = useState<InstagramAccountSummary[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [stats, setStats] = useState({ automations: 0, contacts: 0, queue: 0, events: 0 });
+  const [stats, setStats] = useState({ automations: 0, contacts: 0, queue: 0, events: 0, leadsGenerated: 0 });
   const [funnel, setFunnel] = useState({ comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
   const [weeklyChart, setWeeklyChart] = useState<{ day: string; comments: number; dms: number }[]>([]);
   const [weeklyChartMax, setWeeklyChartMax] = useState(1);
   const [health, setHealth] = useState({ sentPercent: 0, pendingPercent: 0, failedPercent: 0, hasData: false });
-  const [trends, setTrends] = useState<{ contacts: number | null; automations: number | null; queue: number | null; events: number | null }>({ contacts: null, automations: null, queue: null, events: null });
+  const [trends, setTrends] = useState<{ contacts: number | null; automations: number | null; queue: number | null; events: number | null; leadsGenerated: number | null }>({ contacts: null, automations: null, queue: null, events: null, leadsGenerated: null });
   const [failureDiagnostics, setFailureDiagnostics] = useState<{ reason: string; count: number }[]>([]);
   const [automationRanking, setAutomationRanking] = useState<{ id: string; name: string; comments: number; welcomeDms: number; clicks: number; leads: number }[]>([]);
   const [tokenHealth, setTokenHealth] = useState<{ instagram_user_id: string; instagram_username: string | null; daysRemaining: number | null; status: 'ok' | 'warning' | 'expired' | 'unknown' }[]>([]);
@@ -205,7 +205,7 @@ export default function Dashboard() {
         setWeeklyChart(data.weeklyChart || []);
         setWeeklyChartMax(data.weeklyChartMax || 1);
         setHealth(data.health || { sentPercent: 0, pendingPercent: 0, failedPercent: 0, hasData: false });
-        setTrends(data.trends || { contacts: null, automations: null, queue: null, events: null });
+        setTrends(data.trends || { contacts: null, automations: null, queue: null, events: null, leadsGenerated: null });
         setFailureDiagnostics(data.failureDiagnostics || []);
         setAutomationRanking(data.automationRanking || []);
         setTokenHealth(data.tokenHealth || []);
@@ -1008,7 +1008,7 @@ export default function Dashboard() {
               {/* 1. Hero KPI Cards Grid — card neutro, cor vira só indicador pontual */}
               <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {([
-                  { label: 'Leads Gerados', value: stats.contacts, change: trends.contacts, dot: 'bg-primary' },
+                  { label: 'Leads Gerados', value: stats.leadsGenerated, change: trends.leadsGenerated, dot: 'bg-primary' },
                   { label: 'Automações Ativas', value: stats.automations, change: trends.automations, dot: 'bg-success' },
                   { label: 'Fila de Disparos', value: stats.queue, change: trends.queue, dot: 'bg-warning' },
                   { label: 'Eventos Captados', value: stats.events, change: trends.events, dot: 'bg-muted-foreground' },
