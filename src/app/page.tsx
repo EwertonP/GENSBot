@@ -1689,7 +1689,7 @@ export default function Dashboard() {
                               type="text"
                               required
                               placeholder="ex: quero, cupom, info"
-                              value={form.keywords.join(', ')}
+                              value={keywordInput}
                               onChange={handleKeywordsChange}
                               className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all font-mono"
                             />
