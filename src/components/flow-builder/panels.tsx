@@ -9,6 +9,7 @@ import type {
   ConditionNodeConfig,
   DelayNodeConfig,
   ActionNodeConfig,
+  WaitForReplyNodeConfig,
 } from '@/types/flow';
 import { fieldInputClass as inputCls, fieldLabelClass as labelCls } from '@/lib/form-styles';
 
@@ -199,6 +200,97 @@ function DelayPanel({ data, onChange }: { data: DelayNodeConfig; onChange: (d: D
   );
 }
 
+function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; onChange: (d: WaitForReplyNodeConfig) => void }) {
+  const hasTimeout = data.timeoutMinutes !== null && data.timeoutMinutes !== undefined;
+  const savesTag = data.saveReplyAsTagPrefix !== null && data.saveReplyAsTagPrefix !== undefined;
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-[10px] text-muted-foreground leading-relaxed">
+        O fluxo pausa aqui até a pessoa responder. Conecte a saída de cima ("resposta") pro
+        que acontece quando ela responde, e a de baixo ("sem resposta") pro que acontece se
+        expirar sem resposta — assim ninguém fica esperando pra sempre.
+      </p>
+      <Field label="Expira sem resposta?">
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => onChange({ ...data, timeoutMinutes: 720 })}
+            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+              hasTimeout ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
+            }`}
+          >
+            Sim
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ ...data, timeoutMinutes: null })}
+            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+              !hasTimeout ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
+            }`}
+          >
+            Nunca expirar
+          </button>
+        </div>
+      </Field>
+      {hasTimeout && (
+        <Field label="Minutos até expirar">
+          <input
+            type="number"
+            min={1}
+            className={inputCls}
+            value={data.timeoutMinutes ?? 720}
+            onChange={(e) => onChange({ ...data, timeoutMinutes: Number(e.target.value) })}
+          />
+        </Field>
+      )}
+      <Field label="Salvar a resposta como tag do contato?">
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => onChange({ ...data, saveReplyAsTagPrefix: data.saveReplyAsTagPrefix || '' })}
+            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+              savesTag ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
+            }`}
+          >
+            Sim
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ ...data, saveReplyAsTagPrefix: null })}
+            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+              !savesTag ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
+            }`}
+          >
+            Não
+          </button>
+        </div>
+      </Field>
+      {savesTag && (
+        <Field label="Prefixo da tag (opcional)">
+          <input
+            className={inputCls}
+            placeholder="ex: resp_"
+            value={data.saveReplyAsTagPrefix || ''}
+            onChange={(e) => onChange({ ...data, saveReplyAsTagPrefix: e.target.value })}
+          />
+        </Field>
+      )}
+      <Field label="Salvar a resposta num campo do contato? (opcional)">
+        <select
+          className={inputCls}
+          value={data.saveReplyToField || ''}
+          onChange={(e) => onChange({ ...data, saveReplyToField: (e.target.value || null) as WaitForReplyNodeConfig['saveReplyToField'] })}
+        >
+          <option value="">Nenhum</option>
+          <option value="email">E-mail</option>
+          <option value="phone">Telefone</option>
+          <option value="name">Nome</option>
+        </select>
+      </Field>
+    </div>
+  );
+}
+
 function ActionPanel({ data, onChange }: { data: ActionNodeConfig; onChange: (d: ActionNodeConfig) => void }) {
   return (
     <div className="flex flex-col gap-4">
@@ -259,6 +351,7 @@ export function NodeConfigPanel({
       )}
       {node.type === 'condition' && <ConditionPanel data={node.data as ConditionNodeConfig} onChange={onChange as any} />}
       {node.type === 'delay' && <DelayPanel data={node.data as DelayNodeConfig} onChange={onChange as any} />}
+      {node.type === 'waitForReply' && <WaitForReplyPanel data={node.data as WaitForReplyNodeConfig} onChange={onChange as any} />}
       {node.type === 'action' && <ActionPanel data={node.data as ActionNodeConfig} onChange={onChange as any} />}
     </div>
   );

@@ -15,6 +15,7 @@ import type { Automation } from '@/types/automation';
 import nextDynamicImport from 'next/dynamic';
 import UtmLinkBuilder from '@/components/utm-link-builder';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
+const GuidedWizard = nextDynamicImport(() => import('@/components/flow-builder/GuidedWizard'), { ssr: false });
 import {
   Settings,
   Plus,
@@ -124,6 +125,7 @@ export default function Dashboard() {
   const [automations, setAutomations] = useState<Automation[]>([]);
   // Editor visual (canvas) — coexiste com o form linear abaixo; abre em tela cheia quando preenchido.
   const [flowBuilderAutomation, setFlowBuilderAutomation] = useState<Automation | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
   
   // Mídias do Instagram para o seletor visual
   const [mediaList, setMediaList] = useState<IgMedia[]>([]);
@@ -1559,6 +1561,7 @@ export default function Dashboard() {
                       setIsEditing(true);
                     }}
                     onOpenFlowBuilder={setFlowBuilderAutomation}
+                    onOpenWizard={() => setWizardOpen(true)}
                   />
 
                   {flowBuilderAutomation && (
@@ -1568,6 +1571,16 @@ export default function Dashboard() {
                       onSaved={(updated) => {
                         setAutomations((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
                         setFlowBuilderAutomation(null);
+                      }}
+                    />
+                  )}
+
+                  {wizardOpen && (
+                    <GuidedWizard
+                      onClose={() => setWizardOpen(false)}
+                      onSaved={(created) => {
+                        setAutomations((prev) => [created, ...prev]);
+                        setWizardOpen(false);
                       }}
                     />
                   )}

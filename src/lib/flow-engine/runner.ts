@@ -1,8 +1,8 @@
 import { randomUUID } from 'crypto';
 import { supabase } from '@/lib/supabase';
 import type { Automation } from '@/types/automation';
-import type { FlowDefinition, FlowNode, SendMessageNodeConfig, ActionNodeConfig, ConditionNodeConfig, DelayNodeConfig } from '@/types/flow';
-import { evaluateTriggerNode, evaluateConditionNode, applyActionNode, matchesKeywords, type ContactSnapshot } from './evaluator';
+import type { FlowDefinition, FlowNode, FlowEdge, SendMessageNodeConfig, ActionNodeConfig, ConditionNodeConfig, DelayNodeConfig, WaitForReplyNodeConfig } from '@/types/flow';
+import { evaluateTriggerNode, evaluateConditionNode, applyActionNode, applyWaitForReplyCapture, matchesKeywords, type ContactSnapshot } from './evaluator';
 
 export interface FlowRunContext {
   ownerUserId: string;
@@ -23,6 +23,9 @@ interface RunResult {
 }
 
 type ContactRow = ContactSnapshot & { instagram_id: string; flow_run_id?: string | null; flow_node_id?: string | null };
+
+/** Por que uma execução pausada está sendo retomada — decide qual aresta de saída seguir num nó `waitForReply`. */
+export type ResumeKind = 'delay' | 'reply' | 'timeout';
 
 function findNode(flow: FlowDefinition, id: string): FlowNode | undefined {
   return flow.nodes.find((n) => n.id === id);
@@ -50,13 +53,16 @@ async function enqueueSendMessage(automation: Automation, ctx: FlowRunContext, n
   const data = node.data as SendMessageNodeConfig;
   const recipientId = 'comment_id' in ctx.recipientRef ? ctx.recipientRef.comment_id : ctx.contactId;
 
+  const buttonLabels = data.quick_reply_buttons?.length ? data.quick_reply_buttons : data.quick_reply_button ? [data.quick_reply_button] : [];
+  const quickReplies = buttonLabels.length
+    ? buttonLabels.slice(0, 3).map((label) => ({ content_type: 'text', title: label.substring(0, 20), payload: `automation_id:${automation.id}` }))
+    : undefined;
+
   let messagePayload: any = {
     recipient: ctx.recipientRef,
     message: {
       text: data.text,
-      quick_replies: data.quick_reply_button
-        ? [{ content_type: 'text', title: data.quick_reply_button.substring(0, 20), payload: `automation_id:${automation.id}` }]
-        : undefined,
+      quick_replies: quickReplies,
     },
   };
 
@@ -158,6 +164,49 @@ async function scheduleDelay(automation: Automation, ctx: FlowRunContext, node: 
   if (error) console.error('[flow-engine] Erro ao agendar retomada de delay:', error);
 }
 
+/** Pausa num nó `waitForReply` — igual scheduleDelay, mas a retomada normal vem de uma resposta real (webhook), não de tempo. O job de timeout aqui é só o "despertador" de reserva. */
+async function scheduleWaitForReply(automation: Automation, ctx: FlowRunContext, node: FlowNode, flowRunId: string) {
+  const config = node.data as WaitForReplyNodeConfig;
+  await persistContact(ctx, { flow_node_id: node.id, flow_run_id: flowRunId });
+
+  if (!config.timeoutMinutes || config.timeoutMinutes <= 0) return; // sem timeout configurado — espera indefinidamente pela resposta
+
+  const scheduledAt = new Date();
+  scheduledAt.setMinutes(scheduledAt.getMinutes() + config.timeoutMinutes);
+
+  const { error } = await supabase.from('queue').insert({
+    user_id: ctx.ownerUserId,
+    instagram_user_id: ctx.instagramUserId,
+    contact_id: ctx.contactId,
+    automation_id: automation.id,
+    type: 'flow_resume',
+    recipient_id: ctx.contactId,
+    payload: { node_id: node.id, kind: 'timeout' },
+    status: 'pending',
+    scheduled_at: scheduledAt.toISOString(),
+  });
+  if (error) console.error('[flow-engine] Erro ao agendar timeout de waitForReply:', error);
+}
+
+/** Sorteia e enfileira uma resposta pública no comentário — mesmo formato do bloco legado (route.ts, dentro do loop de comentários). Só se aplica a `triggerType === 'comment'`. */
+async function enqueuePublicReply(automation: Automation, ctx: FlowRunContext, publicReplies: string[]) {
+  if (!publicReplies.length || !('comment_id' in ctx.recipientRef)) return;
+  const randomReply = publicReplies[Math.floor(Math.random() * publicReplies.length)];
+
+  const { error } = await supabase.from('queue').insert({
+    user_id: ctx.ownerUserId,
+    instagram_user_id: ctx.instagramUserId,
+    contact_id: ctx.contactId,
+    automation_id: automation.id,
+    type: 'public_reply',
+    recipient_id: ctx.recipientRef.comment_id,
+    payload: { message: randomReply },
+    status: 'pending',
+    scheduled_at: new Date().toISOString(),
+  });
+  if (error) console.error('[flow-engine] Erro ao enfileirar resposta pública:', error);
+}
+
 /** Caminha o grafo a partir de `startNodeId`, executando o efeito de cada nó, até parar num `delay` (agenda retomada) ou num nó terminal. */
 async function walk(automation: Automation, flow: FlowDefinition, ctx: FlowRunContext, startNodeId: string, flowRunId: string) {
   let currentId: string | undefined = startNodeId;
@@ -194,6 +243,11 @@ async function walk(automation: Automation, flow: FlowDefinition, ctx: FlowRunCo
       return; // pausa aqui — a execução retoma via job `flow_resume` (ver src/lib/drain.ts)
     }
 
+    if (node.type === 'waitForReply') {
+      await scheduleWaitForReply(automation, ctx, node, flowRunId);
+      return; // pausa aqui — retoma via resposta real (webhook) ou timeout (flow_resume, ver src/lib/drain.ts)
+    }
+
     // nó `trigger` no meio do grafo (não deveria acontecer) — apenas segue em frente
     currentId = outgoingEdges(flow, node.id)[0]?.target;
   }
@@ -218,6 +272,11 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
   });
   if (!matched) return { matched: false };
 
+  const triggerConfig = triggerNode.data as import('@/types/flow').TriggerNodeConfig;
+  if (ctx.triggerType === 'comment' && triggerConfig.publicReplies?.length) {
+    await enqueuePublicReply(automation, ctx, triggerConfig.publicReplies);
+  }
+
   // Mesma lógica de "só busca perfil se ainda não tem nome" do caminho legado (route.ts).
   const existing = await loadContact(ctx.contactId);
   let profileName = existing?.name || null;
@@ -241,18 +300,39 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
   return { matched: true };
 }
 
-/** Ponto de entrada quando um job `flow_resume` da fila (ver src/lib/drain.ts) retoma uma execução pausada num nó `delay`. */
-export async function resumeFlow(automation: Automation, ctx: FlowRunContext, pausedNodeId: string): Promise<void> {
+/**
+ * Ponto de entrada quando uma execução pausada é retomada — por uma resposta real da pessoa
+ * (`resumeKind: 'reply'`, chamado pelo webhook), por um job de timeout de `waitForReply`
+ * (`resumeKind: 'timeout'`), ou pelo job de tempo de um nó `delay` (`resumeKind: 'delay'`, default).
+ */
+export async function resumeFlow(automation: Automation, ctx: FlowRunContext, pausedNodeId: string, resumeKind: ResumeKind = 'delay'): Promise<void> {
   const flow = automation.flow_definition;
   if (!flow) return;
 
   const contact = await loadContact(ctx.contactId);
+
+  // Guarda contra corrida: se o contato já não está mais pausado nesse nó (ex: a pessoa
+  // respondeu e o job de timeout chegou depois, ou vice-versa), essa retomada é obsoleta.
+  if (contact?.flow_node_id !== pausedNodeId) return;
+
   const flowRunId = contact?.flow_run_id || randomUUID();
-  const next = outgoingEdges(flow, pausedNodeId)[0];
+  const pausedNode = findNode(flow, pausedNodeId);
+
+  let next: FlowEdge | undefined;
+  if (resumeKind === 'timeout') {
+    next = outgoingEdges(flow, pausedNodeId, 'timeout')[0];
+  } else {
+    next = flow.edges.find((e) => e.source === pausedNodeId && (e.sourceHandle ?? null) !== 'timeout');
+  }
 
   if (!next) {
     await persistContact(ctx, { flow_node_id: null, flow_run_id: null });
     return;
+  }
+
+  if (resumeKind === 'reply' && pausedNode?.type === 'waitForReply') {
+    const mutation = applyWaitForReplyCapture(pausedNode.data as WaitForReplyNodeConfig, ctx.text, contact);
+    await persistContact(ctx, mutation);
   }
 
   await walk(automation, flow, ctx, next.target, flowRunId);

@@ -42,6 +42,8 @@ function defaultDataFor(type: FlowNodeType): FlowNodeConfig['data'] {
       return { delayMinutes: 5 };
     case 'action':
       return { actionType: 'add_tag', tag: '' };
+    case 'waitForReply':
+      return { timeoutMinutes: 720, saveReplyAsTagPrefix: null, saveReplyToField: null };
   }
 }
 
