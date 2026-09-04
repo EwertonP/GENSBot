@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, Trash2, Search, Settings, Workflow, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Search, Settings, Workflow } from 'lucide-react';
 import type { Automation } from '@/types/automation';
 import { getEffectiveTrigger } from '@/lib/automation-display';
 import AutomationMediaThumb from '@/components/automation-media-thumb';
@@ -13,8 +13,6 @@ interface AutomationTableProps {
   onCreate: () => void;
   /** Abre a automação no editor visual (canvas) em vez do form linear. */
   onOpenFlowBuilder: (automation: Automation) => void;
-  /** Abre o assistente guiado (passo a passo) pra criar uma automação nova. */
-  onOpenWizard: () => void;
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
@@ -37,7 +35,6 @@ export default function AutomationTable({
   onDelete,
   onCreate,
   onOpenFlowBuilder,
-  onOpenWizard,
 }: AutomationTableProps) {
   const [search, setSearch] = React.useState('');
 
@@ -63,22 +60,13 @@ export default function AutomationTable({
             Crie seu primeiro fluxo para responder comentários e DMs automaticamente.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenWizard}
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Assistente Guiado
-          </button>
-          <button
-            onClick={onCreate}
-            className="flex items-center gap-2 bg-accent hover:bg-muted text-foreground border border-border text-xs font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Formulário Avançado
-          </button>
-        </div>
+        <button
+          onClick={onCreate}
+          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Criar Primeira Automação
+        </button>
       </div>
     );
   }
@@ -98,18 +86,11 @@ export default function AutomationTable({
           />
         </div>
         <button
-          onClick={onOpenWizard}
+          onClick={onCreate}
           className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex-shrink-0"
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          Assistente Guiado
-        </button>
-        <button
-          onClick={onCreate}
-          className="flex items-center gap-2 bg-accent hover:bg-muted text-foreground border border-border text-xs font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex-shrink-0"
-        >
           <Plus className="w-3.5 h-3.5" />
-          Formulário Avançado
+          Nova Automação
         </button>
       </div>
 
