@@ -75,9 +75,9 @@ export async function drainQueue() {
 
       const token = account.access_token;
 
-      // Job de retomada de um nó `delay` do motor de fluxo novo — não envia
-      // nada na Graph API diretamente; caminha o grafo a partir do nó pausado,
-      // que por sua vez pode gerar um novo job `flow_send` real.
+      // Job de retomada de um nó `delay` ou do timeout de um `waitForReply` do motor de
+      // fluxo — não envia nada na Graph API diretamente; caminha o grafo a partir do nó
+      // pausado, que por sua vez pode gerar um novo job `flow_send` real.
       if (job.type === 'flow_resume') {
         const { data: automation } = await supabase
           .from('automations')
@@ -98,6 +98,7 @@ export async function drainQueue() {
               resolveProfile: async () => ({ username: null, name: null }),
             },
             job.payload.node_id,
+            job.payload.kind === 'timeout' ? 'timeout' : 'delay',
           );
         }
 

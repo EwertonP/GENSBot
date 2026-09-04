@@ -1,7 +1,7 @@
 import type { Followup } from './automation';
 
-/** Os 5 tipos de nó do MVP do canvas visual. `aiResponse` fica fora por decisão de escopo. */
-export type FlowNodeType = 'trigger' | 'sendMessage' | 'condition' | 'delay' | 'action';
+/** Os tipos de nó do canvas visual. `aiResponse` fica fora por decisão de escopo. */
+export type FlowNodeType = 'trigger' | 'sendMessage' | 'condition' | 'delay' | 'action' | 'waitForReply';
 
 export interface TriggerNodeConfig {
   triggerTypes: ('dm' | 'story' | 'story_mention' | 'comment')[];
@@ -38,6 +38,15 @@ export interface DelayNodeConfig {
   delayMinutes: number;
 }
 
+export interface WaitForReplyNodeConfig {
+  /** Minutos até desistir de esperar e seguir pelo ramo "sem resposta"; null/0 = espera para sempre (sem esse ramo). */
+  timeoutMinutes?: number | null;
+  /** Grava a resposta livre como tag do contato (prefixo opcional), pra aparecer no CRM/listagem mesmo sem branching. */
+  saveReplyAsTagPrefix?: string | null;
+  /** Grava a resposta livre direto num campo do contato. */
+  saveReplyToField?: 'email' | 'phone' | 'name' | null;
+}
+
 export interface ActionNodeConfig {
   actionType: 'add_tag' | 'remove_tag' | 'set_field';
   tag?: string;
@@ -50,7 +59,8 @@ export type FlowNodeConfig =
   | { type: 'sendMessage'; data: SendMessageNodeConfig }
   | { type: 'condition'; data: ConditionNodeConfig }
   | { type: 'delay'; data: DelayNodeConfig }
-  | { type: 'action'; data: ActionNodeConfig };
+  | { type: 'action'; data: ActionNodeConfig }
+  | { type: 'waitForReply'; data: WaitForReplyNodeConfig };
 
 /** Nó persistido em automations.flow_definition — espelha a shape de Node do @xyflow/react sem acoplar ao pacote. */
 export interface FlowNode {

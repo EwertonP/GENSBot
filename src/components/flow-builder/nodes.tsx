@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Zap, MessageSquare, GitBranch, Clock, Tag } from 'lucide-react';
+import { Zap, MessageSquare, GitBranch, Clock, Tag, MessageCircleQuestion } from 'lucide-react';
 import type { FlowNodeType } from '@/types/flow';
 
 const NODE_META: Record<FlowNodeType, { label: string; icon: React.ElementType; color: string }> = {
@@ -11,9 +11,10 @@ const NODE_META: Record<FlowNodeType, { label: string; icon: React.ElementType; 
   condition: { label: 'Condição', icon: GitBranch, color: 'border-violet-500 bg-violet-500/10 text-violet-600' },
   delay: { label: 'Espera', icon: Clock, color: 'border-sky-500 bg-sky-500/10 text-sky-600' },
   action: { label: 'Ação', icon: Tag, color: 'border-emerald-500 bg-emerald-500/10 text-emerald-600' },
+  waitForReply: { label: 'Aguardar Resposta', icon: MessageCircleQuestion, color: 'border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-600' },
 };
 
-function BaseNode({ type, selected, subtitle }: { type: FlowNodeType; selected?: boolean; subtitle?: string }) {
+function BaseNode({ type, selected, subtitle, hasTimeout }: { type: FlowNodeType; selected?: boolean; subtitle?: string; hasTimeout?: boolean }) {
   const meta = NODE_META[type];
   const Icon = meta.icon;
   return (
@@ -33,6 +34,15 @@ function BaseNode({ type, selected, subtitle }: { type: FlowNodeType; selected?:
           <div className="mt-1 flex justify-between text-[8px] font-bold text-muted-foreground px-1">
             <span>sim</span>
             <span>não</span>
+          </div>
+        </>
+      ) : type === 'waitForReply' ? (
+        <>
+          <Handle type="source" position={Position.Bottom} id="reply" style={{ left: '30%' }} className="!bg-emerald-500 !w-2 !h-2" />
+          <Handle type="source" position={Position.Bottom} id="timeout" style={{ left: '70%' }} className={`!w-2 !h-2 ${hasTimeout ? '!bg-amber-500' : '!bg-muted-foreground/30'}`} />
+          <div className="mt-1 flex justify-between text-[8px] font-bold text-muted-foreground px-1">
+            <span>resposta</span>
+            <span>sem resposta</span>
           </div>
         </>
       ) : (
@@ -75,17 +85,25 @@ export function ActionNode({ data, selected }: NodeProps) {
   return <BaseNode type="action" selected={selected} subtitle={subtitle} />;
 }
 
+export function WaitForReplyNode({ data, selected }: NodeProps) {
+  const d = data as any;
+  const subtitle = d.timeoutMinutes ? `aguardando resposta · expira em ${d.timeoutMinutes} min` : 'aguardando resposta · sem expiração';
+  return <BaseNode type="waitForReply" selected={selected} subtitle={subtitle} hasTimeout={!!d.timeoutMinutes} />;
+}
+
 export const nodeTypes = {
   trigger: TriggerNode,
   sendMessage: SendMessageNode,
   condition: ConditionNode,
   delay: DelayNode,
   action: ActionNode,
+  waitForReply: WaitForReplyNode,
 };
 
 export const NODE_PALETTE_ITEMS: { type: FlowNodeType; label: string; icon: React.ElementType }[] = [
   { type: 'sendMessage', label: NODE_META.sendMessage.label, icon: NODE_META.sendMessage.icon },
   { type: 'condition', label: NODE_META.condition.label, icon: NODE_META.condition.icon },
+  { type: 'waitForReply', label: NODE_META.waitForReply.label, icon: NODE_META.waitForReply.icon },
   { type: 'delay', label: NODE_META.delay.label, icon: NODE_META.delay.icon },
   { type: 'action', label: NODE_META.action.label, icon: NODE_META.action.icon },
 ];

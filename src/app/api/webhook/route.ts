@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { after } from 'next/server';
 import { getInstagramAccountByInstagramUserId } from '@/lib/instagram-account';
 import { drainQueue } from '@/lib/drain';
-import { runFlow } from '@/lib/flow-engine/runner';
+import { runFlow, resumeFlow } from '@/lib/flow-engine/runner';
 import { matchesKeywords } from '@/lib/flow-engine/evaluator';
 
 // `messages.contact_id` tem FK pra `contacts.instagram_id` — pra um
@@ -387,6 +387,45 @@ async function processWebhookEvent(payload: any) {
           .select('*')
           .eq('instagram_id', senderId)
           .single();
+
+        // Se o contato está pausado num nó `waitForReply` de uma automação em canvas,
+        // essa mensagem é a resposta que o fluxo está esperando — retoma o grafo com o
+        // texto real e não roda o matching normal de trigger nem a máquina de estados
+        // legada pra essa mensagem. Prioridade máxima: mesmo um clique de quick reply
+        // (que também chega com `text` = título do botão) conta como a resposta aqui.
+        if (text && contact?.flow_run_id && contact?.flow_node_id && contact?.last_active_automation_id) {
+          const { data: pausedAuto } = await supabase
+            .from('automations')
+            .select('*')
+            .eq('id', contact.last_active_automation_id)
+            .single();
+
+          const pausedNode = pausedAuto?.flow_definition?.nodes?.find((n: { id: string }) => n.id === contact.flow_node_id);
+
+          if (pausedAuto?.flow_definition && pausedNode?.type === 'waitForReply') {
+            await supabase
+              .from('contacts')
+              .update({ last_response_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+              .eq('instagram_id', senderId);
+
+            await resumeFlow(
+              pausedAuto,
+              {
+                ownerUserId,
+                instagramUserId: myIgId,
+                contactId: senderId,
+                text,
+                triggerType: 'dm',
+                recipientRef: { id: senderId },
+                resolveProfile: async () => ({ username: contact.username || null, name: contact.name || null }),
+              },
+              contact.flow_node_id,
+              'reply',
+            );
+            queueDrainNeeded = true;
+            continue;
+          }
+        }
 
         // Se for clique em quick reply (botão de resposta rápida)
         const quickReplyPayload = messageData.quick_reply?.payload;

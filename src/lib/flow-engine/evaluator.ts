@@ -1,4 +1,4 @@
-import type { TriggerNodeConfig, ConditionNodeConfig, ActionNodeConfig } from '@/types/flow';
+import type { TriggerNodeConfig, ConditionNodeConfig, ActionNodeConfig, WaitForReplyNodeConfig } from '@/types/flow';
 
 /** Movida de src/app/api/webhook/route.ts (era local ali) — usada tanto pelo caminho legado quanto pelo motor de fluxo novo. */
 export function matchesKeywords(text: string, keywords: string[], matchType: string): boolean {
@@ -63,6 +63,32 @@ export function evaluateConditionNode(
     default:
       return 'false';
   }
+}
+
+/** Calcula as mutações a aplicar em `contacts` quando um nó `waitForReply` é retomado por uma resposta real (não por timeout). */
+export function applyWaitForReplyCapture(
+  config: WaitForReplyNodeConfig,
+  replyText: string,
+  contact: ContactSnapshot | null,
+): Partial<Record<'tags' | 'email' | 'phone' | 'name', unknown>> {
+  const mutation: Partial<Record<'tags' | 'email' | 'phone' | 'name', unknown>> = {};
+  const trimmed = replyText.trim();
+  if (!trimmed) return mutation;
+
+  if (config.saveReplyAsTagPrefix !== undefined && config.saveReplyAsTagPrefix !== null) {
+    const normalized = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 40);
+    if (normalized) {
+      const tag = `${config.saveReplyAsTagPrefix}${normalized}`;
+      const currentTags = contact?.tags || [];
+      if (!currentTags.includes(tag)) mutation.tags = [...currentTags, tag];
+    }
+  }
+
+  if (config.saveReplyToField) {
+    mutation[config.saveReplyToField] = trimmed;
+  }
+
+  return mutation;
 }
 
 /** Calcula as mutações a aplicar em `contacts` para um nó `action`. Não escreve no banco — quem chama decide como persistir. */

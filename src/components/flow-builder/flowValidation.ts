@@ -37,6 +37,20 @@ export function validateFlow(flow: FlowDefinition): FlowValidationIssue[] {
     if (node.type === 'sendMessage' && !(node.data as { text?: string }).text?.trim()) {
       issues.push({ nodeId: node.id, message: 'Nó de mensagem precisa de um texto.' });
     }
+
+    if (node.type === 'waitForReply') {
+      const hasReplyEdge = outgoing.some((e) => (e.sourceHandle ?? null) !== 'timeout');
+      if (!hasReplyEdge) {
+        issues.push({ nodeId: node.id, message: 'Nó "Aguardar Resposta" precisa ter o ramo "resposta" conectado.' });
+      }
+      const timeoutMinutes = (node.data as { timeoutMinutes?: number | null }).timeoutMinutes;
+      if (timeoutMinutes) {
+        const hasTimeoutEdge = outgoing.some((e) => e.sourceHandle === 'timeout');
+        if (!hasTimeoutEdge) {
+          issues.push({ nodeId: node.id, message: 'Nó "Aguardar Resposta" tem expiração configurada, mas o ramo "sem resposta" não está conectado — o fluxo travaria quando expirasse.' });
+        }
+      }
+    }
   }
 
   const reachable = new Set<string>();
