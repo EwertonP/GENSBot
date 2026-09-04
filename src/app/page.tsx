@@ -9,13 +9,13 @@ import AutomationTable from '@/components/automation-table';
 import SequenceManager from '@/components/sequence-manager';
 import Logo from '@/components/logo';
 import type { Automation } from '@/types/automation';
+import { buildFlowFromAdvancedForm, type QualificationStep } from '@/lib/flow-engine/wizardCompiler';
 // Aliasado pra não colidir com `export const dynamic = 'force-dynamic'` (route segment config) acima.
 // @xyflow/react é client-only (usa ResizeObserver) — ssr:false confirmado como padrão válido
 // em node_modules/next/dist/docs/01-app/02-guides/lazy-loading.md pra este Next 16 canary.
 import nextDynamicImport from 'next/dynamic';
 import UtmLinkBuilder from '@/components/utm-link-builder';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
-const GuidedWizard = nextDynamicImport(() => import('@/components/flow-builder/GuidedWizard'), { ssr: false });
 import {
   Settings,
   Plus,
@@ -125,7 +125,7 @@ export default function Dashboard() {
   const [automations, setAutomations] = useState<Automation[]>([]);
   // Editor visual (canvas) — coexiste com o form linear abaixo; abre em tela cheia quando preenchido.
   const [flowBuilderAutomation, setFlowBuilderAutomation] = useState<Automation | null>(null);
-  const [wizardOpen, setWizardOpen] = useState(false);
+  const [qualificationSteps, setQualificationSteps] = useState<QualificationStep[]>([]);
   
   // Mídias do Instagram para o seletor visual
   const [mediaList, setMediaList] = useState<IgMedia[]>([]);
@@ -445,10 +445,11 @@ export default function Dashboard() {
     try {
       const method = form.id ? 'PUT' : 'POST';
       const endpoint = form.id ? `/api/automations/${form.id}` : '/api/automations';
+      const flow_definition = qualificationSteps.length > 0 ? buildFlowFromAdvancedForm(form, qualificationSteps) : null;
       const res = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, flow_definition }),
       });
 
       const savedData = await res.json();
@@ -468,6 +469,7 @@ export default function Dashboard() {
     setForm(auto);
     setIsEditing(true);
     setKeywordInput(auto.keywords.join(', '));
+    setQualificationSteps([]);
   };
 
   const handleDeleteAutomation = async (id: string) => {
@@ -510,6 +512,7 @@ export default function Dashboard() {
     setIsEditing(false);
     setKeywordInput('');
     setPublicReplyInput('');
+    setQualificationSteps([]);
   };
 
   const handleTriggerChange = (trigger: string) => {
@@ -1561,7 +1564,6 @@ export default function Dashboard() {
                       setIsEditing(true);
                     }}
                     onOpenFlowBuilder={setFlowBuilderAutomation}
-                    onOpenWizard={() => setWizardOpen(true)}
                   />
 
                   {flowBuilderAutomation && (
@@ -1571,16 +1573,6 @@ export default function Dashboard() {
                       onSaved={(updated) => {
                         setAutomations((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
                         setFlowBuilderAutomation(null);
-                      }}
-                    />
-                  )}
-
-                  {wizardOpen && (
-                    <GuidedWizard
-                      onClose={() => setWizardOpen(false)}
-                      onSaved={(created) => {
-                        setAutomations((prev) => [created, ...prev]);
-                        setWizardOpen(false);
                       }}
                     />
                   )}
@@ -1996,10 +1988,158 @@ export default function Dashboard() {
                         </span>
                       </div>
 
-                      {/* Step 4: Card de Link DM */}
+                      {/* Step 4: Perguntas de Qualificação (Opcional) — gera flow_definition (motor de fluxo) só quando usado */}
                       <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
                         <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
                           4
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-bold text-foreground text-sm">Perguntas de Qualificação (Opcional)</h4>
+                        </div>
+                        <p className="text-muted-foreground text-xs font-semibold -mt-2">
+                          Faça perguntas com botões antes do link — o fluxo pausa esperando a resposta, manda um lembrete se demorar, e continua esperando depois disso.
+                        </p>
+
+                        <div className="flex flex-col gap-3">
+                          {qualificationSteps.map((step, i) => (
+                            <div key={i} className="border border-border bg-accent p-4 rounded-xl flex flex-col gap-3 relative animate-fade-in">
+                              <button
+                                type="button"
+                                onClick={() => setQualificationSteps(prev => prev.filter((_, x) => x !== i))}
+                                className="absolute top-3 right-3 text-muted-foreground hover:text-destructive cursor-pointer p-1"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <div className="flex flex-col gap-1.5 pr-8">
+                                <label className="text-xs font-bold text-muted-foreground">
+                                  {i + 1}. {step.kind === 'message' ? 'Mensagem simples' : 'Pergunta com botões'}
+                                </label>
+                                <textarea
+                                  placeholder="Texto da mensagem"
+                                  value={step.text}
+                                  onChange={e => {
+                                    const next = [...qualificationSteps];
+                                    next[i] = { ...next[i], text: e.target.value };
+                                    setQualificationSteps(next);
+                                  }}
+                                  rows={2}
+                                  className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
+                                />
+                              </div>
+
+                              {step.kind === 'question' && (
+                                <>
+                                  <div className="flex flex-col gap-1.5">
+                                    <span className="text-xs font-bold text-muted-foreground">Botões (até 3)</span>
+                                    {step.buttons.map((btn, bi) => (
+                                      <div key={bi} className="flex gap-2">
+                                        <input
+                                          className="flex-1 bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                                          value={btn}
+                                          onChange={e => {
+                                            const next = [...qualificationSteps];
+                                            const s = next[i] as typeof step;
+                                            s.buttons = s.buttons.map((b, x) => (x === bi ? e.target.value : b));
+                                            setQualificationSteps(next);
+                                          }}
+                                          placeholder={`ex: ${bi === 0 ? 'Sim' : bi === 1 ? 'Às vezes' : 'Não'}`}
+                                        />
+                                        {step.buttons.length > 1 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const next = [...qualificationSteps];
+                                              const s = next[i] as typeof step;
+                                              s.buttons = s.buttons.filter((_, x) => x !== bi);
+                                              setQualificationSteps(next);
+                                            }}
+                                            className="text-muted-foreground hover:text-destructive cursor-pointer"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {step.buttons.length < 3 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const next = [...qualificationSteps];
+                                          const s = next[i] as typeof step;
+                                          s.buttons = [...s.buttons, ''];
+                                          setQualificationSteps(next);
+                                        }}
+                                        className="self-start text-[10px] font-bold text-primary cursor-pointer"
+                                      >
+                                        + Adicionar botão
+                                      </button>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="text-xs font-bold text-muted-foreground">Minutos até o lembrete</label>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        value={step.timeoutMinutes}
+                                        onChange={e => {
+                                          const next = [...qualificationSteps];
+                                          (next[i] as typeof step).timeoutMinutes = parseInt(e.target.value) || 1;
+                                          setQualificationSteps(next);
+                                        }}
+                                        className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                                      />
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="text-xs font-bold text-muted-foreground">Texto do lembrete (opcional)</label>
+                                      <input
+                                        type="text"
+                                        value={step.reminderText}
+                                        onChange={e => {
+                                          const next = [...qualificationSteps];
+                                          (next[i] as typeof step).reminderText = e.target.value;
+                                          setQualificationSteps(next);
+                                        }}
+                                        placeholder="Padrão automático se vazio"
+                                        className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                                      />
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ))}
+
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setQualificationSteps(prev => [...prev, { kind: 'message', text: '' }])}
+                              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-muted-foreground text-muted-foreground bg-transparent hover:bg-accent hover:text-foreground hover:border-primary px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Mensagem Simples
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setQualificationSteps(prev => [
+                                  ...prev,
+                                  { kind: 'question', text: '', buttons: [''], timeoutMinutes: 720, reminderText: '' },
+                                ])
+                              }
+                              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Pergunta com Botões
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Step 5: Card de Link DM */}
+                      <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
+                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
+                          5
                         </div>
                         <div className="flex items-center gap-3">
                           <h4 className="font-bold text-foreground text-sm">Envio do Link (Mensagem de Texto)</h4>
@@ -2066,7 +2206,7 @@ export default function Dashboard() {
                       {/* Sequence Builder Step */}
                       <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground mt-1.5">
                         <div className="w-7 h-7 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
-                          5
+                          6
                         </div>
                         <div className="flex items-center gap-3">
                           <h4 className="font-bold text-foreground text-sm">Sequência de Follow-ups (Opcional)</h4>

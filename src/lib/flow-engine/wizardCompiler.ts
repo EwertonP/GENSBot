@@ -1,11 +1,12 @@
-import type { FlowDefinition, FlowNode, FlowEdge, FlowNodeType, TriggerNodeConfig } from '@/types/flow';
+import type { FlowDefinition, FlowNode, FlowEdge, FlowNodeType } from '@/types/flow';
+import type { Automation } from '@/types/automation';
 
-export interface WizardMessageStep {
+export interface QualificationMessageStep {
   kind: 'message';
   text: string;
 }
 
-export interface WizardQuestionStep {
+export interface QualificationQuestionStep {
   kind: 'question';
   text: string;
   /** 1 a 3 botões de resposta rápida. */
@@ -15,23 +16,7 @@ export interface WizardQuestionStep {
   reminderText: string;
 }
 
-export type WizardStep = WizardMessageStep | WizardQuestionStep;
-
-export interface WizardState {
-  trigger: {
-    triggerTypes: TriggerNodeConfig['triggerTypes'];
-    keywords: string[];
-    match_type: TriggerNodeConfig['match_type'];
-    specific_post_id?: string | null;
-    specific_story_id?: string | null;
-  };
-  /** Só usado quando 'comment' está entre os tipos de gatilho. */
-  publicReplies: string[];
-  initialMessage: string;
-  steps: WizardStep[];
-  link: { url: string; text: string; buttonLabel: string };
-  followup: { enabled: boolean; delayMinutes: number; text: string } | null;
-}
+export type QualificationStep = QualificationMessageStep | QualificationQuestionStep;
 
 const DEFAULT_REMINDER = 'Oi! Ainda estou por aqui, fico à disposição pra continuar quando você puder. 🙂';
 const DEFAULT_TIMEOUT_MINUTES = 720;
@@ -40,115 +25,125 @@ function makeIdFactory() {
   let counter = 0;
   return (type: FlowNodeType) => {
     counter += 1;
-    return `${type}-wizard-${counter}`;
+    return `${type}-form-${counter}`;
   };
 }
 
-/**
- * Monta um FlowDefinition completo a partir das respostas do assistente guiado.
- * Reaproveita só os nós que já existem no motor (trigger/sendMessage/waitForReply/delay) —
- * nenhum node type novo. Uma pergunta com botões vira o micro-padrão descrito no plano:
- * pergunta -> espera com timeout -> (resposta: segue) / (timeout: 1 lembrete -> espera sem timeout -> segue).
- */
-export function buildFlowFromWizard(state: WizardState): FlowDefinition {
+/** Monta o conjunto reutilizável de helpers (addNode/connect/attach) usado por qualquer compilador de flow_definition. */
+function createFlowBuilder() {
   const nextId = makeIdFactory();
   const nodes: FlowNode[] = [];
   const edges: FlowEdge[] = [];
   const X = 250;
   const Y_STEP = 140;
   let y = 0;
+  let pending: { source: string; handle: string | null }[] = [];
 
-  function addNode(node: Omit<FlowNode, 'position'>): string {
-    nodes.push({ ...node, position: { x: X, y } });
+  function addNode(type: FlowNodeType, data: FlowNode['data']): string {
+    const id = nextId(type);
+    nodes.push({ id, type, position: { x: X, y }, data });
     y += Y_STEP;
-    return node.id;
+    return id;
   }
 
   function connect(sourceId: string, targetId: string, sourceHandle: string | null) {
     edges.push({ id: `e-${sourceId}-${targetId}-${sourceHandle ?? 'default'}-${edges.length}`, source: sourceId, target: targetId, sourceHandle });
   }
 
-  // Nós que ainda precisam de um destino — todos são conectados ao próximo nó criado.
-  // Uma pergunta com botões deixa DOIS pendentes (o caminho de resposta direta e o de
-  // pós-lembrete), já que ambos devem seguir pro mesmo próximo passo do fluxo.
-  let pending: { source: string; handle: string | null }[] = [];
-
+  /** Conecta todos os nós pendentes ao alvo e o torna o novo pendente único. */
   function attach(targetId: string) {
     for (const p of pending) connect(p.source, targetId, p.handle);
     pending = [{ source: targetId, handle: null }];
   }
 
-  // 1. Trigger
-  const triggerId = nextId('trigger');
-  addNode({
-    id: triggerId,
-    type: 'trigger',
-    data: {
-      triggerTypes: state.trigger.triggerTypes,
-      keywords: state.trigger.keywords,
-      match_type: state.trigger.match_type,
-      specific_post_id: state.trigger.specific_post_id ?? null,
-      specific_story_id: state.trigger.specific_story_id ?? null,
-      publicReplies: state.trigger.triggerTypes.includes('comment') && state.publicReplies.length ? state.publicReplies : null,
-    },
-  });
-  pending = [{ source: triggerId, handle: null }];
+  function setPending(next: { source: string; handle: string | null }[]) {
+    pending = next;
+  }
 
-  // 2. Mensagem inicial (sempre presente)
-  const initialId = nextId('sendMessage');
-  addNode({ id: initialId, type: 'sendMessage', data: { text: state.initialMessage } });
-  attach(initialId);
-
-  // 3. Passos (mensagens simples ou perguntas com botões)
-  for (const step of state.steps) {
-    if (step.kind === 'message') {
-      const id = nextId('sendMessage');
-      addNode({ id, type: 'sendMessage', data: { text: step.text } });
-      attach(id);
-      continue;
-    }
-
-    const questionMsgId = nextId('sendMessage');
-    addNode({ id: questionMsgId, type: 'sendMessage', data: { text: step.text, quick_reply_buttons: step.buttons.slice(0, 3) } });
+  /**
+   * Adiciona o micro-padrão de uma pergunta com botões: pergunta -> espera com timeout
+   * -> (resposta: segue) / (timeout: 1 lembrete -> espera sem timeout -> segue). Os dois
+   * "waitForReply" ficam pendentes — ambos se conectam ao próximo nó que for anexado.
+   */
+  function appendQuestionStep(step: QualificationQuestionStep) {
+    const questionMsgId = addNode('sendMessage', { text: step.text, quick_reply_buttons: step.buttons.filter(Boolean).slice(0, 3) });
     attach(questionMsgId);
 
-    const waitId = nextId('waitForReply');
-    addNode({ id: waitId, type: 'waitForReply', data: { timeoutMinutes: step.timeoutMinutes > 0 ? step.timeoutMinutes : DEFAULT_TIMEOUT_MINUTES } });
+    const waitId = addNode('waitForReply', { timeoutMinutes: step.timeoutMinutes > 0 ? step.timeoutMinutes : DEFAULT_TIMEOUT_MINUTES });
     connect(questionMsgId, waitId, null);
 
-    const reminderId = nextId('sendMessage');
-    addNode({ id: reminderId, type: 'sendMessage', data: { text: step.reminderText?.trim() || DEFAULT_REMINDER } });
+    const reminderId = addNode('sendMessage', { text: step.reminderText?.trim() || DEFAULT_REMINDER });
     connect(waitId, reminderId, 'timeout');
 
-    const waitForeverId = nextId('waitForReply');
-    addNode({ id: waitForeverId, type: 'waitForReply', data: { timeoutMinutes: null } });
+    const waitForeverId = addNode('waitForReply', { timeoutMinutes: null });
     connect(reminderId, waitForeverId, null);
 
-    pending = [
+    setPending([
       { source: waitId, handle: null },
       { source: waitForeverId, handle: null },
-    ];
+    ]);
   }
 
-  // 4. Link final
-  const linkId = nextId('sendMessage');
-  addNode({
-    id: linkId,
-    type: 'sendMessage',
-    data: { text: state.link.text || 'Aqui está o seu link:', link_url: state.link.url, link_button_label: state.link.buttonLabel },
+  function appendQualificationStep(step: QualificationStep) {
+    if (step.kind === 'message') {
+      const id = addNode('sendMessage', { text: step.text });
+      attach(id);
+      return;
+    }
+    appendQuestionStep(step);
+  }
+
+  return { addNode, connect, attach, appendQualificationStep, getResult: (): FlowDefinition => ({ nodes, edges }) };
+}
+
+/**
+ * Monta um FlowDefinition a partir do Formulário Avançado (`src/app/page.tsx`) + as perguntas
+ * de qualificação do card novo. Só é chamado quando `questions.length > 0` — automações sem
+ * perguntas continuam salvando pelo caminho legado (colunas soltas), sem passar por aqui.
+ * Mapeia direto dos mesmos campos que os cards do form já usam (trigger/públicas/mensagem
+ * inicial/link/sequência de follow-ups), na mesma ordem visual dos cards.
+ */
+export function buildFlowFromAdvancedForm(form: Automation, questions: QualificationStep[]): FlowDefinition {
+  const b = createFlowBuilder();
+
+  const triggerId = b.addNode('trigger', {
+    triggerTypes: form.triggers as any,
+    keywords: form.keywords,
+    match_type: form.match_type,
+    specific_post_id: form.specific_post_id ?? null,
+    specific_story_id: form.specific_story_id ?? null,
+    publicReplies: form.public_replies?.length ? form.public_replies : null,
   });
-  attach(linkId);
+  b.attach(triggerId);
 
-  // 5. Follow-up opcional
-  if (state.followup?.enabled) {
-    const delayId = nextId('delay');
-    addNode({ id: delayId, type: 'delay', data: { delayMinutes: Math.max(0, state.followup.delayMinutes) } });
-    attach(delayId);
+  const initialId = b.addNode('sendMessage', {
+    text: form.welcome_dm,
+    quick_reply_button: form.quick_reply_button ?? null,
+  });
+  b.attach(initialId);
 
-    const followupMsgId = nextId('sendMessage');
-    addNode({ id: followupMsgId, type: 'sendMessage', data: { text: state.followup.text } });
-    attach(followupMsgId);
+  for (const step of questions) {
+    b.appendQualificationStep(step);
   }
 
-  return { nodes, edges };
+  const linkId = b.addNode('sendMessage', {
+    text: form.link_text || 'Aqui está o seu link:',
+    link_url: form.link_url ?? null,
+    link_button_label: form.link_button_label ?? null,
+  });
+  b.attach(linkId);
+
+  for (const followup of form.followups || []) {
+    const delayId = b.addNode('delay', { delayMinutes: Math.max(0, followup.delay_minutes) });
+    b.attach(delayId);
+
+    const msgId = b.addNode('sendMessage', {
+      text: followup.text,
+      link_url: followup.link_url || null,
+      link_button_label: followup.link_button_label || null,
+    });
+    b.attach(msgId);
+  }
+
+  return b.getResult();
 }
