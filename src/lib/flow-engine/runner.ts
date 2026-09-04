@@ -53,13 +53,16 @@ async function enqueueSendMessage(automation: Automation, ctx: FlowRunContext, n
   const data = node.data as SendMessageNodeConfig;
   const recipientId = 'comment_id' in ctx.recipientRef ? ctx.recipientRef.comment_id : ctx.contactId;
 
+  const buttonLabels = data.quick_reply_buttons?.length ? data.quick_reply_buttons : data.quick_reply_button ? [data.quick_reply_button] : [];
+  const quickReplies = buttonLabels.length
+    ? buttonLabels.slice(0, 3).map((label) => ({ content_type: 'text', title: label.substring(0, 20), payload: `automation_id:${automation.id}` }))
+    : undefined;
+
   let messagePayload: any = {
     recipient: ctx.recipientRef,
     message: {
       text: data.text,
-      quick_replies: data.quick_reply_button
-        ? [{ content_type: 'text', title: data.quick_reply_button.substring(0, 20), payload: `automation_id:${automation.id}` }]
-        : undefined,
+      quick_replies: quickReplies,
     },
   };
 
@@ -185,6 +188,25 @@ async function scheduleWaitForReply(automation: Automation, ctx: FlowRunContext,
   if (error) console.error('[flow-engine] Erro ao agendar timeout de waitForReply:', error);
 }
 
+/** Sorteia e enfileira uma resposta pública no comentário — mesmo formato do bloco legado (route.ts, dentro do loop de comentários). Só se aplica a `triggerType === 'comment'`. */
+async function enqueuePublicReply(automation: Automation, ctx: FlowRunContext, publicReplies: string[]) {
+  if (!publicReplies.length || !('comment_id' in ctx.recipientRef)) return;
+  const randomReply = publicReplies[Math.floor(Math.random() * publicReplies.length)];
+
+  const { error } = await supabase.from('queue').insert({
+    user_id: ctx.ownerUserId,
+    instagram_user_id: ctx.instagramUserId,
+    contact_id: ctx.contactId,
+    automation_id: automation.id,
+    type: 'public_reply',
+    recipient_id: ctx.recipientRef.comment_id,
+    payload: { message: randomReply },
+    status: 'pending',
+    scheduled_at: new Date().toISOString(),
+  });
+  if (error) console.error('[flow-engine] Erro ao enfileirar resposta pública:', error);
+}
+
 /** Caminha o grafo a partir de `startNodeId`, executando o efeito de cada nó, até parar num `delay` (agenda retomada) ou num nó terminal. */
 async function walk(automation: Automation, flow: FlowDefinition, ctx: FlowRunContext, startNodeId: string, flowRunId: string) {
   let currentId: string | undefined = startNodeId;
@@ -249,6 +271,11 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
     storyId: ctx.storyId,
   });
   if (!matched) return { matched: false };
+
+  const triggerConfig = triggerNode.data as import('@/types/flow').TriggerNodeConfig;
+  if (ctx.triggerType === 'comment' && triggerConfig.publicReplies?.length) {
+    await enqueuePublicReply(automation, ctx, triggerConfig.publicReplies);
+  }
 
   // Mesma lógica de "só busca perfil se ainda não tem nome" do caminho legado (route.ts).
   const existing = await loadContact(ctx.contactId);

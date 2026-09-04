@@ -38,8 +38,8 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    if (!body.name || !body.welcome_dm) {
-      return NextResponse.json({ error: 'Nome e DM de boas-vindas são obrigatórios.' }, { status: 400 });
+    if (!body.name || (!body.welcome_dm && !body.flow_definition)) {
+      return NextResponse.json({ error: 'Nome e DM de boas-vindas (ou um flow_definition) são obrigatórios.' }, { status: 400 });
     }
 
     const accountParam = new URL(req.url).searchParams.get('account');
@@ -71,6 +71,7 @@ export async function POST(req: Request) {
         link_url: body.link_url || null,
         reminder_text: body.reminder_text || null,
         reminder_delay_minutes: body.reminder_delay_minutes || null,
+        flow_definition: body.flow_definition || null,
       })
       .select()
       .single();

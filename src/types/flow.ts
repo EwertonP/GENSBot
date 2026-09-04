@@ -9,11 +9,16 @@ export interface TriggerNodeConfig {
   match_type: 'contains' | 'exact' | 'any';
   specific_post_id?: string | null;
   specific_story_id?: string | null;
+  /** Respostas públicas no comentário (sorteia uma) quando o trigger 'comment' bate. Só se aplica a esse tipo de gatilho. */
+  publicReplies?: string[] | null;
 }
 
 export interface SendMessageNodeConfig {
   text: string;
+  /** @deprecated use `quick_reply_buttons` — mantido só como fallback de leitura pra automações já salvas com esse campo. */
   quick_reply_button?: string | null;
+  /** Até 3 botões de resposta rápida. Quando presente, tem prioridade sobre `quick_reply_button`. */
+  quick_reply_buttons?: string[] | null;
   link_url?: string | null;
   link_button_label?: string | null;
   /** Quando presente, ao alcançar este nó os passos da sequência referenciada também são agendados. */
