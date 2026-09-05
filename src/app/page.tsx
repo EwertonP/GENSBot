@@ -1269,10 +1269,22 @@ export default function Dashboard() {
                           recentQueue.slice(0, 5).map(item => (
                             <tr key={item.id} className="hover:bg-accent/50 transition-colors">
                               <td className="py-3 px-3 font-mono text-xs text-foreground font-bold flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-accent border border-border flex items-center justify-center text-[10px] text-primary">
-                                  @
-                                </div>
-                                <span>@{item.contact_id.substring(0, 10)}...</span>
+                                {item.contacts?.profile_picture_url ? (
+                                  <img
+                                    src={item.contacts.profile_picture_url}
+                                    alt=""
+                                    className="w-6 h-6 rounded-full object-cover border border-border flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-accent border border-border flex items-center justify-center text-[10px] text-primary flex-shrink-0">
+                                    @
+                                  </div>
+                                )}
+                                <span>
+                                  {item.contacts?.username
+                                    ? `@${item.contacts.username}`
+                                    : `@${item.contact_id.substring(0, 10)}...`}
+                                </span>
                               </td>
                               <td className="py-3 px-3 font-semibold text-foreground text-xs">
                                 {item.type === 'private_reply' && 'DM de Boas-Vindas'}
@@ -2537,6 +2549,7 @@ export default function Dashboard() {
                 <table className="w-full text-sm text-left text-muted-foreground">
                   <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-accent">
                     <tr>
+                      <th className="py-3 px-4"><span className="sr-only">Foto</span></th>
                       <th className="py-3 px-4">Nome</th>
                       <th className="py-3 px-4">Instagram</th>
                       <th className="py-3 px-4">ID do Usuário</th>
@@ -2549,11 +2562,24 @@ export default function Dashboard() {
                   <tbody className="divide-y divide-accent">
                     {filteredContacts.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
+                        <td colSpan={8} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
                       </tr>
                     ) : (
                       filteredContacts.map(item => (
                         <tr key={item.instagram_id || item.id} className="hover:bg-card/70 transition-colors">
+                          <td className="py-3.5 px-4">
+                            {item.profile_picture_url ? (
+                              <img
+                                src={item.profile_picture_url}
+                                alt=""
+                                className="w-8 h-8 rounded-full object-cover border border-border"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-accent border border-border flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                                {(item.name || item.username || '?').charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </td>
                           <td className="py-3.5 px-4 font-bold text-foreground text-sm">
                             {item.name || <span className="text-muted-foreground font-normal italic">Não informado</span>}
                           </td>

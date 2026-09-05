@@ -99,7 +99,7 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     baseCount('events'),
     base('contacts').order('updated_at', { ascending: false }),
     base('events').order('created_at', { ascending: false }).limit(20),
-    supabase.from('queue').select('id, contact_id, type, status, error_message, created_at, sent_at')
+    supabase.from('queue').select('id, contact_id, type, status, error_message, created_at, sent_at, contacts(username, name, profile_picture_url)')
       .eq('user_id', userId).in('instagram_user_id', accountIds)
       .order('created_at', { ascending: false }).limit(20),
     supabase.from('analytics_events').select('event_type, automation_id, contact_id, created_at').in('instagram_user_id', accountIds),

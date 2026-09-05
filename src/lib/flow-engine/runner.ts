@@ -15,7 +15,7 @@ export interface FlowRunContext {
   /** Onde enviar mensagens: comentário responde por comment_id, DM/story por id do contato. */
   recipientRef: { comment_id: string } | { id: string };
   /** Injetado pelo caller (route.ts) — evita duplicar a chamada à Graph API pra buscar perfil. */
-  resolveProfile: (id: string) => Promise<{ username: string | null; name: string | null }>;
+  resolveProfile: (id: string) => Promise<{ username: string | null; name: string | null; profile_picture_url: string | null }>;
 }
 
 interface RunResult {
@@ -281,14 +281,17 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
   const existing = await loadContact(ctx.contactId);
   let profileName = existing?.name || null;
   let profileUsername = existing?.username || null;
+  let profilePictureUrl: string | null = null;
   if (!profileName) {
     const profile = await ctx.resolveProfile(ctx.contactId);
     profileName = profile.name;
     if (profile.username) profileUsername = profile.username;
+    if (profile.profile_picture_url) profilePictureUrl = profile.profile_picture_url;
   }
   await persistContact(ctx, {
     name: profileName,
     username: profileUsername || ctx.contactId,
+    ...(profilePictureUrl ? { profile_picture_url: profilePictureUrl } : {}),
     last_automation_id: automation.id,
     last_active_automation_id: automation.id,
   });

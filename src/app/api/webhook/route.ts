@@ -121,12 +121,16 @@ async function fetchInstagramUserProfile(senderId: string, accessToken: string) 
     // (mesmo host usado no resto do arquivo) — graph.facebook.com rejeitava
     // com "Cannot parse access token", silenciosamente engolido pelo catch
     // abaixo, então nunca aparecia como o motivo real de nada quebrar.
-    const res = await fetch(`https://graph.instagram.com/v25.0/${senderId}?fields=username,name&access_token=${accessToken}`);
+    // `profile_pic` é pedido junto — se a Meta não devolver pra esse contato
+    // específico (privacidade/janela de tempo), fica null e nada quebra,
+    // igual já acontece hoje quando username/name vêm ausentes.
+    const res = await fetch(`https://graph.instagram.com/v25.0/${senderId}?fields=username,name,profile_pic&access_token=${accessToken}`);
     if (res.ok) {
       const data = await res.json();
       return {
         username: data.username || null,
-        name: data.name || null
+        name: data.name || null,
+        profile_picture_url: data.profile_pic || null,
       };
     } else {
       const errData = await res.json();
@@ -135,7 +139,7 @@ async function fetchInstagramUserProfile(senderId: string, accessToken: string) 
   } catch (err) {
     console.error('Erro ao buscar perfil do Instagram:', err);
   }
-  return { username: null, name: null };
+  return { username: null, name: null, profile_picture_url: null };
 }
 
 async function processWebhookEvent(payload: any) {
@@ -259,20 +263,22 @@ async function processWebhookEvent(payload: any) {
                 welcomeText = `${auto.welcome_dm}\n\nPor favor, informe seu número de telefone/WhatsApp com DDD:`;
               }
 
-              // Obter ou atualizar informações de perfil (username/name)
+              // Obter ou atualizar informações de perfil (username/name/foto)
               const { data: existingContact } = await supabase
                 .from('contacts')
-                .select('name, username')
+                .select('name, username, profile_picture_url')
                 .eq('instagram_id', fromUserId)
                 .single();
 
               let profileName = existingContact?.name || null;
               let profileUsername = fromUsername || existingContact?.username || fromUserId;
+              let profilePictureUrl = existingContact?.profile_picture_url || null;
 
               if (!profileName) {
                 const profile = await fetchInstagramUserProfile(fromUserId, igToken);
                 profileName = profile.name;
                 if (profile.username) profileUsername = profile.username;
+                if (profile.profile_picture_url) profilePictureUrl = profile.profile_picture_url;
               }
 
               // Upsert do contato
@@ -282,6 +288,7 @@ async function processWebhookEvent(payload: any) {
                 instagram_user_id: myIgId,
                 username: profileUsername,
                 name: profileName,
+                profile_picture_url: profilePictureUrl,
                 last_automation_id: auto.id,
                 last_active_automation_id: auto.id,
                 conversation_state: nextState,
@@ -417,7 +424,7 @@ async function processWebhookEvent(payload: any) {
                 text,
                 triggerType: 'dm',
                 recipientRef: { id: senderId },
-                resolveProfile: async () => ({ username: contact.username || null, name: contact.name || null }),
+                resolveProfile: async () => ({ username: contact.username || null, name: contact.name || null, profile_picture_url: contact.profile_picture_url || null }),
               },
               contact.flow_node_id,
               'reply',
@@ -696,20 +703,22 @@ async function processWebhookEvent(payload: any) {
               welcomeText = `${auto.welcome_dm}\n\nPor favor, informe o seu telefone/WhatsApp com DDD para prosseguir:`;
             }
 
-            // Obter ou atualizar informações de perfil (username/name)
+            // Obter ou atualizar informações de perfil (username/name/foto)
             const { data: existingContact } = await supabase
               .from('contacts')
-              .select('name, username')
+              .select('name, username, profile_picture_url')
               .eq('instagram_id', senderId)
               .single();
 
             let profileName = existingContact?.name || null;
             let profileUsername = existingContact?.username || senderId;
+            let profilePictureUrl = existingContact?.profile_picture_url || null;
 
             if (!profileName || profileUsername === senderId) {
               const profile = await fetchInstagramUserProfile(senderId, igToken);
               if (profile.name) profileName = profile.name;
               if (profile.username) profileUsername = profile.username;
+              if (profile.profile_picture_url) profilePictureUrl = profile.profile_picture_url;
             }
 
             await supabase.from('contacts').upsert({
@@ -718,6 +727,7 @@ async function processWebhookEvent(payload: any) {
               instagram_user_id: myIgId,
               username: profileUsername,
               name: profileName,
+              profile_picture_url: profilePictureUrl,
               last_automation_id: auto.id,
               last_active_automation_id: auto.id,
               conversation_state: nextState,
