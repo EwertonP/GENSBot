@@ -400,7 +400,7 @@ async function processWebhookEvent(payload: any) {
         // texto real e não roda o matching normal de trigger nem a máquina de estados
         // legada pra essa mensagem. Prioridade máxima: mesmo um clique de quick reply
         // (que também chega com `text` = título do botão) conta como a resposta aqui.
-        if (text && contact?.flow_run_id && contact?.flow_node_id && contact?.last_active_automation_id) {
+        if (contact?.flow_run_id && contact?.flow_node_id && contact?.last_active_automation_id) {
           const { data: pausedAuto } = await supabase
             .from('automations')
             .select('*')
