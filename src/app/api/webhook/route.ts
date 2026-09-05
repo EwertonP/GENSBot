@@ -649,6 +649,8 @@ async function processWebhookEvent(payload: any) {
 
         if (!automations) continue;
 
+        let matchedTrigger = false;
+
         for (const auto of automations) {
           // Automação já migrada pro canvas visual: motor novo cuida de tudo.
           if (auto.flow_definition) {
@@ -671,6 +673,7 @@ async function processWebhookEvent(payload: any) {
                 event_type: 'welcome_dm_sent',
               });
               queueDrainNeeded = true;
+              matchedTrigger = true;
               break;
             }
             continue;
@@ -764,8 +767,20 @@ async function processWebhookEvent(payload: any) {
             if (queueDmError) console.error('Erro ao enfileirar resposta de DM:', queueDmError);
 
             queueDrainNeeded = true;
+            matchedTrigger = true;
             break;
           }
+        }
+
+        // Nenhuma automação bateu nessa mensagem. Se o contato não tinha
+        // nenhum histórico de automação antes (nunca disparou nada, nunca
+        // ficou num estado de captura), essa mensagem é ruído — alguém
+        // mandando DM sem relação com nenhum fluxo (ex: mensagem pessoal
+        // numa conta que também é usada como perfil pessoal). Remove o
+        // registro "vazio" que ensureContactExists criou só pra permitir
+        // o log da mensagem, em vez de deixar poluir "Leads & Público".
+        if (!matchedTrigger && !contact?.last_automation_id && !contact?.conversation_state) {
+          await supabase.from('contacts').delete().eq('instagram_id', senderId);
         }
       }
     }
