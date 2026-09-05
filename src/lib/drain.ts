@@ -95,7 +95,7 @@ export async function drainQueue() {
               text: '',
               triggerType: 'dm',
               recipientRef: { id: job.contact_id },
-              resolveProfile: async () => ({ username: null, name: null }),
+              resolveProfile: async () => ({ username: null, name: null, profile_picture_url: null }),
             },
             job.payload.node_id,
             job.payload.kind === 'timeout' ? 'timeout' : 'delay',
