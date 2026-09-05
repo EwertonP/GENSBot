@@ -54,6 +54,29 @@ function toRfEdges(flow: FlowDefinition): Edge[] {
   return flow.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle ?? undefined }));
 }
 
+/** Rótulo por handle de origem — mostrado em cima da própria linha em vez de embaixo do nó. */
+const EDGE_HANDLE_LABELS: Record<string, string> = { true: 'sim', false: 'não', reply: 'resposta', timeout: 'sem resposta' };
+
+/** Deixa as arestas curvas (em vez de retas/em ângulo) e sobe o rótulo de condição/resposta pra cima da linha. */
+function decorateEdges(rfEdges: Edge[]): Edge[] {
+  return rfEdges.map((e) => {
+    const label = e.sourceHandle ? EDGE_HANDLE_LABELS[e.sourceHandle] : undefined;
+    return {
+      ...e,
+      type: 'smoothstep',
+      ...(label
+        ? {
+            label,
+            labelStyle: { fontSize: 9, fontWeight: 700, fill: 'var(--muted-foreground)' },
+            labelBgStyle: { fill: 'var(--card)', stroke: 'var(--border)', strokeWidth: 1 },
+            labelBgPadding: [5, 3] as [number, number],
+            labelBgBorderRadius: 6,
+          }
+        : {}),
+    };
+  });
+}
+
 interface FlowBuilderProps {
   automation: Automation;
   onClose: () => void;
@@ -244,7 +267,7 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
         <div className="flex-1">
           <ReactFlow
             nodes={viewing ? toRfNodes(viewing.flow) : nodes}
-            edges={viewing ? toRfEdges(viewing.flow) : edges}
+            edges={decorateEdges(viewing ? toRfEdges(viewing.flow) : edges)}
             onNodesChange={viewing ? undefined : onNodesChange}
             onEdgesChange={viewing ? undefined : onEdgesChange}
             onConnect={viewing ? undefined : onConnect}
@@ -256,9 +279,9 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
             nodeTypes={nodeTypes}
             fitView
           >
-            <Background />
-            <Controls />
-            <MiniMap />
+            <Background gap={16} size={1} />
+            <Controls position="bottom-right" showInteractive={false} className="!shadow-md !rounded-lg !overflow-hidden" />
+            <MiniMap position="bottom-left" className="!shadow-md !rounded-lg !overflow-hidden" pannable zoomable />
           </ReactFlow>
         </div>
 

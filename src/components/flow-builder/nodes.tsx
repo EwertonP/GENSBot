@@ -14,36 +14,45 @@ const NODE_META: Record<FlowNodeType, { label: string; icon: React.ElementType; 
   waitForReply: { label: 'Aguardar Resposta', icon: MessageCircleQuestion, color: 'border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-600' },
 };
 
+/** Extrai as classes `bg-*`/`text-*` de `meta.color` pra colorir o quadrado do ícone — `meta.color` continua servindo o resto do app (borda de seleção, handles). */
+function iconBoxClasses(color: string): string {
+  return color
+    .split(' ')
+    .filter((c) => c.startsWith('bg-') || c.startsWith('text-'))
+    .join(' ');
+}
+
 function BaseNode({ type, selected, subtitle, hasTimeout }: { type: FlowNodeType; selected?: boolean; subtitle?: string; hasTimeout?: boolean }) {
   const meta = NODE_META[type];
   const Icon = meta.icon;
+  const borderColor = meta.color.split(' ').find((c) => c.startsWith('border-')) || 'border-border';
   return (
     <div
-      className={`min-w-[180px] rounded-lg border-2 bg-card px-3 py-2 shadow-sm ${meta.color} ${selected ? 'ring-2 ring-offset-2 ring-primary' : ''}`}
+      className={`min-w-[200px] rounded-xl border bg-card shadow-sm overflow-hidden ${
+        selected ? `ring-2 ring-offset-2 ring-primary ${borderColor}` : 'border-border'
+      }`}
     >
       {type !== 'trigger' && <Handle type="target" position={Position.Left} className="!bg-border !w-2 !h-2" />}
-      <div className="flex items-center gap-2">
-        <Icon className="w-3.5 h-3.5 shrink-0" />
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${iconBoxClasses(meta.color)}`}>
+          <Icon className="w-3.5 h-3.5" />
+        </div>
         <span className="text-xs font-bold text-foreground">{meta.label}</span>
       </div>
-      {subtitle && <p className="mt-1 text-[10px] text-muted-foreground line-clamp-2">{subtitle}</p>}
+      {subtitle && (
+        <div className="px-3 pb-2.5 -mt-1">
+          <p className="text-[10px] text-muted-foreground line-clamp-2">{subtitle}</p>
+        </div>
+      )}
       {type === 'condition' ? (
         <>
           <Handle type="source" position={Position.Right} id="true" style={{ top: '35%' }} className="!bg-emerald-500 !w-2 !h-2" />
           <Handle type="source" position={Position.Right} id="false" style={{ top: '65%' }} className="!bg-destructive !w-2 !h-2" />
-          <div className="mt-1 flex justify-between text-[8px] font-bold text-muted-foreground px-1">
-            <span>sim</span>
-            <span>não</span>
-          </div>
         </>
       ) : type === 'waitForReply' ? (
         <>
           <Handle type="source" position={Position.Right} id="reply" style={{ top: '35%' }} className="!bg-emerald-500 !w-2 !h-2" />
           <Handle type="source" position={Position.Right} id="timeout" style={{ top: '65%' }} className={`!w-2 !h-2 ${hasTimeout ? '!bg-amber-500' : '!bg-muted-foreground/30'}`} />
-          <div className="mt-1 flex justify-between text-[8px] font-bold text-muted-foreground px-1">
-            <span>resposta</span>
-            <span>sem resposta</span>
-          </div>
         </>
       ) : (
         <Handle type="source" position={Position.Right} className="!bg-border !w-2 !h-2" />
