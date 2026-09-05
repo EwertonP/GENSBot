@@ -394,20 +394,34 @@ export function NodeConfigPanel({
   node,
   onChange,
   onClose,
+  onDelete,
   sequences = [],
 }: {
   node: FlowNode;
   onChange: (data: FlowNode['data']) => void;
   onClose: () => void;
+  onDelete?: () => void;
   sequences?: { id?: string; name: string }[];
 }) {
   return (
     <div className="w-72 shrink-0 border-l border-border bg-card p-4 flex flex-col gap-4 overflow-y-auto">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold text-foreground">Configurar nó</h3>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground cursor-pointer" aria-label="Fechar painel">
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-3">
+          {onDelete && node.type !== 'trigger' && (
+            <button
+              onClick={onDelete}
+              className="text-muted-foreground hover:text-destructive cursor-pointer"
+              aria-label="Excluir nó"
+              title="Excluir nó"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground cursor-pointer" aria-label="Fechar painel">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {node.type === 'trigger' && <TriggerPanel data={node.data as TriggerNodeConfig} onChange={onChange as any} />}

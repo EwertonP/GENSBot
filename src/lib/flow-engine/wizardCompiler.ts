@@ -34,15 +34,15 @@ function createFlowBuilder() {
   const nextId = makeIdFactory();
   const nodes: FlowNode[] = [];
   const edges: FlowEdge[] = [];
-  const X = 250;
-  const Y_STEP = 140;
-  let y = 0;
+  const Y = 100;
+  const X_STEP = 260;
+  let x = 0;
   let pending: { source: string; handle: string | null }[] = [];
 
   function addNode(type: FlowNodeType, data: FlowNode['data']): string {
     const id = nextId(type);
-    nodes.push({ id, type, position: { x: X, y }, data });
-    y += Y_STEP;
+    nodes.push({ id, type, position: { x, y: Y }, data });
+    x += X_STEP;
     return id;
   }
 
