@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { supabase } from '@/lib/supabase';
 import type { Automation } from '@/types/automation';
 import type { FlowDefinition, FlowNode, FlowEdge, SendMessageNodeConfig, ActionNodeConfig, ConditionNodeConfig, DelayNodeConfig, WaitForReplyNodeConfig } from '@/types/flow';
-import { evaluateTriggerNode, evaluateConditionNode, applyActionNode, applyWaitForReplyCapture, matchesKeywords, type ContactSnapshot } from './evaluator';
+import { evaluateTriggerNode, evaluateConditionNode, applyActionNode, applyWaitForReplyCapture, matchesKeywords, personalizeText, type ContactSnapshot } from './evaluator';
 
 export interface FlowRunContext {
   ownerUserId: string;
@@ -49,9 +49,10 @@ async function persistContact(ctx: FlowRunContext, mutation: Record<string, unkn
   if (error) console.error('[flow-engine] Erro ao atualizar contato:', error);
 }
 
-async function enqueueSendMessage(automation: Automation, ctx: FlowRunContext, node: FlowNode) {
+async function enqueueSendMessage(automation: Automation, ctx: FlowRunContext, node: FlowNode, contact: ContactSnapshot | null) {
   const data = node.data as SendMessageNodeConfig;
   const recipientId = 'comment_id' in ctx.recipientRef ? ctx.recipientRef.comment_id : ctx.contactId;
+  const text = personalizeText(data.text, contact);
 
   const buttonLabels = data.quick_reply_buttons?.length ? data.quick_reply_buttons : data.quick_reply_button ? [data.quick_reply_button] : [];
   const quickReplies = buttonLabels.length
@@ -61,7 +62,7 @@ async function enqueueSendMessage(automation: Automation, ctx: FlowRunContext, n
   let messagePayload: any = {
     recipient: ctx.recipientRef,
     message: {
-      text: data.text,
+      text,
       quick_replies: quickReplies,
     },
   };
@@ -74,7 +75,7 @@ async function enqueueSendMessage(automation: Automation, ctx: FlowRunContext, n
           type: 'template',
           payload: {
             template_type: 'button',
-            text: (data.text || 'Acesse o link abaixo:').trim(),
+            text: (text || 'Acesse o link abaixo:').trim(),
             buttons: [{ type: 'web_url', url: data.link_url, title: (data.link_button_label || 'Acessar Link').substring(0, 20) }],
           },
         },
@@ -219,7 +220,7 @@ async function walk(automation: Automation, flow: FlowDefinition, ctx: FlowRunCo
     if (!node) break;
 
     if (node.type === 'sendMessage') {
-      await enqueueSendMessage(automation, ctx, node);
+      await enqueueSendMessage(automation, ctx, node, contact);
       currentId = outgoingEdges(flow, node.id)[0]?.target;
       continue;
     }

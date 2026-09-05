@@ -117,6 +117,7 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<{ level: 'critical' | 'warning'; message: string }[]>([]);
   const [isAggregateView, setIsAggregateView] = useState(false);
   const [tagFilter, setTagFilter] = useState<string>('');
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [editingTagsFor, setEditingTagsFor] = useState<string | null>(null);
   const [tagInputValue, setTagInputValue] = useState('');
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
@@ -1938,6 +1939,9 @@ export default function Dashboard() {
                               rows={3}
                               className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none"
                             />
+                            <p className="text-[10px] text-muted-foreground">
+                              Use <code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> pra personalizar com o nome do lead (ex: "Olá, {'{{primeiro_nome}}'}!")
+                            </p>
                           </div>
 
                           <div className="flex flex-col gap-1.5">
@@ -2037,6 +2041,9 @@ export default function Dashboard() {
                                   rows={2}
                                   className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
                                 />
+                                <p className="text-[9px] text-muted-foreground">
+                                  Use <code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> pra personalizar com o nome do lead
+                                </p>
                               </div>
 
                               {step.kind === 'question' && (
@@ -2261,6 +2268,9 @@ export default function Dashboard() {
                                   rows={2}
                                   className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
                                 />
+                                <p className="text-[9px] text-muted-foreground">
+                                  Use <code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> pra personalizar com o nome do lead
+                                </p>
                               </div>
                               
                               <div className="grid grid-cols-3 gap-3">
@@ -2512,6 +2522,32 @@ export default function Dashboard() {
           {activeTab === 'contacts' && (() => {
             const allTags = Array.from(new Set(contacts.flatMap(c => c.tags || []))).sort();
             const filteredContacts = tagFilter ? contacts.filter(c => (c.tags || []).includes(tagFilter)) : contacts;
+            const selectedContacts = filteredContacts.filter(c => selectedContactIds.has(c.instagram_id));
+            const allSelected = filteredContacts.length > 0 && filteredContacts.every(c => selectedContactIds.has(c.instagram_id));
+            const toggleAll = () => {
+              setSelectedContactIds(allSelected ? new Set() : new Set(filteredContacts.map(c => c.instagram_id)));
+            };
+            const toggleOne = (id: string) => {
+              setSelectedContactIds(prev => {
+                const next = new Set(prev);
+                if (next.has(id)) next.delete(id); else next.add(id);
+                return next;
+              });
+            };
+            const handleDeleteSelected = async () => {
+              if (selectedContacts.length === 0) return;
+              if (!confirm(`Excluir ${selectedContacts.length} contato(s) da audiência? Essa ação não pode ser desfeita.`)) return;
+              for (const c of selectedContacts) {
+                try {
+                  await fetch(withAccount(`/api/contacts/${c.instagram_id}`), { method: 'DELETE' });
+                } catch (err) {
+                  console.error('Erro ao excluir contato:', err);
+                }
+              }
+              setSelectedContactIds(new Set());
+              fetchStatusAndData();
+              showToast('Contatos excluídos.', 'success');
+            };
             return (
             <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2529,6 +2565,33 @@ export default function Dashboard() {
                       <option value="">Todas as tags</option>
                       {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
                     </select>
+                  )}
+                  {selectedContacts.length > 0 && (
+                    <>
+                      <button
+                        onClick={() => exportToCsv('contatos_selecionados.csv', selectedContacts.map(c => ({
+                          nome: c.name || '',
+                          username: c.username || '',
+                          instagram_id: c.instagram_id,
+                          email: c.email || '',
+                          telefone: c.phone || '',
+                          tags: (c.tags || []).join('; '),
+                          ultima_interacao: c.last_response_at || '',
+                          cadastrado_em: c.first_contact_at || c.created_at || '',
+                        })))}
+                        className="flex items-center gap-1.5 bg-accent hover:bg-muted border border-border rounded-xl px-3 py-1.5 text-xs font-bold text-foreground cursor-pointer transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Exportar {selectedContacts.length} selecionado{selectedContacts.length > 1 ? 's' : ''}
+                      </button>
+                      <button
+                        onClick={handleDeleteSelected}
+                        className="flex items-center gap-1.5 bg-accent hover:bg-destructive/10 border border-border hover:border-destructive/40 rounded-xl px-3 py-1.5 text-xs font-bold text-destructive cursor-pointer transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Excluir {selectedContacts.length} selecionado{selectedContacts.length > 1 ? 's' : ''}
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => exportToCsv('contatos.csv', filteredContacts.map(c => ({
@@ -2556,6 +2619,15 @@ export default function Dashboard() {
                 <table className="w-full text-sm text-left text-muted-foreground">
                   <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-accent">
                     <tr>
+                      <th className="py-3 px-4 w-8">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleAll}
+                          aria-label="Selecionar todos os contatos"
+                          className="cursor-pointer"
+                        />
+                      </th>
                       <th className="py-3 px-4"><span className="sr-only">Foto</span></th>
                       <th className="py-3 px-4">Nome</th>
                       <th className="py-3 px-4">Instagram</th>
@@ -2569,11 +2641,20 @@ export default function Dashboard() {
                   <tbody className="divide-y divide-accent">
                     {filteredContacts.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
+                        <td colSpan={9} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
                       </tr>
                     ) : (
                       filteredContacts.map(item => (
                         <tr key={item.instagram_id || item.id} className="hover:bg-card/70 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedContactIds.has(item.instagram_id)}
+                              onChange={() => toggleOne(item.instagram_id)}
+                              aria-label={`Selecionar ${item.name || item.username || item.instagram_id}`}
+                              className="cursor-pointer"
+                            />
+                          </td>
                           <td className="py-3.5 px-4">
                             {item.profile_picture_url ? (
                               <img

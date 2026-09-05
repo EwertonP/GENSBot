@@ -115,6 +115,9 @@ function SendMessagePanel({
     <div className="flex flex-col gap-4">
       <Field label="Texto da mensagem">
         <textarea rows={4} className={inputCls} value={data.text} onChange={(e) => onChange({ ...data, text: e.target.value })} />
+        <p className="text-[10px] text-muted-foreground -mt-1">
+          Use <code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> pra personalizar com o nome do lead (ex: "Olá, {'{{primeiro_nome}}'}!")
+        </p>
       </Field>
       <Field label="Botões de resposta rápida (até 3, opcional)">
         <div className="flex flex-col gap-1.5">
