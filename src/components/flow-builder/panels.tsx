@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Plus, Trash2 } from 'lucide-react';
 import type {
   FlowNode,
   TriggerNodeConfig,
@@ -24,6 +24,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function TriggerPanel({ data, onChange }: { data: TriggerNodeConfig; onChange: (d: TriggerNodeConfig) => void }) {
   const ALL_TYPES: TriggerNodeConfig['triggerTypes'] = ['dm', 'comment', 'story', 'story_mention'];
+  const [newReply, setNewReply] = useState('');
   const toggle = (t: TriggerNodeConfig['triggerTypes'][number]) => {
     const has = data.triggerTypes.includes(t);
     onChange({ ...data, triggerTypes: has ? data.triggerTypes.filter((x) => x !== t) : [...data.triggerTypes, t] });
@@ -60,6 +61,43 @@ function TriggerPanel({ data, onChange }: { data: TriggerNodeConfig; onChange: (
           <option value="any">Qualquer mensagem</option>
         </select>
       </Field>
+      {data.triggerTypes.includes('comment') && (
+        <Field label="Respostas públicas no comentário (sorteia uma, opcional)">
+          <div className="flex flex-col gap-1.5">
+            {(data.publicReplies || []).map((reply, i) => (
+              <div key={i} className="flex items-center justify-between bg-accent border border-border rounded-lg px-3 py-2 text-xs gap-2">
+                <span className="text-foreground truncate">{reply}</span>
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...data, publicReplies: (data.publicReplies || []).filter((_, x) => x !== i) })}
+                  className="text-muted-foreground hover:text-destructive cursor-pointer shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <input
+                className={inputCls}
+                value={newReply}
+                onChange={(e) => setNewReply(e.target.value)}
+                placeholder="ex: Já te chamei no privado! 📩"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newReply.trim()) return;
+                  onChange({ ...data, publicReplies: [...(data.publicReplies || []), newReply.trim()] });
+                  setNewReply('');
+                }}
+                className="px-3 rounded-xl bg-primary text-primary-foreground cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </Field>
+      )}
     </div>
   );
 }
@@ -78,12 +116,39 @@ function SendMessagePanel({
       <Field label="Texto da mensagem">
         <textarea rows={4} className={inputCls} value={data.text} onChange={(e) => onChange({ ...data, text: e.target.value })} />
       </Field>
-      <Field label="Botão de resposta rápida (opcional)">
-        <input
-          className={inputCls}
-          value={data.quick_reply_button || ''}
-          onChange={(e) => onChange({ ...data, quick_reply_button: e.target.value || null })}
-        />
+      <Field label="Botões de resposta rápida (até 3, opcional)">
+        <div className="flex flex-col gap-1.5">
+          {(data.quick_reply_buttons || []).map((btn, i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                className={inputCls}
+                value={btn}
+                onChange={(e) => {
+                  const buttons = [...(data.quick_reply_buttons || [])];
+                  buttons[i] = e.target.value;
+                  onChange({ ...data, quick_reply_buttons: buttons });
+                }}
+                placeholder={`ex: ${i === 0 ? 'Sim' : i === 1 ? 'Às vezes' : 'Não'}`}
+              />
+              <button
+                type="button"
+                onClick={() => onChange({ ...data, quick_reply_buttons: (data.quick_reply_buttons || []).filter((_, x) => x !== i) })}
+                className="text-muted-foreground hover:text-destructive cursor-pointer shrink-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+          {(data.quick_reply_buttons || []).length < 3 && (
+            <button
+              type="button"
+              onClick={() => onChange({ ...data, quick_reply_buttons: [...(data.quick_reply_buttons || []), ''] })}
+              className="self-start text-[10px] font-bold text-primary cursor-pointer"
+            >
+              + Adicionar botão
+            </button>
+          )}
+        </div>
       </Field>
       <Field label="Link (opcional)">
         <input className={inputCls} value={data.link_url || ''} onChange={(e) => onChange({ ...data, link_url: e.target.value || null })} />

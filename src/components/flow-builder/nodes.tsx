@@ -59,7 +59,9 @@ export function TriggerNode({ data, selected }: NodeProps) {
 
 export function SendMessageNode({ data, selected }: NodeProps) {
   const d = data as any;
-  return <BaseNode type="sendMessage" selected={selected} subtitle={d.text} />;
+  const buttonCount = d.quick_reply_buttons?.length || (d.quick_reply_button ? 1 : 0);
+  const subtitle = buttonCount ? `${d.text} · ${buttonCount} botão${buttonCount > 1 ? 'ões' : ''}` : d.text;
+  return <BaseNode type="sendMessage" selected={selected} subtitle={subtitle} />;
 }
 
 export function ConditionNode({ data, selected }: NodeProps) {
