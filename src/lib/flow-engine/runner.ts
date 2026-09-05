@@ -291,6 +291,7 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
   await persistContact(ctx, {
     name: profileName,
     username: profileUsername || ctx.contactId,
+    last_response_at: new Date().toISOString(),
     ...(profilePictureUrl ? { profile_picture_url: profilePictureUrl } : {}),
     last_automation_id: automation.id,
     last_active_automation_id: automation.id,
