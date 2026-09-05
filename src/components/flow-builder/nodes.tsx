@@ -21,7 +21,7 @@ function BaseNode({ type, selected, subtitle, hasTimeout }: { type: FlowNodeType
     <div
       className={`min-w-[180px] rounded-lg border-2 bg-card px-3 py-2 shadow-sm ${meta.color} ${selected ? 'ring-2 ring-offset-2 ring-primary' : ''}`}
     >
-      {type !== 'trigger' && <Handle type="target" position={Position.Top} className="!bg-border !w-2 !h-2" />}
+      {type !== 'trigger' && <Handle type="target" position={Position.Left} className="!bg-border !w-2 !h-2" />}
       <div className="flex items-center gap-2">
         <Icon className="w-3.5 h-3.5 shrink-0" />
         <span className="text-xs font-bold text-foreground">{meta.label}</span>
@@ -29,8 +29,8 @@ function BaseNode({ type, selected, subtitle, hasTimeout }: { type: FlowNodeType
       {subtitle && <p className="mt-1 text-[10px] text-muted-foreground line-clamp-2">{subtitle}</p>}
       {type === 'condition' ? (
         <>
-          <Handle type="source" position={Position.Bottom} id="true" style={{ left: '30%' }} className="!bg-emerald-500 !w-2 !h-2" />
-          <Handle type="source" position={Position.Bottom} id="false" style={{ left: '70%' }} className="!bg-destructive !w-2 !h-2" />
+          <Handle type="source" position={Position.Right} id="true" style={{ top: '35%' }} className="!bg-emerald-500 !w-2 !h-2" />
+          <Handle type="source" position={Position.Right} id="false" style={{ top: '65%' }} className="!bg-destructive !w-2 !h-2" />
           <div className="mt-1 flex justify-between text-[8px] font-bold text-muted-foreground px-1">
             <span>sim</span>
             <span>não</span>
@@ -38,15 +38,15 @@ function BaseNode({ type, selected, subtitle, hasTimeout }: { type: FlowNodeType
         </>
       ) : type === 'waitForReply' ? (
         <>
-          <Handle type="source" position={Position.Bottom} id="reply" style={{ left: '30%' }} className="!bg-emerald-500 !w-2 !h-2" />
-          <Handle type="source" position={Position.Bottom} id="timeout" style={{ left: '70%' }} className={`!w-2 !h-2 ${hasTimeout ? '!bg-amber-500' : '!bg-muted-foreground/30'}`} />
+          <Handle type="source" position={Position.Right} id="reply" style={{ top: '35%' }} className="!bg-emerald-500 !w-2 !h-2" />
+          <Handle type="source" position={Position.Right} id="timeout" style={{ top: '65%' }} className={`!w-2 !h-2 ${hasTimeout ? '!bg-amber-500' : '!bg-muted-foreground/30'}`} />
           <div className="mt-1 flex justify-between text-[8px] font-bold text-muted-foreground px-1">
             <span>resposta</span>
             <span>sem resposta</span>
           </div>
         </>
       ) : (
-        <Handle type="source" position={Position.Bottom} className="!bg-border !w-2 !h-2" />
+        <Handle type="source" position={Position.Right} className="!bg-border !w-2 !h-2" />
       )}
     </div>
   );

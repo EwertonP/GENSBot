@@ -93,7 +93,7 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
       const newNode: Node = {
         id,
         type,
-        position: { x: 80 + Math.random() * 200, y: 80 + nodes.length * 40 },
+        position: { x: 80 + nodes.length * 260, y: 80 + Math.random() * 160 },
         data: defaultDataFor(type) as any,
       };
       setNodes((nds) => [...nds, newNode]);
@@ -102,6 +102,15 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
   );
 
   const selectedNode = nodes.find((n) => n.id === selectedId) as (Node & { type: FlowNodeType }) | undefined;
+
+  const handleDeleteNode = useCallback(
+    (id: string) => {
+      setNodes((nds) => nds.filter((n) => n.id !== id));
+      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+      setSelectedId(null);
+    },
+    [setNodes, setEdges],
+  );
 
   const handleNodeDataChange = useCallback(
     (data: FlowNode['data']) => {
@@ -268,6 +277,7 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
             node={{ id: selectedNode.id, type: selectedNode.type, position: selectedNode.position, data: selectedNode.data as any }}
             onChange={handleNodeDataChange}
             onClose={() => setSelectedId(null)}
+            onDelete={() => handleDeleteNode(selectedNode.id)}
             sequences={sequences}
           />
         )}
