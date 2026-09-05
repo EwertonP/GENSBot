@@ -40,3 +40,31 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+// DELETE: Remove um contato da audiência (ex: contato irrelevante que o usuário não quer na lista/exportação).
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await getAuthUser();
+    if (!user) return unauthorizedResponse();
+
+    const { id } = await params;
+    const accountParam = new URL(req.url).searchParams.get('account');
+    const config = await getActiveInstagramAccountForUser(user.id, accountParam);
+
+    if (!config?.instagram_user_id) {
+      return NextResponse.json({ error: 'Nenhuma conta do Instagram conectada.' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('contacts')
+      .delete()
+      .eq('instagram_id', id)
+      .eq('user_id', user.id)
+      .eq('instagram_user_id', config.instagram_user_id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}

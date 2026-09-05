@@ -42,6 +42,12 @@ export interface ContactSnapshot {
   username?: string | null;
 }
 
+/** Substitui `{{primeiro_nome}}` pelo primeiro nome do contato no texto de uma mensagem. Se o nome não for conhecido, o marcador vira string vazia. */
+export function personalizeText(text: string, contact: ContactSnapshot | null): string {
+  const firstName = contact?.name?.trim().split(/\s+/)[0] || '';
+  return text.replace(/\{\{\s*primeiro_nome\s*\}\}/gi, firstName);
+}
+
 export function evaluateConditionNode(
   config: ConditionNodeConfig,
   ctx: { text: string; contact: ContactSnapshot | null },
