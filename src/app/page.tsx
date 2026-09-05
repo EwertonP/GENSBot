@@ -2044,9 +2044,12 @@ export default function Dashboard() {
                                   <div className="flex flex-col gap-1.5">
                                     <span className="text-xs font-bold text-muted-foreground">Botões (até 3)</span>
                                     {step.buttons.map((btn, bi) => (
-                                      <div key={bi} className="flex gap-2">
+                                      <div key={bi} className="flex flex-col gap-1">
+                                        <div className="flex gap-2">
                                         <input
-                                          className="flex-1 bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                                          className={`flex-1 bg-card border rounded-xl px-3 py-2 text-sm focus:outline-none text-foreground placeholder-muted-foreground ${
+                                            btn.length > 20 ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
+                                          }`}
                                           value={btn}
                                           onChange={e => {
                                             const next = [...qualificationSteps];
@@ -2070,6 +2073,10 @@ export default function Dashboard() {
                                             <Trash2 className="w-3.5 h-3.5" />
                                           </button>
                                         )}
+                                        </div>
+                                        <span className={`text-[9px] font-bold ${btn.length > 20 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                          {btn.length}/20 caracteres (limite do Instagram){btn.length > 20 ? ', vai ser cortado!' : ''}
+                                        </span>
                                       </div>
                                     ))}
                                     {step.buttons.length < 3 && (
