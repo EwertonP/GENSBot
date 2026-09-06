@@ -3,7 +3,9 @@ import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
 import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
 
-// PATCH: Atualiza as tags de segmentação de um contato (ex: "cliente", "quente").
+// PATCH: Atualiza campos editáveis de um contato — tags de segmentação (ex: "cliente",
+// "quente") e/ou os dados do lead (nome, e-mail, telefone, observações livres). Todos os
+// campos são opcionais no corpo da requisição; só os presentes são atualizados.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getAuthUser();
@@ -12,8 +14,25 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { id } = await params;
     const body = await req.json();
 
-    if (!Array.isArray(body.tags) || !body.tags.every((t: unknown) => typeof t === 'string')) {
-      return NextResponse.json({ error: 'tags deve ser uma lista de strings.' }, { status: 400 });
+    const update: Record<string, unknown> = {};
+
+    if (body.tags !== undefined) {
+      if (!Array.isArray(body.tags) || !body.tags.every((t: unknown) => typeof t === 'string')) {
+        return NextResponse.json({ error: 'tags deve ser uma lista de strings.' }, { status: 400 });
+      }
+      update.tags = Array.from(new Set(body.tags.map((t: string) => t.trim()).filter(Boolean))).slice(0, 10);
+    }
+
+    for (const field of ['name', 'email', 'phone', 'notes'] as const) {
+      if (body[field] === undefined) continue;
+      if (body[field] !== null && typeof body[field] !== 'string') {
+        return NextResponse.json({ error: `${field} deve ser uma string ou null.` }, { status: 400 });
+      }
+      update[field] = typeof body[field] === 'string' ? body[field].trim() || null : null;
+    }
+
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ error: 'Nenhum campo válido para atualizar foi enviado.' }, { status: 400 });
     }
 
     const accountParam = new URL(req.url).searchParams.get('account');
@@ -23,11 +42,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'Nenhuma conta do Instagram conectada.' }, { status: 400 });
     }
 
-    const tags = Array.from(new Set(body.tags.map((t: string) => t.trim()).filter(Boolean))).slice(0, 10);
-
     const { data, error } = await supabase
       .from('contacts')
-      .update({ tags, updated_at: new Date().toISOString() })
+      .update({ ...update, updated_at: new Date().toISOString() })
       .eq('instagram_id', id)
       .eq('user_id', user.id)
       .eq('instagram_user_id', config.instagram_user_id)
