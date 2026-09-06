@@ -97,6 +97,7 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [sequences, setSequences] = useState<{ id?: string; name: string }[]>([]);
+  const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [viewing, setViewing] = useState<{ versionId: string; flow: FlowDefinition } | null>(null);
   const [currentAutomation, setCurrentAutomation] = useState(automation);
@@ -106,6 +107,14 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
       .then((res) => res.json())
       .then((data) => setSequences(Array.isArray(data) ? data : []))
       .catch(() => setSequences([]));
+
+    // Pra alimentar o seletor "usar um link já criado" no painel de mensagem —
+    // mesma lista de src/app/page.tsx, filtrada pra conta desta automação.
+    fetch('/api/utm-links')
+      .then((res) => res.json())
+      .then((data) => setUtmLinks(Array.isArray(data) ? data.filter((l: any) => l.instagram_user_id === automation.instagram_user_id) : []))
+      .catch(() => setUtmLinks([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onConnect = useCallback((connection: Connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
@@ -302,6 +311,9 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
             onClose={() => setSelectedId(null)}
             onDelete={() => handleDeleteNode(selectedNode.id)}
             sequences={sequences}
+            utmLinks={utmLinks}
+            automationId={currentAutomation.id}
+            onUtmLinksChange={setUtmLinks}
           />
         )}
       </div>
