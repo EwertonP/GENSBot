@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type KeyboardEvent } from 'react';
 import { FileText, Trash2, ExternalLink, Plus, X, Pencil, StickyNote } from 'lucide-react';
 import { tagColorClasses } from '@/lib/tag-colors';
 
@@ -79,7 +79,8 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
   const [editingTagsFor, setEditingTagsFor] = useState<string | null>(null);
   const [tagInputValue, setTagInputValue] = useState('');
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', notes: '' });
+  const [editForm, setEditForm] = useState<{ name: string; email: string; phone: string; notes: string; tags: string[] }>({ name: '', email: '', phone: '', notes: '', tags: [] });
+  const [tagDraft, setTagDraft] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -185,7 +186,9 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
       email: contact.email || '',
       phone: contact.phone || '',
       notes: contact.notes || '',
+      tags: contact.tags || [],
     });
+    setTagDraft('');
   };
 
   const closeEdit = () => {
@@ -193,10 +196,44 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
     setEditingContact(null);
   };
 
+  const addEditTag = (raw: string) => {
+    const tag = raw.trim();
+    if (!tag) return;
+    setEditForm(prev => prev.tags.includes(tag) ? prev : { ...prev, tags: [...prev.tags, tag] });
+  };
+
+  const removeEditTag = (tag: string) => {
+    setEditForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
+  };
+
+  // Digitar "cabelo, " (vírgula, com ou sem espaço depois) cria a tag e limpa o
+  // campo — dá pra colar várias de uma vez também ("cabelo, botox, acne").
+  const handleTagDraftChange = (value: string) => {
+    if (!value.includes(',')) {
+      setTagDraft(value);
+      return;
+    }
+    const parts = value.split(',');
+    const remainder = parts.pop() || '';
+    parts.forEach(addEditTag);
+    setTagDraft(remainder.trimStart());
+  };
+
+  const handleTagDraftKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addEditTag(tagDraft);
+      setTagDraft('');
+    } else if (e.key === 'Backspace' && !tagDraft && editForm.tags.length > 0) {
+      removeEditTag(editForm.tags[editForm.tags.length - 1]);
+    }
+  };
+
   const saveEdit = async () => {
     if (!editingContact) return;
     setSavingEdit(true);
     try {
+      const tags = tagDraft.trim() ? [...editForm.tags, tagDraft.trim()] : editForm.tags;
       const res = await fetch(withAccount(`/api/contacts/${editingContact.instagram_id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -205,6 +242,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
           email: editForm.email.trim() || null,
           phone: editForm.phone.trim() || null,
           notes: editForm.notes.trim() || null,
+          tags,
         }),
       });
       if (res.ok) {
@@ -495,6 +533,34 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                   className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-muted-foreground">Tags</label>
+              <div className="bg-accent border border-border rounded-xl px-2 py-2 flex flex-wrap items-center gap-1.5 focus-within:border-primary">
+                {editForm.tags.map(tag => (
+                  <span key={tag} className={`flex items-center gap-1 font-bold px-2 py-0.5 rounded-full border text-xs ${tagColorClasses(tag)}`}>
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeEditTag(tag)}
+                      className="hover:text-destructive cursor-pointer"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  value={tagDraft}
+                  onChange={e => handleTagDraftChange(e.target.value)}
+                  onKeyDown={handleTagDraftKeyDown}
+                  onBlur={() => { if (tagDraft.trim()) { addEditTag(tagDraft); setTagDraft(''); } }}
+                  placeholder={editForm.tags.length === 0 ? 'ex: cabelo, botox' : 'nova tag...'}
+                  className="flex-1 min-w-[100px] bg-transparent text-sm focus:outline-none text-foreground placeholder-muted-foreground py-0.5"
+                />
+              </div>
+              <p className="text-[9px] text-muted-foreground">Digite e use vírgula (ou Enter) pra criar cada tag.</p>
             </div>
 
             <div className="flex flex-col gap-1.5">
