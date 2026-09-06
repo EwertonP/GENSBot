@@ -48,6 +48,12 @@ export function personalizeText(text: string, contact: ContactSnapshot | null): 
   return text.replace(/\{\{\s*primeiro_nome\s*\}\}/gi, firstName);
 }
 
+/** Deriva a tag automática de uma automação a partir do nome (ex: "Acne" -> "acne", "Botox e Preenchimento" -> "botox_e_preenchimento"). Mesma normalização usada em applyWaitForReplyCapture. */
+export function deriveAutomationTag(automationName: string): string | null {
+  const normalized = automationName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return normalized || null;
+}
+
 export function evaluateConditionNode(
   config: ConditionNodeConfig,
   ctx: { text: string; contact: ContactSnapshot | null },

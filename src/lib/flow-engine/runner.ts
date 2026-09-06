@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { supabase } from '@/lib/supabase';
 import type { Automation } from '@/types/automation';
 import type { FlowDefinition, FlowNode, FlowEdge, SendMessageNodeConfig, ActionNodeConfig, ConditionNodeConfig, DelayNodeConfig, WaitForReplyNodeConfig } from '@/types/flow';
-import { evaluateTriggerNode, evaluateConditionNode, applyActionNode, applyWaitForReplyCapture, matchesKeywords, personalizeText, type ContactSnapshot } from './evaluator';
+import { evaluateTriggerNode, evaluateConditionNode, applyActionNode, applyWaitForReplyCapture, matchesKeywords, personalizeText, deriveAutomationTag, type ContactSnapshot } from './evaluator';
 
 export interface FlowRunContext {
   ownerUserId: string;
@@ -289,6 +289,10 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
     if (profile.username) profileUsername = profile.username;
     if (profile.profile_picture_url) profilePictureUrl = profile.profile_picture_url;
   }
+  const automationTag = deriveAutomationTag(automation.name);
+  const currentTags = existing?.tags || [];
+  const tags = automationTag && !currentTags.includes(automationTag) ? [...currentTags, automationTag] : currentTags;
+
   await persistContact(ctx, {
     name: profileName,
     username: profileUsername || ctx.contactId,
@@ -296,6 +300,7 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
     ...(profilePictureUrl ? { profile_picture_url: profilePictureUrl } : {}),
     last_automation_id: automation.id,
     last_active_automation_id: automation.id,
+    tags,
   });
 
   const next = outgoingEdges(flow, triggerNode.id)[0];
