@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import ThemeToggle from '@/components/theme-toggle';
 import AutomationTable from '@/components/automation-table';
-import SequenceManager from '@/components/sequence-manager';
 import Logo from '@/components/logo';
 import type { Automation } from '@/types/automation';
 import { buildFlowFromAdvancedForm, type QualificationStep } from '@/lib/flow-engine/wizardCompiler';
@@ -22,7 +21,6 @@ import {
   Trash2,
   Edit2,
   ExternalLink,
-  MessageSquare,
   RefreshCw,
   CheckCircle,
   AlertCircle,
@@ -41,7 +39,6 @@ import {
   Camera,
   AtSign,
   ChevronLeft,
-  Layers,
   Link2,
 } from 'lucide-react';
 
@@ -847,9 +844,7 @@ export default function Dashboard() {
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4 mb-2">Operações</span>
             {[
               { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-              { id: 'chat', label: 'Direct', icon: MessageSquare },
               { id: 'automations', label: 'Automações', icon: Settings },
-              { id: 'sequences', label: 'Sequências', icon: Layers },
               { id: 'utm', label: 'Links UTM', icon: Link2 },
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
             ].map(item => {
@@ -960,18 +955,14 @@ export default function Dashboard() {
           <div>
             <h2 className="text-lg font-bold text-foreground tracking-tight">
               {activeTab === 'dashboard' && 'Dashboard'}
-              {activeTab === 'chat' && 'Direct'}
               {activeTab === 'automations' && 'Automações'}
-              {activeTab === 'sequences' && 'Sequências'}
               {activeTab === 'utm' && 'Links UTM'}
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
             <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
               {activeTab === 'dashboard' && 'Bem-vindo de volta! Veja o que está acontecendo com sua automação.'}
-              {activeTab === 'chat' && 'Converse em tempo real e faça atendimento manual no direct do Instagram.'}
               {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
-              {activeTab === 'sequences' && 'Séries de mensagens reutilizáveis entre automações.'}
               {activeTab === 'utm' && 'Gere links rastreáveis pra saber de onde vêm seus leads.'}
               {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
               {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
@@ -1361,183 +1352,14 @@ export default function Dashboard() {
 
             </div>
           )}
-          {/* TAB: LIVE CHAT */}
-          {activeTab === 'chat' && isAggregateView && (
+          {/* TAB 2: AUTOMATIONS */}
+          {activeTab === 'automations' && isAggregateView && (
             <div className="bg-card border border-accent rounded-2xl p-10 text-center">
               <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-bold text-foreground">Selecione uma conta específica</p>
-              <p className="text-xs text-muted-foreground mt-1">O Direct funciona com uma conta do Instagram por vez. Escolha uma no seletor da sidebar.</p>
+              <p className="text-xs text-muted-foreground mt-1">Automações são criadas e editadas por conta. Escolha uma no seletor da sidebar pra gerenciar.</p>
             </div>
           )}
-          {activeTab === 'chat' && !isAggregateView && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-6 bg-card border border-accent rounded-2xl overflow-hidden shadow-xs h-[calc(100vh-170px)]">
-              {/* Left Contacts List */}
-              <div className={`lg:col-span-4 border-r border-accent h-full overflow-hidden bg-background ${selectedContactId ? 'hidden lg:flex flex-col' : 'flex flex-col'}`}>
-                <div className="p-4 border-b border-accent bg-card">
-                  <h3 className="font-bold text-foreground text-sm">Conversas Recentes</h3>
-                  <p className="text-[10px] text-muted-foreground">Clique para abrir o histórico de mensagens</p>
-                </div>
-                <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2">
-                  {contacts.length === 0 ? (
-                    <div className="text-center py-10 text-xs text-muted-foreground">Nenhum contato ativo.</div>
-                  ) : (
-                    contacts.map(c => {
-                      const isSelected = selectedContactId === c.instagram_id;
-                      const displayName = c.full_name || c.username || 'User';
-                      const initials = displayName.slice(0, 2).toUpperCase();
-                      return (
-                        <div
-                          key={c.instagram_id}
-                          onClick={() => setSelectedContactId(c.instagram_id)}
-                          className={`p-3 rounded-xl cursor-pointer transition-all flex items-center gap-3 border ${
-                            isSelected
-                              ? 'bg-accent border-border shadow-sm'
-                              : 'bg-transparent border-transparent hover:bg-accent/50'
-                          }`}
-                        >
-                          {/* Circular Avatar */}
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${
-                            isSelected
-                              ? 'bg-primary text-primary-foreground shadow-2xs'
-                              : 'bg-accent text-foreground border border-border'
-                          }`}>
-                            {initials}
-                          </div>
-
-                          {/* Contact Info details */}
-                          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                            <div className="flex items-center justify-between gap-1.5">
-                              <span className={`text-xs font-bold truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                                {c.full_name || `@${c.username || c.instagram_id}`}
-                              </span>
-                              {c.conversation_state && c.conversation_state !== 'idle' && (
-                                <span className="text-[8px] bg-accent text-primary border border-primary/20 font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0">
-                                  Fila
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] text-muted-foreground truncate font-mono">
-                              @{c.username || c.instagram_id}
-                            </span>
-                            {(c.email || c.phone) && (
-                              <div className="flex flex-col gap-0.5 text-[9px] text-muted-foreground font-medium pt-0.5">
-                                {c.email && <span className="truncate">📧 {c.email}</span>}
-                                {c.phone && <span className="truncate">📱 {c.phone}</span>}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {/* Right Chat Pane */}
-              <div className={`lg:col-span-8 h-full overflow-hidden bg-background ${!selectedContactId ? 'hidden lg:flex flex-col' : 'flex flex-col'}`}>
-                {selectedContactId ? (
-                  <div className="flex flex-col h-full overflow-hidden">
-                    {/* Chat Header */}
-                    <div className="p-4 border-b border-accent flex items-center justify-between bg-card gap-3">
-                      <div className="flex items-center gap-3">
-                        {/* Botão voltar no mobile */}
-                        <button
-                          onClick={() => setSelectedContactId(null)}
-                          aria-label="Voltar para a lista de conversas"
-                          className="lg:hidden p-1.5 -ml-2 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                        >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                        </button>
-                        <div>
-                          <h4 className="font-bold text-foreground text-sm">
-                            @{contacts.find(c => c.instagram_id === selectedContactId)?.username || selectedContactId}
-                          </h4>
-                          <span className="text-[9px] text-muted-foreground font-medium">
-                            ID: {selectedContactId}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* State status badge */}
-                      {(() => {
-                        const c = contacts.find(c => c.instagram_id === selectedContactId);
-                        if (!c) return null;
-                        return (
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                            <span className="text-[10px] text-primary font-bold uppercase tracking-wider">
-                              {c.conversation_state === 'idle' ? 'Disponível' : c.conversation_state === 'waiting_email' ? 'Lendo E-mail' : 'Lendo Fone'}
-                            </span>
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Chat Message list */}
-                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-background">
-                      {chatMessages.length === 0 ? (
-                        <div className="text-center py-20 text-xs text-muted-foreground">Nenhuma mensagem registrada nesta conversa.</div>
-                      ) : (
-                        chatMessages.map(msg => {
-                          const isInbound = msg.direction === 'inbound';
-                          return (
-                            <div
-                              key={msg.id}
-                              className={`flex flex-col ${isInbound ? 'items-start' : 'items-end'}`}
-                            >
-                              <div
-                                className={`p-3 rounded-lg text-xs max-w-[75%] leading-relaxed border ${
-                                  isInbound
-                                    ? 'bg-accent text-foreground rounded-tl-none border-border'
-                                    : 'bg-primary text-primary-foreground font-semibold rounded-tr-none border-primary/30'
-                                }`}
-                              >
-                                {msg.text}
-                              </div>
-                              <span className="text-[9px] text-muted-foreground font-medium mt-1 px-1">
-                                {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-
-                    {/* Chat Input form */}
-                    <form onSubmit={handleSendMessage} className="p-4 border-t border-accent flex items-center gap-2 bg-card">
-                      <input
-                        type="text"
-                        placeholder="Digite uma mensagem para enviar..."
-                        value={chatInput}
-                        onChange={e => setChatInput(e.target.value)}
-                        className="flex-1 bg-accent border border-border focus:border-primary rounded-full px-4 py-2.5 text-xs focus:outline-none text-foreground placeholder-muted-foreground transition-all"
-                      />
-                      <button
-                        type="submit"
-                        disabled={sendingMessage || !chatInput.trim()}
-                        className="p-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
-                      >
-                        <Send className="w-4.5 h-4.5 text-primary-foreground" />
-                      </button>
-                    </form>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-10 bg-background">
-                    <div className="p-4 rounded-full bg-card text-primary border border-border">
-                      <MessageSquare className="w-8 h-8 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-foreground">Selecione uma conversa</h4>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
-                        Escolha um contato na lista à esquerda para carregar o histórico de mensagens e responder diretamente.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* TAB 2: AUTOMATIONS */}
           {activeTab === 'automations' && isAggregateView && (
             <div className="bg-card border border-accent rounded-2xl p-10 text-center">
@@ -2501,13 +2323,6 @@ export default function Dashboard() {
 
                 </div>
               )}
-            </div>
-          )}
-
-          {/* TAB: SEQUENCES */}
-          {activeTab === 'sequences' && (
-            <div className="animate-fade-in max-w-4xl mx-auto">
-              <SequenceManager />
             </div>
           )}
 
