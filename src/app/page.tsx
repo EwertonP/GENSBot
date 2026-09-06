@@ -139,6 +139,8 @@ export default function Dashboard() {
   // Estados do formulário de automação
   const [isEditing, setIsEditing] = useState(false);
   const [generatingTrackedLink, setGeneratingTrackedLink] = useState(false);
+  const [utmLinks, setUtmLinks] = useState<any[]>([]);
+  const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'contacts' | 'logs'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
@@ -263,6 +265,37 @@ export default function Dashboard() {
     }
   };
 
+  // Usa um link UTM já existente como o link final desta automação. Como o
+  // link final aponta pro redirect curto (não pro destino direto), editar o
+  // link UTM depois (na tela de Links UTM) muda o destino pra todo mundo que
+  // já recebeu esse link — inclusive quem já rodou a automação antes — sem
+  // precisar reabrir e salvar a automação de novo.
+  const handleSelectUtmLink = async (utmLinkId: string) => {
+    setSelectedUtmLinkId(utmLinkId);
+    if (!utmLinkId) return;
+
+    const link = utmLinks.find(l => l.id === utmLinkId);
+    if (!link) return;
+
+    setForm(prev => ({ ...prev, link_url: link.short_url || link.generated_url }));
+
+    // Vincula o link a esta automação (pra contar no ranking) só quando a
+    // automação já existe — sem id ainda não tem o que vincular no banco.
+    if (form.id && link.automation_id !== form.id) {
+      try {
+        await fetch(withAccount(`/api/utm-links/${utmLinkId}`), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ automation_id: form.id }),
+        });
+        setUtmLinks(prev => prev.map(l => l.id === utmLinkId ? { ...l, automation_id: form.id } : l));
+      } catch {
+        // Falhar em vincular não deve travar a seleção do link — o botão ainda
+        // funciona, só não conta na aba de ranking até vincular manualmente.
+      }
+    }
+  };
+
   // Busca todas as contas do Instagram conectadas pelo usuário logado e decide
   // qual delas exibir: a que veio do redirect do OAuth, a última selecionada
   // (salva no navegador) ou, por padrão, a conectada mais recentemente.
@@ -342,6 +375,17 @@ export default function Dashboard() {
         .catch(err => console.error('Erro silencioso ao carregar mídias:', err));
     }
   }, [isConnected, selectedAccountId]);
+
+  // Carrega os links UTM já criados (dessa conta) quando o editor de automação
+  // abre, pra alimentar o seletor "usar um link já criado" no card de Link DM.
+  useEffect(() => {
+    if (!isEditing) return;
+    fetch(withAccount('/api/utm-links'))
+      .then(res => res.json())
+      .then(data => setUtmLinks(Array.isArray(data) ? data.filter((l: any) => l.instagram_user_id === selectedAccountId) : []))
+      .catch(err => console.error('Erro silencioso ao carregar links UTM:', err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing]);
 
   // Atualiza o dashboard (KPIs, gráficos, fila, diagnósticos) sozinho a cada
   // 15s enquanto a aba estiver ativa — evita ter que apertar reload pra ver
@@ -2076,6 +2120,26 @@ export default function Dashboard() {
                               >
                                 {generatingTrackedLink ? 'Gerando...' : '+ Gerar link com rastreamento de clique'}
                               </button>
+                              {utmLinks.length > 0 && (
+                                <div className="flex flex-col gap-1 mt-1">
+                                  <label className="text-[9px] font-bold text-muted-foreground">Ou use um link UTM já criado</label>
+                                  <select
+                                    value={selectedUtmLinkId}
+                                    onChange={e => handleSelectUtmLink(e.target.value)}
+                                    className="bg-accent border border-border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-primary text-foreground"
+                                  >
+                                    <option value="">Selecionar...</option>
+                                    {utmLinks.map(l => (
+                                      <option key={l.id} value={l.id}>
+                                        {l.name || l.base_url}{l.automation_id && l.automation_id !== form.id ? ' (já vinculado a outra automação)' : ''}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <p className="text-[9px] text-muted-foreground">
+                                    Editar esse link depois na tela de Links UTM atualiza o destino aqui automaticamente.
+                                  </p>
+                                </div>
+                              )}
                             </div>
                             <div className="flex flex-col gap-1.5">
                               <label className="text-xs font-bold text-muted-foreground">Texto do Botão</label>

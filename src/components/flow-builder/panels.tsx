@@ -106,11 +106,68 @@ function SendMessagePanel({
   data,
   onChange,
   sequences,
+  utmLinks = [],
+  automationId,
+  onUtmLinksChange,
 }: {
   data: SendMessageNodeConfig;
   onChange: (d: SendMessageNodeConfig) => void;
   sequences: { id?: string; name: string }[];
+  utmLinks?: any[];
+  automationId?: string;
+  onUtmLinksChange?: (links: any[]) => void;
 }) {
+  const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
+  const [generatingTrackedLink, setGeneratingTrackedLink] = useState(false);
+
+  const handleGenerateTrackedLink = async () => {
+    if (!automationId) return;
+    if (!data.link_url) return;
+    setGeneratingTrackedLink(true);
+    try {
+      const res = await fetch('/api/utm-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `Link do nó — ${new Date().toLocaleDateString('pt-BR')}`,
+          base_url: data.link_url,
+          utm_source: 'instagram',
+          utm_medium: 'dm_automation',
+          automation_id: automationId,
+        }),
+      });
+      const created = await res.json();
+      if (res.ok && created.short_url) {
+        onChange({ ...data, link_url: created.short_url });
+        onUtmLinksChange?.([created, ...utmLinks]);
+      }
+    } finally {
+      setGeneratingTrackedLink(false);
+    }
+  };
+
+  const handleSelectUtmLink = async (utmLinkId: string) => {
+    setSelectedUtmLinkId(utmLinkId);
+    if (!utmLinkId) return;
+    const link = utmLinks.find((l) => l.id === utmLinkId);
+    if (!link) return;
+
+    onChange({ ...data, link_url: link.short_url || link.generated_url });
+
+    if (automationId && link.automation_id !== automationId) {
+      try {
+        await fetch(`/api/utm-links/${utmLinkId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ automation_id: automationId }),
+        });
+        onUtmLinksChange?.(utmLinks.map((l) => (l.id === utmLinkId ? { ...l, automation_id: automationId } : l)));
+      } catch {
+        // Seleção do link já aconteceu; só o vínculo pro ranking não pegou — sem problema.
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <Field label="Texto da mensagem">
@@ -155,6 +212,33 @@ function SendMessagePanel({
       </Field>
       <Field label="Link (opcional)">
         <input className={inputCls} value={data.link_url || ''} onChange={(e) => onChange({ ...data, link_url: e.target.value || null })} />
+        {automationId && data.link_url && (
+          <button
+            type="button"
+            onClick={handleGenerateTrackedLink}
+            disabled={generatingTrackedLink}
+            className="self-start text-[9px] font-bold text-primary hover:underline cursor-pointer disabled:opacity-50"
+          >
+            {generatingTrackedLink ? 'Gerando...' : '+ Gerar link com rastreamento de clique'}
+          </button>
+        )}
+        {utmLinks.length > 0 && (
+          <div className="flex flex-col gap-1 mt-1">
+            <span className="text-[9px] font-bold text-muted-foreground">Ou use um link UTM já criado</span>
+            <select
+              value={selectedUtmLinkId}
+              onChange={(e) => handleSelectUtmLink(e.target.value)}
+              className={inputCls}
+            >
+              <option value="">Selecionar...</option>
+              {utmLinks.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name || l.base_url}{l.automation_id && l.automation_id !== automationId ? ' (já vinculado a outra automação)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </Field>
       {data.link_url && (
         <Field label="Texto do botão do link">
@@ -399,12 +483,18 @@ export function NodeConfigPanel({
   onClose,
   onDelete,
   sequences = [],
+  utmLinks = [],
+  automationId,
+  onUtmLinksChange,
 }: {
   node: FlowNode;
   onChange: (data: FlowNode['data']) => void;
   onClose: () => void;
   onDelete?: () => void;
   sequences?: { id?: string; name: string }[];
+  utmLinks?: any[];
+  automationId?: string;
+  onUtmLinksChange?: (links: any[]) => void;
 }) {
   return (
     <div className="w-72 shrink-0 border-l border-border bg-card p-4 flex flex-col gap-4 overflow-y-auto">
@@ -429,7 +519,14 @@ export function NodeConfigPanel({
 
       {node.type === 'trigger' && <TriggerPanel data={node.data as TriggerNodeConfig} onChange={onChange as any} />}
       {node.type === 'sendMessage' && (
-        <SendMessagePanel data={node.data as SendMessageNodeConfig} onChange={onChange as any} sequences={sequences} />
+        <SendMessagePanel
+          data={node.data as SendMessageNodeConfig}
+          onChange={onChange as any}
+          sequences={sequences}
+          utmLinks={utmLinks}
+          automationId={automationId}
+          onUtmLinksChange={onUtmLinksChange}
+        />
       )}
       {node.type === 'condition' && <ConditionPanel data={node.data as ConditionNodeConfig} onChange={onChange as any} />}
       {node.type === 'delay' && <DelayPanel data={node.data as DelayNodeConfig} onChange={onChange as any} />}

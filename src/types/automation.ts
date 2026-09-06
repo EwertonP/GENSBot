@@ -9,6 +9,7 @@ export interface Followup {
 
 export interface Automation {
   id?: string;
+  instagram_user_id?: string | null;
   name: string;
   active: boolean;
   triggers: string[];
