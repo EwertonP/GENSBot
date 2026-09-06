@@ -44,7 +44,6 @@ export async function GET(req: Request) {
       isConnected,
       config,
       isAggregate,
-      contacts: metrics.contacts,
       stats: metrics.stats,
       recentEvents: metrics.recentEvents,
       recentQueue: metrics.recentQueue,
