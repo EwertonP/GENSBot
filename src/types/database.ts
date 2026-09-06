@@ -262,6 +262,7 @@ export type Database = {
           last_automation_id: string | null
           last_response_at: string | null
           name: string | null
+          notes: string | null
           phone: string | null
           profile_picture_url: string | null
           tags: string[]
@@ -282,6 +283,7 @@ export type Database = {
           last_automation_id?: string | null
           last_response_at?: string | null
           name?: string | null
+          notes?: string | null
           phone?: string | null
           profile_picture_url?: string | null
           tags?: string[]
@@ -302,6 +304,7 @@ export type Database = {
           last_automation_id?: string | null
           last_response_at?: string | null
           name?: string | null
+          notes?: string | null
           phone?: string | null
           profile_picture_url?: string | null
           tags?: string[]

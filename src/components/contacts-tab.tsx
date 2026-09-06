@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileText, Trash2, ExternalLink, Plus, X } from 'lucide-react';
+import { FileText, Trash2, ExternalLink, Plus, X, Pencil, StickyNote } from 'lucide-react';
 import { tagColorClasses } from '@/lib/tag-colors';
 
 const PAGE_SIZE = 50;
@@ -12,6 +12,7 @@ interface Contact {
   username: string | null;
   email: string | null;
   phone: string | null;
+  notes: string | null;
   tags: string[] | null;
   profile_picture_url: string | null;
   last_response_at: string | null;
@@ -55,6 +56,7 @@ function contactCsvRow(c: Contact) {
     email: c.email || '',
     telefone: c.phone || '',
     tags: (c.tags || []).join('; '),
+    observacoes: c.notes || '',
     ultima_interacao: c.last_response_at || '',
     cadastrado_em: c.first_contact_at || c.created_at || '',
   };
@@ -76,6 +78,9 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [editingTagsFor, setEditingTagsFor] = useState<string | null>(null);
   const [tagInputValue, setTagInputValue] = useState('');
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', notes: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -173,6 +178,50 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
     patchTags(contactId, currentTags.filter(t => t !== tagToRemove));
   };
 
+  const openEdit = (contact: Contact) => {
+    setEditingContact(contact);
+    setEditForm({
+      name: contact.name || '',
+      email: contact.email || '',
+      phone: contact.phone || '',
+      notes: contact.notes || '',
+    });
+  };
+
+  const closeEdit = () => {
+    if (savingEdit) return;
+    setEditingContact(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingContact) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(withAccount(`/api/contacts/${editingContact.instagram_id}`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editForm.name.trim() || null,
+          email: editForm.email.trim() || null,
+          phone: editForm.phone.trim() || null,
+          notes: editForm.notes.trim() || null,
+        }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setContacts(prev => prev.map(c => c.instagram_id === updated.instagram_id ? { ...c, ...updated } : c));
+        setEditingContact(null);
+        showToast('Lead atualizado.', 'success');
+      } else {
+        showToast('Erro ao salvar as alterações do lead.', 'error');
+      }
+    } catch {
+      showToast('Erro de conexão ao salvar o lead.', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -244,16 +293,17 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
               <th className="py-3 px-4">Tags</th>
               <th className="py-3 px-4">Última Interação</th>
               <th className="py-3 px-4">Cadastrado em</th>
+              <th className="py-3 px-4"><span className="sr-only">Ações</span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-accent">
             {loading ? (
               <tr>
-                <td colSpan={9} className="py-12 text-center text-muted-foreground">Carregando...</td>
+                <td colSpan={10} className="py-12 text-center text-muted-foreground">Carregando...</td>
               </tr>
             ) : contacts.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
+                <td colSpan={10} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
               </tr>
             ) : (
               contacts.map(item => (
@@ -281,7 +331,14 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                     )}
                   </td>
                   <td className="py-3.5 px-4 font-bold text-foreground text-sm">
-                    {item.name || <span className="text-muted-foreground font-normal italic">Não informado</span>}
+                    <div className="flex items-center gap-1.5">
+                      {item.name || <span className="text-muted-foreground font-normal italic">Não informado</span>}
+                      {item.notes && (
+                        <span title={item.notes}>
+                          <StickyNote className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3.5 px-4 text-xs font-semibold text-primary">
                     {item.username ? (
@@ -352,6 +409,15 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                   <td className="py-3.5 px-4 text-xs text-muted-foreground">
                     {item.first_contact_at || item.created_at ? new Date((item.first_contact_at || item.created_at) as string).toLocaleDateString('pt-BR') : '—'}
                   </td>
+                  <td className="py-3.5 px-4">
+                    <button
+                      onClick={() => openEdit(item)}
+                      title="Editar lead"
+                      className="w-7 h-7 rounded-lg bg-accent hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -377,6 +443,88 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
             >
               Próxima
             </button>
+          </div>
+        </div>
+      )}
+
+      {editingContact && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={closeEdit}
+        >
+          <div
+            className="bg-card border border-accent rounded-2xl p-6 shadow-lg w-full max-w-md flex flex-col gap-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-foreground text-base">Editar Lead</h3>
+              <button onClick={closeEdit} className="text-muted-foreground hover:text-foreground cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              @{editingContact.username || editingContact.instagram_id}
+            </p>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-muted-foreground">Nome</label>
+              <input
+                type="text"
+                value={editForm.name}
+                onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-muted-foreground">E-mail</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-muted-foreground">Telefone</label>
+                <input
+                  type="text"
+                  value={editForm.phone}
+                  onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                  className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-muted-foreground">Observações</label>
+              <textarea
+                value={editForm.notes}
+                onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                rows={4}
+                placeholder='ex: "Cirurgião plástico, dor principal é captar pacientes particulares"'
+                className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
+              />
+              <p className="text-[9px] text-muted-foreground">Anotações livres — só você vê, não é enviado ao lead.</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={closeEdit}
+                disabled={savingEdit}
+                className="px-4 py-2 rounded-xl bg-accent hover:bg-muted border border-border text-xs font-bold text-foreground cursor-pointer transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={savingEdit}
+                className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold cursor-pointer transition-colors disabled:opacity-50"
+              >
+                {savingEdit ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
           </div>
         </div>
       )}
