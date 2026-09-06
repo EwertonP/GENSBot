@@ -3,14 +3,16 @@ import { supabase } from '@/lib/supabase';
 const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 // Conta linhas de `table` criadas entre [from, to) dentro do escopo de contas.
-async function countBetween(table: string, userId: string, accountIds: string[], from: Date, to: Date, dateColumn = 'created_at') {
-  const { count } = await supabase
+async function countBetween(table: string, userId: string, accountIds: string[], from: Date, to: Date, dateColumn = 'created_at', onlyEngagedContacts = false) {
+  let query = supabase
     .from(table)
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .in('instagram_user_id', accountIds)
     .gte(dateColumn, from.toISOString())
     .lt(dateColumn, to.toISOString());
+  if (onlyEngagedContacts) query = query.not('last_automation_id', 'is', null);
+  const { count } = await query;
   return count || 0;
 }
 
@@ -81,6 +83,11 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
 
   const base = (table: string) => supabase.from(table).select('*').eq('user_id', userId).in('instagram_user_id', accountIds);
   const baseCount = (table: string) => supabase.from(table).select('*', { count: 'exact', head: true }).eq('user_id', userId).in('instagram_user_id', accountIds);
+  // "Audiência" só conta quem de fato interagiu com alguma automação — não qualquer
+  // pessoa que mandou DM (ex: contato pessoal/familiar num Instagram misto). Ver
+  // src/app/api/webhook/route.ts (matchedTrigger) pra prevenção na entrada; isso
+  // aqui filtra o que já existia no banco antes dessa prevenção existir.
+  const engagedContacts = (table: string) => base(table).not('last_automation_id', 'is', null);
 
   const [
     { count: automationsCount },
@@ -94,10 +101,10 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     { data: automationsList },
   ] = await Promise.all([
     baseCount('automations'),
-    baseCount('contacts'),
+    baseCount('contacts').not('last_automation_id', 'is', null),
     baseCount('queue'),
     baseCount('events'),
-    base('contacts').order('updated_at', { ascending: false }),
+    engagedContacts('contacts').order('updated_at', { ascending: false }),
     base('events').order('created_at', { ascending: false }).limit(20),
     supabase.from('queue').select('id, contact_id, type, status, error_message, created_at, sent_at, contacts(username, name, profile_picture_url)')
       .eq('user_id', userId).in('instagram_user_id', accountIds)
@@ -184,8 +191,8 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     queueCurrent, queuePrevious,
     eventsCurrent, eventsPrevious,
   ] = await Promise.all([
-    countBetween('contacts', userId, accountIds, periodStart, now, 'first_contact_at'),
-    countBetween('contacts', userId, accountIds, previousPeriodStart, periodStart, 'first_contact_at'),
+    countBetween('contacts', userId, accountIds, periodStart, now, 'first_contact_at', true),
+    countBetween('contacts', userId, accountIds, previousPeriodStart, periodStart, 'first_contact_at', true),
     countBetween('automations', userId, accountIds, periodStart, now),
     countBetween('automations', userId, accountIds, previousPeriodStart, periodStart),
     countBetween('queue', userId, accountIds, periodStart, now),
