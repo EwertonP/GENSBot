@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Copy, Trash2, Link2, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Copy, Trash2, Link2, Check, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import type { UtmLink } from '@/types/utm-link';
 import { buildUtmUrl } from '@/lib/utm';
 import { fieldInputClass as inputCls, fieldLabelClass as labelCls } from '@/lib/form-styles';
@@ -81,6 +81,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
   const [term, setTerm] = useState('');
   const [content, setContent] = useState('');
   const [automationId, setAutomationId] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -112,6 +113,32 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
     }
   }, [baseUrl, source, medium, campaign, term, content]);
 
+  const resetForm = () => {
+    setEditingId(null);
+    setName('');
+    setBaseUrl('');
+    setSource('instagram');
+    setMedium('bio');
+    setCampaign('');
+    setTerm('');
+    setContent('');
+    setAutomationId('');
+    setError(null);
+  };
+
+  const startEdit = (link: UtmLink) => {
+    setEditingId(link.id || null);
+    setName(link.name || '');
+    setBaseUrl(link.base_url);
+    setSource(link.utm_source || '');
+    setMedium(link.utm_medium || '');
+    setCampaign(link.utm_campaign || '');
+    setTerm(link.utm_term || '');
+    setContent(link.utm_content || '');
+    setAutomationId(link.automation_id || '');
+    setError(null);
+  };
+
   const handleSave = async () => {
     if (!preview || preview === 'invalid') {
       setError('Informe uma URL de destino válida (ex: https://seusite.com).');
@@ -120,28 +147,24 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch('/api/utm-links', {
-        method: 'POST',
+      const payload = {
+        name: name || null,
+        base_url: baseUrl.trim(),
+        utm_source: source || null,
+        utm_medium: medium || null,
+        utm_campaign: campaign || null,
+        utm_term: term || null,
+        utm_content: content || null,
+        automation_id: automationId || null,
+      };
+      const res = await fetch(editingId ? `/api/utm-links/${editingId}` : '/api/utm-links', {
+        method: editingId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name || null,
-          base_url: baseUrl.trim(),
-          utm_source: source || null,
-          utm_medium: medium || null,
-          utm_campaign: campaign || null,
-          utm_term: term || null,
-          utm_content: content || null,
-          automation_id: automationId || null,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar o link.');
-      setName('');
-      setBaseUrl('');
-      setCampaign('');
-      setTerm('');
-      setContent('');
-      setAutomationId('');
+      resetForm();
       await load();
     } catch (err: any) {
       setError(err.message);
@@ -152,13 +175,25 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
 
   const handleDelete = async (id: string) => {
     await fetch(`/api/utm-links/${id}`, { method: 'DELETE' });
+    if (editingId === id) resetForm();
     await load();
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-4">
-        <h3 className="text-sm font-bold text-foreground">Novo link</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-foreground">{editingId ? 'Editar link' : 'Novo link'}</h3>
+          {editingId && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              Cancelar edição
+            </button>
+          )}
+        </div>
 
         {error && <p className="text-[11px] text-destructive font-bold">{error}</p>}
 
@@ -236,7 +271,9 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
             </p>
             {preview !== 'invalid' && (
               <p className="text-[9px] text-muted-foreground">
-                Ao salvar, um link curto de rastreamento é gerado — é ele que registra o clique.
+                {editingId
+                  ? 'O link curto continua o mesmo — só o destino/parâmetros mudam.'
+                  : 'Ao salvar, um link curto de rastreamento é gerado — é ele que registra o clique.'}
               </p>
             )}
           </div>
@@ -247,7 +284,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
           disabled={saving}
           className="self-start flex items-center gap-2 bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
         >
-          {saving ? 'Salvando...' : 'Salvar link'}
+          {saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Salvar link'}
         </button>
       </div>
 
@@ -283,6 +320,13 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <CopyButton text={link.short_url || link.generated_url} />
+                  <button
+                    onClick={() => startEdit(link)}
+                    aria-label="Editar link"
+                    className="p-1.5 hover:bg-accent text-muted-foreground hover:text-foreground rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
                   <button
                     onClick={() => link.id && handleDelete(link.id)}
                     aria-label="Excluir link"
