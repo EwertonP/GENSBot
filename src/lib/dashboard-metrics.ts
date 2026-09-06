@@ -67,7 +67,6 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
   if (accountIds.length === 0) {
     return {
       stats: { automations: 0, contacts: 0, queue: 0, events: 0, leadsGenerated: 0 },
-      contacts: [],
       recentEvents: [],
       recentQueue: [],
       funnel: { comments: 0, welcomeDms: 0, clicks: 0, leads: 0 },
@@ -83,28 +82,25 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
 
   const base = (table: string) => supabase.from(table).select('*').eq('user_id', userId).in('instagram_user_id', accountIds);
   const baseCount = (table: string) => supabase.from(table).select('*', { count: 'exact', head: true }).eq('user_id', userId).in('instagram_user_id', accountIds);
-  // "Audiência" só conta quem de fato interagiu com alguma automação — não qualquer
-  // pessoa que mandou DM (ex: contato pessoal/familiar num Instagram misto). Ver
-  // src/app/api/webhook/route.ts (matchedTrigger) pra prevenção na entrada; isso
-  // aqui filtra o que já existia no banco antes dessa prevenção existir.
-  const engagedContacts = (table: string) => base(table).not('last_automation_id', 'is', null);
 
   const [
     { count: automationsCount },
     { count: contactsCount },
     { count: queueCount },
     { count: eventsCount },
-    { data: contactsList },
     { data: recentEvents },
     { data: recentQueue },
     { data: analyticsEvents },
     { data: automationsList },
   ] = await Promise.all([
     baseCount('automations'),
+    // "Audiência" só conta quem de fato interagiu com alguma automação — não
+    // qualquer pessoa que mandou DM (ex: contato pessoal/familiar num Instagram
+    // misto). A lista completa (paginada) vive em GET /api/contacts agora —
+    // aqui só precisamos da contagem pro card do dashboard.
     baseCount('contacts').not('last_automation_id', 'is', null),
     baseCount('queue'),
     baseCount('events'),
-    engagedContacts('contacts').order('updated_at', { ascending: false }),
     base('events').order('created_at', { ascending: false }).limit(20),
     supabase.from('queue').select('id, contact_id, type, status, error_message, created_at, sent_at, contacts(username, name, profile_picture_url)')
       .eq('user_id', userId).in('instagram_user_id', accountIds)
@@ -259,7 +255,6 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
       events: eventsCount || 0,
       leadsGenerated: leadsGeneratedCount,
     },
-    contacts: contactsList || [],
     recentEvents: recentEvents || [],
     recentQueue: recentQueue || [],
     funnel,

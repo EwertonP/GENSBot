@@ -14,6 +14,7 @@ import { buildFlowFromAdvancedForm, type QualificationStep } from '@/lib/flow-en
 // em node_modules/next/dist/docs/01-app/02-guides/lazy-loading.md pra este Next 16 canary.
 import nextDynamicImport from 'next/dynamic';
 import UtmLinkBuilder from '@/components/utm-link-builder';
+import ContactsTab from '@/components/contacts-tab';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
 import {
   Settings,
@@ -57,27 +58,6 @@ const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
     <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
   </svg>
 );
-
-// Paleta de cores pra tags — cor sempre a mesma pra uma mesma tag (hash do texto),
-// não realmente aleatória a cada render, senão a mesma tag mudaria de cor sozinha.
-const TAG_COLOR_PALETTE = [
-  'bg-rose-500/10 text-rose-600 border-rose-500/20',
-  'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  'bg-sky-500/10 text-sky-600 border-sky-500/20',
-  'bg-violet-500/10 text-violet-600 border-violet-500/20',
-  'bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20',
-  'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
-  'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  'bg-lime-500/10 text-lime-700 border-lime-500/20',
-  'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
-];
-
-function tagColorClasses(tag: string): string {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) | 0;
-  return TAG_COLOR_PALETTE[Math.abs(hash) % TAG_COLOR_PALETTE.length];
-}
 
 interface IgMedia {
   id: string;
@@ -134,13 +114,8 @@ export default function Dashboard() {
   const [tokenHealth, setTokenHealth] = useState<{ instagram_user_id: string; instagram_username: string | null; daysRemaining: number | null; status: 'ok' | 'warning' | 'expired' | 'unknown' }[]>([]);
   const [alerts, setAlerts] = useState<{ level: 'critical' | 'warning'; message: string }[]>([]);
   const [isAggregateView, setIsAggregateView] = useState(false);
-  const [tagFilter, setTagFilter] = useState<string>('');
-  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
-  const [editingTagsFor, setEditingTagsFor] = useState<string | null>(null);
-  const [tagInputValue, setTagInputValue] = useState('');
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [recentQueue, setRecentQueue] = useState<any[]>([]);
-  const [contacts, setContacts] = useState<any[]>([]);
   const [automations, setAutomations] = useState<Automation[]>([]);
   // Editor visual (canvas) — coexiste com o form linear abaixo; abre em tela cheia quando preenchido.
   const [flowBuilderAutomation, setFlowBuilderAutomation] = useState<Automation | null>(null);
@@ -163,7 +138,7 @@ export default function Dashboard() {
 
   // Estados do formulário de automação
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'sequences' | 'utm' | 'contacts' | 'logs' | 'chat'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'contacts' | 'logs'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -221,7 +196,6 @@ export default function Dashboard() {
         setStats(data.stats);
         setRecentEvents(data.recentEvents);
         setRecentQueue(data.recentQueue);
-        setContacts(data.contacts || []);
         setFunnel(data.funnel || { comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
         setWeeklyChart(data.weeklyChart || []);
         setWeeklyChartMax(data.weeklyChartMax || 1);
@@ -619,44 +593,6 @@ export default function Dashboard() {
     router.push('/login');
   };
 
-  // Adiciona uma tag a um contato e sincroniza a lista local sem recarregar tudo
-  const handleAddTag = async (contactId: string, currentTags: string[], newTag: string) => {
-    const tag = newTag.trim();
-    if (!tag || currentTags.includes(tag)) return;
-    const nextTags = [...currentTags, tag];
-    try {
-      const res = await fetch(withAccount(`/api/contacts/${contactId}`), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags: nextTags }),
-      });
-      if (res.ok) {
-        setContacts(prev => prev.map(c => c.instagram_id === contactId ? { ...c, tags: nextTags } : c));
-      } else {
-        showToast('Erro ao adicionar tag.', 'error');
-      }
-    } catch {
-      showToast('Erro de conexão ao adicionar tag.', 'error');
-    }
-  };
-
-  const handleRemoveTag = async (contactId: string, currentTags: string[], tagToRemove: string) => {
-    const nextTags = currentTags.filter(t => t !== tagToRemove);
-    try {
-      const res = await fetch(withAccount(`/api/contacts/${contactId}`), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags: nextTags }),
-      });
-      if (res.ok) {
-        setContacts(prev => prev.map(c => c.instagram_id === contactId ? { ...c, tags: nextTags } : c));
-      } else {
-        showToast('Erro ao remover tag.', 'error');
-      }
-    } catch {
-      showToast('Erro de conexão ao remover tag.', 'error');
-    }
-  };
 
   // Gera e baixa um CSV a partir de uma lista de objetos, direto no navegador
   const exportToCsv = (filename: string, rows: Record<string, any>[]) => {
@@ -2355,236 +2291,9 @@ export default function Dashboard() {
           )}
 
           {/* TAB 3: CONTACTS */}
-          {activeTab === 'contacts' && (() => {
-            const allTags = Array.from(new Set(contacts.flatMap(c => c.tags || []))).sort();
-            const filteredContacts = tagFilter ? contacts.filter(c => (c.tags || []).includes(tagFilter)) : contacts;
-            const selectedContacts = filteredContacts.filter(c => selectedContactIds.has(c.instagram_id));
-            const allSelected = filteredContacts.length > 0 && filteredContacts.every(c => selectedContactIds.has(c.instagram_id));
-            const toggleAll = () => {
-              setSelectedContactIds(allSelected ? new Set() : new Set(filteredContacts.map(c => c.instagram_id)));
-            };
-            const toggleOne = (id: string) => {
-              setSelectedContactIds(prev => {
-                const next = new Set(prev);
-                if (next.has(id)) next.delete(id); else next.add(id);
-                return next;
-              });
-            };
-            const handleDeleteSelected = async () => {
-              if (selectedContacts.length === 0) return;
-              if (!confirm(`Excluir ${selectedContacts.length} contato(s) da audiência? Essa ação não pode ser desfeita.`)) return;
-              for (const c of selectedContacts) {
-                try {
-                  await fetch(withAccount(`/api/contacts/${c.instagram_id}`), { method: 'DELETE' });
-                } catch (err) {
-                  console.error('Erro ao excluir contato:', err);
-                }
-              }
-              setSelectedContactIds(new Set());
-              fetchStatusAndData();
-              showToast('Contatos excluídos.', 'success');
-            };
-            return (
-            <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-bold text-foreground text-base">Audiência Cadastrada</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Lista de usuários que interagiram com as suas automações.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {allTags.length > 0 && (
-                    <select
-                      value={tagFilter}
-                      onChange={e => setTagFilter(e.target.value)}
-                      className="bg-accent border border-border rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
-                    >
-                      <option value="">Todas as tags</option>
-                      {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
-                    </select>
-                  )}
-                  {selectedContacts.length > 0 && (
-                    <>
-                      <button
-                        onClick={() => exportToCsv('contatos_selecionados.csv', selectedContacts.map(c => ({
-                          nome: c.name || '',
-                          username: c.username || '',
-                          instagram_id: c.instagram_id,
-                          email: c.email || '',
-                          telefone: c.phone || '',
-                          tags: (c.tags || []).join('; '),
-                          ultima_interacao: c.last_response_at || '',
-                          cadastrado_em: c.first_contact_at || c.created_at || '',
-                        })))}
-                        className="flex items-center gap-1.5 bg-accent hover:bg-muted border border-border rounded-xl px-3 py-1.5 text-xs font-bold text-foreground cursor-pointer transition-colors"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                        Exportar {selectedContacts.length} selecionado{selectedContacts.length > 1 ? 's' : ''}
-                      </button>
-                      <button
-                        onClick={handleDeleteSelected}
-                        className="flex items-center gap-1.5 bg-accent hover:bg-destructive/10 border border-border hover:border-destructive/40 rounded-xl px-3 py-1.5 text-xs font-bold text-destructive cursor-pointer transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Excluir {selectedContacts.length} selecionado{selectedContacts.length > 1 ? 's' : ''}
-                      </button>
-                    </>
-                  )}
-                  <button
-                    onClick={() => exportToCsv('contatos.csv', filteredContacts.map(c => ({
-                      nome: c.name || '',
-                      username: c.username || '',
-                      instagram_id: c.instagram_id,
-                      email: c.email || '',
-                      telefone: c.phone || '',
-                      tags: (c.tags || []).join('; '),
-                      ultima_interacao: c.last_response_at || '',
-                      cadastrado_em: c.first_contact_at || c.created_at || '',
-                    })))}
-                    className="flex items-center gap-1.5 bg-accent hover:bg-muted border border-border rounded-xl px-3 py-1.5 text-xs font-bold text-foreground cursor-pointer transition-colors"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    Exportar CSV
-                  </button>
-                  <span className="bg-accent border border-primary/25 text-primary font-bold text-xs px-3 py-1.5 rounded-xl">
-                    {filteredContacts.length} Contatos
-                  </span>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-muted-foreground">
-                  <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-accent">
-                    <tr>
-                      <th className="py-3 px-4 w-8">
-                        <input
-                          type="checkbox"
-                          checked={allSelected}
-                          onChange={toggleAll}
-                          aria-label="Selecionar todos os contatos"
-                          className="cursor-pointer"
-                        />
-                      </th>
-                      <th className="py-3 px-4"><span className="sr-only">Foto</span></th>
-                      <th className="py-3 px-4">Nome</th>
-                      <th className="py-3 px-4">Instagram</th>
-                      <th className="py-3 px-4">ID do Usuário</th>
-                      <th className="py-3 px-4">Dados Capturados</th>
-                      <th className="py-3 px-4">Tags</th>
-                      <th className="py-3 px-4">Última Interação</th>
-                      <th className="py-3 px-4">Cadastrado em</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-accent">
-                    {filteredContacts.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
-                      </tr>
-                    ) : (
-                      filteredContacts.map(item => (
-                        <tr key={item.instagram_id || item.id} className="hover:bg-card/70 transition-colors">
-                          <td className="py-3.5 px-4">
-                            <input
-                              type="checkbox"
-                              checked={selectedContactIds.has(item.instagram_id)}
-                              onChange={() => toggleOne(item.instagram_id)}
-                              aria-label={`Selecionar ${item.name || item.username || item.instagram_id}`}
-                              className="cursor-pointer"
-                            />
-                          </td>
-                          <td className="py-3.5 px-4">
-                            {item.profile_picture_url ? (
-                              <img
-                                src={item.profile_picture_url}
-                                alt=""
-                                className="w-8 h-8 rounded-full object-cover border border-border"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-accent border border-border flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-                                {(item.name || item.username || '?').charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4 font-bold text-foreground text-sm">
-                            {item.name || <span className="text-muted-foreground font-normal italic">Não informado</span>}
-                          </td>
-                          <td className="py-3.5 px-4 text-xs font-semibold text-primary">
-                            {item.username ? (
-                              <a
-                                href={`https://instagram.com/${item.username}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:underline inline-flex items-center gap-1"
-                              >
-                                @{item.username}
-                                <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                              </a>
-                            ) : (
-                              <span className="text-muted-foreground italic">Desconhecido</span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">{item.instagram_id}</td>
-                          <td className="py-3.5 px-4 text-xs text-muted-foreground">
-                            <div className="flex flex-col gap-0.5">
-                              {item.email && <span className="text-muted-foreground">📧 {item.email}</span>}
-                              {item.phone && <span className="text-muted-foreground">📱 {item.phone}</span>}
-                              {!item.email && !item.phone && <span className="text-muted-foreground italic">Nenhum</span>}
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-4 text-xs">
-                            <div className="flex flex-wrap items-center gap-1 max-w-[220px]">
-                              {(item.tags || []).map((tag: string) => (
-                                <span key={tag} className={`flex items-center gap-1 font-bold px-2 py-0.5 rounded-full border ${tagColorClasses(tag)}`}>
-                                  {tag}
-                                  <button onClick={() => handleRemoveTag(item.instagram_id, item.tags || [], tag)} className="hover:text-destructive cursor-pointer">
-                                    <X className="w-2.5 h-2.5" />
-                                  </button>
-                                </span>
-                              ))}
-                              {editingTagsFor === item.instagram_id ? (
-                                <input
-                                  autoFocus
-                                  value={tagInputValue}
-                                  onChange={e => setTagInputValue(e.target.value)}
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter') {
-                                      handleAddTag(item.instagram_id, item.tags || [], tagInputValue);
-                                      setTagInputValue('');
-                                      setEditingTagsFor(null);
-                                    } else if (e.key === 'Escape') {
-                                      setEditingTagsFor(null);
-                                      setTagInputValue('');
-                                    }
-                                  }}
-                                  onBlur={() => { setEditingTagsFor(null); setTagInputValue(''); }}
-                                  placeholder="nova tag..."
-                                  className="w-20 bg-accent border border-border rounded-full px-2 py-0.5 text-[10px] focus:outline-none focus:border-primary"
-                                />
-                              ) : (
-                                <button
-                                  onClick={() => setEditingTagsFor(item.instagram_id)}
-                                  className="w-5 h-5 rounded-full bg-accent hover:bg-muted flex items-center justify-center text-muted-foreground cursor-pointer"
-                                  title="Adicionar tag"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-4 text-xs text-muted-foreground">
-                            {item.last_response_at ? new Date(item.last_response_at).toLocaleString('pt-BR') : 'Sem interação'}
-                          </td>
-                          <td className="py-3.5 px-4 text-xs text-muted-foreground">
-                            {new Date(item.first_contact_at || item.created_at).toLocaleDateString('pt-BR')}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            );
-          })()}
+          {activeTab === 'contacts' && (
+            <ContactsTab withAccount={withAccount} showToast={showToast} accountKey={selectedAccountId || 'none'} />
+          )}
 
           {/* TAB 4: LOGS */}
           {activeTab === 'logs' && (
