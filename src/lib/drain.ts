@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { resumeFlow } from '@/lib/flow-engine/runner';
+import { logDbError } from '@/lib/db-log';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -102,10 +103,11 @@ export async function drainQueue() {
           );
         }
 
-        await supabase
+        const { error: resumeQueueError } = await supabase
           .from('queue')
           .update({ status: 'sent', sent_at: new Date().toISOString() })
           .eq('id', job.id);
+        logDbError('queue.update (flow_resume)', resumeQueueError);
         processedJobs.push({ id: job.id, status: 'sent' });
         continue;
       }
@@ -186,7 +188,7 @@ export async function drainQueue() {
           (job.payload.message?.attachment?.payload?.elements?.[0]?.title) ||
           'Mensagem Estruturada';
 
-        await supabase.from('messages').insert({
+        const { error: outboundMsgError } = await supabase.from('messages').insert({
           user_id: account.user_id,
           instagram_user_id: account.instagram_user_id,
           contact_id: job.contact_id,
@@ -194,35 +196,39 @@ export async function drainQueue() {
           text: textContent,
           payload: resData
         });
+        logDbError('messages.insert (outbound)', outboundMsgError);
 
         // Logar eventos de análise
         if (job.type === 'private_reply') {
-          await supabase.from('analytics_events').insert({
+          const { error: welcomeAnalyticsError } = await supabase.from('analytics_events').insert({
             user_id: account.user_id,
             instagram_user_id: account.instagram_user_id,
             contact_id: job.contact_id,
             automation_id: job.automation_id,
             event_type: 'welcome_dm_sent'
           });
+          logDbError('analytics_events.insert (welcome_dm_sent, drain)', welcomeAnalyticsError);
         } else if (job.type === 'reminder_dm' || job.type === 'sequence_dm') {
-          await supabase.from('analytics_events').insert({
+          const { error: followupAnalyticsError } = await supabase.from('analytics_events').insert({
             user_id: account.user_id,
             instagram_user_id: account.instagram_user_id,
             contact_id: job.contact_id,
             automation_id: job.automation_id,
             event_type: job.type === 'sequence_dm' ? 'sequence_sent' : 'reminder_sent'
           });
+          logDbError('analytics_events.insert (sequence/reminder_sent, drain)', followupAnalyticsError);
         }
 
         // Atualizar o status da tabela followups correspondente se aplicável
         if (job.type === 'link_dm' || job.type === 'reminder_dm') {
           const step = job.type === 'link_dm' ? 1 : 2;
-          await supabase
+          const { error: followupStatusError } = await supabase
             .from('followups')
             .update({ status: 'sent' })
             .eq('automation_id', job.automation_id)
             .eq('contact_id', job.contact_id)
             .eq('step', step);
+          logDbError('followups.update (sent)', followupStatusError);
         }
 
         processedJobs.push({ id: job.id, status: 'sent' });
@@ -241,7 +247,7 @@ async function markJobFailed(jobId: string, errorMsg: string, automationId: stri
   const isSkip = errorMsg.includes('janela') || errorMsg.includes('interação');
   const finalStatus = isSkip ? 'skipped' : 'failed';
 
-  await supabase
+  const { error: markFailedError } = await supabase
     .from('queue')
     .update({
       status: finalStatus,
@@ -249,14 +255,16 @@ async function markJobFailed(jobId: string, errorMsg: string, automationId: stri
       sent_at: new Date().toISOString(),
     })
     .eq('id', jobId);
+  logDbError('queue.update (markJobFailed)', markFailedError);
 
   if (type === 'link_dm' || type === 'reminder_dm') {
     const step = type === 'link_dm' ? 1 : 2;
-    await supabase
+    const { error: followupFailedError } = await supabase
       .from('followups')
       .update({ status: finalStatus })
       .eq('automation_id', automationId)
       .eq('contact_id', contactId)
       .eq('step', step);
+    logDbError('followups.update (markJobFailed)', followupFailedError);
   }
 }
