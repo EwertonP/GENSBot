@@ -9,11 +9,17 @@ export interface QualificationMessageStep {
 export interface QualificationQuestionStep {
   kind: 'question';
   text: string;
-  /** 1 a 3 botões de resposta rápida. */
+  /** 0 a 3 botões de resposta rápida. Vazio = pergunta aberta, o lead responde em texto livre. */
   buttons: string[];
   /** Minutos até mandar o lembrete único; depois disso a pergunta volta a esperar pra sempre. */
   timeoutMinutes: number;
   reminderText: string;
+  /**
+   * Se preenchido, a resposta do lead (normalizada) vira uma tag com esse prefixo
+   * no contato (ex: prefixo "area_" + resposta "Marketing Digital" -> tag
+   * "area_marketing_digital"). Funciona tanto pra pergunta aberta quanto com botões.
+   */
+  saveReplyAsTagPrefix?: string;
 }
 
 export type QualificationStep = QualificationMessageStep | QualificationQuestionStep;
@@ -69,13 +75,19 @@ function createFlowBuilder() {
     const questionMsgId = addNode('sendMessage', { text: step.text, quick_reply_buttons: step.buttons.filter(Boolean).slice(0, 3) });
     attach(questionMsgId);
 
-    const waitId = addNode('waitForReply', { timeoutMinutes: step.timeoutMinutes > 0 ? step.timeoutMinutes : DEFAULT_TIMEOUT_MINUTES });
+    const waitId = addNode('waitForReply', {
+      timeoutMinutes: step.timeoutMinutes > 0 ? step.timeoutMinutes : DEFAULT_TIMEOUT_MINUTES,
+      saveReplyAsTagPrefix: step.saveReplyAsTagPrefix?.trim() || null,
+    });
     connect(questionMsgId, waitId, null);
 
     const reminderId = addNode('sendMessage', { text: step.reminderText?.trim() || DEFAULT_REMINDER });
     connect(waitId, reminderId, 'timeout');
 
-    const waitForeverId = addNode('waitForReply', { timeoutMinutes: null });
+    const waitForeverId = addNode('waitForReply', {
+      timeoutMinutes: null,
+      saveReplyAsTagPrefix: step.saveReplyAsTagPrefix?.trim() || null,
+    });
     connect(reminderId, waitForeverId, null);
 
     setPending([
