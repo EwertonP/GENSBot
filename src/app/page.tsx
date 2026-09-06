@@ -1718,9 +1718,18 @@ export default function Dashboard() {
                               rows={3}
                               className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none"
                             />
-                            <p className="text-[10px] text-muted-foreground">
-                              Use <code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> pra personalizar com o nome do lead (ex: "Olá, {'{{primeiro_nome}}'}!")
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setForm(prev => ({ ...prev, welcome_dm: `{{primeiro_nome}}, ${prev.welcome_dm}` }))}
+                                className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                              >
+                                + Inserir nome do lead no início
+                              </button>
+                              <p className="text-[10px] text-muted-foreground">
+                                (<code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> funciona em qualquer parte do texto)
+                              </p>
+                            </div>
                           </div>
 
                           <div className="flex flex-col gap-1.5">
@@ -1807,7 +1816,7 @@ export default function Dashboard() {
                               </button>
                               <div className="flex flex-col gap-1.5 pr-8">
                                 <label className="text-xs font-bold text-muted-foreground">
-                                  {i + 1}. {step.kind === 'message' ? 'Mensagem simples' : 'Pergunta com botões'}
+                                  {i + 1}. {step.kind === 'message' ? 'Mensagem simples' : step.buttons.length === 0 ? 'Pergunta aberta (resposta livre)' : 'Pergunta com botões'}
                                 </label>
                                 <textarea
                                   placeholder="Texto da mensagem"
@@ -1820,15 +1829,33 @@ export default function Dashboard() {
                                   rows={2}
                                   className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
                                 />
-                                <p className="text-[9px] text-muted-foreground">
-                                  Use <code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> pra personalizar com o nome do lead
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = [...qualificationSteps];
+                                      next[i] = { ...next[i], text: `{{primeiro_nome}}, ${next[i].text}` };
+                                      setQualificationSteps(next);
+                                    }}
+                                    className="text-[9px] font-bold text-primary hover:underline cursor-pointer"
+                                  >
+                                    + Inserir nome do lead no início
+                                  </button>
+                                  <p className="text-[9px] text-muted-foreground">
+                                    (<code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> funciona em qualquer parte do texto)
+                                  </p>
+                                </div>
                               </div>
 
                               {step.kind === 'question' && (
                                 <>
                                   <div className="flex flex-col gap-1.5">
-                                    <span className="text-xs font-bold text-muted-foreground">Botões (até 3)</span>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold text-muted-foreground">Botões (até 3, opcional)</span>
+                                      {step.buttons.length === 0 && (
+                                        <span className="text-[9px] text-muted-foreground italic">Sem botões = o lead responde em texto livre</span>
+                                      )}
+                                    </div>
                                     {step.buttons.map((btn, bi) => (
                                       <div key={bi} className="flex flex-col gap-1">
                                         <div className="flex gap-2">
@@ -1880,6 +1907,20 @@ export default function Dashboard() {
                                       </button>
                                     )}
                                   </div>
+                                  <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold text-muted-foreground">Salvar resposta como tag no lead (opcional)</label>
+                                    <input
+                                      type="text"
+                                      value={step.saveReplyAsTagPrefix || ''}
+                                      onChange={e => {
+                                        const next = [...qualificationSteps];
+                                        (next[i] as typeof step).saveReplyAsTagPrefix = e.target.value;
+                                        setQualificationSteps(next);
+                                      }}
+                                      placeholder='ex: "area_" grava a resposta como tag area_marketing_digital'
+                                      className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                                    />
+                                  </div>
                                   <div className="grid grid-cols-2 gap-3">
                                     <div className="flex flex-col gap-1.5">
                                       <label className="text-xs font-bold text-muted-foreground">Minutos até o lembrete</label>
@@ -1929,13 +1970,26 @@ export default function Dashboard() {
                               onClick={() =>
                                 setQualificationSteps(prev => [
                                   ...prev,
-                                  { kind: 'question', text: '', buttons: [''], timeoutMinutes: 720, reminderText: '' },
+                                  { kind: 'question', text: '', buttons: [''], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '' },
                                 ])
                               }
                               className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
                             >
                               <Plus className="w-4 h-4" />
                               Pergunta com Botões
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setQualificationSteps(prev => [
+                                  ...prev,
+                                  { kind: 'question', text: '', buttons: [], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '' },
+                                ])
+                              }
+                              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Pergunta Aberta
                             </button>
                           </div>
                         </div>
