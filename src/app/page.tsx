@@ -138,6 +138,7 @@ export default function Dashboard() {
 
   // Estados do formulário de automação
   const [isEditing, setIsEditing] = useState(false);
+  const [generatingTrackedLink, setGeneratingTrackedLink] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'contacts' | 'logs'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
@@ -218,6 +219,47 @@ export default function Dashboard() {
       showToast('Erro ao carregar dados do painel.', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Gera um link UTM com rastreamento de clique (redirect via src/app/r/[code])
+  // já vinculado a esta automação, e substitui a URL do link final pelo link
+  // curto — os cliques passam a contar no ranking de automações do dashboard.
+  // Só funciona em automações já salvas (precisa do id pra vincular).
+  const handleGenerateTrackedLink = async () => {
+    if (!form.id) {
+      showToast('Salve a automação primeiro pra poder gerar um link com rastreamento.', 'error');
+      return;
+    }
+    if (!form.link_url) {
+      showToast('Preencha a URL do link antes de gerar o rastreamento.', 'error');
+      return;
+    }
+    setGeneratingTrackedLink(true);
+    try {
+      const res = await fetch(withAccount('/api/utm-links'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `${form.name || 'Automação'} - link final`,
+          base_url: form.link_url,
+          utm_source: 'instagram',
+          utm_medium: 'dm_automation',
+          utm_campaign: form.name || null,
+          automation_id: form.id,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.short_url) {
+        setForm(prev => ({ ...prev, link_url: data.short_url }));
+        showToast('Link com rastreamento gerado e aplicado.', 'success');
+      } else {
+        showToast(data.error || 'Erro ao gerar o link com rastreamento.', 'error');
+      }
+    } catch {
+      showToast('Erro de conexão ao gerar o link com rastreamento.', 'error');
+    } finally {
+      setGeneratingTrackedLink(false);
     }
   };
 
@@ -2026,6 +2068,14 @@ export default function Dashboard() {
                                 onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
                                 className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground font-mono font-bold"
                               />
+                              <button
+                                type="button"
+                                onClick={handleGenerateTrackedLink}
+                                disabled={generatingTrackedLink}
+                                className="self-start text-[9px] font-bold text-primary hover:underline cursor-pointer disabled:opacity-50"
+                              >
+                                {generatingTrackedLink ? 'Gerando...' : '+ Gerar link com rastreamento de clique'}
+                              </button>
                             </div>
                             <div className="flex flex-col gap-1.5">
                               <label className="text-xs font-bold text-muted-foreground">Texto do Botão</label>
@@ -2340,7 +2390,7 @@ export default function Dashboard() {
           {/* TAB: UTM LINKS */}
           {activeTab === 'utm' && (
             <div className="animate-fade-in max-w-4xl mx-auto">
-              <UtmLinkBuilder />
+              <UtmLinkBuilder withAccount={withAccount} />
             </div>
           )}
 

@@ -54,9 +54,20 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-/** Criador de links UTM — ferramenta standalone (sem rastreamento de clique), com histórico dos links já gerados. */
-export default function UtmLinkBuilder() {
+interface UtmLinkBuilderProps {
+  /** Constrói a URL da API já com `?account=...` — mesma função usada pelo resto do dashboard. Passado pra escopar o seletor de automação à conta ativa. */
+  withAccount: (url: string) => string;
+}
+
+interface AutomationOption {
+  id: string;
+  name: string;
+}
+
+/** Criador de links UTM com rastreamento de clique (redirect via src/app/r/[code]), histórico e vínculo opcional com uma automação. */
+export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
   const [links, setLinks] = useState<UtmLink[]>([]);
+  const [automations, setAutomations] = useState<AutomationOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -69,13 +80,19 @@ export default function UtmLinkBuilder() {
   const [campaign, setCampaign] = useState('');
   const [term, setTerm] = useState('');
   const [content, setContent] = useState('');
+  const [automationId, setAutomationId] = useState('');
 
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/utm-links');
-      const data = await res.json();
-      setLinks(Array.isArray(data) ? data : []);
+      const [linksRes, automationsRes] = await Promise.all([
+        fetch('/api/utm-links'),
+        fetch(withAccount('/api/automations')),
+      ]);
+      const linksData = await linksRes.json();
+      const automationsData = await automationsRes.json();
+      setLinks(Array.isArray(linksData) ? linksData : []);
+      setAutomations(Array.isArray(automationsData) ? automationsData.map((a: any) => ({ id: a.id, name: a.name })) : []);
     } finally {
       setLoading(false);
     }
@@ -83,6 +100,7 @@ export default function UtmLinkBuilder() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const preview = useMemo(() => {
@@ -113,6 +131,7 @@ export default function UtmLinkBuilder() {
           utm_campaign: campaign || null,
           utm_term: term || null,
           utm_content: content || null,
+          automation_id: automationId || null,
         }),
       });
       const data = await res.json();
@@ -122,6 +141,7 @@ export default function UtmLinkBuilder() {
       setCampaign('');
       setTerm('');
       setContent('');
+      setAutomationId('');
       await load();
     } catch (err: any) {
       setError(err.message);
@@ -163,6 +183,25 @@ export default function UtmLinkBuilder() {
           <input className={inputCls} value={campaign} onChange={(e) => setCampaign(e.target.value)} placeholder="lancamento_agosto" />
         </div>
 
+        {automations.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <label className={labelCls}>Vincular a uma automação (opcional)</label>
+            <select
+              className={inputCls}
+              value={automationId}
+              onChange={(e) => setAutomationId(e.target.value)}
+            >
+              <option value="">Nenhuma — link avulso</option>
+              {automations.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+            <p className="text-[9px] text-muted-foreground">
+              Vinculando, os cliques neste link contam no ranking de automações do dashboard.
+            </p>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => setShowAdvanced((v) => !v)}
@@ -191,11 +230,15 @@ export default function UtmLinkBuilder() {
         </div>
 
         {preview && (
-          <div className="bg-muted/40 border border-border rounded-lg p-3 flex items-center justify-between gap-3">
+          <div className="bg-muted/40 border border-border rounded-lg p-3 flex flex-col gap-1">
             <p className="text-[11px] font-mono text-foreground break-all">
               {preview === 'invalid' ? <span className="text-destructive">URL inválida</span> : preview}
             </p>
-            {preview !== 'invalid' && <CopyButton text={preview} />}
+            {preview !== 'invalid' && (
+              <p className="text-[9px] text-muted-foreground">
+                Ao salvar, um link curto de rastreamento é gerado — é ele que registra o clique.
+              </p>
+            )}
           </div>
         )}
 
@@ -219,14 +262,27 @@ export default function UtmLinkBuilder() {
           </div>
         ) : (
           <div className="bg-card border border-border rounded-lg overflow-hidden divide-y divide-border">
-            {links.map((link) => (
+            {links.map((link) => {
+              const linkedAutomation = automations.find(a => a.id === link.automation_id);
+              return (
               <div key={link.id} className="px-4 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  {link.name && <p className="text-xs font-bold text-foreground truncate">{link.name}</p>}
-                  <p className="text-[10px] font-mono text-muted-foreground truncate">{link.generated_url}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {link.name && <p className="text-xs font-bold text-foreground truncate">{link.name}</p>}
+                    {linkedAutomation && (
+                      <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full">
+                        {linkedAutomation.name}
+                      </span>
+                    )}
+                    <span className="text-[9px] font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded-full">
+                      {link.click_count || 0} clique{(link.click_count || 0) !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-mono text-primary truncate">{link.short_url || link.generated_url}</p>
+                  <p className="text-[9px] font-mono text-muted-foreground truncate">{link.generated_url}</p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <CopyButton text={link.generated_url} />
+                  <CopyButton text={link.short_url || link.generated_url} />
                   <button
                     onClick={() => link.id && handleDelete(link.id)}
                     aria-label="Excluir link"
@@ -236,7 +292,8 @@ export default function UtmLinkBuilder() {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
