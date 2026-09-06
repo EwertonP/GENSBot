@@ -48,9 +48,9 @@ export function personalizeText(text: string, contact: ContactSnapshot | null): 
   return text.replace(/\{\{\s*primeiro_nome\s*\}\}/gi, firstName);
 }
 
-/** Deriva a tag automática de uma automação a partir do nome (ex: "Acne" -> "acne", "Botox e Preenchimento" -> "botox_e_preenchimento"). Mesma normalização usada em applyWaitForReplyCapture. */
+/** Deriva a tag automática de uma automação a partir do nome, em CAIXA ALTA (ex: "Acne" -> "ACNE", "Tratamento Capilar" -> "TRATAMENTO CAPILAR"). Padrão único de tags pra toda automação, de todo cliente. */
 export function deriveAutomationTag(automationName: string): string | null {
-  const normalized = automationName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const normalized = automationName.trim().toUpperCase().replace(/\s+/g, ' ');
   return normalized || null;
 }
 
