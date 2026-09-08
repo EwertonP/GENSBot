@@ -28,7 +28,7 @@ function BaseNode({ type, selected, subtitle, hasTimeout }: { type: FlowNodeType
   const borderColor = meta.color.split(' ').find((c) => c.startsWith('border-')) || 'border-border';
   return (
     <div
-      className={`min-w-[200px] rounded-xl border bg-card shadow-sm overflow-hidden ${
+      className={`w-[220px] rounded-xl border bg-card shadow-sm overflow-hidden ${
         selected ? `ring-2 ring-offset-2 ring-primary ${borderColor}` : 'border-border'
       }`}
     >
@@ -41,7 +41,7 @@ function BaseNode({ type, selected, subtitle, hasTimeout }: { type: FlowNodeType
       </div>
       {subtitle && (
         <div className="px-3 pb-2.5 -mt-1">
-          <p className="text-[10px] text-muted-foreground line-clamp-2">{subtitle}</p>
+          <p className="text-[10px] text-muted-foreground break-words whitespace-pre-wrap">{subtitle}</p>
         </div>
       )}
       {type === 'condition' ? (
