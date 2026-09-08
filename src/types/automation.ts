@@ -21,6 +21,9 @@ export interface Automation {
   public_replies: string[];
   welcome_dm: string;
   quick_reply_button?: string | null;
+  /** Minutos até o lembrete se a pessoa não responder ao botão da mensagem inicial; null = espera sem prazo, sem lembrete. Só faz sentido quando `quick_reply_button` está preenchido. */
+  welcome_dm_timeout_minutes?: number | null;
+  welcome_dm_reminder_text?: string | null;
   link_text?: string | null;
   link_button_label?: string | null;
   link_url?: string | null;

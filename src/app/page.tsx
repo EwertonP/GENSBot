@@ -8,7 +8,7 @@ import ThemeToggle from '@/components/theme-toggle';
 import AutomationTable from '@/components/automation-table';
 import Logo from '@/components/logo';
 import type { Automation } from '@/types/automation';
-import { buildFlowFromAdvancedForm, type QualificationStep } from '@/lib/flow-engine/wizardCompiler';
+import { buildFlowFromAdvancedForm, decompileFlow, type QualificationStep } from '@/lib/flow-engine/wizardCompiler';
 // Aliasado pra não colidir com `export const dynamic = 'force-dynamic'` (route segment config) acima.
 // @xyflow/react é client-only (usa ResizeObserver) — ssr:false confirmado como padrão válido
 // em node_modules/next/dist/docs/01-app/02-guides/lazy-loading.md pra este Next 16 canary.
@@ -139,6 +139,12 @@ export default function Dashboard() {
   // Estados do formulário de automação
   const [isEditing, setIsEditing] = useState(false);
   const [generatingTrackedLink, setGeneratingTrackedLink] = useState(false);
+  // Preenchidos ao abrir uma automação existente pra edição — ver handleEditAutomation.
+  // wizardIncompatibleReason != null quando o flow_definition usa recursos que só o
+  // Canvas sabe editar (ramificação, múltiplas saídas, etc.); nesse caso o Formulário
+  // Avançado não deixa salvar por cima, pra não substituir o fluxo real por um errado.
+  const [wizardIncompatibleReason, setWizardIncompatibleReason] = useState<string | null>(null);
+  const [hadFlowDefinition, setHadFlowDefinition] = useState(false);
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'contacts' | 'logs'>('dashboard');
@@ -520,11 +526,19 @@ export default function Dashboard() {
       showToast('Preencha pelo menos o Nome e a DM de Boas-vindas.', 'error');
       return;
     }
+    if (wizardIncompatibleReason) {
+      showToast('Esta automação usa recursos que só o editor visual (Canvas) sabe editar — abra por lá pra continuar.', 'error');
+      return;
+    }
 
     try {
       const method = form.id ? 'PUT' : 'POST';
       const endpoint = form.id ? `/api/automations/${form.id}` : '/api/automations';
-      const flow_definition = qualificationSteps.length > 0 ? buildFlowFromAdvancedForm(form, qualificationSteps) : null;
+      // Automações que já eram baseadas em flow continuam sendo, mesmo com zero
+      // perguntas agora (ex: só mensagem inicial + link) — só cai pro modelo legado
+      // (flow_definition null) quando a automação nunca teve flow e continua sem
+      // nenhuma pergunta. Sem isso, editar e salvar por aqui apagava o fluxo inteiro.
+      const flow_definition = (qualificationSteps.length > 0 || hadFlowDefinition) ? buildFlowFromAdvancedForm(form, qualificationSteps) : null;
       const res = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -544,9 +558,32 @@ export default function Dashboard() {
     }
   };
 
+  // Abre uma automação existente no Formulário Avançado. Quando ela já tem
+  // flow_definition, tenta reconstruir os campos do form + as perguntas de
+  // qualificação a partir do fluxo de verdade (decompileFlow) — antes disso o
+  // form sempre abria com as perguntas zeradas, então editar e salvar por aqui
+  // trocava silenciosamente o fluxo real (com ramificação, esperas etc.) por
+  // um simplificado. Fluxos fora do que o Formulário Avançado sabe representar
+  // (ramificação condicional, múltiplas saídas...) ficam marcados como
+  // incompatíveis — o form mostra um aviso e bloqueia salvar por cima.
   const handleEditAutomation = (auto: Automation) => {
-    setForm(auto);
     setIsEditing(true);
+    setWizardIncompatibleReason(null);
+    setHadFlowDefinition(!!auto.flow_definition);
+
+    if (auto.flow_definition) {
+      const result = decompileFlow(auto.flow_definition);
+      if (result.compatible) {
+        const merged: Automation = { ...auto, ...result.form };
+        setForm(merged);
+        setKeywordInput(merged.keywords.join(', '));
+        setQualificationSteps(result.questions);
+        return;
+      }
+      setWizardIncompatibleReason(result.reason);
+    }
+
+    setForm(auto);
     setKeywordInput(auto.keywords.join(', '));
     setQualificationSteps([]);
   };
@@ -592,6 +629,8 @@ export default function Dashboard() {
     setKeywordInput('');
     setPublicReplyInput('');
     setQualificationSteps([]);
+    setWizardIncompatibleReason(null);
+    setHadFlowDefinition(false);
   };
 
   const handleTriggerChange = (trigger: string) => {
@@ -1403,14 +1442,6 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground mt-1">Automações são criadas e editadas por conta. Escolha uma no seletor da sidebar pra gerenciar.</p>
             </div>
           )}
-          {/* TAB 2: AUTOMATIONS */}
-          {activeTab === 'automations' && isAggregateView && (
-            <div className="bg-card border border-accent rounded-2xl p-10 text-center">
-              <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm font-bold text-foreground">Selecione uma conta específica</p>
-              <p className="text-xs text-muted-foreground mt-1">Automações são criadas e editadas por conta. Escolha uma no seletor da sidebar pra gerenciar.</p>
-            </div>
-          )}
           {activeTab === 'automations' && !isAggregateView && (
             <div className="w-full">
               {!isEditing ? (
@@ -1463,7 +1494,25 @@ export default function Dashboard() {
                   {/* Left Column: Flow Builder Editor Form */}
                   <div className="lg:col-span-8">
                     <form onSubmit={handleSaveAutomation} className="flex flex-col gap-6">
-                      
+
+                      {wizardIncompatibleReason && (
+                        <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-4 flex flex-col gap-2">
+                          <p className="text-xs font-bold text-destructive">Esta automação só pode ser editada pelo Canvas</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {wizardIncompatibleReason} Os campos abaixo mostram o estado anterior à edição e não refletem o fluxo real — salvar por aqui está bloqueado pra não substituir o que já existe por uma versão simplificada.
+                          </p>
+                          {form.id && (
+                            <button
+                              type="button"
+                              onClick={() => setFlowBuilderAutomation(form)}
+                              className="self-start flex items-center gap-1.5 bg-destructive/90 hover:bg-destructive text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                            >
+                              Abrir no editor visual (Canvas)
+                            </button>
+                          )}
+                        </div>
+                      )}
+
                       {/* Header of Flow Editor */}
                       <div className="bg-card border border-accent rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
@@ -1501,7 +1550,8 @@ export default function Dashboard() {
 
                           <button
                             type="submit"
-                            className="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-md cursor-pointer transition-all"
+                            disabled={!!wizardIncompatibleReason}
+                            className="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Salvar Fluxo
                           </button>
@@ -1829,6 +1879,35 @@ export default function Dashboard() {
                               className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all font-semibold"
                             />
                           </div>
+
+                          {form.quick_reply_button && (
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-bold text-muted-foreground">Esperar clique por (min, opcional)</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  placeholder="Sem prazo, sem lembrete"
+                                  value={form.welcome_dm_timeout_minutes ?? ''}
+                                  onChange={e => setForm(prev => ({ ...prev, welcome_dm_timeout_minutes: e.target.value ? parseInt(e.target.value) : null }))}
+                                  className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-bold text-muted-foreground">Lembrete se não clicar (opcional)</label>
+                                <input
+                                  type="text"
+                                  placeholder="Padrão automático se vazio"
+                                  value={form.welcome_dm_reminder_text || ''}
+                                  onChange={e => setForm(prev => ({ ...prev, welcome_dm_reminder_text: e.target.value || null }))}
+                                  className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                                />
+                              </div>
+                              <p className="text-[9px] text-muted-foreground col-span-2 -mt-1">
+                                Deixe o tempo em branco pra esperar o clique sem prazo (sem mandar lembrete).
+                              </p>
+                            </div>
+                          )}
 
                           {/* Lead Capture Options */}
                           <div className="border-t border-border pt-4 mt-2 flex flex-col gap-3">

@@ -109,8 +109,9 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
       .catch(() => setSequences([]));
 
     // Pra alimentar o seletor "usar um link já criado" no painel de mensagem —
-    // mesma lista de src/app/page.tsx, filtrada pra conta desta automação.
-    fetch('/api/utm-links')
+    // mesma lista de src/app/page.tsx, escopada pra conta desta automação (a
+    // API já filtra por conta; o filtro client-side é só uma segunda trava).
+    fetch(`/api/utm-links${automation.instagram_user_id ? `?account=${encodeURIComponent(automation.instagram_user_id)}` : ''}`)
       .then((res) => res.json())
       .then((data) => setUtmLinks(Array.isArray(data) ? data.filter((l: any) => l.instagram_user_id === automation.instagram_user_id) : []))
       .catch(() => setUtmLinks([]));
