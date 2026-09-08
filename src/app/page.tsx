@@ -2203,7 +2203,7 @@ export default function Dashboard() {
                                 <div className="flex flex-col gap-1 mt-1">
                                   <label className="text-[9px] font-bold text-muted-foreground">Ou use um link UTM já criado</label>
                                   <select
-                                    value={selectedUtmLinkId}
+                                    value={selectedUtmLinkId || utmLinks.find(l => l.short_url === form.link_url || l.generated_url === form.link_url)?.id || ''}
                                     onChange={e => handleSelectUtmLink(e.target.value)}
                                     className="bg-accent border border-border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-primary text-foreground"
                                   >
