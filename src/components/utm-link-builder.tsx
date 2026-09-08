@@ -87,7 +87,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
     setLoading(true);
     try {
       const [linksRes, automationsRes] = await Promise.all([
-        fetch('/api/utm-links'),
+        fetch(withAccount('/api/utm-links')),
         fetch(withAccount('/api/automations')),
       ]);
       const linksData = await linksRes.json();
@@ -157,7 +157,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
         utm_content: content || null,
         automation_id: automationId || null,
       };
-      const res = await fetch(editingId ? `/api/utm-links/${editingId}` : '/api/utm-links', {
+      const res = await fetch(withAccount(editingId ? `/api/utm-links/${editingId}` : '/api/utm-links'), {
         method: editingId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -174,7 +174,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/utm-links/${id}`, { method: 'DELETE' });
+    await fetch(withAccount(`/api/utm-links/${id}`), { method: 'DELETE' });
     if (editingId === id) resetForm();
     await load();
   };

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
+import { getActiveInstagramAccountForUser, listInstagramAccountsForUser } from '@/lib/instagram-account';
 import { buildUtmUrl } from '@/lib/utm';
 
 function withShortUrl<T extends { short_code?: string | null }>(req: Request, link: T) {
@@ -10,15 +10,35 @@ function withShortUrl<T extends { short_code?: string | null }>(req: Request, li
   return { ...link, short_url: link.short_code ? `${origin}/r/${link.short_code}` : null };
 }
 
+// GET: Antes listava TODOS os links UTM do usuário juntos, misturando clientes
+// diferentes numa mesma tela — quem gerencia várias contas via um único login
+// via o link de um cliente aparecendo pra outro. Agora escopa por conta, igual
+// /api/contacts e /api/status: uma conta específica (ou a mais recente, se
+// nenhuma vier na URL) por padrão, ou todas juntas só com `?account=all`.
 export async function GET(req: Request) {
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
 
+    const accountParam = new URL(req.url).searchParams.get('account');
+    const isAggregate = accountParam === 'all';
+
+    let accountIds: string[] = [];
+    if (isAggregate) {
+      const allAccounts = await listInstagramAccountsForUser(user.id);
+      accountIds = allAccounts.map(a => a.instagram_user_id);
+    } else {
+      const account = await getActiveInstagramAccountForUser(user.id, accountParam);
+      accountIds = account?.instagram_user_id ? [account.instagram_user_id] : [];
+    }
+
+    if (accountIds.length === 0) return NextResponse.json([]);
+
     const { data, error } = await supabase
       .from('utm_links')
       .select('*')
       .eq('user_id', user.id)
+      .in('instagram_user_id', accountIds)
       .order('created_at', { ascending: false });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
