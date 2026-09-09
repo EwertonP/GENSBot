@@ -197,7 +197,9 @@
 
 @layer base {
   body {
-    letter-spacing: var(--tracking-normal);
+    /* Tracking neutro por padrão — negativo fixo em tudo apertava demais
+       texto pequeno (badges, timestamps). Headings/display usam a classe
+       .text-display (tracking-tight) explicitamente onde fazem sentido. */
     @apply bg-background text-foreground;
   }
   * {
@@ -205,5 +207,25 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  /* Tracking negativo é só pra texto grande/heading — texto pequeno fica
+     mais legível com tracking neutro (princípio de tipografia da Apple). */
+  .text-display {
+    letter-spacing: var(--tracking-tight);
+    line-height: 1.1;
+  }
+}
+
+/* Anima só quando o SO permite — troca spring/slide por cross-fade curto,
+   sem desligar feedback de estado (cor/opacidade continuam). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
