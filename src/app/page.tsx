@@ -799,7 +799,7 @@ export default function Dashboard() {
       )}
 
       {/* 1. Left Sidebar Navigation (Off-canvas no mobile) */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-72 bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-72 bg-sidebar/90 backdrop-blur-2xl md:bg-sidebar md:backdrop-blur-none text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
 
         {/* Brand Header */}
         <div className="px-6 pt-6 pb-4 flex items-center">
@@ -1037,10 +1037,10 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-background w-full relative">
-        
-        {/* Mobile Top Bar (Só aparece em telas pequenas) */}
-        <div className="md:hidden flex items-center justify-between px-5 py-4 border-b border-border bg-card">
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto bg-background w-full relative">
+
+        {/* Mobile Top Bar (Só aparece em telas pequenas) — chrome translúcido, fixo, conteúdo passa por baixo */}
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-5 py-4 bg-card/80 backdrop-blur-xl relative after:content-[''] after:absolute after:left-0 after:right-0 after:top-full after:h-3 after:bg-gradient-to-b after:from-background/40 after:to-transparent after:pointer-events-none">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
@@ -1057,8 +1057,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Top Header Bar */}
-        <header className="hidden md:flex h-16 bg-background px-6 items-center justify-between flex-shrink-0">
+        {/* Top Header Bar — sticky + translúcido, conteúdo da aba passa por baixo ao rolar */}
+        <header className="hidden md:flex sticky top-0 z-30 h-16 px-6 items-center justify-between flex-shrink-0 bg-background/75 backdrop-blur-xl relative after:content-[''] after:absolute after:left-0 after:right-0 after:top-full after:h-3 after:bg-gradient-to-b after:from-background/40 after:to-transparent after:pointer-events-none">
           <div>
             <h2 className="text-lg font-bold text-foreground tracking-tight">
               {activeTab === 'dashboard' && 'Dashboard'}
@@ -1089,8 +1089,9 @@ export default function Dashboard() {
           </button>
         </header>
 
-        {/* 3. Tab-based Content Area */}
-        <main className="flex-1 overflow-y-auto p-6 pb-14 bg-background">
+        {/* 3. Tab-based Content Area — a rolagem agora acontece no container pai (acima), pra
+             o header sticky ter conteúdo de verdade passando por baixo dele */}
+        <main className="flex-1 p-6 pb-14 bg-background">
           
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
