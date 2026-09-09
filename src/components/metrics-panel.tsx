@@ -1,14 +1,26 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Users, Image as ImageIcon, Eye, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, Image as ImageIcon, Eye, TrendingUp, AlertCircle, Info } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Button } from '@/components/ui/button';
+import { LineChart } from '@/components/ui/line-chart';
 
 interface DailyPoint {
   date: string;
   reach: number;
   profile_views: number;
+}
+
+interface FollowerPoint {
+  date: string;
+  followers: number;
+}
+
+interface PublicationPoint {
+  date: string;
+  count: number;
 }
 
 interface AccountMetrics {
@@ -17,11 +29,21 @@ interface AccountMetrics {
   profile_picture_url: string | null;
   followers_count: number | null;
   media_count: number | null;
+  period: 7 | 30 | 90;
   reach_total: number;
   profile_views_total: number;
   daily: DailyPoint[];
+  followerGrowth: FollowerPoint[];
+  followerGrowthUnavailable: boolean;
+  publicationsGrowth: PublicationPoint[];
   error?: string;
 }
+
+const PERIOD_OPTIONS: { value: 7 | 30 | 90; label: string }[] = [
+  { value: 7, label: '7 dias' },
+  { value: 30, label: '30 dias' },
+  { value: 90, label: '90 dias' },
+];
 
 function StatBox({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | number }) {
   return (
@@ -35,28 +57,12 @@ function StatBox({ icon: Icon, label, value }: { icon: React.ElementType; label:
   );
 }
 
-function WeekBars({ daily }: { daily: DailyPoint[] }) {
-  if (daily.length === 0) {
-    return <p className="text-xs text-muted-foreground py-6 text-center">Sem dados de alcance nos últimos 7 dias.</p>;
-  }
-  const max = Math.max(1, ...daily.map((d) => d.reach));
-  return (
-    <div className="h-28 w-full flex items-end justify-between gap-2 px-1 border-b border-accent pb-2">
-      {daily.map((d) => {
-        const height = Math.max(4, Math.round((d.reach / max) * 100));
-        const label = new Date(d.date).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
-        return (
-          <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group" title={`${d.date}: ${d.reach} de alcance`}>
-            <div className="w-full max-w-[24px] bg-primary rounded-sm transition-opacity group-hover:opacity-80" style={{ height: `${height}%` }} />
-            <span className="text-[9px] font-bold text-muted-foreground">{label}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function AccountCard({ metrics, detailed }: { metrics: AccountMetrics; detailed: boolean }) {
+  const reachSeries = metrics.daily.map((d) => ({ date: d.date, value: d.reach }));
+  const viewsSeries = metrics.daily.map((d) => ({ date: d.date, value: d.profile_views }));
+  const followersSeries = metrics.followerGrowth.map((d) => ({ date: d.date, value: d.followers }));
+  const publicationsSeries = metrics.publicationsGrowth.map((d) => ({ date: d.date, value: d.count }));
+
   return (
     <Card padding="sm" className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
@@ -81,11 +87,43 @@ function AccountCard({ metrics, detailed }: { metrics: AccountMetrics; detailed:
       <div className="grid grid-cols-2 gap-2">
         <StatBox icon={Users} label="Seguidores" value={metrics.followers_count ?? '—'} />
         <StatBox icon={ImageIcon} label="Publicações" value={metrics.media_count ?? '—'} />
-        <StatBox icon={TrendingUp} label="Alcance (7d)" value={metrics.reach_total} />
-        <StatBox icon={Eye} label="Visitas ao perfil (7d)" value={metrics.profile_views_total} />
+        <StatBox icon={TrendingUp} label={`Alcance (${metrics.period}d)`} value={metrics.reach_total} />
+        <StatBox icon={Eye} label={`Visitas ao perfil (${metrics.period}d)`} value={metrics.profile_views_total} />
       </div>
 
-      {detailed && <WeekBars daily={metrics.daily} />}
+      {detailed && (
+        <>
+          <div>
+            <p className="text-xs font-bold text-foreground mb-2">Alcance e visitas ao perfil</p>
+            <LineChart
+              series={[
+                { name: 'Alcance', color: 'var(--chart-1)', points: reachSeries },
+                { name: 'Visitas ao perfil', color: 'var(--chart-2)', points: viewsSeries },
+              ]}
+            />
+          </div>
+
+          <div>
+            <p className="text-xs font-bold text-foreground mb-2">Crescimento de seguidores</p>
+            {metrics.followerGrowthUnavailable ? (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5 py-4">
+                <Info className="w-3.5 h-3.5 shrink-0" />
+                Contas com menos de 100 seguidores não recebem esse dado da própria Meta.
+              </p>
+            ) : (
+              <LineChart series={[{ name: 'Seguidores', color: 'var(--chart-1)', points: followersSeries }]} />
+            )}
+          </div>
+
+          <div>
+            <p className="text-xs font-bold text-foreground mb-2">Crescimento de publicações</p>
+            <LineChart
+              series={[{ name: 'Publicações', color: 'var(--chart-3)', points: publicationsSeries }]}
+              emptyMessage="Nenhuma publicação feita pelo GENSBot neste período."
+            />
+          </div>
+        </>
+      )}
     </Card>
   );
 }
@@ -99,34 +137,70 @@ interface MetricsPanelProps {
 export default function MetricsPanel({ selectedAccountId, withAccount }: MetricsPanelProps) {
   const [metrics, setMetrics] = useState<AccountMetrics[]>([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<7 | 30 | 90>(7);
 
   useEffect(() => {
     setLoading(true);
-    fetch(withAccount('/api/instagram/insights'))
+    fetch(withAccount(`/api/instagram/insights?period=${period}`))
       .then((res) => res.json())
       .then((data) => setMetrics(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
-  }, [selectedAccountId]);
+  }, [selectedAccountId, period]);
 
   const isSingleAccount = selectedAccountId && selectedAccountId !== 'all';
 
+  const periodSelector = (
+    <div className="flex gap-1.5 mb-4">
+      {PERIOD_OPTIONS.map((opt) => (
+        <Button
+          key={opt.value}
+          type="button"
+          size="sm"
+          variant={period === opt.value ? 'primary' : 'secondary'}
+          onClick={() => setPeriod(opt.value)}
+          className="rounded-lg"
+        >
+          {opt.label}
+        </Button>
+      ))}
+    </div>
+  );
+
   if (loading) {
-    return <p className="text-xs text-muted-foreground">Carregando métricas...</p>;
+    return (
+      <div>
+        {periodSelector}
+        <p className="text-xs text-muted-foreground">Carregando métricas...</p>
+      </div>
+    );
   }
 
   if (metrics.length === 0) {
-    return <EmptyState icon={TrendingUp} title="Nenhuma conta conectada com métricas disponíveis." />;
+    return (
+      <div>
+        {periodSelector}
+        <EmptyState icon={TrendingUp} title="Nenhuma conta conectada com métricas disponíveis." />
+      </div>
+    );
   }
 
   if (isSingleAccount) {
-    return <AccountCard metrics={metrics[0]} detailed />;
+    return (
+      <div>
+        {periodSelector}
+        <AccountCard metrics={metrics[0]} detailed />
+      </div>
+    );
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {metrics.map((m) => (
-        <AccountCard key={m.instagram_user_id} metrics={m} detailed={false} />
-      ))}
+    <div>
+      {periodSelector}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {metrics.map((m) => (
+          <AccountCard key={m.instagram_user_id} metrics={m} detailed={false} />
+        ))}
+      </div>
     </div>
   );
 }
