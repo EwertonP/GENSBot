@@ -473,6 +473,7 @@ export default function Dashboard() {
       'instagram_business_basic',
       'instagram_business_manage_messages',
       'instagram_business_manage_comments',
+      'instagram_business_manage_insights',
     ].join(',');
 
     window.location.href = `https://www.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
