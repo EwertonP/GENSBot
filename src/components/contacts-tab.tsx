@@ -3,6 +3,7 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { FileText, Trash2, ExternalLink, Plus, X, Pencil, StickyNote } from 'lucide-react';
 import { tagColorClasses } from '@/lib/tag-colors';
+import { Sheet } from '@/components/ui/sheet';
 
 const PAGE_SIZE = 50;
 
@@ -485,15 +486,14 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
         </div>
       )}
 
-      {editingContact && (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-          onClick={closeEdit}
-        >
-          <div
-            className="bg-card border border-accent rounded-2xl p-6 shadow-lg w-full max-w-md flex flex-col gap-4"
-            onClick={e => e.stopPropagation()}
-          >
+      <Sheet
+        open={!!editingContact}
+        onClose={closeEdit}
+        aria-label="Editar Lead"
+        className="w-full max-w-md p-6 flex flex-col gap-4"
+      >
+        {editingContact && (
+          <>
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-foreground text-base">Editar Lead</h3>
               <button onClick={closeEdit} className="text-muted-foreground hover:text-foreground cursor-pointer">
@@ -591,9 +591,9 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                 {savingEdit ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Sheet>
     </div>
   );
 }

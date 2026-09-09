@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
+import { MotionConfig } from "motion/react";
 import "./globals.css";
 import { noFlashThemeScript } from "@/lib/theme";
 
@@ -37,7 +38,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: noFlashThemeScript }}
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <MotionConfig reducedMotion="user">{children}</MotionConfig>
+      </body>
     </html>
   );
 }
