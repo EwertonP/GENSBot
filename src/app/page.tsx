@@ -16,6 +16,8 @@ import nextDynamicImport from 'next/dynamic';
 import UtmLinkBuilder from '@/components/utm-link-builder';
 import MetricsPanel from '@/components/metrics-panel';
 import PublishPanel from '@/components/publish-panel';
+import { Sheet } from '@/components/ui/sheet';
+import { motion, AnimatePresence } from 'motion/react';
 import ContactsTab from '@/components/contacts-tab';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
 import {
@@ -759,28 +761,34 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans antialiased overflow-x-hidden">
       {/* Toast Alert */}
-      {toast && (
-        <div
-          role="status"
-          aria-live="polite"
-          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-card text-foreground shadow-lg transition-all duration-300 animate-slide-in`}
-        >
-          {toast.type === 'success' ? (
-            <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
-          )}
-          <p className="text-sm font-semibold">{toast.message}</p>
-          <button
-            type="button"
-            onClick={() => setToast(null)}
-            aria-label="Fechar aviso"
-            className="p-1 -m-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer flex-shrink-0"
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            role="status"
+            aria-live="polite"
+            initial={{ opacity: 0, y: -12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.96 }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+            className="fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-card text-foreground shadow-lg"
           >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
+            {toast.type === 'success' ? (
+              <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+            )}
+            <p className="text-sm font-semibold">{toast.message}</p>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              aria-label="Fechar aviso"
+              className="p-1 -m-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer flex-shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Overlay para o Menu Mobile */}
       {isMobileMenuOpen && (
@@ -946,14 +954,19 @@ export default function Dashboard() {
                     setActiveTab(item.id as any);
                     setIsEditing(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
-                    active
-                      ? 'bg-primary/10 text-primary font-bold'
-                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                  className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-left ${
+                    active ? 'text-primary font-bold' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                  {item.label}
+                  {active && (
+                    <motion.div
+                      layoutId="nav-active-pill"
+                      className="absolute inset-0 bg-primary/10 rounded-xl"
+                      transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+                    />
+                  )}
+                  <Icon className={`relative w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className="relative">{item.label}</span>
                 </button>
               );
             })}
@@ -974,14 +987,19 @@ export default function Dashboard() {
                     setActiveTab(item.id as any);
                     setIsEditing(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
-                    active
-                      ? 'bg-primary/10 text-primary font-bold'
-                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                  className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-left ${
+                    active ? 'text-primary font-bold' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                  {item.label}
+                  {active && (
+                    <motion.div
+                      layoutId="nav-active-pill"
+                      className="absolute inset-0 bg-primary/10 rounded-xl"
+                      transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+                    />
+                  )}
+                  <Icon className={`relative w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className="relative">{item.label}</span>
                 </button>
               );
             })}
@@ -2683,10 +2701,12 @@ export default function Dashboard() {
       </div>
 
       {/* Visual Post Selector Modal */}
-      {showMediaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-xs p-4 animate-fade-in text-foreground">
-          <div className="bg-card border border-accent rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-            
+      <Sheet
+        open={showMediaModal}
+        onClose={() => setShowMediaModal(false)}
+        aria-label="Selecionar Post ou Reels"
+        className="w-full max-w-2xl max-h-[85vh] flex flex-col"
+      >
             {/* Modal Header */}
             <div className="p-5 border-b border-accent flex items-center justify-between">
               <div>
@@ -2770,15 +2790,14 @@ export default function Dashboard() {
                   );
                 })}
             </div>
+      </Sheet>
 
-          </div>
-        </div>
-      )}
-
-      {showStoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-xs p-4 animate-fade-in text-foreground">
-          <div className="bg-card border border-accent rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-
+      <Sheet
+        open={showStoryModal}
+        onClose={() => setShowStoryModal(false)}
+        aria-label="Selecionar Story Ativo"
+        className="w-full max-w-2xl max-h-[85vh] flex flex-col"
+      >
             {/* Modal Header */}
             <div className="p-5 border-b border-accent flex items-center justify-between">
               <div>
@@ -2835,10 +2854,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-
-          </div>
-        </div>
-      )}
+      </Sheet>
 
       {/* Footer */}
       <footer className="fixed bottom-0 left-0 md:left-72 right-0 py-3 bg-card border-t border-border px-6 text-[10px] text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-1 select-none z-30">
