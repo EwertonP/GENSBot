@@ -1,7 +1,22 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Image as ImageIcon, Video, Send, Clock, CheckCircle2, XCircle, Loader2, Trash2, BarChart3 } from 'lucide-react';
+import {
+  Image as ImageIcon,
+  Video,
+  Send,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Trash2,
+  BarChart3,
+  Heart,
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight,
+  Layers,
+} from 'lucide-react';
 import { fieldInputClass, fieldLabelClass } from '@/lib/form-styles';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,8 +24,10 @@ import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
+import { CalendarPicker } from '@/components/ui/calendar-picker';
+import type { PostingTimeSuggestion } from '@/lib/best-posting-time';
 
-type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES';
+type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
 type PostKind = 'post' | 'reels' | 'story';
 
 interface AccountOption {
@@ -23,6 +40,7 @@ interface ScheduledPost {
   instagram_user_id: string;
   media_type: MediaType;
   media_url: string;
+  media_urls: string[] | null;
   caption: string | null;
   scheduled_at: string;
   status: 'scheduled' | 'publishing' | 'published' | 'failed' | 'canceled';
@@ -37,12 +55,6 @@ interface PublishPanelProps {
   withAccount: (url: string, accountIdOverride?: string | null) => string;
 }
 
-const KIND_TO_MEDIA_TYPE: Record<PostKind, (isVideo: boolean) => MediaType> = {
-  post: (isVideo) => (isVideo ? 'VIDEO' : 'IMAGE'),
-  reels: () => 'REELS',
-  story: (isVideo) => (isVideo ? 'STORIES' : 'STORIES'),
-};
-
 const STATUS_META: Record<ScheduledPost['status'], { label: string; icon: React.ElementType; variant: 'warning' | 'info' | 'success' | 'destructive' | 'muted' }> = {
   scheduled: { label: 'Agendado', icon: Clock, variant: 'warning' },
   publishing: { label: 'Publicando...', icon: Loader2, variant: 'info' },
@@ -50,6 +62,14 @@ const STATUS_META: Record<ScheduledPost['status'], { label: string; icon: React.
   failed: { label: 'Falhou', icon: XCircle, variant: 'destructive' },
   canceled: { label: 'Cancelado', icon: XCircle, variant: 'muted' },
 };
+
+function parseNameList(raw: string, max?: number): string[] {
+  const names = raw
+    .split(',')
+    .map((n) => n.trim().replace(/^@/, ''))
+    .filter(Boolean);
+  return max ? names.slice(0, max) : names;
+}
 
 function MetricsInline({ mediaId, accountId, withAccount }: { mediaId: string; accountId: string; withAccount: (url: string) => string }) {
   const [metrics, setMetrics] = useState<Record<string, number> | null>(null);
@@ -79,16 +99,123 @@ function MetricsInline({ mediaId, accountId, withAccount }: { mediaId: string; a
   );
 }
 
+/** Preview fiel: moldura de post/carrossel/reels/story, atualiza ao vivo com o que o usuário está compondo. */
+function LivePreview({
+  kind,
+  username,
+  previewUrls,
+  isVideo,
+  caption,
+}: {
+  kind: PostKind;
+  username: string;
+  previewUrls: string[];
+  isVideo: boolean;
+  caption: string;
+}) {
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const currentIndex = Math.min(carouselIndex, Math.max(previewUrls.length - 1, 0));
+
+  if (previewUrls.length === 0) {
+    return (
+      <div className="aspect-square w-full rounded-2xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground text-xs">
+        A prévia aparece aqui
+      </div>
+    );
+  }
+
+  if (kind === 'story') {
+    return (
+      <div className="relative w-full max-w-[220px] mx-auto aspect-[9/16] rounded-2xl overflow-hidden bg-black">
+        <div className="absolute top-2 left-2 right-2 h-0.5 bg-white/30 rounded-full overflow-hidden z-10">
+          <div className="h-full bg-white animate-[story-progress_15s_linear_infinite]" style={{ width: '100%' }} />
+        </div>
+        <div className="absolute top-4 left-3 flex items-center gap-1.5 z-10">
+          <div className="w-6 h-6 rounded-full bg-white/80" />
+          <span className="text-white text-[11px] font-bold drop-shadow">{username}</span>
+        </div>
+        {isVideo ? (
+          <video src={previewUrls[0]} className="w-full h-full object-cover" muted autoPlay loop />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element -- preview local
+          <img src={previewUrls[0]} alt="" className="w-full h-full object-cover" />
+        )}
+      </div>
+    );
+  }
+
+  if (kind === 'reels') {
+    return (
+      <div className="relative w-full max-w-[220px] mx-auto aspect-[9/16] rounded-2xl overflow-hidden bg-black">
+        <video src={previewUrls[0]} className="w-full h-full object-cover" controls muted />
+      </div>
+    );
+  }
+
+  // Post / carrossel
+  return (
+    <div className="w-full max-w-[320px] mx-auto rounded-2xl overflow-hidden border border-border bg-card">
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        <div className="w-7 h-7 rounded-full bg-accent shrink-0" />
+        <span className="text-xs font-bold text-foreground">{username}</span>
+      </div>
+      <div className="relative w-full aspect-square bg-black">
+        {isVideo ? (
+          <video src={previewUrls[currentIndex]} className="w-full h-full object-cover" muted />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element -- preview local
+          <img src={previewUrls[currentIndex]} alt="" className="w-full h-full object-cover" />
+        )}
+        {previewUrls.length > 1 && (
+          <>
+            {currentIndex > 0 && (
+              <button
+                type="button"
+                onClick={() => setCarouselIndex(currentIndex - 1)}
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 bg-white/80 rounded-full p-1"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {currentIndex < previewUrls.length - 1 && (
+              <button
+                type="button"
+                onClick={() => setCarouselIndex(currentIndex + 1)}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-white/80 rounded-full p-1"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+              {previewUrls.map((_, i) => (
+                <span key={i} className={`w-1.5 h-1.5 rounded-full ${i === currentIndex ? 'bg-white' : 'bg-white/40'}`} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="flex items-center gap-3 px-3 pt-2 text-foreground">
+        <Heart className="w-5 h-5" />
+        <MessageCircle className="w-5 h-5" />
+      </div>
+      {caption && <p className="px-3 py-2 text-xs text-foreground line-clamp-3">{caption}</p>}
+    </div>
+  );
+}
+
 export default function PublishPanel({ accounts, selectedAccountId, withAccount }: PublishPanelProps) {
   const [targetAccount, setTargetAccount] = useState<string>('');
   const [kind, setKind] = useState<PostKind>('post');
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState('');
+  const [collaboratorsInput, setCollaboratorsInput] = useState('');
+  const [userTagsInput, setUserTagsInput] = useState('');
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState('');
+  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<PostingTimeSuggestion[]>([]);
 
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -102,6 +229,14 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
     }
   }, [selectedAccountId, accounts]);
 
+  useEffect(() => {
+    if (!targetAccount) return;
+    fetch(withAccount(`/api/instagram/best-posting-time?account=${targetAccount}`, targetAccount))
+      .then((res) => res.json())
+      .then((data) => setSuggestions(data.insufficientData ? [] : data.suggestions || []))
+      .catch(() => setSuggestions([]));
+  }, [targetAccount]);
+
   const loadPosts = () => {
     setLoadingPosts(true);
     fetch(withAccount('/api/instagram/publish'))
@@ -114,28 +249,43 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
     loadPosts();
   }, [selectedAccountId]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0] || null;
-    setFile(selected);
-    setPreviewUrl(selected ? URL.createObjectURL(selected) : null);
+  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files || []);
+    const capped = kind === 'post' ? selected.slice(0, 10) : selected.slice(0, 1);
+    setFiles(capped);
+    setPreviewUrls(capped.map((f) => URL.createObjectURL(f)));
   };
 
+  const isVideo = files[0]?.type.startsWith('video') ?? false;
+  const isCarousel = kind === 'post' && files.length > 1;
+  const usernameLabel = `@${accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || 'sua_conta'}`;
+
   const handleSubmit = async () => {
-    if (!file || !targetAccount) {
-      setError('Selecione uma conta e um arquivo.');
+    if (files.length === 0 || !targetAccount) {
+      setError('Selecione uma conta e ao menos um arquivo.');
       return;
     }
     setError(null);
     setSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const uploadRes = await fetch('/api/instagram/upload-media', { method: 'POST', body: formData });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) throw new Error(uploadData.error || 'Falha no upload da mídia.');
+      const uploadedUrls: string[] = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await fetch('/api/instagram/upload-media', { method: 'POST', body: formData });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(uploadData.error || 'Falha no upload da mídia.');
+        uploadedUrls.push(uploadData.url);
+      }
 
-      const isVideo = file.type.startsWith('video');
-      const mediaType = KIND_TO_MEDIA_TYPE[kind](isVideo);
+      let mediaType: MediaType;
+      if (kind === 'story') mediaType = 'STORIES';
+      else if (kind === 'reels') mediaType = 'REELS';
+      else if (isCarousel) mediaType = 'CAROUSEL';
+      else mediaType = isVideo ? 'VIDEO' : 'IMAGE';
+
+      const collaborators = kind !== 'story' ? parseNameList(collaboratorsInput, 3) : [];
+      const userTags = kind === 'story' ? parseNameList(userTagsInput).map((username) => ({ username })) : [];
 
       const publishRes = await fetch('/api/instagram/publish', {
         method: 'POST',
@@ -143,19 +293,24 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
         body: JSON.stringify({
           instagram_user_id: targetAccount,
           media_type: mediaType,
-          media_url: uploadData.url,
+          media_url: uploadedUrls[0],
+          media_urls: mediaType === 'CAROUSEL' ? uploadedUrls : undefined,
           caption,
-          scheduled_at: scheduleEnabled && scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
+          collaborators: collaborators.length > 0 ? collaborators : undefined,
+          user_tags: userTags.length > 0 ? userTags : undefined,
+          scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
         }),
       });
       const publishData = await publishRes.json();
       if (!publishRes.ok) throw new Error(publishData.error || 'Falha ao publicar.');
 
-      setFile(null);
-      setPreviewUrl(null);
+      setFiles([]);
+      setPreviewUrls([]);
       setCaption('');
+      setCollaboratorsInput('');
+      setUserTagsInput('');
       setScheduleEnabled(false);
-      setScheduledAt('');
+      setScheduledAt(null);
       loadPosts();
     } catch (err: any) {
       setError(err.message);
@@ -171,9 +326,9 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Composer */}
-      <Card className="flex flex-col gap-4">
-        {accounts.length > 1 && (
+      {/* Composer em 2 colunas */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-4">
+        <Card className="flex flex-col gap-4">
           <Select label="Conta" value={targetAccount} onChange={(e) => setTargetAccount(e.target.value)}>
             {accounts.map((acc) => (
               <option key={acc.instagram_user_id} value={acc.instagram_user_id}>
@@ -181,74 +336,124 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
               </option>
             ))}
           </Select>
-        )}
 
-        <div className="flex flex-col gap-1.5">
-          <label className={fieldLabelClass}>Tipo de publicação</label>
-          <div className="flex gap-2">
-            {([
-              { id: 'post', label: 'Post' },
-              { id: 'reels', label: 'Reels' },
-              { id: 'story', label: 'Story' },
-            ] as { id: PostKind; label: string }[]).map((opt) => (
-              <Button
-                key={opt.id}
-                type="button"
-                variant={kind === opt.id ? 'primary' : 'secondary'}
-                onClick={() => setKind(opt.id)}
-                className="rounded-xl"
-              >
-                {opt.label}
-              </Button>
-            ))}
+          <div className="flex flex-col gap-1.5">
+            <label className={fieldLabelClass}>Tipo de publicação</label>
+            <div className="flex gap-2">
+              {([
+                { id: 'post', label: 'Post' },
+                { id: 'reels', label: 'Reels' },
+                { id: 'story', label: 'Story' },
+              ] as { id: PostKind; label: string }[]).map((opt) => (
+                <Button
+                  key={opt.id}
+                  type="button"
+                  variant={kind === opt.id ? 'primary' : 'secondary'}
+                  onClick={() => {
+                    setKind(opt.id);
+                    setFiles([]);
+                    setPreviewUrls([]);
+                  }}
+                  className="rounded-xl"
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className={fieldLabelClass}>Mídia (imagem JPG/PNG ou vídeo MP4)</label>
-          <input type="file" accept="image/jpeg,image/png,video/mp4,video/quicktime" onChange={handleFileChange} className={fieldInputClass} />
-          {previewUrl && (
-            <div className="mt-2 w-32 h-32 rounded-lg overflow-hidden border border-border bg-accent flex items-center justify-center">
-              {file?.type.startsWith('video') ? (
-                <video src={previewUrl} className="w-full h-full object-cover" muted />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element -- preview local, não é URL da Meta
-                <img src={previewUrl} alt="" className="w-full h-full object-cover" />
-              )}
+          <div className="flex flex-col gap-1.5">
+            <label className={fieldLabelClass}>
+              Mídia {kind === 'post' ? '(imagem/vídeo — selecione várias pra carrossel, até 10)' : '(imagem ou vídeo)'}
+            </label>
+            <input
+              type="file"
+              multiple={kind === 'post'}
+              accept="image/jpeg,image/png,video/mp4,video/quicktime"
+              onChange={handleFilesChange}
+              className={fieldInputClass}
+            />
+            {isCarousel && (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <Layers className="w-3 h-3" /> Carrossel com {files.length} itens
+              </p>
+            )}
+          </div>
+
+          <Textarea
+            label="Legenda + hashtags"
+            rows={3}
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Escreva a legenda da publicação..."
+          />
+
+          {kind !== 'story' ? (
+            <div className="flex flex-col gap-1.5">
+              <label className={fieldLabelClass}>Colaboradores (até 3, precisam aprovar no próprio Instagram)</label>
+              <input
+                type="text"
+                className={fieldInputClass}
+                placeholder="usuario1, usuario2"
+                value={collaboratorsInput}
+                onChange={(e) => setCollaboratorsInput(e.target.value)}
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <label className={fieldLabelClass}>Marcar pessoas (só marcação — sem link/localização/enquete em Story)</label>
+              <input
+                type="text"
+                className={fieldInputClass}
+                placeholder="usuario1, usuario2"
+                value={userTagsInput}
+                onChange={(e) => setUserTagsInput(e.target.value)}
+              />
             </div>
           )}
-        </div>
 
-        <Textarea
-          label="Legenda"
-          rows={3}
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          placeholder="Escreva a legenda da publicação..."
-        />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={!scheduleEnabled ? 'primary' : 'secondary'}
+                onClick={() => setScheduleEnabled(false)}
+                className="rounded-xl"
+              >
+                Publicar agora
+              </Button>
+              <Button
+                type="button"
+                variant={scheduleEnabled ? 'primary' : 'secondary'}
+                onClick={() => setScheduleEnabled(true)}
+                className="rounded-xl"
+              >
+                Agendar
+              </Button>
+            </div>
+            {scheduleEnabled && (
+              <CalendarPicker value={scheduledAt} onChange={setScheduledAt} suggestions={suggestions} />
+            )}
+          </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-sm font-bold text-foreground cursor-pointer">
-            <input type="checkbox" checked={scheduleEnabled} onChange={(e) => setScheduleEnabled(e.target.checked)} />
-            Agendar para depois
-          </label>
-          {scheduleEnabled && (
-            <input
-              type="datetime-local"
-              className={fieldInputClass}
-              value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
-            />
-          )}
-        </div>
+          {error && <p className="text-xs text-destructive font-medium">{error}</p>}
 
-        {error && <p className="text-xs text-destructive font-medium">{error}</p>}
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            loading={submitting}
+            disabled={files.length === 0 || (scheduleEnabled && !scheduledAt)}
+            className="self-start rounded-xl"
+          >
+            {!submitting && <Send className="w-4 h-4" />}
+            {scheduleEnabled ? 'Agendar publicação' : 'Publicar agora'}
+          </Button>
+        </Card>
 
-        <Button type="button" onClick={handleSubmit} loading={submitting} disabled={!file} className="self-start rounded-xl">
-          {!submitting && <Send className="w-4 h-4" />}
-          {scheduleEnabled ? 'Agendar publicação' : 'Publicar agora'}
-        </Button>
-      </Card>
+        <Card className="flex items-center justify-center bg-accent/40">
+          <LivePreview kind={kind} username={usernameLabel} previewUrls={previewUrls} isVideo={isVideo} caption={caption} />
+        </Card>
+      </div>
 
       {/* Lista */}
       <div className="flex flex-col gap-3">
@@ -260,17 +465,22 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
           posts.map((post) => {
             const meta = STATUS_META[post.status];
             const StatusIcon = meta.icon;
-            const TypeIcon = post.media_type === 'IMAGE' ? ImageIcon : Video;
+            const TypeIcon = post.media_type === 'IMAGE' || post.media_type === 'CAROUSEL' ? ImageIcon : Video;
             const isExpanded = expandedId === post.id;
             return (
               <Card key={post.id} padding="sm">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-border bg-accent flex items-center justify-center shrink-0">
-                    {post.media_type === 'IMAGE' ? (
+                  <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-border bg-accent flex items-center justify-center shrink-0">
+                    {post.media_type === 'IMAGE' || post.media_type === 'CAROUSEL' ? (
                       // eslint-disable-next-line @next/next/no-img-element -- URL do próprio Storage
                       <img src={post.media_url} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <TypeIcon className="w-5 h-5 text-muted-foreground" />
+                    )}
+                    {post.media_type === 'CAROUSEL' && post.media_urls && (
+                      <span className="absolute bottom-0 right-0 bg-black/70 text-white text-[9px] px-1 rounded-tl">
+                        {post.media_urls.length}
+                      </span>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">

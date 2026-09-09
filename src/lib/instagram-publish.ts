@@ -8,7 +8,11 @@
 
 const GRAPH_BASE = 'https://graph.instagram.com/v25.0';
 
-export type PublishMediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES';
+export type PublishMediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
+
+export interface UserTag {
+  username: string;
+}
 
 interface CreateContainerParams {
   instagramUserId: string;
@@ -16,6 +20,13 @@ interface CreateContainerParams {
   mediaType: PublishMediaType;
   mediaUrl: string;
   caption?: string | null;
+  collaborators?: string[] | null;
+  userTags?: UserTag[] | null;
+}
+
+interface PublishParams extends CreateContainerParams {
+  /** Só usado quando mediaType === 'CAROUSEL' — 2 a 10 URLs, na ordem de exibição. */
+  mediaUrls?: string[] | null;
 }
 
 async function graphFetch(url: string, options?: RequestInit) {
@@ -33,9 +44,19 @@ export async function createMediaContainer({
   mediaType,
   mediaUrl,
   caption,
+  collaborators,
+  userTags,
 }: CreateContainerParams): Promise<string> {
   const params = new URLSearchParams({ access_token: accessToken });
   if (caption) params.set('caption', caption);
+  // Colaboradores só fazem sentido em Post/Reels/Carrossel — em Story a
+  // marcação é só user_tags (a Graph API não aceita collaborators em Story).
+  if (collaborators && collaborators.length > 0 && mediaType !== 'STORIES') {
+    params.set('collaborators', JSON.stringify(collaborators.slice(0, 3)));
+  }
+  if (userTags && userTags.length > 0) {
+    params.set('user_tags', JSON.stringify(userTags));
+  }
 
   if (mediaType === 'STORIES') {
     params.set('media_type', 'STORIES');
@@ -61,6 +82,72 @@ export async function createMediaContainer({
   });
 
   return data.id as string;
+}
+
+/**
+ * Carrossel: cada item vira um container filho (`is_carousel_item:true`,
+ * sem caption próprio — a legenda é só do container pai), depois um
+ * container pai `media_type:CAROUSEL` referenciando os filhos. Reels não
+ * pode entrar em carrossel (limitação da própria Graph API), por isso
+ * cada item aqui é sempre IMAGE ou VIDEO de feed.
+ */
+export async function createCarouselContainer({
+  instagramUserId,
+  accessToken,
+  mediaUrls,
+  caption,
+  collaborators,
+  userTags,
+}: {
+  instagramUserId: string;
+  accessToken: string;
+  mediaUrls: string[];
+  caption?: string | null;
+  collaborators?: string[] | null;
+  userTags?: UserTag[] | null;
+}): Promise<string> {
+  if (mediaUrls.length < 2 || mediaUrls.length > 10) {
+    throw new Error('Carrossel precisa de 2 a 10 itens de mídia.');
+  }
+
+  const childIds = await Promise.all(
+    mediaUrls.map(async (url) => {
+      const params = new URLSearchParams({ access_token: accessToken, is_carousel_item: 'true' });
+      if (url.match(/\.(mp4|mov)(\?|$)/i)) {
+        params.set('media_type', 'VIDEO');
+        params.set('video_url', url);
+      } else {
+        params.set('image_url', url);
+      }
+      const data = await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      });
+      return data.id as string;
+    })
+  );
+
+  const parentParams = new URLSearchParams({
+    access_token: accessToken,
+    media_type: 'CAROUSEL',
+    children: childIds.join(','),
+  });
+  if (caption) parentParams.set('caption', caption);
+  if (collaborators && collaborators.length > 0) {
+    parentParams.set('collaborators', JSON.stringify(collaborators.slice(0, 3)));
+  }
+  if (userTags && userTags.length > 0) {
+    parentParams.set('user_tags', JSON.stringify(userTags));
+  }
+
+  const parentData = await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: parentParams.toString(),
+  });
+
+  return parentData.id as string;
 }
 
 /**
@@ -105,7 +192,26 @@ export async function publishContainer(
   return data.id as string;
 }
 
-export async function publishPost(params: CreateContainerParams): Promise<{ igMediaId: string }> {
+export async function publishPost(params: PublishParams): Promise<{ igMediaId: string }> {
+  if (params.mediaType === 'CAROUSEL') {
+    if (!params.mediaUrls || params.mediaUrls.length < 2) {
+      throw new Error('Carrossel precisa de ao menos 2 itens de mídia.');
+    }
+    const creationId = await createCarouselContainer({
+      instagramUserId: params.instagramUserId,
+      accessToken: params.accessToken,
+      mediaUrls: params.mediaUrls,
+      caption: params.caption,
+      collaborators: params.collaborators,
+      userTags: params.userTags,
+    });
+    // O container pai do carrossel também passa por processamento antes
+    // de poder ser publicado, mesmo quando todos os itens são imagem.
+    await waitForContainerReady(creationId, params.accessToken);
+    const igMediaId = await publishContainer(params.instagramUserId, params.accessToken, creationId);
+    return { igMediaId };
+  }
+
   const creationId = await createMediaContainer(params);
 
   // Imagem de feed publica quase instantaneamente; vídeo/reels/story

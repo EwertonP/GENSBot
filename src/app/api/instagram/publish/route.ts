@@ -10,16 +10,22 @@ export async function POST(req: Request) {
     if (!user) return unauthorizedResponse();
 
     const body = await req.json();
-    const { instagram_user_id, media_type, media_url, caption, scheduled_at } = body as {
+    const { instagram_user_id, media_type, media_url, media_urls, caption, scheduled_at, collaborators, user_tags } = body as {
       instagram_user_id: string;
       media_type: PublishMediaType;
       media_url: string;
+      media_urls?: string[];
       caption?: string;
       scheduled_at?: string;
+      collaborators?: string[];
+      user_tags?: { username: string }[];
     };
 
     if (!instagram_user_id || !media_type || !media_url) {
       return NextResponse.json({ error: 'Conta, tipo de mídia e arquivo são obrigatórios.' }, { status: 400 });
+    }
+    if (media_type === 'CAROUSEL' && (!media_urls || media_urls.length < 2)) {
+      return NextResponse.json({ error: 'Carrossel precisa de ao menos 2 itens de mídia.' }, { status: 400 });
     }
 
     const account = await getInstagramAccountByInstagramUserId(instagram_user_id);
@@ -29,18 +35,21 @@ export async function POST(req: Request) {
 
     const isFuture = scheduled_at && new Date(scheduled_at).getTime() > Date.now() + 60_000;
 
+    const commonFields = {
+      user_id: user.id,
+      instagram_user_id,
+      media_type,
+      media_url,
+      media_urls: media_urls || null,
+      caption: caption || null,
+      collaborators: collaborators || null,
+      user_tags: user_tags || null,
+    };
+
     if (isFuture) {
       const { data, error } = await supabase
         .from('scheduled_posts')
-        .insert({
-          user_id: user.id,
-          instagram_user_id,
-          media_type,
-          media_url,
-          caption: caption || null,
-          scheduled_at,
-          status: 'scheduled',
-        })
+        .insert({ ...commonFields, scheduled_at, status: 'scheduled' })
         .select()
         .single();
 
@@ -55,17 +64,16 @@ export async function POST(req: Request) {
         accessToken: account.access_token,
         mediaType: media_type,
         mediaUrl: media_url,
+        mediaUrls: media_urls,
         caption,
+        collaborators,
+        userTags: user_tags,
       });
 
       const { data, error } = await supabase
         .from('scheduled_posts')
         .insert({
-          user_id: user.id,
-          instagram_user_id,
-          media_type,
-          media_url,
-          caption: caption || null,
+          ...commonFields,
           scheduled_at: new Date().toISOString(),
           status: 'published',
           ig_media_id: igMediaId,
@@ -80,11 +88,7 @@ export async function POST(req: Request) {
       const { data } = await supabase
         .from('scheduled_posts')
         .insert({
-          user_id: user.id,
-          instagram_user_id,
-          media_type,
-          media_url,
-          caption: caption || null,
+          ...commonFields,
           scheduled_at: new Date().toISOString(),
           status: 'failed',
           error_message: publishErr.message,

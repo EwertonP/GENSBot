@@ -71,7 +71,10 @@ async function handlePublishScheduled(req: Request) {
           accessToken: account.access_token,
           mediaType: post.media_type as PublishMediaType,
           mediaUrl: post.media_url,
+          mediaUrls: post.media_urls,
           caption: post.caption,
+          collaborators: post.collaborators,
+          userTags: post.user_tags,
         });
 
         await supabase

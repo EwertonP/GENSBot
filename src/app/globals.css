@@ -223,6 +223,19 @@
   }
 }
 
+/* Barra de progresso do preview de Story no composer de Publicações —
+   simula os 15s de duração real de um story no Instagram. */
+@keyframes story-progress {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  to {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
 /* Anima só quando o SO permite — troca spring/slide por cross-fade curto,
    sem desligar feedback de estado (cor/opacidade continuam). */
 @media (prefers-reduced-motion: reduce) {
