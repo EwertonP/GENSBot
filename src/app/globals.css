@@ -78,52 +78,55 @@
 }
 
 :root {
-  /* Paleta clara "Oat & Clay" (referência: Claude × Apple) — fundo off-white
-     quente, cards brancos elevados por sombra também quente (não cinza-azulada),
-     clay/terracota como único acento de ação. Verde/âmbar viram tokens
-     semânticos dedicados (--success/--warning), usados como indicador
-     pontual, não como fundo pastel do card inteiro. */
-  --background: oklch(0.975 0.008 75);
-  --foreground: oklch(0.27 0.02 55);
+  /* Paleta clara da agência GENS (IDV oficial, 6 hex confirmados pelo
+     usuário — ver PLANO_REDESIGN_2.0.md Parte 1). Fundo quase-branco com
+     leve matiz lima, verde-oliva médio como único acento de ação.
+     Verde/âmbar/vermelho seguem como tokens semânticos dedicados
+     (--success/--warning/--destructive), não fazem parte da identidade
+     de marca — continuam como indicador pontual. Contraste verificado
+     com WCAG real: --primary-foreground sobre --primary só é seguro pra
+     texto grande/negrito (4.49:1) — o Button primitivo já é font-bold. */
+  --background: oklch(0.989 0.031 118.9); /* #F9FFE8 */
+  --foreground: oklch(0.168 0 89.9); /* #0F0F0F */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.27 0.02 55);
+  --card-foreground: oklch(0.168 0 89.9);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.27 0.02 55);
-  --primary: oklch(0.565 0.135 42);
-  --primary-foreground: oklch(0.99 0.01 70);
-  --secondary: oklch(0.955 0.01 75);
-  --secondary-foreground: oklch(0.32 0.02 55);
-  --muted: oklch(0.96 0.009 75);
-  --muted-foreground: oklch(0.55 0.02 60);
-  --accent: oklch(0.945 0.013 75);
-  --accent-foreground: oklch(0.3 0.02 55);
+  --popover-foreground: oklch(0.168 0 89.9);
+  --primary: oklch(0.551 0.154 132.3); /* #4D8300 */
+  --primary-foreground: oklch(0.989 0.031 118.9); /* #F9FFE8 */
+  --secondary: oklch(0.95 0.02 119);
+  --secondary-foreground: oklch(0.168 0 89.9);
+  --muted: oklch(0.96 0.015 119);
+  --muted-foreground: oklch(0.5 0.025 121);
+  --accent: oklch(0.966 0.106 119.6); /* #EBFFAD */
+  --accent-foreground: oklch(0.345 0.086 124); /* #304000 */
   --destructive: oklch(0.55 0.14 25);
   --destructive-foreground: oklch(1 0 0);
   --success: oklch(0.56 0.07 145);
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.68 0.11 75);
   --warning-foreground: oklch(0.28 0.04 75);
-  --border: oklch(0.85 0.015 75);
-  --input: oklch(0.9 0.012 75);
-  --ring: oklch(0.565 0.135 42);
-  --chart-1: oklch(0.565 0.135 42);
+  --border: oklch(0.88 0.03 119);
+  --input: oklch(0.9 0.025 119);
+  --ring: oklch(0.551 0.154 132.3);
+  --chart-1: oklch(0.551 0.154 132.3);
   --chart-2: oklch(0.56 0.07 145);
   --chart-3: oklch(0.68 0.11 75);
-  --chart-4: oklch(0.55 0.1 320);
+  --chart-4: oklch(0.345 0.086 124);
   --chart-5: oklch(0.55 0.14 25);
   --radius: 0.625rem;
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.27 0.02 55);
-  --sidebar-primary: oklch(0.565 0.135 42);
-  --sidebar-primary-foreground: oklch(0.99 0.01 70);
-  --sidebar-accent: oklch(0.945 0.013 75);
-  --sidebar-accent-foreground: oklch(0.3 0.02 55);
-  --sidebar-border: oklch(0.93 0.011 75);
-  --sidebar-ring: oklch(0.565 0.135 42);
+  --sidebar-foreground: oklch(0.168 0 89.9);
+  --sidebar-primary: oklch(0.551 0.154 132.3);
+  --sidebar-primary-foreground: oklch(0.989 0.031 118.9);
+  --sidebar-accent: oklch(0.966 0.106 119.6);
+  --sidebar-accent-foreground: oklch(0.345 0.086 124);
+  --sidebar-border: oklch(0.92 0.025 119);
+  --sidebar-ring: oklch(0.551 0.154 132.3);
   --font-sans: Inter, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: monospace;
-  --shadow-color: #2a1c0f;
+  --shadow-color: #0f0f0f;
   --shadow-opacity: 0.03;
   --shadow-blur: 8px;
   --shadow-spread: -2px;
@@ -143,46 +146,47 @@
 }
 
 .dark {
-  /* Paleta escura "Oat & Clay" — mesma identidade do tema claro (fundo
-     quente, clay como único acento), só invertida: fundo quase-preto
-     amarronzado em vez de preto neutro/azulado, clay mais claro/saturado
-     pra manter contraste sobre fundo escuro. */
-  --background: oklch(0.19 0.012 60);
-  --foreground: oklch(0.92 0.015 75);
-  --card: oklch(0.23 0.013 60);
-  --card-foreground: oklch(0.92 0.015 75);
-  --popover: oklch(0.23 0.013 60);
-  --popover-foreground: oklch(0.92 0.015 75);
-  --primary: oklch(0.7 0.13 45);
-  --primary-foreground: oklch(0.2 0.03 45);
-  --secondary: oklch(0.27 0.014 60);
-  --secondary-foreground: oklch(0.92 0.015 75);
-  --muted: oklch(0.25 0.013 60);
-  --muted-foreground: oklch(0.68 0.02 70);
-  --accent: oklch(0.28 0.016 60);
-  --accent-foreground: oklch(0.92 0.015 75);
+  /* Paleta escura da agência GENS — mesma identidade do tema claro,
+     invertida: fundo quase-preto puro (#0F0F0F, a mesma cor da marca,
+     não um preto genérico), primary vira o lima vibrante (#DBFF69, alto
+     contraste contra o fundo escuro — 16.9:1 verificado), accent vira o
+     verde-oliva escuro (#304000) como superfície intermediária. */
+  --background: oklch(0.168 0 89.9); /* #0F0F0F */
+  --foreground: oklch(0.989 0.031 118.9); /* #F9FFE8 */
+  --card: oklch(0.22 0.025 121);
+  --card-foreground: oklch(0.989 0.031 118.9);
+  --popover: oklch(0.22 0.025 121);
+  --popover-foreground: oklch(0.989 0.031 118.9);
+  --primary: oklch(0.946 0.179 121.3); /* #DBFF69 */
+  --primary-foreground: oklch(0.168 0 89.9); /* #0F0F0F */
+  --secondary: oklch(0.27 0.03 121);
+  --secondary-foreground: oklch(0.989 0.031 118.9);
+  --muted: oklch(0.25 0.025 121);
+  --muted-foreground: oklch(0.68 0.035 121);
+  --accent: oklch(0.345 0.086 124); /* #304000 */
+  --accent-foreground: oklch(0.946 0.179 121.3); /* #DBFF69 */
   --destructive: oklch(0.68 0.1 25);
   --destructive-foreground: oklch(0.18 0.03 25);
   --success: oklch(0.68 0.06 145);
   --success-foreground: oklch(0.16 0.03 145);
   --warning: oklch(0.75 0.09 75);
   --warning-foreground: oklch(0.18 0.03 75);
-  --border: oklch(0.38 0.02 60);
-  --input: oklch(0.38 0.02 60);
-  --ring: oklch(0.7 0.13 45);
-  --chart-1: oklch(0.7 0.13 45);
+  --border: oklch(0.35 0.035 121);
+  --input: oklch(0.35 0.035 121);
+  --ring: oklch(0.946 0.179 121.3);
+  --chart-1: oklch(0.946 0.179 121.3);
   --chart-2: oklch(0.68 0.06 145);
   --chart-3: oklch(0.75 0.09 75);
-  --chart-4: oklch(0.62 0.09 320);
+  --chart-4: oklch(0.551 0.154 132.3);
   --chart-5: oklch(0.68 0.1 25);
-  --sidebar: oklch(0.23 0.013 60);
-  --sidebar-foreground: oklch(0.92 0.015 75);
-  --sidebar-primary: oklch(0.7 0.13 45);
-  --sidebar-primary-foreground: oklch(0.2 0.03 45);
-  --sidebar-accent: oklch(0.28 0.016 60);
-  --sidebar-accent-foreground: oklch(0.92 0.015 75);
-  --sidebar-border: oklch(0.38 0.02 60);
-  --sidebar-ring: oklch(0.7 0.13 45);
+  --sidebar: oklch(0.22 0.025 121);
+  --sidebar-foreground: oklch(0.989 0.031 118.9);
+  --sidebar-primary: oklch(0.946 0.179 121.3);
+  --sidebar-primary-foreground: oklch(0.168 0 89.9);
+  --sidebar-accent: oklch(0.345 0.086 124);
+  --sidebar-accent-foreground: oklch(0.946 0.179 121.3);
+  --sidebar-border: oklch(0.35 0.035 121);
+  --sidebar-ring: oklch(0.946 0.179 121.3);
   --shadow-color: #000000;
   --shadow-opacity: 0.08;
   --shadow-2xs: none;
