@@ -15,6 +15,7 @@ import { buildFlowFromAdvancedForm, decompileFlow, type QualificationStep } from
 import nextDynamicImport from 'next/dynamic';
 import UtmLinkBuilder from '@/components/utm-link-builder';
 import MetricsPanel from '@/components/metrics-panel';
+import PublishPanel from '@/components/publish-panel';
 import ContactsTab from '@/components/contacts-tab';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
 import {
@@ -149,7 +150,7 @@ export default function Dashboard() {
   const [hadFlowDefinition, setHadFlowDefinition] = useState(false);
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'contacts' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'logs'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -474,6 +475,7 @@ export default function Dashboard() {
       'instagram_business_manage_messages',
       'instagram_business_manage_comments',
       'instagram_business_manage_insights',
+      'instagram_business_content_publish',
     ].join(',');
 
     window.location.href = `https://www.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
@@ -932,6 +934,7 @@ export default function Dashboard() {
               { id: 'automations', label: 'Automações', icon: Settings },
               { id: 'utm', label: 'Links UTM', icon: Link2 },
               { id: 'metrics', label: 'Métricas', icon: TrendingUp },
+              { id: 'publish', label: 'Publicações', icon: Send },
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
             ].map(item => {
               const Icon = item.icon;
@@ -1044,6 +1047,7 @@ export default function Dashboard() {
               {activeTab === 'automations' && 'Automações'}
               {activeTab === 'utm' && 'Links UTM'}
               {activeTab === 'metrics' && 'Métricas'}
+              {activeTab === 'publish' && 'Publicações'}
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
@@ -1052,6 +1056,7 @@ export default function Dashboard() {
               {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
               {activeTab === 'utm' && 'Gere links rastreáveis pra saber de onde vêm seus leads.'}
               {activeTab === 'metrics' && 'Acompanhe o desempenho de cada perfil conectado.'}
+              {activeTab === 'publish' && 'Publique posts, reels e stories direto para as contas conectadas.'}
               {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
               {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
             </p>
@@ -2547,6 +2552,17 @@ export default function Dashboard() {
           {activeTab === 'metrics' && (
             <div className="animate-fade-in max-w-4xl mx-auto">
               <MetricsPanel selectedAccountId={selectedAccountId} withAccount={withAccount} />
+            </div>
+          )}
+
+          {/* TAB: PUBLISH */}
+          {activeTab === 'publish' && (
+            <div className="animate-fade-in max-w-4xl mx-auto">
+              <PublishPanel
+                accounts={accounts.map((acc) => ({ instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
+                selectedAccountId={selectedAccountId}
+                withAccount={withAccount}
+              />
             </div>
           )}
 
