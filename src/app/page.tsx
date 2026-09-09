@@ -14,6 +14,7 @@ import { buildFlowFromAdvancedForm, decompileFlow, type QualificationStep } from
 // em node_modules/next/dist/docs/01-app/02-guides/lazy-loading.md pra este Next 16 canary.
 import nextDynamicImport from 'next/dynamic';
 import UtmLinkBuilder from '@/components/utm-link-builder';
+import MetricsPanel from '@/components/metrics-panel';
 import ContactsTab from '@/components/contacts-tab';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
 import {
@@ -41,6 +42,7 @@ import {
   AtSign,
   ChevronLeft,
   Link2,
+  TrendingUp,
 } from 'lucide-react';
 
 const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
@@ -147,7 +149,7 @@ export default function Dashboard() {
   const [hadFlowDefinition, setHadFlowDefinition] = useState(false);
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'contacts' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'contacts' | 'logs'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -928,6 +930,7 @@ export default function Dashboard() {
               { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
               { id: 'automations', label: 'Automações', icon: Settings },
               { id: 'utm', label: 'Links UTM', icon: Link2 },
+              { id: 'metrics', label: 'Métricas', icon: TrendingUp },
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
             ].map(item => {
               const Icon = item.icon;
@@ -1039,6 +1042,7 @@ export default function Dashboard() {
               {activeTab === 'dashboard' && 'Dashboard'}
               {activeTab === 'automations' && 'Automações'}
               {activeTab === 'utm' && 'Links UTM'}
+              {activeTab === 'metrics' && 'Métricas'}
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
@@ -1046,6 +1050,7 @@ export default function Dashboard() {
               {activeTab === 'dashboard' && 'Bem-vindo de volta! Veja o que está acontecendo com sua automação.'}
               {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
               {activeTab === 'utm' && 'Gere links rastreáveis pra saber de onde vêm seus leads.'}
+              {activeTab === 'metrics' && 'Acompanhe o desempenho de cada perfil conectado.'}
               {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
               {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
             </p>
@@ -2534,6 +2539,13 @@ export default function Dashboard() {
           {activeTab === 'utm' && (
             <div className="animate-fade-in max-w-4xl mx-auto">
               <UtmLinkBuilder withAccount={withAccount} />
+            </div>
+          )}
+
+          {/* TAB: METRICS */}
+          {activeTab === 'metrics' && (
+            <div className="animate-fade-in max-w-4xl mx-auto">
+              <MetricsPanel selectedAccountId={selectedAccountId} withAccount={withAccount} />
             </div>
           )}
 
