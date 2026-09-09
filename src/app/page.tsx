@@ -16,6 +16,7 @@ import nextDynamicImport from 'next/dynamic';
 import UtmLinkBuilder from '@/components/utm-link-builder';
 import MetricsPanel from '@/components/metrics-panel';
 import PublishPanel from '@/components/publish-panel';
+import DashboardContentPanel from '@/components/dashboard-content-panel';
 import { Sheet } from '@/components/ui/sheet';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1461,6 +1462,9 @@ export default function Dashboard() {
                   )}
                 </Card>
               </div>
+
+              {/* 5. Desempenho de Conteúdo (Dashboard 2.0 — PLANO_REDESIGN_2.0.md Parte 3) */}
+              <DashboardContentPanel selectedAccountId={selectedAccountId} withAccount={withAccount} />
 
             </div>
           )}
