@@ -1,17 +1,27 @@
 import type { TriggerNodeConfig, ConditionNodeConfig, ActionNodeConfig, WaitForReplyNodeConfig } from '@/types/flow';
 
+/** Remove acentos/diacríticos (NFD + strip dos marks) pra "verão" bater com "verao" e afins — comum em digitação
+ * rápida no Instagram, especialmente em DM/comentário mobile. */
+function stripDiacritics(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function normalizeForMatch(s: string): string {
+  return stripDiacritics(s.trim().toLowerCase());
+}
+
 /** Movida de src/app/api/webhook/route.ts (era local ali) — usada tanto pelo caminho legado quanto pelo motor de fluxo novo. */
 export function matchesKeywords(text: string, keywords: string[], matchType: string): boolean {
   if (matchType === 'any' || keywords.length === 0) return true;
 
-  const normalizedText = text.trim().toLowerCase();
+  const normalizedText = normalizeForMatch(text);
 
   if (matchType === 'exact') {
-    return keywords.some((kw) => normalizedText === kw.trim().toLowerCase());
+    return keywords.some((kw) => normalizedText === normalizeForMatch(kw));
   }
 
   if (matchType === 'contains') {
-    return keywords.some((kw) => normalizedText.includes(kw.trim().toLowerCase()));
+    return keywords.some((kw) => normalizedText.includes(normalizeForMatch(kw)));
   }
 
   return false;

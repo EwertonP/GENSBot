@@ -30,6 +30,13 @@ describe('matchesKeywords', () => {
     expect(matchesKeywords('manchas no rosto', ['acne', 'manchas'], 'contains')).toBe(true);
     expect(matchesKeywords('botox', ['acne', 'manchas'], 'contains')).toBe(false);
   });
+
+  it('ignora acentos nos dois lados da comparação (texto e keyword)', () => {
+    expect(matchesKeywords('Verao chegando', ['verão'], 'contains')).toBe(true);
+    expect(matchesKeywords('Verão chegando', ['verao'], 'contains')).toBe(true);
+    expect(matchesKeywords('nao vejo a hora do verão', ['não'], 'contains')).toBe(true);
+    expect(matchesKeywords('Verao', ['verão'], 'exact')).toBe(true);
+  });
 });
 
 describe('evaluateTriggerNode', () => {
