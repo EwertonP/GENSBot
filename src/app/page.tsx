@@ -8,7 +8,10 @@ import ThemeToggle from '@/components/theme-toggle';
 import AutomationTable from '@/components/automation-table';
 import Logo from '@/components/logo';
 import type { Automation } from '@/types/automation';
-import { buildFlowFromAdvancedForm, decompileFlow, type QualificationStep } from '@/lib/flow-engine/wizardCompiler';
+import { buildFlowFromAdvancedForm, decompileFlow, type QualificationStep, type WizardCondition, type WizardTail } from '@/lib/flow-engine/wizardCompiler';
+import { TailEditor } from '@/components/automation-wizard/tail-editor';
+import { ConditionPanel } from '@/components/flow-builder/panels';
+import type { ConditionNodeConfig } from '@/types/flow';
 // Aliasado pra não colidir com `export const dynamic = 'force-dynamic'` (route segment config) acima.
 // @xyflow/react é client-only (usa ResizeObserver) — ssr:false confirmado como padrão válido
 // em node_modules/next/dist/docs/01-app/02-guides/lazy-loading.md pra este Next 16 canary.
@@ -154,6 +157,10 @@ export default function Dashboard() {
   // Avançado não deixa salvar por cima, pra não substituir o fluxo real por um errado.
   const [wizardIncompatibleReason, setWizardIncompatibleReason] = useState<string | null>(null);
   const [hadFlowDefinition, setHadFlowDefinition] = useState(false);
+  // Bifurcação única do Formulário Avançado (v1 — perguntas antes do split ficam em
+  // `qualificationSteps`, cada ramo é independente). null = fluxo linear normal.
+  const [wizardCondition, setWizardCondition] = useState<WizardCondition | null>(null);
+  const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'logs'>('dashboard');
@@ -549,7 +556,9 @@ export default function Dashboard() {
       // perguntas agora (ex: só mensagem inicial + link) — só cai pro modelo legado
       // (flow_definition null) quando a automação nunca teve flow e continua sem
       // nenhuma pergunta. Sem isso, editar e salvar por aqui apagava o fluxo inteiro.
-      const flow_definition = (qualificationSteps.length > 0 || hadFlowDefinition) ? buildFlowFromAdvancedForm(form, qualificationSteps) : null;
+      const flow_definition = (qualificationSteps.length > 0 || hadFlowDefinition || wizardCondition)
+        ? buildFlowFromAdvancedForm(form, qualificationSteps, wizardCondition)
+        : null;
       const res = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -581,6 +590,8 @@ export default function Dashboard() {
     setIsEditing(true);
     setWizardIncompatibleReason(null);
     setHadFlowDefinition(!!auto.flow_definition);
+    setWizardCondition(null);
+    setActiveBranchTab('true');
 
     if (auto.flow_definition) {
       const result = decompileFlow(auto.flow_definition);
@@ -589,6 +600,7 @@ export default function Dashboard() {
         setForm(merged);
         setKeywordInput(merged.keywords.join(', '));
         setQualificationSteps(result.questions);
+        setWizardCondition(result.condition);
         return;
       }
       setWizardIncompatibleReason(result.reason);
@@ -642,6 +654,62 @@ export default function Dashboard() {
     setQualificationSteps([]);
     setWizardIncompatibleReason(null);
     setHadFlowDefinition(false);
+    setWizardCondition(null);
+    setActiveBranchTab('true');
+  };
+
+  // --- Bifurcação do Formulário Avançado (v1) ---------------------------
+  // Sem condição, `qualificationSteps` + `form.link_*`/`followups` continuam
+  // sendo a única cauda do fluxo (comportamento 100% igual a antes). Com
+  // condição, essa cauda "legada" só existe até o ponto do split — o resto
+  // vive em `wizardCondition.trueBranch`/`falseBranch`, independentes.
+  const legacyTail: WizardTail = {
+    questions: qualificationSteps,
+    link_text: form.link_text || '',
+    link_url: form.link_url ?? null,
+    link_button_label: form.link_button_label ?? null,
+    followups: form.followups || [],
+  };
+
+  const handleLegacyTailChange = (updater: (prev: WizardTail) => WizardTail) => {
+    const next = updater(legacyTail);
+    setQualificationSteps(next.questions);
+    setForm(prev => ({ ...prev, link_text: next.link_text, link_url: next.link_url, link_button_label: next.link_button_label, followups: next.followups }));
+  };
+
+  const [pendingConditionSplitIndex, setPendingConditionSplitIndex] = useState(0);
+
+  const addCondition = (splitIndex: number) => {
+    const sharedTail: WizardTail = {
+      questions: qualificationSteps.slice(splitIndex),
+      link_text: form.link_text || '',
+      link_url: form.link_url ?? null,
+      link_button_label: form.link_button_label ?? null,
+      followups: form.followups || [],
+    };
+    setQualificationSteps(qualificationSteps.slice(0, splitIndex));
+    setWizardCondition({
+      splitAfterIndex: splitIndex,
+      condition: { conditionType: 'keyword', keywords: [], match_type: 'contains' },
+      // clones independentes — editar um ramo não pode vazar pro outro.
+      trueBranch: structuredClone(sharedTail),
+      falseBranch: structuredClone(sharedTail),
+    });
+    setActiveBranchTab('true');
+  };
+
+  const removeCondition = () => {
+    if (!wizardCondition) return;
+    if (!confirm('Remover a condição descarta todo o ramo "Se falso" (perguntas, link e follow-ups configurados nele). O ramo "Se verdadeiro" vira o fluxo normal. Quer continuar?')) return;
+    setQualificationSteps(prev => [...prev, ...wizardCondition.trueBranch.questions]);
+    setForm(prev => ({
+      ...prev,
+      link_text: wizardCondition.trueBranch.link_text,
+      link_url: wizardCondition.trueBranch.link_url,
+      link_button_label: wizardCondition.trueBranch.link_button_label,
+      followups: wizardCondition.trueBranch.followups,
+    }));
+    setWizardCondition(null);
   };
 
   const handleTriggerChange = (trigger: string) => {
@@ -1991,419 +2059,94 @@ export default function Dashboard() {
                         </span>
                       </div>
 
-                      {/* Step 4: Perguntas de Qualificação (Opcional) — gera flow_definition (motor de fluxo) só quando usado */}
-                      <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
-                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
-                          4
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-foreground text-sm">Perguntas de Qualificação (Opcional)</h4>
-                        </div>
-                        <p className="text-muted-foreground text-xs font-semibold -mt-2">
-                          Faça perguntas com botões antes do link — o fluxo pausa esperando a resposta, manda um lembrete se demorar, e continua esperando depois disso.
-                        </p>
-
-                        <div className="flex flex-col gap-3">
-                          {qualificationSteps.map((step, i) => (
-                            <div key={i} className="border border-border bg-accent p-4 rounded-xl flex flex-col gap-3 relative animate-fade-in">
-                              <button
-                                type="button"
-                                onClick={() => setQualificationSteps(prev => prev.filter((_, x) => x !== i))}
-                                className="absolute top-3 right-3 text-muted-foreground hover:text-destructive cursor-pointer p-1"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                              <div className="flex flex-col gap-1.5 pr-8">
-                                <label className="text-xs font-bold text-muted-foreground">
-                                  {i + 1}. {step.kind === 'message' ? 'Mensagem simples' : step.buttons.length === 0 ? 'Pergunta aberta (resposta livre)' : 'Pergunta com botões'}
-                                </label>
-                                <textarea
-                                  placeholder="Texto da mensagem"
-                                  value={step.text}
-                                  onChange={e => {
-                                    const next = [...qualificationSteps];
-                                    next[i] = { ...next[i], text: e.target.value };
-                                    setQualificationSteps(next);
-                                  }}
-                                  rows={2}
-                                  className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
-                                />
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const next = [...qualificationSteps];
-                                      next[i] = { ...next[i], text: `{{primeiro_nome}}, ${next[i].text}` };
-                                      setQualificationSteps(next);
-                                    }}
-                                    className="text-[9px] font-bold text-primary hover:underline cursor-pointer"
-                                  >
-                                    + Inserir nome do lead no início
-                                  </button>
-                                  <p className="text-[9px] text-muted-foreground">
-                                    (<code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> funciona em qualquer parte do texto)
-                                  </p>
-                                </div>
-                              </div>
-
-                              {step.kind === 'question' && (
-                                <>
-                                  <div className="flex flex-col gap-1.5">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-xs font-bold text-muted-foreground">Botões (até 3, opcional)</span>
-                                      {step.buttons.length === 0 && (
-                                        <span className="text-[9px] text-muted-foreground italic">Sem botões = o lead responde em texto livre</span>
-                                      )}
-                                    </div>
-                                    {step.buttons.map((btn, bi) => (
-                                      <div key={bi} className="flex flex-col gap-1">
-                                        <div className="flex gap-2">
-                                        <input
-                                          className={`flex-1 bg-card border rounded-xl px-3 py-2 text-sm focus:outline-none text-foreground placeholder-muted-foreground ${
-                                            btn.length > 20 ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
-                                          }`}
-                                          value={btn}
-                                          onChange={e => {
-                                            const next = [...qualificationSteps];
-                                            const s = next[i] as typeof step;
-                                            s.buttons = s.buttons.map((b, x) => (x === bi ? e.target.value : b));
-                                            setQualificationSteps(next);
-                                          }}
-                                          placeholder={`ex: ${bi === 0 ? 'Sim' : bi === 1 ? 'Às vezes' : 'Não'}`}
-                                        />
-                                        {step.buttons.length > 1 && (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const next = [...qualificationSteps];
-                                              const s = next[i] as typeof step;
-                                              s.buttons = s.buttons.filter((_, x) => x !== bi);
-                                              setQualificationSteps(next);
-                                            }}
-                                            className="text-muted-foreground hover:text-destructive cursor-pointer"
-                                          >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                          </button>
-                                        )}
-                                        </div>
-                                        <span className={`text-[9px] font-bold ${btn.length > 20 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                                          {btn.length}/20 caracteres (limite do Instagram){btn.length > 20 ? ', vai ser cortado!' : ''}
-                                        </span>
-                                      </div>
-                                    ))}
-                                    {step.buttons.length < 3 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const next = [...qualificationSteps];
-                                          const s = next[i] as typeof step;
-                                          s.buttons = [...s.buttons, ''];
-                                          setQualificationSteps(next);
-                                        }}
-                                        className="self-start text-[10px] font-bold text-primary cursor-pointer"
-                                      >
-                                        + Adicionar botão
-                                      </button>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col gap-1.5">
-                                    <label className="text-xs font-bold text-muted-foreground">Salvar resposta como tag no lead (opcional)</label>
-                                    <input
-                                      type="text"
-                                      value={step.saveReplyAsTagPrefix || ''}
-                                      onChange={e => {
-                                        const next = [...qualificationSteps];
-                                        (next[i] as typeof step).saveReplyAsTagPrefix = e.target.value;
-                                        setQualificationSteps(next);
-                                      }}
-                                      placeholder='ex: "area_" grava a resposta como tag area_marketing_digital'
-                                      className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
-                                    />
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div className="flex flex-col gap-1.5">
-                                      <label className="text-xs font-bold text-muted-foreground">Minutos até o lembrete</label>
-                                      <input
-                                        type="number"
-                                        min={1}
-                                        value={step.timeoutMinutes}
-                                        onChange={e => {
-                                          const next = [...qualificationSteps];
-                                          (next[i] as typeof step).timeoutMinutes = parseInt(e.target.value) || 1;
-                                          setQualificationSteps(next);
-                                        }}
-                                        className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
-                                      />
-                                    </div>
-                                    <div className="flex flex-col gap-1.5">
-                                      <label className="text-xs font-bold text-muted-foreground">Texto do lembrete (opcional)</label>
-                                      <input
-                                        type="text"
-                                        value={step.reminderText}
-                                        onChange={e => {
-                                          const next = [...qualificationSteps];
-                                          (next[i] as typeof step).reminderText = e.target.value;
-                                          setQualificationSteps(next);
-                                        }}
-                                        placeholder="Padrão automático se vazio"
-                                        className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
-                                      />
-                                    </div>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          ))}
-
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setQualificationSteps(prev => [...prev, { kind: 'message', text: '' }])}
-                              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-muted-foreground text-muted-foreground bg-transparent hover:bg-accent hover:text-foreground hover:border-primary px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+                      {/* Steps 4-6: Perguntas + Link + Follow-ups — sem condição é uma única
+                          cauda (TailEditor); com condição, as perguntas antes do split ficam
+                          aqui e o resto vira dois ramos independentes logo abaixo. */}
+                      {!wizardCondition ? (
+                        <>
+                          <div className="bg-card border border-dashed border-primary/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                            <span className="text-xs font-bold text-foreground flex-1">
+                              Quer ramificar o fluxo aqui (se/senão)? Escolha depois de qual pergunta a condição entra.
+                            </span>
+                            <select
+                              value={Math.min(pendingConditionSplitIndex, qualificationSteps.length)}
+                              onChange={e => setPendingConditionSplitIndex(parseInt(e.target.value))}
+                              className="bg-accent border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground"
                             >
-                              <Plus className="w-4 h-4" />
-                              Mensagem Simples
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setQualificationSteps(prev => [
-                                  ...prev,
-                                  { kind: 'question', text: '', buttons: [''], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '' },
-                                ])
-                              }
-                              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Pergunta com Botões
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setQualificationSteps(prev => [
-                                  ...prev,
-                                  { kind: 'question', text: '', buttons: [], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '' },
-                                ])
-                              }
-                              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Pergunta Aberta
-                            </button>
+                              <option value={0}>Logo no início (antes de qualquer pergunta)</option>
+                              {qualificationSteps.map((_, i) => (
+                                <option key={i} value={i + 1}>Depois da pergunta {i + 1}</option>
+                              ))}
+                            </select>
+                            <Button type="button" variant="secondary" onClick={() => addCondition(Math.min(pendingConditionSplitIndex, qualificationSteps.length))}>
+                              Adicionar condição
+                            </Button>
                           </div>
-                        </div>
-                      </div>
+                          <TailEditor
+                            tail={legacyTail}
+                            onChange={handleLegacyTailChange}
+                            showToast={showToast}
+                            utmLinkPicker={{
+                              utmLinks,
+                              selectedUtmLinkId,
+                              onSelectUtmLink: handleSelectUtmLink,
+                              onGenerateTrackedLink: handleGenerateTrackedLink,
+                              generatingTrackedLink,
+                              automationId: form.id,
+                            }}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          {qualificationSteps.length > 0 && (
+                            <TailEditor
+                              tail={{ questions: qualificationSteps, link_text: '', link_url: null, link_button_label: null, followups: [] }}
+                              onChange={updater => setQualificationSteps(updater({ questions: qualificationSteps, link_text: '', link_url: null, link_button_label: null, followups: [] }).questions)}
+                              showToast={showToast}
+                              sections={['questions']}
+                              title="Antes da condição"
+                            />
+                          )}
 
-                      {/* Step 5: Card de Link DM */}
-                      <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
-                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
-                          5
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-foreground text-sm">Envio do Link (Mensagem de Texto)</h4>
-                        </div>
-
-                        <div className="flex flex-col gap-4">
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-muted-foreground">Texto de Apoio (Mensagem com o Link)</label>
-                            <textarea
-                              placeholder="Perfeito! Aqui está o seu link exclusivo para acessar o conteúdo completo:"
-                              value={form.link_text || ''}
-                              onChange={e => setForm(prev => ({ ...prev, link_text: e.target.value || null }))}
-                              rows={2}
-                              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none font-medium"
+                          <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 text-foreground">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-bold text-foreground text-sm">Condição (Se / Senão)</h4>
+                              <button type="button" onClick={removeCondition} className="text-xs font-bold text-destructive hover:underline cursor-pointer">
+                                Remover condição
+                              </button>
+                            </div>
+                            <ConditionPanel
+                              data={wizardCondition.condition}
+                              onChange={(d: ConditionNodeConfig) => setWizardCondition(prev => prev && { ...prev, condition: d })}
                             />
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-bold text-muted-foreground">URL do Link</label>
-                              <input
-                                type="url"
-                                placeholder="https://sualandingpage.com"
-                                value={form.link_url || ''}
-                                onChange={e => setForm(prev => ({ ...prev, link_url: e.target.value || null }))}
-                                className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground font-mono font-bold"
-                              />
-                              <button
-                                type="button"
-                                onClick={handleGenerateTrackedLink}
-                                disabled={generatingTrackedLink}
-                                className="self-start text-[9px] font-bold text-primary hover:underline cursor-pointer disabled:opacity-50"
-                              >
-                                {generatingTrackedLink ? 'Gerando...' : '+ Gerar link com rastreamento de clique'}
-                              </button>
-                              {utmLinks.length > 0 && (
-                                <div className="flex flex-col gap-1 mt-1">
-                                  <label className="text-[9px] font-bold text-muted-foreground">Ou use um link UTM já criado</label>
-                                  <select
-                                    value={selectedUtmLinkId || utmLinks.find(l => l.short_url === form.link_url || l.generated_url === form.link_url)?.id || ''}
-                                    onChange={e => handleSelectUtmLink(e.target.value)}
-                                    className="bg-accent border border-border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-primary text-foreground"
-                                  >
-                                    <option value="">Selecionar...</option>
-                                    {utmLinks.map(l => (
-                                      <option key={l.id} value={l.id}>
-                                        {l.name || l.base_url}{l.automation_id && l.automation_id !== form.id ? ' (já vinculado a outra automação)' : ''}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <p className="text-[9px] text-muted-foreground">
-                                    Editar esse link depois na tela de Links UTM atualiza o destino aqui automaticamente.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-bold text-muted-foreground">Texto do Botão</label>
-                              <input
-                                type="text"
-                                placeholder="Acessar Link"
-                                maxLength={20}
-                                value={form.link_button_label || ''}
-                                onChange={e => setForm(prev => ({ ...prev, link_button_label: e.target.value || null }))}
-                                className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground font-bold"
-                              />
-                            </div>
+                          <div className="flex gap-2">
+                            <Button type="button" variant={activeBranchTab === 'true' ? 'primary' : 'secondary'} onClick={() => setActiveBranchTab('true')}>
+                              Se verdadeiro
+                            </Button>
+                            <Button type="button" variant={activeBranchTab === 'false' ? 'primary' : 'secondary'} onClick={() => setActiveBranchTab('false')}>
+                              Se falso
+                            </Button>
                           </div>
 
-                          {/* Preview Card */}
-                          <div className="border border-border rounded-xl p-4 bg-accent/50 flex flex-col gap-2.5 max-w-sm">
-                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Visualização do Envio</span>
-                            <div className="bg-card border border-accent rounded-2xl p-3.5 text-xs text-foreground max-w-xs break-words leading-relaxed font-medium flex flex-col gap-3">
-                              <p>{form.link_text || 'Aqui está o seu link:'}</p>
-                              {form.link_url && (
-                                <div className="mt-1 w-full flex justify-center border-t border-border pt-3">
-                                  <span className="text-primary font-bold text-center block w-full">{form.link_button_label || 'Acessar Link'}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Optional Connector */}
-                      <div className="relative my-1.5 z-10 pointer-events-none select-none">
-                        <span className="text-[9px] font-extrabold text-muted-foreground bg-accent border border-border px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap">
-                          Aguardar
-                        </span>
-                      </div>
-
-                      {/* Sequence Builder Step */}
-                      <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground mt-1.5">
-                        <div className="w-7 h-7 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
-                          6
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-foreground text-sm">Sequência de Follow-ups (Opcional)</h4>
-                        </div>
-                        <p className="text-muted-foreground text-xs font-semibold mb-2">
-                          Crie uma sequência de mensagens para serem enviadas automaticamente. O tempo total acumulado não pode ultrapassar 24 horas.
-                        </p>
-
-                        <div className="flex flex-col gap-4">
-                          {form.followups && form.followups.map((followup, index) => (
-                            <div key={followup.id} className="border border-border bg-accent p-4 rounded-xl flex flex-col gap-3 relative animate-fade-in">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newFollowups = form.followups?.filter((_, i) => i !== index);
-                                  setForm(prev => ({ ...prev, followups: newFollowups }));
-                                }}
-                                className="absolute top-3 right-3 text-muted-foreground hover:text-destructive cursor-pointer p-1"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                              
-                              <div className="flex flex-col gap-1.5 pr-8">
-                                <label className="text-xs font-bold text-muted-foreground">Mensagem {index + 1}</label>
-                                <textarea
-                                  placeholder="Digite a mensagem..."
-                                  value={followup.text}
-                                  onChange={e => {
-                                    const newFollowups = [...(form.followups || [])];
-                                    newFollowups[index].text = e.target.value;
-                                    setForm(prev => ({ ...prev, followups: newFollowups }));
-                                  }}
-                                  rows={2}
-                                  className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
-                                />
-                                <p className="text-[9px] text-muted-foreground">
-                                  Use <code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> pra personalizar com o nome do lead
-                                </p>
-                              </div>
-                              
-                              <div className="grid grid-cols-3 gap-3">
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-xs font-bold text-muted-foreground">Aguardar (Minutos)</label>
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    value={followup.delay_minutes}
-                                    onChange={e => {
-                                      const newFollowups = [...(form.followups || [])];
-                                      newFollowups[index].delay_minutes = parseInt(e.target.value) || 1;
-                                      setForm(prev => ({ ...prev, followups: newFollowups }));
-                                    }}
-                                    className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-xs font-bold text-muted-foreground">URL (Opcional)</label>
-                                  <input
-                                    type="url"
-                                    placeholder="https://..."
-                                    value={followup.link_url || ''}
-                                    onChange={e => {
-                                      const newFollowups = [...(form.followups || [])];
-                                      newFollowups[index].link_url = e.target.value;
-                                      setForm(prev => ({ ...prev, followups: newFollowups }));
-                                    }}
-                                    className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground font-mono"
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                  <label className="text-xs font-bold text-muted-foreground">Texto do Botão</label>
-                                  <input
-                                    type="text"
-                                    placeholder="Acessar"
-                                    maxLength={20}
-                                    value={followup.link_button_label || ''}
-                                    onChange={e => {
-                                      const newFollowups = [...(form.followups || [])];
-                                      newFollowups[index].link_button_label = e.target.value;
-                                      setForm(prev => ({ ...prev, followups: newFollowups }));
-                                    }}
-                                    className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const totalMinutes = form.followups?.reduce((acc, f) => acc + f.delay_minutes, 0) || 0;
-                              if (totalMinutes >= 1440) {
-                                showToast('A sequência não pode ultrapassar 24h (1440 min).', 'error');
-                                return;
-                              }
-                              setForm(prev => ({
-                                ...prev,
-                                followups: [
-                                  ...(prev.followups || []),
-                                  { id: Math.random().toString(36).substr(2, 9), delay_minutes: 15, text: '', link_url: '' }
-                                ]
-                              }));
-                            }}
-                            className="flex items-center justify-center gap-2 border border-dashed border-muted-foreground text-muted-foreground bg-transparent hover:bg-accent hover:text-foreground hover:border-primary px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
-                          >
-                            <Plus className="w-4 h-4" />
-                            Adicionar Mensagem à Sequência
-                          </button>
-                        </div>
-                      </div>
+                          {activeBranchTab === 'true' ? (
+                            <TailEditor
+                              tail={wizardCondition.trueBranch}
+                              onChange={updater => setWizardCondition(prev => prev && { ...prev, trueBranch: updater(prev.trueBranch) })}
+                              showToast={showToast}
+                              title="Ramo Verdadeiro"
+                            />
+                          ) : (
+                            <TailEditor
+                              tail={wizardCondition.falseBranch}
+                              onChange={updater => setWizardCondition(prev => prev && { ...prev, falseBranch: updater(prev.falseBranch) })}
+                              showToast={showToast}
+                              title="Ramo Falso"
+                            />
+                          )}
+                        </>
+                      )}
                     </div>
                     </form>
                   </div>
