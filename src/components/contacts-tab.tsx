@@ -4,6 +4,9 @@ import { useEffect, useState, type KeyboardEvent } from 'react';
 import { FileText, Trash2, ExternalLink, Plus, X, Pencil, StickyNote } from 'lucide-react';
 import { tagColorClasses } from '@/lib/tag-colors';
 import { Sheet } from '@/components/ui/sheet';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 const PAGE_SIZE = 50;
 
@@ -262,7 +265,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
   };
 
   return (
-    <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
+    <Card padding="lg" className="rounded-2xl shadow-sm flex flex-col gap-4 text-foreground">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-bold text-foreground text-base">Audiência Cadastrada</h3>
@@ -281,33 +284,39 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
           )}
           {selectedContacts.length > 0 && (
             <>
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => exportToCsv('contatos_selecionados.csv', selectedContacts.map(contactCsvRow), showToast)}
-                className="flex items-center gap-1.5 bg-accent hover:bg-muted border border-border rounded-xl px-3 py-1.5 text-xs font-bold text-foreground cursor-pointer transition-colors"
+                className="rounded-xl"
               >
                 <FileText className="w-3.5 h-3.5" />
                 Exportar {selectedContacts.length} selecionado{selectedContacts.length > 1 ? 's' : ''}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={handleDeleteSelected}
-                className="flex items-center gap-1.5 bg-accent hover:bg-destructive/10 border border-border hover:border-destructive/40 rounded-xl px-3 py-1.5 text-xs font-bold text-destructive cursor-pointer transition-colors"
+                className="rounded-xl text-destructive hover:bg-destructive/10 hover:border-destructive/40"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Excluir {selectedContacts.length} selecionado{selectedContacts.length > 1 ? 's' : ''}
-              </button>
+              </Button>
             </>
           )}
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => exportToCsv('contatos_pagina_atual.csv', contacts.map(contactCsvRow), showToast)}
             title="Exporta só os contatos carregados nesta página"
-            className="flex items-center gap-1.5 bg-accent hover:bg-muted border border-border rounded-xl px-3 py-1.5 text-xs font-bold text-foreground cursor-pointer transition-colors"
+            className="rounded-xl"
           >
             <FileText className="w-3.5 h-3.5" />
             Exportar página
-          </button>
-          <span className="bg-accent border border-primary/25 text-primary font-bold text-xs px-3 py-1.5 rounded-xl">
+          </Button>
+          <Badge variant="info" className="text-xs px-3 py-1.5 rounded-xl">
             {total} Contato{total !== 1 ? 's' : ''}
-          </span>
+          </Badge>
         </div>
       </div>
 
@@ -468,20 +477,24 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
         <div className="flex items-center justify-between pt-2">
           <span className="text-xs text-muted-foreground">Página {page} de {totalPages}</span>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="px-3 py-1.5 rounded-xl bg-accent hover:bg-muted border border-border text-xs font-bold text-foreground disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              className="rounded-xl"
             >
               Anterior
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="px-3 py-1.5 rounded-xl bg-accent hover:bg-muted border border-border text-xs font-bold text-foreground disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              className="rounded-xl"
             >
               Próxima
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -576,24 +589,16 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                onClick={closeEdit}
-                disabled={savingEdit}
-                className="px-4 py-2 rounded-xl bg-accent hover:bg-muted border border-border text-xs font-bold text-foreground cursor-pointer transition-colors disabled:opacity-50"
-              >
+              <Button variant="secondary" size="sm" onClick={closeEdit} disabled={savingEdit} className="rounded-xl">
                 Cancelar
-              </button>
-              <button
-                onClick={saveEdit}
-                disabled={savingEdit}
-                className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold cursor-pointer transition-colors disabled:opacity-50"
-              >
+              </Button>
+              <Button size="sm" onClick={saveEdit} loading={savingEdit} className="rounded-xl">
                 {savingEdit ? 'Salvando...' : 'Salvar'}
-              </button>
+              </Button>
             </div>
           </>
         )}
       </Sheet>
-    </div>
+    </Card>
   );
 }

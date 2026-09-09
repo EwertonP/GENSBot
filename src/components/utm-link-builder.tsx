@@ -5,6 +5,10 @@ import { Copy, Trash2, Link2, Check, ChevronDown, ChevronUp, Pencil } from 'luci
 import type { UtmLink } from '@/types/utm-link';
 import { buildUtmUrl } from '@/lib/utm';
 import { fieldInputClass as inputCls, fieldLabelClass as labelCls } from '@/lib/form-styles';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const SOURCE_SUGGESTIONS = ['instagram', 'whatsapp', 'email', 'facebook'];
 const MEDIUM_SUGGESTIONS = ['bio', 'dm_automation', 'story', 'post', 'anuncio'];
@@ -181,17 +185,13 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-4">
+      <Card className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-foreground">{editingId ? 'Editar link' : 'Novo link'}</h3>
           {editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
-            >
+            <Button variant="ghost" size="sm" onClick={resetForm} className="px-0 hover:bg-transparent">
               Cancelar edição
-            </button>
+            </Button>
           )}
         </div>
 
@@ -279,26 +279,19 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
           </div>
         )}
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="self-start flex items-center gap-2 bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
-        >
+        <Button onClick={handleSave} loading={saving} size="sm" className="self-start">
           {saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Salvar link'}
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       <div>
         <h3 className="text-sm font-bold text-foreground mb-3">Histórico</h3>
         {loading ? (
           <p className="text-xs text-muted-foreground">Carregando...</p>
         ) : links.length === 0 ? (
-          <div className="bg-card border border-border rounded-lg p-10 text-center flex flex-col items-center gap-3">
-            <Link2 className="w-6 h-6 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">Nenhum link gerado ainda.</p>
-          </div>
+          <EmptyState icon={Link2} title="Nenhum link gerado ainda." />
         ) : (
-          <div className="bg-card border border-border rounded-lg overflow-hidden divide-y divide-border">
+          <Card padding="sm" className="p-0 overflow-hidden divide-y divide-border">
             {links.map((link) => {
               const linkedAutomation = automations.find(a => a.id === link.automation_id);
               return (
@@ -307,13 +300,11 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                   <div className="flex items-center gap-2 flex-wrap">
                     {link.name && <p className="text-xs font-bold text-foreground truncate">{link.name}</p>}
                     {linkedAutomation && (
-                      <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full">
-                        {linkedAutomation.name}
-                      </span>
+                      <Badge variant="info">{linkedAutomation.name}</Badge>
                     )}
-                    <span className="text-[9px] font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded-full">
+                    <Badge>
                       {link.click_count || 0} clique{(link.click_count || 0) !== 1 ? 's' : ''}
-                    </span>
+                    </Badge>
                   </div>
                   <p className="text-[10px] font-mono text-primary truncate">{link.short_url || link.generated_url}</p>
                   <p className="text-[9px] font-mono text-muted-foreground truncate">{link.generated_url}</p>
@@ -338,7 +329,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
               </div>
               );
             })}
-          </div>
+          </Card>
         )}
       </div>
     </div>

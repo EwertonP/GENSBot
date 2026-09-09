@@ -17,6 +17,9 @@ import UtmLinkBuilder from '@/components/utm-link-builder';
 import MetricsPanel from '@/components/metrics-panel';
 import PublishPanel from '@/components/publish-panel';
 import { Sheet } from '@/components/ui/sheet';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
 import ContactsTab from '@/components/contacts-tab';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
@@ -1122,7 +1125,7 @@ export default function Dashboard() {
                   { label: 'Fila de Disparos', value: stats.queue, change: trends.queue, dot: 'bg-warning' },
                   { label: 'Eventos Captados', value: stats.events, change: trends.events, dot: 'bg-muted-foreground' },
                 ] as const).map(card => (
-                  <div key={card.label} className="bg-card border border-border rounded-2xl p-5 flex flex-col justify-between shadow-sm transition-all h-40">
+                  <Card key={card.label} className="rounded-2xl flex flex-col justify-between shadow-sm h-40">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{card.label}</span>
                       <span className={`w-1.75 h-1.75 rounded-full flex-shrink-0 ${card.dot}`} />
@@ -1141,7 +1144,7 @@ export default function Dashboard() {
                         <span className="text-[11px] text-muted-foreground font-medium">vs 30 dias anteriores</span>
                       </div>
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </section>
 
@@ -1149,7 +1152,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
                 {/* 2A: Interactive 7-Day Bar Chart (lg:col-span-8) */}
-                <div className="lg:col-span-8 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-6">
+                <Card padding="lg" className="lg:col-span-8 rounded-2xl shadow-sm flex flex-col justify-between gap-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <h4 className="font-bold text-foreground text-base">Desempenho de Disparos & Interações</h4>
@@ -1233,10 +1236,10 @@ export default function Dashboard() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </Card>
 
                 {/* 2B: Semi-Donut Gauge Chart - Saúde do Bot (lg:col-span-4) */}
-                <div className="lg:col-span-4 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-4">
+                <Card padding="lg" className="lg:col-span-4 rounded-2xl shadow-sm flex flex-col justify-between gap-4">
                   <div>
                     <h4 className="font-bold text-foreground text-base">Saúde das Entregas</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">Conformidade e taxa de sucesso da Meta API</p>
@@ -1298,15 +1301,15 @@ export default function Dashboard() {
                       </>
                     )}
                   </div>
-                </div>
+                </Card>
 
               </div>
 
               {/* 3. Bottom Row (Funil + Activity Table) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
+
                 {/* 3A: Funil Reativo de Conversão (lg:col-span-4) */}
-                <div className="lg:col-span-4 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-5 justify-between">
+                <Card padding="lg" className="lg:col-span-4 rounded-2xl shadow-sm flex flex-col gap-5 justify-between">
                   <div>
                     <h4 className="font-bold text-foreground text-base">Funil de Conversão</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">Retenção e conversão por etapa do fluxo</p>
@@ -1340,18 +1343,18 @@ export default function Dashboard() {
                       })}
                     </div>
                   )}
-                </div>
+                </Card>
 
                 {/* 3B: Histórico de Envios Recentes na Fila (lg:col-span-8) */}
-                <div className="lg:col-span-8 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+                <Card padding="lg" className="lg:col-span-8 rounded-2xl shadow-sm flex flex-col gap-4">
                   <div className="flex items-center justify-between border-b border-accent pb-3">
                     <div>
                       <h4 className="font-bold text-foreground text-base">Envios Pendentes & Recentes na Fila</h4>
                       <p className="text-xs text-muted-foreground mt-0.5">Histórico do pipeline de entregas em tempo real</p>
                     </div>
-                    <button onClick={() => setActiveTab('logs')} className="text-xs font-bold text-primary hover:text-primary/90 transition-colors cursor-pointer">
+                    <Button variant="ghost" size="sm" onClick={() => setActiveTab('logs')} className="text-primary hover:text-primary/90 hover:bg-transparent px-0">
                       Ver todos os logs →
-                    </button>
+                    </Button>
                   </div>
                   
                   <div className="overflow-x-auto">
@@ -1397,17 +1400,14 @@ export default function Dashboard() {
                               </td>
                               <td className="py-3 px-3 text-xs text-muted-foreground">{new Date(item.created_at).toLocaleTimeString('pt-BR')}</td>
                               <td className="py-3 px-3">
-                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
-                                  item.status === 'sent' && 'bg-success/15 text-success'
-                                } ${
-                                  item.status === 'pending' && 'bg-warning/20 text-warning-foreground'
-                                } ${
-                                  item.status === 'failed' && 'bg-destructive/10 text-destructive'
-                                }`}>
+                                <Badge
+                                  variant={item.status === 'sent' ? 'success' : item.status === 'pending' ? 'warning' : 'destructive'}
+                                  className="text-[10px] font-extrabold"
+                                >
                                   {item.status === 'sent' && 'Enviado'}
                                   {item.status === 'pending' && 'Pendente'}
                                   {item.status === 'failed' && 'Falhou'}
-                                </span>
+                                </Badge>
                               </td>
                             </tr>
                           ))
@@ -1415,13 +1415,13 @@ export default function Dashboard() {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </Card>
 
               </div>
 
               {/* 4. Diagnóstico de Falhas + Ranking de Automações */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-6 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+                <Card padding="lg" className="lg:col-span-6 rounded-2xl shadow-sm flex flex-col gap-4">
                   <div>
                     <h4 className="font-bold text-foreground text-base">Diagnóstico de Falhas</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">Motivos mais comuns de falha nos últimos 90 dias</p>
@@ -1438,9 +1438,9 @@ export default function Dashboard() {
                       ))}
                     </div>
                   )}
-                </div>
+                </Card>
 
-                <div className="lg:col-span-6 bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+                <Card padding="lg" className="lg:col-span-6 rounded-2xl shadow-sm flex flex-col gap-4">
                   <div>
                     <h4 className="font-bold text-foreground text-base">Ranking de Automações</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">Quais automações mais convertem leads</p>
@@ -1459,18 +1459,18 @@ export default function Dashboard() {
                       ))}
                     </div>
                   )}
-                </div>
+                </Card>
               </div>
 
             </div>
           )}
           {/* TAB 2: AUTOMATIONS */}
           {activeTab === 'automations' && isAggregateView && (
-            <div className="bg-card border border-accent rounded-2xl p-10 text-center">
+            <Card padding="lg" className="rounded-2xl p-10 text-center">
               <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-bold text-foreground">Selecione uma conta específica</p>
               <p className="text-xs text-muted-foreground mt-1">Automações são criadas e editadas por conta. Escolha uma no seletor da sidebar pra gerenciar.</p>
-            </div>
+            </Card>
           )}
           {activeTab === 'automations' && !isAggregateView && (
             <div className="w-full">
@@ -1482,16 +1482,16 @@ export default function Dashboard() {
                       <h3 className="text-xl font-bold text-foreground">Minhas Automações</h3>
                       <p className="text-xs text-muted-foreground mt-1">Gerencie, crie e ative seus fluxos de resposta direta e reativa.</p>
                     </div>
-                    <button
+                    <Button
                       onClick={() => {
                         resetForm();
                         setIsEditing(true);
                       }}
-                      className="flex items-center gap-2 text-xs font-extrabold bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-full transition-all shadow-md cursor-pointer"
+                      className="rounded-full shadow-md"
                     >
                       <Plus className="w-4 h-4" />
                       Criar Novo Fluxo
-                    </button>
+                    </Button>
                   </div>
 
                   <AutomationTable
@@ -2594,7 +2594,7 @@ export default function Dashboard() {
           {activeTab === 'logs' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Eventos Recentes */}
-              <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
+              <Card padding="lg" className="rounded-2xl shadow-sm flex flex-col gap-4 text-foreground">
                 <div>
                   <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
                     <FileText className="w-4 h-4 text-primary" />
@@ -2624,10 +2624,10 @@ export default function Dashboard() {
                     ))
                   )}
                 </div>
-              </div>
+              </Card>
 
               {/* Fila de Disparos Completa */}
-              <div className="bg-card border border-accent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-foreground">
+              <Card padding="lg" className="rounded-2xl shadow-sm flex flex-col gap-4 text-foreground">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
@@ -2636,7 +2636,9 @@ export default function Dashboard() {
                     </h3>
                     <p className="text-xs text-muted-foreground mt-1">Histórico e status do pipeline de entrega de mensagens.</p>
                   </div>
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => exportToCsv('fila_de_disparos.csv', recentQueue.map(item => ({
                       contato: item.contact_id,
                       tipo: item.type,
@@ -2645,11 +2647,11 @@ export default function Dashboard() {
                       criado_em: item.created_at,
                       enviado_em: item.sent_at || '',
                     })))}
-                    className="flex items-center gap-1.5 bg-accent hover:bg-muted border border-border rounded-xl px-3 py-1.5 text-xs font-bold text-foreground cursor-pointer transition-colors flex-shrink-0"
+                    className="rounded-xl flex-shrink-0"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     CSV
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="flex flex-col gap-2.5 max-h-[500px] overflow-y-auto pr-1">
@@ -2672,17 +2674,14 @@ export default function Dashboard() {
                             {item.type === 'link_dm' && 'DM de Link'}
                             {item.type === 'reminder_dm' && 'DM de Lembrete'}
                           </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                            item.status === 'sent' && 'bg-card text-primary border border-primary/25'
-                          } ${
-                            item.status === 'pending' && 'bg-card text-muted-foreground border border-border'
-                          } ${
-                            item.status === 'failed' && 'bg-card text-destructive border border-destructive/25'
-                          }`}>
+                          <Badge
+                            variant={item.status === 'sent' ? 'success' : item.status === 'pending' ? 'muted' : 'destructive'}
+                            className="text-[9px]"
+                          >
                             {item.status === 'sent' && 'Enviado'}
                             {item.status === 'pending' && 'Pendente'}
                             {item.status === 'failed' && 'Falhou'}
-                          </span>
+                          </Badge>
                         </div>
                         {item.error_message && (
                           <div className="text-[10px] text-destructive bg-card p-2 rounded-lg border border-destructive/25 font-mono mt-1">
@@ -2693,7 +2692,7 @@ export default function Dashboard() {
                     ))
                   )}
                 </div>
-              </div>
+              </Card>
 
             </div>
           )}

@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Users, Image as ImageIcon, Eye, TrendingUp, AlertCircle } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface DailyPoint {
   date: string;
@@ -56,7 +58,7 @@ function WeekBars({ daily }: { daily: DailyPoint[] }) {
 
 function AccountCard({ metrics, detailed }: { metrics: AccountMetrics; detailed: boolean }) {
   return (
-    <div className="bg-card border border-border rounded-lg p-4 flex flex-col gap-4">
+    <Card padding="sm" className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         {metrics.profile_picture_url ? (
           // eslint-disable-next-line @next/next/no-img-element -- URL assinada/temporária da Meta
@@ -84,7 +86,7 @@ function AccountCard({ metrics, detailed }: { metrics: AccountMetrics; detailed:
       </div>
 
       {detailed && <WeekBars daily={metrics.daily} />}
-    </div>
+    </Card>
   );
 }
 
@@ -113,12 +115,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
   }
 
   if (metrics.length === 0) {
-    return (
-      <div className="bg-card border border-border rounded-lg p-10 text-center flex flex-col items-center gap-3">
-        <TrendingUp className="w-6 h-6 text-muted-foreground" />
-        <p className="text-xs text-muted-foreground">Nenhuma conta conectada com métricas disponíveis.</p>
-      </div>
-    );
+    return <EmptyState icon={TrendingUp} title="Nenhuma conta conectada com métricas disponíveis." />;
   }
 
   if (isSingleAccount) {

@@ -3,6 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { Image as ImageIcon, Video, Send, Clock, CheckCircle2, XCircle, Loader2, Trash2, BarChart3 } from 'lucide-react';
 import { fieldInputClass, fieldLabelClass } from '@/lib/form-styles';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { EmptyState } from '@/components/ui/empty-state';
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES';
 type PostKind = 'post' | 'reels' | 'story';
@@ -37,12 +43,12 @@ const KIND_TO_MEDIA_TYPE: Record<PostKind, (isVideo: boolean) => MediaType> = {
   story: (isVideo) => (isVideo ? 'STORIES' : 'STORIES'),
 };
 
-const STATUS_META: Record<ScheduledPost['status'], { label: string; icon: React.ElementType; className: string }> = {
-  scheduled: { label: 'Agendado', icon: Clock, className: 'bg-amber-500/10 text-amber-600' },
-  publishing: { label: 'Publicando...', icon: Loader2, className: 'bg-blue-500/10 text-blue-600' },
-  published: { label: 'Publicado', icon: CheckCircle2, className: 'bg-emerald-500/10 text-emerald-600' },
-  failed: { label: 'Falhou', icon: XCircle, className: 'bg-destructive/10 text-destructive' },
-  canceled: { label: 'Cancelado', icon: XCircle, className: 'bg-muted text-muted-foreground' },
+const STATUS_META: Record<ScheduledPost['status'], { label: string; icon: React.ElementType; variant: 'warning' | 'info' | 'success' | 'destructive' | 'muted' }> = {
+  scheduled: { label: 'Agendado', icon: Clock, variant: 'warning' },
+  publishing: { label: 'Publicando...', icon: Loader2, variant: 'info' },
+  published: { label: 'Publicado', icon: CheckCircle2, variant: 'success' },
+  failed: { label: 'Falhou', icon: XCircle, variant: 'destructive' },
+  canceled: { label: 'Cancelado', icon: XCircle, variant: 'muted' },
 };
 
 function MetricsInline({ mediaId, accountId, withAccount }: { mediaId: string; accountId: string; withAccount: (url: string) => string }) {
@@ -166,18 +172,15 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
   return (
     <div className="flex flex-col gap-6">
       {/* Composer */}
-      <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-4">
+      <Card className="flex flex-col gap-4">
         {accounts.length > 1 && (
-          <div className="flex flex-col gap-1.5">
-            <label className={fieldLabelClass}>Conta</label>
-            <select className={fieldInputClass} value={targetAccount} onChange={(e) => setTargetAccount(e.target.value)}>
-              {accounts.map((acc) => (
-                <option key={acc.instagram_user_id} value={acc.instagram_user_id}>
-                  @{acc.instagram_username || acc.instagram_user_id}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select label="Conta" value={targetAccount} onChange={(e) => setTargetAccount(e.target.value)}>
+            {accounts.map((acc) => (
+              <option key={acc.instagram_user_id} value={acc.instagram_user_id}>
+                @{acc.instagram_username || acc.instagram_user_id}
+              </option>
+            ))}
+          </Select>
         )}
 
         <div className="flex flex-col gap-1.5">
@@ -188,18 +191,15 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
               { id: 'reels', label: 'Reels' },
               { id: 'story', label: 'Story' },
             ] as { id: PostKind; label: string }[]).map((opt) => (
-              <button
+              <Button
                 key={opt.id}
                 type="button"
+                variant={kind === opt.id ? 'primary' : 'secondary'}
                 onClick={() => setKind(opt.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
-                  kind === opt.id
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-accent border-border text-muted-foreground hover:text-foreground'
-                }`}
+                className="rounded-xl"
               >
                 {opt.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -219,16 +219,13 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
           )}
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className={fieldLabelClass}>Legenda</label>
-          <textarea
-            className={fieldInputClass}
-            rows={3}
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Escreva a legenda da publicação..."
-          />
-        </div>
+        <Textarea
+          label="Legenda"
+          rows={3}
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          placeholder="Escreva a legenda da publicação..."
+        />
 
         <div className="flex flex-col gap-2">
           <label className="flex items-center gap-2 text-sm font-bold text-foreground cursor-pointer">
@@ -247,26 +244,18 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
 
         {error && <p className="text-xs text-destructive font-medium">{error}</p>}
 
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={submitting || !file}
-          className="self-start flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50 transition-all"
-        >
-          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+        <Button type="button" onClick={handleSubmit} loading={submitting} disabled={!file} className="self-start rounded-xl">
+          {!submitting && <Send className="w-4 h-4" />}
           {scheduleEnabled ? 'Agendar publicação' : 'Publicar agora'}
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       {/* Lista */}
       <div className="flex flex-col gap-3">
         {loadingPosts ? (
           <p className="text-xs text-muted-foreground">Carregando publicações...</p>
         ) : posts.length === 0 ? (
-          <div className="bg-card border border-border rounded-lg p-10 text-center flex flex-col items-center gap-3">
-            <ImageIcon className="w-6 h-6 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">Nenhuma publicação ainda.</p>
-          </div>
+          <EmptyState icon={ImageIcon} title="Nenhuma publicação ainda." />
         ) : (
           posts.map((post) => {
             const meta = STATUS_META[post.status];
@@ -274,7 +263,7 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
             const TypeIcon = post.media_type === 'IMAGE' ? ImageIcon : Video;
             const isExpanded = expandedId === post.id;
             return (
-              <div key={post.id} className="bg-card border border-border rounded-lg p-4">
+              <Card key={post.id} padding="sm">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg overflow-hidden border border-border bg-accent flex items-center justify-center shrink-0">
                     {post.media_type === 'IMAGE' ? (
@@ -293,10 +282,10 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
                       <p className="text-[11px] text-destructive mt-0.5">{post.error_message}</p>
                     )}
                   </div>
-                  <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${meta.className}`}>
+                  <Badge variant={meta.variant} className="shrink-0">
                     <StatusIcon className={`w-3 h-3 ${post.status === 'publishing' ? 'animate-spin' : ''}`} />
                     {meta.label}
-                  </span>
+                  </Badge>
                   {post.status === 'scheduled' && (
                     <button
                       type="button"
@@ -321,7 +310,7 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
                 {isExpanded && post.ig_media_id && (
                   <MetricsInline mediaId={post.ig_media_id} accountId={post.instagram_user_id} withAccount={withAccount} />
                 )}
-              </div>
+              </Card>
             );
           })
         )}

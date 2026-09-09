@@ -5,6 +5,11 @@ import { Plus, Trash2, Search, Settings, Workflow } from 'lucide-react';
 import type { Automation } from '@/types/automation';
 import { getEffectiveTrigger } from '@/lib/automation-display';
 import AutomationMediaThumb from '@/components/automation-media-thumb';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface AutomationTableProps {
   automations: Automation[];
@@ -50,24 +55,12 @@ export default function AutomationTable({
 
   if (automations.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-lg p-16 text-center flex flex-col items-center gap-6">
-        <div className="p-4 rounded-lg bg-accent text-muted-foreground border border-border">
-          <Settings className="w-8 h-8" />
-        </div>
-        <div>
-          <h4 className="font-bold text-foreground">Nenhuma automação cadastrada</h4>
-          <p className="text-xs text-muted-foreground mt-1.5 max-w-xs">
-            Crie seu primeiro fluxo para responder comentários e DMs automaticamente.
-          </p>
-        </div>
-        <button
-          onClick={onCreate}
-          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Criar Primeira Automação
-        </button>
-      </div>
+      <EmptyState
+        icon={Settings}
+        title="Nenhuma automação cadastrada"
+        description="Crie seu primeiro fluxo para responder comentários e DMs automaticamente."
+        action={{ label: 'Criar Primeira Automação', onClick: onCreate, icon: Plus }}
+      />
     );
   }
 
@@ -75,26 +68,23 @@ export default function AutomationTable({
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+          <Input
             type="search"
             placeholder="Buscar por nome ou palavra-chave..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             aria-label="Buscar automações"
-            className="w-full bg-card border border-border rounded-lg pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground transition-colors"
+            className="pl-9"
           />
         </div>
-        <button
-          onClick={onCreate}
-          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex-shrink-0"
-        >
+        <Button onClick={onCreate} size="sm" className="flex-shrink-0">
           <Plus className="w-3.5 h-3.5" />
           Nova Automação
-        </button>
+        </Button>
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <Card padding="sm" className="p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -132,12 +122,9 @@ export default function AutomationTable({
                   <td className="px-4 py-3">
                     <div className="flex gap-1 flex-wrap">
                       {effectiveTrigger.triggers.map(t => (
-                        <span
-                          key={t}
-                          className="text-[9px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded border border-primary/20 uppercase tracking-wider"
-                        >
+                        <Badge key={t} variant="info" className="rounded uppercase tracking-wider">
                           {TRIGGER_LABELS[t] || t}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   </td>
@@ -145,12 +132,9 @@ export default function AutomationTable({
                   <td className="px-4 py-3">
                     <div className="flex gap-1 flex-wrap items-center">
                       {auto.keywords.slice(0, 2).map(kw => (
-                        <span
-                          key={kw}
-                          className="text-[9px] bg-muted border border-border text-muted-foreground px-1.5 py-0.5 rounded font-mono"
-                        >
+                        <Badge key={kw} className="rounded font-mono">
                           {kw}
-                        </span>
+                        </Badge>
                       ))}
                       {auto.keywords.length > 2 && (
                         <span className="text-[9px] text-muted-foreground font-bold">
@@ -219,7 +203,7 @@ export default function AutomationTable({
             Nenhuma automação encontrada para “{search}”.
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
