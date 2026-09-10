@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { Video, Calendar, Trash2, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { CalendarPicker } from '@/components/ui/calendar-picker';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Board } from '@/components/ui/board';
 
 type ApprovalStatus = 'rascunho' | 'em_revisao' | 'aprovado' | 'agendado' | 'publicado' | 'rejeitado';
 
@@ -50,8 +50,6 @@ interface KanbanBoardProps {
 export default function KanbanBoard({ accounts, selectedAccountId, withAccount, showToast }: KanbanBoardProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<ApprovalStatus | null>(null);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [editCaption, setEditCaption] = useState('');
   const [editDate, setEditDate] = useState<Date | null>(null);
@@ -179,64 +177,39 @@ export default function KanbanBoard({ accounts, selectedAccountId, withAccount, 
 
   return (
     <>
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {COLUMNS.map((col) => {
-          const cardsInColumn = posts.filter((p) => p.approval_status === col.id);
-          return (
-            <div
-              key={col.id}
-              className={`flex-shrink-0 w-64 rounded-2xl transition-colors ${dragOverColumn === col.id ? 'bg-primary/5' : ''}`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOverColumn(col.id);
-              }}
-              onDragLeave={() => setDragOverColumn((c) => (c === col.id ? null : c))}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragOverColumn(null);
-                if (draggingId) moveCard(draggingId, col.id);
-              }}
-            >
-              <div className="flex items-center justify-between px-2 pb-2">
-                <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">{col.label}</h4>
-                <Badge variant="muted">{cardsInColumn.length}</Badge>
+      <Board<Post, ApprovalStatus>
+        columns={COLUMNS}
+        items={posts}
+        getItemId={(post) => post.id}
+        getItemStatus={(post) => post.approval_status}
+        onMove={moveCard}
+        renderCard={(post) => (
+          <Card
+            padding="sm"
+            onClick={() => openEditor(post)}
+            className="rounded-xl hover:shadow-md transition-shadow"
+          >
+            <div className="flex gap-2">
+              <div className="w-12 h-12 rounded-lg bg-accent shrink-0 overflow-hidden flex items-center justify-center">
+                {post.media_type === 'VIDEO' || post.media_type === 'REELS' ? (
+                  <Video className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element -- thumbnail de card, não precisa de otimização do Next
+                  <img src={post.media_url} alt="" className="w-full h-full object-cover" />
+                )}
               </div>
-              <div className="flex flex-col gap-2 min-h-[80px]">
-                {cardsInColumn.map((post) => (
-                  <Card
-                    key={post.id}
-                    padding="sm"
-                    draggable
-                    onDragStart={() => setDraggingId(post.id)}
-                    onDragEnd={() => setDraggingId(null)}
-                    onClick={() => openEditor(post)}
-                    className={`rounded-xl cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow ${draggingId === post.id ? 'opacity-40' : ''}`}
-                  >
-                    <div className="flex gap-2">
-                      <div className="w-12 h-12 rounded-lg bg-accent shrink-0 overflow-hidden flex items-center justify-center">
-                        {post.media_type === 'VIDEO' || post.media_type === 'REELS' ? (
-                          <Video className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          // eslint-disable-next-line @next/next/no-img-element -- thumbnail de card, não precisa de otimização do Next
-                          <img src={post.media_url} alt="" className="w-full h-full object-cover" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-semibold text-foreground truncate">@{usernameFor(post.instagram_user_id)}</p>
-                        <p className="text-[10px] text-muted-foreground line-clamp-2">{post.caption || 'Sem legenda'}</p>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {new Date(post.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </Card>
-                ))}
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-foreground truncate">@{usernameFor(post.instagram_user_id)}</p>
+                <p className="text-[10px] text-muted-foreground line-clamp-2">{post.caption || 'Sem legenda'}</p>
               </div>
             </div>
-          );
-        })}
-      </div>
+            <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {new Date(post.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </Card>
+        )}
+      />
 
       <Sheet open={!!editingPost} onClose={() => setEditingPost(null)} aria-label="Editar publicação" className="w-full max-w-md">
         {editingPost && (

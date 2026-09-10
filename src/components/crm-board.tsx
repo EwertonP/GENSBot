@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Board } from '@/components/ui/board';
 
 type LeadStatus = 'novo' | 'qualificado' | 'contatado' | 'promovido' | 'descartado';
 
@@ -49,8 +50,6 @@ export default function CrmBoard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [notConfigured, setNotConfigured] = useState(false);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
@@ -141,56 +140,27 @@ export default function CrmBoard() {
 
   return (
     <>
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {COLUMNS.map((col) => {
-          const cardsInColumn = leads.filter((l) => l.status === col.id);
-          return (
-            <div
-              key={col.id}
-              className={`flex-shrink-0 w-64 rounded-2xl transition-colors ${dragOverColumn === col.id ? 'bg-primary/5' : ''}`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOverColumn(col.id);
-              }}
-              onDragLeave={() => setDragOverColumn((c) => (c === col.id ? null : c))}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragOverColumn(null);
-                if (draggingId) moveLead(draggingId, col.id);
-              }}
-            >
-              <div className="flex items-center justify-between px-2 pb-2">
-                <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">{col.label}</h4>
-                <Badge variant="muted">{cardsInColumn.length}</Badge>
-              </div>
-              <div className="flex flex-col gap-2 min-h-[80px]">
-                {cardsInColumn.map((lead) => (
-                  <Card
-                    key={lead.id}
-                    padding="sm"
-                    draggable
-                    onDragStart={() => setDraggingId(lead.id)}
-                    onDragEnd={() => setDraggingId(null)}
-                    onClick={() => openLead(lead)}
-                    className={`rounded-xl cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow ${draggingId === lead.id ? 'opacity-40' : ''}`}
-                  >
-                    <p className="text-xs font-bold text-foreground truncate">{lead.name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{lead.category || 'Sem categoria'} {lead.city ? `· ${lead.city}` : ''}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      {lead.google_rating && (
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                          <Star className="w-3 h-3 text-warning" /> {lead.google_rating}
-                        </span>
-                      )}
-                      {lead.score !== null && <Badge variant={lead.score >= 70 ? 'success' : 'muted'}>{lead.score} pts</Badge>}
-                    </div>
-                  </Card>
-                ))}
-              </div>
+      <Board<Lead, LeadStatus>
+        columns={COLUMNS}
+        items={leads}
+        getItemId={(lead) => lead.id}
+        getItemStatus={(lead) => lead.status}
+        onMove={moveLead}
+        renderCard={(lead) => (
+          <Card padding="sm" onClick={() => openLead(lead)} className="rounded-xl hover:shadow-md transition-shadow">
+            <p className="text-xs font-bold text-foreground truncate">{lead.name}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{lead.category || 'Sem categoria'} {lead.city ? `· ${lead.city}` : ''}</p>
+            <div className="flex items-center gap-2 mt-2">
+              {lead.google_rating && (
+                <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                  <Star className="w-3 h-3 text-warning" /> {lead.google_rating}
+                </span>
+              )}
+              {lead.score !== null && <Badge variant={lead.score >= 70 ? 'success' : 'muted'}>{lead.score} pts</Badge>}
             </div>
-          );
-        })}
-      </div>
+          </Card>
+        )}
+      />
 
       <Sheet open={!!selectedLead} onClose={() => setSelectedLead(null)} aria-label="Detalhe do lead" className="w-full max-w-md max-h-[85vh] overflow-y-auto">
         {selectedLead && (
