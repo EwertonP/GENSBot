@@ -19,6 +19,8 @@ import nextDynamicImport from 'next/dynamic';
 import UtmLinkBuilder from '@/components/utm-link-builder';
 import MetricsPanel from '@/components/metrics-panel';
 import PublishPanel from '@/components/publish-panel';
+import KanbanBoard from '@/components/kanban-board';
+import CalendarView from '@/components/calendar-view';
 import DashboardContentPanel from '@/components/dashboard-content-panel';
 import { Sheet } from '@/components/ui/sheet';
 import { Card } from '@/components/ui/card';
@@ -166,6 +168,9 @@ export default function Dashboard() {
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'logs'>('dashboard');
+  // Sub-abas de "Agendamentos" (Onda 1) — Publicações é a lista/composer que já existia,
+  // Calendário e Kanban são novos, mesma fonte de dado (scheduled_posts).
+  const [publishSubTab, setPublishSubTab] = useState<'publicacoes' | 'calendario' | 'kanban'>('publicacoes');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -1016,7 +1021,7 @@ export default function Dashboard() {
               { id: 'automations', label: 'Automações', icon: Settings },
               { id: 'utm', label: 'Links UTM', icon: Link2 },
               { id: 'metrics', label: 'Métricas', icon: TrendingUp },
-              { id: 'publish', label: 'Publicações', icon: Send },
+              { id: 'publish', label: 'Agendamentos', icon: Send },
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
               { id: 'sequences', label: 'Sequências', icon: Layers },
             ].map(item => {
@@ -1140,7 +1145,7 @@ export default function Dashboard() {
               {activeTab === 'automations' && 'Automações'}
               {activeTab === 'utm' && 'Links UTM'}
               {activeTab === 'metrics' && 'Métricas'}
-              {activeTab === 'publish' && 'Publicações'}
+              {activeTab === 'publish' && 'Agendamentos'}
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'sequences' && 'Sequências'}
               {activeTab === 'logs' && 'Logs de Eventos'}
@@ -1150,7 +1155,7 @@ export default function Dashboard() {
               {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
               {activeTab === 'utm' && 'Gere links rastreáveis pra saber de onde vêm seus leads.'}
               {activeTab === 'metrics' && 'Acompanhe o desempenho de cada perfil conectado.'}
-              {activeTab === 'publish' && 'Publique posts, reels e stories direto para as contas conectadas.'}
+              {activeTab === 'publish' && 'Publique, agende e aprove posts, reels e stories das contas conectadas.'}
               {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
               {activeTab === 'sequences' && 'Séries de mensagens reutilizáveis entre automações.'}
               {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
@@ -2326,14 +2331,50 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* TAB: PUBLISH */}
+          {/* TAB: PUBLISH (Agendamentos — Onda 1: Publicações / Calendário / Kanban) */}
           {activeTab === 'publish' && (
-            <div className="animate-fade-in max-w-4xl mx-auto">
-              <PublishPanel
-                accounts={accounts.map((acc) => ({ instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
-                selectedAccountId={selectedAccountId}
-                withAccount={withAccount}
-              />
+            <div className="animate-fade-in max-w-5xl mx-auto">
+              <div className="flex gap-1.5 mb-5 bg-muted p-1 rounded-xl w-fit">
+                {[
+                  { id: 'publicacoes' as const, label: 'Publicações' },
+                  { id: 'calendario' as const, label: 'Calendário' },
+                  { id: 'kanban' as const, label: 'Kanban' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setPublishSubTab(tab.id)}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                      publishSubTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {publishSubTab === 'publicacoes' && (
+                <PublishPanel
+                  accounts={accounts.map((acc) => ({ instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
+                  selectedAccountId={selectedAccountId}
+                  withAccount={withAccount}
+                />
+              )}
+              {publishSubTab === 'calendario' && (
+                <CalendarView
+                  accounts={accounts.map((acc) => ({ instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
+                  selectedAccountId={selectedAccountId}
+                  withAccount={withAccount}
+                  showToast={showToast}
+                />
+              )}
+              {publishSubTab === 'kanban' && (
+                <KanbanBoard
+                  accounts={accounts.map((acc) => ({ instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
+                  selectedAccountId={selectedAccountId}
+                  withAccount={withAccount}
+                  showToast={showToast}
+                />
+              )}
             </div>
           )}
 
