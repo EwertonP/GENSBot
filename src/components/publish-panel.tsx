@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CalendarPicker } from '@/components/ui/calendar-picker';
 import type { PostingTimeSuggestion } from '@/lib/best-posting-time';
+import { upload } from '@vercel/blob/client';
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
 type PostKind = 'post' | 'reels' | 'story';
@@ -268,14 +269,21 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
     setError(null);
     setSubmitting(true);
     try {
+      // Upload direto pro Vercel Blob (multipart) — o corpo da requisição pra
+      // função serverless da Vercel tem limite de ~4.5MB, então mandar o arquivo
+      // (principalmente vídeo de Reels, até 1GB) via FormData pra nossa própria
+      // API route batia nesse limite e voltava "Request Entity Too Large" (texto
+      // puro, não JSON: daí o erro "Unexpected token 'R'..." ao dar JSON.parse).
+      // `upload()` só usa a API route pra pegar um client token (payload
+      // pequeno) e manda os bytes do arquivo direto pro Blob em partes.
       const uploadedUrls: string[] = [];
       for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        const uploadRes = await fetch('/api/instagram/upload-media', { method: 'POST', body: formData });
-        const uploadData = await uploadRes.json();
-        if (!uploadRes.ok) throw new Error(uploadData.error || 'Falha no upload da mídia.');
-        uploadedUrls.push(uploadData.url);
+        const blob = await upload(file.name, file, {
+          access: 'public',
+          handleUploadUrl: '/api/instagram/upload-media',
+          multipart: true,
+        });
+        uploadedUrls.push(blob.url);
       }
 
       let mediaType: MediaType;
