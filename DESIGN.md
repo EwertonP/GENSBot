@@ -136,16 +136,14 @@ só o princípio):
   evento/post com sua própria cor), não decoração — referência pro
   `calendar-view.tsx`.
 
-Duas dívidas estruturais que tornam qualquer reskin mais caro do que
-precisaria ser, valem resolver antes de ir fundo no visual:
+Dívidas estruturais que tornam qualquer reskin mais caro do que
+precisaria ser:
 
-1. **Dois Kanbans quase idênticos**: `src/components/kanban-board.tsx`
-   (posts) e `src/components/crm-board.tsx` (leads) — cada um com sua
-   própria lógica de `draggable`/`onDragStart`/`onDrop` nativa (HTML5, sem
-   suporte a touch). Consolidar num componente `Board`/`DraggableCard`
-   genérico, idealmente com `dnd-kit`, antes de aplicar polish visual —
-   senão o trabalho de reskin (ghost card, animação de reorder) se repete
-   duas vezes.
+1. ~~**Dois Kanbans quase idênticos**~~ — **resolvido**: `kanban-board.tsx`
+   e `crm-board.tsx` agora usam o `Board` genérico (`src/components/ui/board.tsx`,
+   `dnd-kit`, com `DragOverlay`/ghost card e suporte a touch). Qualquer
+   polish visual de Kanban daqui pra frente entra nesse componente único,
+   não duplicado.
 2. **`src/app/page.tsx` com ~2600 linhas**: toda a casca do app (sidebar,
    header, KPIs, switch de todas as abas) num único client component.
    Reagrupar a sidebar no estilo Linear fica mais seguro depois de quebrar
