@@ -66,14 +66,14 @@ export async function getTokenHealth(userId: string) {
 export async function getDashboardMetrics(userId: string, accountIds: string[]) {
   if (accountIds.length === 0) {
     return {
-      stats: { automations: 0, contacts: 0, queue: 0, events: 0, leadsGenerated: 0 },
+      stats: { automations: 0, contacts: 0, automationsTriggered: 0, events: 0, leadsGenerated: 0 },
       recentEvents: [],
       recentQueue: [],
       funnel: { comments: 0, welcomeDms: 0, clicks: 0, leads: 0 },
       weeklyChart: [] as { day: string; comments: number; dms: number }[],
       weeklyChartMax: 1,
       health: { sentPercent: 0, pendingPercent: 0, failedPercent: 0, hasData: false },
-      trends: { contacts: null, automations: null, queue: null, events: null, leadsGenerated: null } as Record<string, number | null>,
+      trends: { contacts: null, automations: null, automationsTriggered: null, events: null, leadsGenerated: null } as Record<string, number | null>,
       failureDiagnostics: [] as { reason: string; count: number }[],
       automationRanking: [] as { id: string; name: string; comments: number; welcomeDms: number; clicks: number; leads: number }[],
       automationsRaw: [] as { id: string; name: string; active: boolean; created_at?: string }[],
@@ -86,7 +86,6 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
   const [
     { count: automationsCount },
     { count: contactsCount },
-    { count: queueCount },
     { count: eventsCount },
     { data: recentEvents },
     { data: recentQueue },
@@ -99,7 +98,6 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     // misto). A lista completa (paginada) vive em GET /api/contacts agora —
     // aqui só precisamos da contagem pro card do dashboard.
     baseCount('contacts').not('last_automation_id', 'is', null),
-    baseCount('queue'),
     baseCount('events'),
     base('events').order('created_at', { ascending: false }).limit(20),
     supabase.from('queue').select('id, contact_id, type, status, error_message, created_at, sent_at, contacts(username, name, profile_picture_url)')
@@ -133,6 +131,13 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     if (!existing || d < existing) firstLeadDateByContact.set(evt.contact_id, d);
   }
   const leadsGeneratedCount = firstLeadDateByContact.size;
+
+  // "Automações Disparadas" (Onda 3 — substitui "Fila de Disparos", que era
+  // detalhe de operação, não sinal de resultado pro cliente): cada 'comment' em
+  // analytics_events já é logado exatamente quando uma automação bate o gatilho
+  // e dispara (ver src/app/api/webhook/route.ts) — soma total, sem filtrar por
+  // automation_id específico, pra virar o KPI agregado do topo do dashboard.
+  const automationsTriggeredCount = (analyticsEvents || []).filter(e => e.event_type === 'comment').length;
 
   // Gráfico dos últimos 7 dias
   const sevenDaysAgo = new Date();
@@ -184,15 +189,12 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
   const [
     contactsCurrent, contactsPrevious,
     automationsCurrent, automationsPrevious,
-    queueCurrent, queuePrevious,
     eventsCurrent, eventsPrevious,
   ] = await Promise.all([
     countBetween('contacts', userId, accountIds, periodStart, now, 'first_contact_at', true),
     countBetween('contacts', userId, accountIds, previousPeriodStart, periodStart, 'first_contact_at', true),
     countBetween('automations', userId, accountIds, periodStart, now),
     countBetween('automations', userId, accountIds, previousPeriodStart, periodStart),
-    countBetween('queue', userId, accountIds, periodStart, now),
-    countBetween('queue', userId, accountIds, previousPeriodStart, periodStart),
     countBetween('events', userId, accountIds, periodStart, now),
     countBetween('events', userId, accountIds, previousPeriodStart, periodStart),
   ]);
@@ -204,10 +206,19 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     else if (d >= previousPeriodStart && d < periodStart) leadsGeneratedPrevious++;
   }
 
+  let automationsTriggeredCurrent = 0;
+  let automationsTriggeredPrevious = 0;
+  for (const evt of analyticsEvents || []) {
+    if (evt.event_type !== 'comment') continue;
+    const d = new Date(evt.created_at);
+    if (d >= periodStart && d < now) automationsTriggeredCurrent++;
+    else if (d >= previousPeriodStart && d < periodStart) automationsTriggeredPrevious++;
+  }
+
   const trends = {
     contacts: percentChange(contactsCurrent, contactsPrevious),
     automations: percentChange(automationsCurrent, automationsPrevious),
-    queue: percentChange(queueCurrent, queuePrevious),
+    automationsTriggered: percentChange(automationsTriggeredCurrent, automationsTriggeredPrevious),
     events: percentChange(eventsCurrent, eventsPrevious),
     leadsGenerated: percentChange(leadsGeneratedCurrent, leadsGeneratedPrevious),
   };
@@ -251,7 +262,7 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     stats: {
       automations: automationsCount || 0,
       contacts: contactsCount || 0,
-      queue: queueCount || 0,
+      automationsTriggered: automationsTriggeredCount,
       events: eventsCount || 0,
       leadsGenerated: leadsGeneratedCount,
     },
