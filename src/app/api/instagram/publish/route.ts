@@ -84,6 +84,7 @@ export async function POST(req: Request) {
           ...commonFields,
           scheduled_at: new Date().toISOString(),
           status: 'published',
+          approval_status: 'publicado',
           ig_media_id: igMediaId,
           published_at: new Date().toISOString(),
         })
@@ -99,6 +100,7 @@ export async function POST(req: Request) {
           ...commonFields,
           scheduled_at: new Date().toISOString(),
           status: 'failed',
+          approval_status: 'rejeitado',
           error_message: publishErr.message,
         })
         .select()
