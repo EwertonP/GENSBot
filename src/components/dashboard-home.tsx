@@ -79,7 +79,7 @@ export default function DashboardHome({
         ] as const).map(card => (
           <Card key={card.label} className="rounded-2xl flex flex-col justify-between shadow-sm h-40">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{card.label}</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{card.label}</span>
               <span className={`w-1.75 h-1.75 rounded-full flex-shrink-0 ${card.dot}`} />
             </div>
 
@@ -87,13 +87,13 @@ export default function DashboardHome({
               <span className="text-4xl font-bold text-foreground leading-none tabular-nums">{card.value}</span>
               <div className="flex items-center gap-2 mt-3">
                 {card.change === null ? (
-                  <span className="text-[11px] font-semibold text-muted-foreground">Novo</span>
+                  <span className="text-xs font-semibold text-muted-foreground">Novo</span>
                 ) : (
-                  <span className={`text-[11px] font-semibold tabular-nums ${card.change >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  <span className={`text-xs font-semibold tabular-nums ${card.change >= 0 ? 'text-success' : 'text-destructive'}`}>
                     {card.change >= 0 ? '↑' : '↓'} {Math.abs(card.change)}%
                   </span>
                 )}
-                <span className="text-[11px] text-muted-foreground font-medium">vs 30 dias anteriores</span>
+                <span className="text-xs text-muted-foreground font-medium">vs 30 dias anteriores</span>
               </div>
             </div>
           </Card>
@@ -150,9 +150,9 @@ export default function DashboardHome({
                     >
                       {/* Floating Tooltip on Hover */}
                       {isHovered && (
-                        <div className="absolute -top-12 z-30 bg-card border border-border text-foreground text-[10px] py-1.5 px-3 rounded-lg text-center whitespace-nowrap flex flex-col items-center pointer-events-none font-mono">
+                        <div className="absolute -top-12 z-30 bg-card border border-border text-foreground text-xs py-1.5 px-3 rounded-lg text-center whitespace-nowrap flex flex-col items-center pointer-events-none font-mono">
                           <span className="font-bold">{item.day}f</span>
-                          <span className="text-[9px]">💬 {item.comments} · 📥 {item.dms}</span>
+                          <span className="text-xs">💬 {item.comments} · 📥 {item.dms}</span>
                         </div>
                       )}
 
@@ -165,7 +165,7 @@ export default function DashboardHome({
                       </div>
 
                       {/* Day Label */}
-                      <span className={`text-[11px] font-bold transition-colors ${isHovered ? 'text-primary' : 'text-muted-foreground'}`}>
+                      <span className={`text-xs font-bold transition-colors ${isHovered ? 'text-primary' : 'text-muted-foreground'}`}>
                         {item.day}
                       </span>
                     </div>
@@ -174,7 +174,7 @@ export default function DashboardHome({
               </div>
             )}
 
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1.5 font-bold">
                   <span className="w-2.5 h-2.5 rounded-full bg-primary"></span> DMs Entregues
@@ -223,7 +223,7 @@ export default function DashboardHome({
               <span className="text-3xl font-bold text-foreground leading-none tabular-nums">
                 {health.hasData ? `${health.sentPercent}%` : '—'}
               </span>
-              <span className="text-[10px] text-primary font-extrabold uppercase tracking-wider mt-1">Taxa de Sucesso</span>
+              <span className="text-xs text-primary font-extrabold uppercase tracking-wider mt-1">Taxa de Sucesso</span>
             </div>
           </div>
 
@@ -336,7 +336,7 @@ export default function DashboardHome({
                             className="w-6 h-6 rounded-full object-cover border border-border flex-shrink-0"
                           />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-accent border border-border flex items-center justify-center text-[10px] text-primary flex-shrink-0">
+                          <div className="w-6 h-6 rounded-full bg-accent border border-border flex items-center justify-center text-xs text-primary flex-shrink-0">
                             @
                           </div>
                         )}
@@ -355,7 +355,7 @@ export default function DashboardHome({
                       <td className="py-3 px-3">
                         <Badge
                           variant={item.status === 'sent' ? 'success' : item.status === 'pending' ? 'warning' : 'destructive'}
-                          className="text-[10px] font-extrabold"
+                          className="text-xs font-extrabold"
                         >
                           {item.status === 'sent' && 'Enviado'}
                           {item.status === 'pending' && 'Pendente'}
