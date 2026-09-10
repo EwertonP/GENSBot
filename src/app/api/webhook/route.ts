@@ -7,6 +7,7 @@ import { drainQueue } from '@/lib/drain';
 import { runFlow, resumeFlow } from '@/lib/flow-engine/runner';
 import { matchesKeywords } from '@/lib/flow-engine/evaluator';
 import { logDbError } from '@/lib/db-log';
+import { triggerExternalWebhook } from '@/lib/external-webhook';
 
 // `messages.contact_id` tem FK pra `contacts.instagram_id` — pra um
 // comentarista/remetente de primeira vez (ainda sem linha em `contacts`,
@@ -216,7 +217,6 @@ async function processWebhookEvent(payload: any) {
 
           // Salvar comentário recebido no histórico de mensagens (inbound)
           const { error: commentMsgError } = await supabase.from('messages').insert({
-            user_id: ownerUserId,
             instagram_user_id: myIgId,
             contact_id: fromUserId,
             direction: 'inbound',
@@ -418,7 +418,6 @@ async function processWebhookEvent(payload: any) {
 
         // Salvar mensagem recebida no Direct (inbound)
         const { error: dmMsgError } = await supabase.from('messages').insert({
-          user_id: ownerUserId,
           instagram_user_id: myIgId,
           contact_id: senderId,
           direction: 'inbound',
@@ -850,33 +849,6 @@ async function processWebhookEvent(payload: any) {
   }
 }
 
-// Disparador de Webhook Externo (Make, Zapier, etc.)
-async function triggerExternalWebhook(url: string, contact: any, auto: any) {
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        event: 'lead_captured',
-        automation: {
-          id: auto.id,
-          name: auto.name
-        },
-        contact: {
-          instagram_id: contact.instagram_id,
-          username: contact.username,
-          email: contact.email,
-          phone: contact.phone,
-          timestamp: new Date().toISOString()
-        }
-      })
-    });
-  } catch (err) {
-    console.error('Falha ao disparar webhook externo:', err);
-  }
-}
 
 // Auxiliar: Enfileira a sequência de followups (Dinâmico ou Legado)
 async function enqueueFollowups(contactId: string, auto: any, userId: string, instagramUserId: string) {

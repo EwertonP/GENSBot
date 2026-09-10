@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
 import ContactsTab from '@/components/contacts-tab';
+import SequenceManager from '@/components/sequence-manager';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
 import {
   Settings,
@@ -53,6 +54,7 @@ import {
   ChevronLeft,
   Link2,
   TrendingUp,
+  Layers,
 } from 'lucide-react';
 
 const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
@@ -163,7 +165,7 @@ export default function Dashboard() {
   const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'logs'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -1016,6 +1018,7 @@ export default function Dashboard() {
               { id: 'metrics', label: 'Métricas', icon: TrendingUp },
               { id: 'publish', label: 'Publicações', icon: Send },
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
+              { id: 'sequences', label: 'Sequências', icon: Layers },
             ].map(item => {
               const Icon = item.icon;
               const active = activeTab === item.id;
@@ -1139,6 +1142,7 @@ export default function Dashboard() {
               {activeTab === 'metrics' && 'Métricas'}
               {activeTab === 'publish' && 'Publicações'}
               {activeTab === 'contacts' && 'Leads & Público'}
+              {activeTab === 'sequences' && 'Sequências'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
             <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
@@ -1148,6 +1152,7 @@ export default function Dashboard() {
               {activeTab === 'metrics' && 'Acompanhe o desempenho de cada perfil conectado.'}
               {activeTab === 'publish' && 'Publique posts, reels e stories direto para as contas conectadas.'}
               {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
+              {activeTab === 'sequences' && 'Séries de mensagens reutilizáveis entre automações.'}
               {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
             </p>
           </div>
@@ -2335,6 +2340,13 @@ export default function Dashboard() {
           {/* TAB 3: CONTACTS */}
           {activeTab === 'contacts' && (
             <ContactsTab withAccount={withAccount} showToast={showToast} accountKey={selectedAccountId || 'none'} />
+          )}
+
+          {/* TAB: SEQUENCES */}
+          {activeTab === 'sequences' && (
+            <div className="animate-fade-in max-w-4xl mx-auto">
+              <SequenceManager />
+            </div>
           )}
 
           {/* TAB 4: LOGS */}

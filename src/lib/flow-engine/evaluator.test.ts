@@ -166,4 +166,9 @@ describe('applyWaitForReplyCapture', () => {
     const config = { saveReplyAsTagPrefix: 'motivo_' };
     expect(applyWaitForReplyCapture(config, 'Ja tentei antes!', { tags: ['motivo_ja_tentei_antes'] })).toEqual({});
   });
+
+  it('saveReplyToField com nome fora de email/phone/name vira chave em flow_state, não coluna solta', () => {
+    const config = { saveReplyToField: 'regiao' };
+    expect(applyWaitForReplyCapture(config, '  Recife  ', null)).toEqual({ flow_state: { regiao: 'Recife' } });
+  });
 });
