@@ -4,6 +4,14 @@ import { getInstagramAccountByInstagramUserId, listInstagramAccountsForUser } fr
 import { publishPost, PublishMediaType } from '@/lib/instagram-publish';
 import { supabase } from '@/lib/supabase';
 
+// Publicação imediata espera o processamento do vídeo pela Meta (polling em
+// waitForContainerReady) dentro da própria requisição — em vídeo grande isso
+// pode passar dos 10s padrão da Vercel. 60s é o teto permitido no plano Hobby;
+// vídeo que precise de mais que isso ainda vai estourar (limitação de plano,
+// não de código — só resolve com Pro ou movendo a espera pra um worker
+// assíncrono, como o /api/cron/publish-scheduled já faz pra agendados).
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   try {
     const user = await getAuthUser();
