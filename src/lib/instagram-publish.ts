@@ -222,9 +222,14 @@ export async function publishPost(params: PublishParams): Promise<{ igMediaId: s
 
   const creationId = await createMediaContainer(params);
 
-  // Imagem de feed publica quase instantaneamente; vídeo/reels/story
-  // precisam de processamento — só faz polling quando não é imagem de feed.
-  if (params.mediaType !== 'IMAGE') {
+  // Imagem de feed não passa pelo processamento assíncrono de vídeo (sem
+  // status_code pra dar polling), mas o ID do container ainda leva um
+  // instante pra propagar nos servidores da Meta — publicar na sequência,
+  // sem nenhuma espera, bate na mesma corrida do "Media ID is not
+  // available" que afeta vídeo, só que aqui não tem status pra aguardar.
+  if (params.mediaType === 'IMAGE') {
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  } else {
     await waitForContainerReady(creationId, params.accessToken);
   }
 
