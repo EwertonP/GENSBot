@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
 import ContactsTab from '@/components/contacts-tab';
 import SequenceManager from '@/components/sequence-manager';
+import CrmBoard from '@/components/crm-board';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
 import {
   Settings,
@@ -57,6 +58,7 @@ import {
   Link2,
   TrendingUp,
   Layers,
+  Building2,
 } from 'lucide-react';
 
 const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
@@ -167,7 +169,7 @@ export default function Dashboard() {
   const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'logs'>('dashboard');
   // Sub-abas de "Agendamentos" (Onda 1) — Publicações é a lista/composer que já existia,
   // Calendário e Kanban são novos, mesma fonte de dado (scheduled_posts).
   const [publishSubTab, setPublishSubTab] = useState<'publicacoes' | 'calendario' | 'kanban'>('publicacoes');
@@ -1024,6 +1026,7 @@ export default function Dashboard() {
               { id: 'publish', label: 'Agendamentos', icon: Send },
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
               { id: 'sequences', label: 'Sequências', icon: Layers },
+              { id: 'crm', label: 'CRM', icon: Building2 },
             ].map(item => {
               const Icon = item.icon;
               const active = activeTab === item.id;
@@ -1148,6 +1151,7 @@ export default function Dashboard() {
               {activeTab === 'publish' && 'Agendamentos'}
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'sequences' && 'Sequências'}
+              {activeTab === 'crm' && 'CRM'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
             <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
@@ -1158,6 +1162,7 @@ export default function Dashboard() {
               {activeTab === 'publish' && 'Publique, agende e aprove posts, reels e stories das contas conectadas.'}
               {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
               {activeTab === 'sequences' && 'Séries de mensagens reutilizáveis entre automações.'}
+              {activeTab === 'crm' && 'Leads de prospecção da agência, ligado ao Prospecção Gens.'}
               {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
             </p>
           </div>
@@ -2387,6 +2392,13 @@ export default function Dashboard() {
           {activeTab === 'sequences' && (
             <div className="animate-fade-in max-w-4xl mx-auto">
               <SequenceManager />
+            </div>
+          )}
+
+          {/* TAB: CRM (Onda 4) */}
+          {activeTab === 'crm' && (
+            <div className="animate-fade-in">
+              <CrmBoard />
             </div>
           )}
 
