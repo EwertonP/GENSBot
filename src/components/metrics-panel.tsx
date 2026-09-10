@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Users, Image as ImageIcon, Eye, TrendingUp, AlertCircle, Info } from 'lucide-react';
+import { Users, Image as ImageIcon, Eye, TrendingUp, AlertCircle, Info, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
@@ -57,7 +57,54 @@ function StatBox({ icon: Icon, label, value }: { icon: React.ElementType; label:
   );
 }
 
-function AccountCard({ metrics, detailed }: { metrics: AccountMetrics; detailed: boolean }) {
+/** "Quando seu público está mais ativo" (Onda 2, item 2.2) — métrica NATIVA da Meta
+ * (online_followers), não calculada a partir dos posts como best-posting-time.ts.
+ * Só tem granularidade de hora do dia (a própria API não quebra por dia da semana). */
+function AudienceActivityCard({ instagramUserId, withAccount }: { instagramUserId: string; withAccount: (url: string, accountIdOverride?: string | null) => string }) {
+  const [state, setState] = useState<{ loading: boolean; available: boolean; byHour: { hour: number; followersOnline: number }[]; reason?: string }>({
+    loading: true,
+    available: false,
+    byHour: [],
+  });
+
+  useEffect(() => {
+    setState((s) => ({ ...s, loading: true }));
+    fetch(withAccount(`/api/instagram/audience-activity?account=${instagramUserId}`, instagramUserId))
+      .then((res) => res.json())
+      .then((data) => setState({ loading: false, available: !!data.available, byHour: data.byHour || [], reason: data.reason }))
+      .catch(() => setState({ loading: false, available: false, byHour: [] }));
+  }, [instagramUserId]);
+
+  if (state.loading) return null;
+
+  return (
+    <div>
+      <p className="text-xs font-bold text-foreground mb-2 flex items-center gap-1.5">
+        <Clock className="w-3.5 h-3.5" /> Quando seu público está mais ativo
+      </p>
+      {!state.available ? (
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5 py-2">
+          <Info className="w-3.5 h-3.5 shrink-0" />
+          {state.reason || 'Sem dado suficiente ainda para esta conta.'}
+        </p>
+      ) : (
+        <div className="flex items-end gap-0.5 h-16">
+          {state.byHour.map((h) => {
+            const max = Math.max(1, ...state.byHour.map((x) => x.followersOnline));
+            return (
+              <div key={h.hour} className="flex-1 flex flex-col items-center justify-end h-full" title={`${h.hour}h — ${h.followersOnline} seguidores online`}>
+                <div className="w-full bg-primary/70 rounded-sm" style={{ height: `${Math.max(4, (h.followersOnline / max) * 100)}%` }} />
+                {h.hour % 3 === 0 && <span className="text-[8px] text-muted-foreground mt-1">{h.hour}h</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AccountCard({ metrics, detailed, withAccount }: { metrics: AccountMetrics; detailed: boolean; withAccount: (url: string, accountIdOverride?: string | null) => string }) {
   const reachSeries = metrics.daily.map((d) => ({ date: d.date, value: d.reach }));
   const viewsSeries = metrics.daily.map((d) => ({ date: d.date, value: d.profile_views }));
   const followersSeries = metrics.followerGrowth.map((d) => ({ date: d.date, value: d.followers }));
@@ -93,6 +140,8 @@ function AccountCard({ metrics, detailed }: { metrics: AccountMetrics; detailed:
 
       {detailed && (
         <>
+          <AudienceActivityCard instagramUserId={metrics.instagram_user_id} withAccount={withAccount} />
+
           <div>
             <p className="text-xs font-bold text-foreground mb-2">Alcance e visitas ao perfil</p>
             <LineChart
@@ -188,7 +237,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
     return (
       <div>
         {periodSelector}
-        <AccountCard metrics={metrics[0]} detailed />
+        <AccountCard metrics={metrics[0]} detailed withAccount={withAccount} />
       </div>
     );
   }
@@ -198,7 +247,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
       {periodSelector}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {metrics.map((m) => (
-          <AccountCard key={m.instagram_user_id} metrics={m} detailed={false} />
+          <AccountCard key={m.instagram_user_id} metrics={m} detailed={false} withAccount={withAccount} />
         ))}
       </div>
     </div>
