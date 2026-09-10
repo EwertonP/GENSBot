@@ -22,6 +22,19 @@ interface PublicationWithMetrics extends PublicationRow {
   interactions: number;
 }
 
+/** Item de mídia orgânica direto da Graph API — inclui posts/reels publicados pelo
+ * celular do cliente, que `scheduled_posts` nunca vê (Onda 2, item 2.1 do plano). */
+interface OrganicMediaItem {
+  id: string;
+  instagram_user_id: string;
+  media_type: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+  media_product_type?: string;
+  media_url: string;
+  thumbnail_url?: string;
+  caption: string | null;
+  timestamp: string;
+}
+
 async function fetchMediaMetrics(mediaId: string, accessToken: string): Promise<{ reach: number; interactions: number }> {
   try {
     const res = await fetch(
@@ -36,6 +49,24 @@ async function fetchMediaMetrics(mediaId: string, accessToken: string): Promise<
     return { reach: values.reach || 0, interactions: values.total_interactions || 0 };
   } catch {
     return { reach: 0, interactions: 0 };
+  }
+}
+
+/** Toda a mídia (post/reels) da conta, direto da Meta — não só o que foi publicado
+ * pelo GENSBot. Stories não vêm por aqui: a Graph API só expõe Stories ativas
+ * (até 24h), sem histórico retroativo, então essas continuam vindo de `scheduled_posts`. */
+async function fetchAccountOrganicMedia(instagramUserId: string, accessToken: string, sinceIso: string): Promise<OrganicMediaItem[]> {
+  try {
+    const res = await fetch(
+      `https://graph.instagram.com/v25.0/${instagramUserId}/media?fields=id,media_type,media_product_type,media_url,thumbnail_url,caption,timestamp&limit=50&access_token=${accessToken}`
+    );
+    const data = await res.json();
+    if (!res.ok) return [];
+    return (data.data || [])
+      .filter((m: any) => m.timestamp >= sinceIso)
+      .map((m: any) => ({ ...m, instagram_user_id: instagramUserId }));
+  } catch {
+    return [];
   }
 }
 
@@ -103,19 +134,42 @@ export async function GET(req: Request) {
     const accountIds = targets.map((t) => t.instagram_user_id);
     const since = new Date(Date.now() - period * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: publications, error: pubError } = await supabase
+    // Stories continuam vindo só de `scheduled_posts` (limitação da própria Graph
+    // API — sem histórico retroativo de Stories orgânicas, ver fetchAccountOrganicMedia).
+    const { data: storyPublications, error: storyError } = await supabase
       .from('scheduled_posts')
       .select('id, instagram_user_id, media_type, media_url, media_urls, caption, published_at, ig_media_id')
       .in('instagram_user_id', accountIds)
+      .eq('media_type', 'STORIES')
       .eq('status', 'published')
       .not('ig_media_id', 'is', null)
       .gte('published_at', since)
       .order('published_at', { ascending: false })
       .limit(50);
 
-    if (pubError) throw pubError;
+    if (storyError) throw storyError;
 
-    const rows = (publications || []) as PublicationRow[];
+    // Posts/Reels: direto da Graph API (toda a mídia da conta, publicada pelo GENSBot ou
+    // não) em vez de só `scheduled_posts` — corrige o ranking ignorando posts feitos
+    // direto do celular do cliente (Onda 2, item 2.1 do plano).
+    const organicMediaByAccount = await Promise.all(
+      targets.map((t) => fetchAccountOrganicMedia(t.instagram_user_id, t.access_token, since))
+    );
+    const organicMedia = organicMediaByAccount.flat();
+
+    const rows: PublicationRow[] = [
+      ...(storyPublications || []) as PublicationRow[],
+      ...organicMedia.map((m): PublicationRow => ({
+        id: m.id,
+        instagram_user_id: m.instagram_user_id,
+        media_type: m.media_product_type === 'REELS' ? 'REELS' : m.media_type,
+        media_url: m.thumbnail_url || m.media_url,
+        media_urls: null,
+        caption: m.caption,
+        published_at: m.timestamp,
+        ig_media_id: m.id,
+      })),
+    ];
 
     const withMetrics: PublicationWithMetrics[] = await Promise.all(
       rows.map(async (row) => {
