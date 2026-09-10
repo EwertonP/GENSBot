@@ -267,7 +267,8 @@ function SendMessagePanel({
   );
 }
 
-function ConditionPanel({ data, onChange }: { data: ConditionNodeConfig; onChange: (d: ConditionNodeConfig) => void }) {
+/** Exportado pra ser reaproveitado fora do Canvas — ver `src/components/automation-wizard/`, onde o Formulário Avançado usa a mesma UI de condição pra ficar consistente com o editor visual. */
+export function ConditionPanel({ data, onChange }: { data: ConditionNodeConfig; onChange: (d: ConditionNodeConfig) => void }) {
   return (
     <div className="flex flex-col gap-4">
       <Field label="Tipo de condição">

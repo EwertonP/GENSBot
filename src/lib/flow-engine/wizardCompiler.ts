@@ -1,4 +1,4 @@
-import type { FlowDefinition, FlowNode, FlowEdge, FlowNodeType, TriggerNodeConfig, SendMessageNodeConfig, WaitForReplyNodeConfig, DelayNodeConfig } from '@/types/flow';
+import type { FlowDefinition, FlowNode, FlowEdge, FlowNodeType, TriggerNodeConfig, SendMessageNodeConfig, WaitForReplyNodeConfig, DelayNodeConfig, ConditionNodeConfig } from '@/types/flow';
 import type { Automation, Followup } from '@/types/automation';
 
 export interface QualificationMessageStep {
@@ -23,6 +23,35 @@ export interface QualificationQuestionStep {
 }
 
 export type QualificationStep = QualificationMessageStep | QualificationQuestionStep;
+
+/**
+ * "Cauda" do fluxo: tudo que vem depois da mensagem inicial (ou depois de uma
+ * condição, quando existe) — perguntas restantes, mensagem de link e
+ * follow-ups. Sem condição no fluxo, existe uma única `WizardTail`; com
+ * condição, existem duas (`trueBranch`/`falseBranch`), completamente
+ * independentes uma da outra.
+ */
+export interface WizardTail {
+  questions: QualificationStep[];
+  link_text: string;
+  link_url: string | null;
+  link_button_label: string | null;
+  followups: Followup[];
+}
+
+/**
+ * Bifurcação única do Formulário Avançado (v1 — ver PLANO em
+ * ~/.claude/plans, "Suporte a condição no formulário guiado"). `splitAfterIndex`
+ * é quantas perguntas vêm ANTES da condição (0 = logo após a mensagem
+ * inicial). Não suporta condição aninhada dentro de um ramo — isso continua
+ * só editável pelo Canvas.
+ */
+export interface WizardCondition {
+  splitAfterIndex: number;
+  condition: ConditionNodeConfig;
+  trueBranch: WizardTail;
+  falseBranch: WizardTail;
+}
 
 const DEFAULT_REMINDER = 'Oi! Ainda estou por aqui, fico à disposição pra continuar quando você puder. 🙂';
 const DEFAULT_TIMEOUT_MINUTES = 720;
@@ -125,7 +154,33 @@ function createFlowBuilder() {
     });
   }
 
-  return { addNode, connect, attach, appendMessageStep, appendQualificationStep, getResult: (): FlowDefinition => ({ nodes, edges }) };
+  return { addNode, connect, attach, setPending, appendMessageStep, appendQualificationStep, getResult: (): FlowDefinition => ({ nodes, edges }) };
+}
+
+/** Monta a mensagem de link + follow-ups de uma `WizardTail` a partir do nó pendente do builder. */
+function appendTail(b: ReturnType<typeof createFlowBuilder>, tail: WizardTail) {
+  for (const step of tail.questions) {
+    b.appendQualificationStep(step);
+  }
+
+  b.appendMessageStep(tail.link_text || 'Aqui está o seu link:', [], null);
+  // appendMessageStep não aceita link_url/link_button_label (são exclusivos do nó de link) —
+  // preenche direto no nó que acabou de ser criado.
+  const linkNode = b.getResult().nodes.at(-1)!;
+  (linkNode.data as SendMessageNodeConfig).link_url = tail.link_url;
+  (linkNode.data as SendMessageNodeConfig).link_button_label = tail.link_button_label;
+
+  for (const followup of tail.followups || []) {
+    const delayId = b.addNode('delay', { delayMinutes: Math.max(0, followup.delay_minutes) });
+    b.attach(delayId);
+
+    const msgId = b.addNode('sendMessage', {
+      text: followup.text,
+      link_url: followup.link_url || null,
+      link_button_label: followup.link_button_label || null,
+    });
+    b.attach(msgId);
+  }
 }
 
 /**
@@ -135,8 +190,12 @@ function createFlowBuilder() {
  * novas sem perguntas continuam salvando pelo caminho legado (colunas soltas), sem passar por
  * aqui. Mapeia direto dos mesmos campos que os cards do form já usam (trigger/públicas/mensagem
  * inicial/link/sequência de follow-ups), na mesma ordem visual dos cards.
+ *
+ * `wizardCondition`, quando presente, bifurca o fluxo em dois ramos independentes logo depois
+ * de `wizardCondition.splitAfterIndex` perguntas (ver `WizardCondition`) — v1 só suporta uma
+ * bifurcação por fluxo, sem aninhamento.
  */
-export function buildFlowFromAdvancedForm(form: Automation, questions: QualificationStep[]): FlowDefinition {
+export function buildFlowFromAdvancedForm(form: Automation, questions: QualificationStep[], wizardCondition: WizardCondition | null = null): FlowDefinition {
   const b = createFlowBuilder();
 
   const triggerId = b.addNode('trigger', {
@@ -161,24 +220,25 @@ export function buildFlowFromAdvancedForm(form: Automation, questions: Qualifica
     b.appendQualificationStep(step);
   }
 
-  b.appendMessageStep(form.link_text || 'Aqui está o seu link:', [], null);
-  // appendMessageStep não aceita link_url/link_button_label (são exclusivos do nó de link) —
-  // preenche direto no nó que acabou de ser criado.
-  const linkNode = b.getResult().nodes.at(-1)!;
-  (linkNode.data as SendMessageNodeConfig).link_url = form.link_url ?? null;
-  (linkNode.data as SendMessageNodeConfig).link_button_label = form.link_button_label ?? null;
-
-  for (const followup of form.followups || []) {
-    const delayId = b.addNode('delay', { delayMinutes: Math.max(0, followup.delay_minutes) });
-    b.attach(delayId);
-
-    const msgId = b.addNode('sendMessage', {
-      text: followup.text,
-      link_url: followup.link_url || null,
-      link_button_label: followup.link_button_label || null,
+  if (!wizardCondition) {
+    appendTail(b, {
+      questions: [],
+      link_text: form.link_text || 'Aqui está o seu link:',
+      link_url: form.link_url ?? null,
+      link_button_label: form.link_button_label ?? null,
+      followups: form.followups || [],
     });
-    b.attach(msgId);
+    return b.getResult();
   }
+
+  const conditionId = b.addNode('condition', wizardCondition.condition);
+  b.attach(conditionId);
+
+  b.setPending([{ source: conditionId, handle: 'true' }]);
+  appendTail(b, wizardCondition.trueBranch);
+
+  b.setPending([{ source: conditionId, handle: 'false' }]);
+  appendTail(b, wizardCondition.falseBranch);
 
   return b.getResult();
 }
@@ -205,7 +265,7 @@ export interface DecompiledForm {
 }
 
 export type DecompileResult =
-  | { compatible: true; form: DecompiledForm; questions: QualificationStep[] }
+  | { compatible: true; form: DecompiledForm; questions: QualificationStep[]; condition: WizardCondition | null }
   | { compatible: false; reason: string };
 
 function incompatible(reason: string): DecompileResult {
@@ -292,92 +352,162 @@ export function decompileFlow(flow: FlowDefinition): DecompileResult {
   if (welcomeButtons.length > 1) return incompatible('A mensagem inicial tem mais de um botão — o Formulário Avançado só suporta um. Edite pelo Canvas.');
   if (welcomeResult.nextId === null) return incompatible('O fluxo termina na mensagem inicial, sem link — isso só é editável pelo Canvas.');
 
-  // 2. Perguntas de qualificação, até achar o nó de link (uma mensagem sem
-  // espera que termina o fluxo ou é seguida por um follow-up).
-  const questions: QualificationStep[] = [];
-  let cursorId: string | null = welcomeResult.nextId;
-  let linkNode: FlowNode | null = null;
-  let afterLinkId: string | null = null;
+  // 2. Cauda do fluxo: perguntas de qualificação até achar o nó de link (uma
+  // mensagem sem espera que termina o fluxo ou é seguida por um follow-up),
+  // depois os follow-ups (pares delay -> mensagem). No meio das perguntas,
+  // um único nó `condition` (com saídas 'true'/'false') bifurca a cauda em
+  // duas independentes — v1 não suporta condição aninhada dentro de um ramo.
+  type WalkTailResult =
+    | { kind: 'tail'; tail: WizardTail }
+    | { kind: 'condition'; questions: QualificationStep[]; conditionNode: FlowNode; trueId: string; falseId: string }
+    | { error: string };
 
-  while (cursorId) {
-    const node = findNode(cursorId);
-    if (!node) return incompatible(`Fluxo quebrado: nó "${cursorId}" não existe.`);
-    if (node.type !== 'sendMessage') return incompatible(`Nó do tipo "${node.type}" fora de lugar — isso só é editável pelo Canvas.`);
+  function walkTail(startId: string | null, allowCondition: boolean): WalkTailResult {
+    const questions: QualificationStep[] = [];
+    let cursorId: string | null = startId;
+    let linkNode: FlowNode | null = null;
+    let afterLinkId: string | null = null;
 
-    const result = readMessageStep(cursorId);
-    if ('error' in result) return incompatible(result.error);
+    while (cursorId) {
+      const node = findNode(cursorId);
+      if (!node) return { error: `Fluxo quebrado: nó "${cursorId}" não existe.` };
 
-    const isLink = !result.wait && (result.nextId === null || findNode(result.nextId)?.type === 'delay');
-    if (isLink) {
-      linkNode = result.node;
-      afterLinkId = result.nextId;
-      break;
+      if (node.type === 'condition') {
+        if (!allowCondition) return { error: 'Condição aninhada — isso só é editável pelo Canvas.' };
+        const outs = outgoingAll(node.id);
+        const trueEdge = outs.find((e) => e.sourceHandle === 'true');
+        const falseEdge = outs.find((e) => e.sourceHandle === 'false');
+        if (outs.length !== 2 || !trueEdge || !falseEdge) {
+          return { error: `O nó de condição "${node.id}" precisa ter exatamente uma saída "verdadeiro" e uma "falso" — isso só é editável pelo Canvas.` };
+        }
+        return { kind: 'condition', questions, conditionNode: node, trueId: trueEdge.target, falseId: falseEdge.target };
+      }
+
+      if (node.type !== 'sendMessage') return { error: `Nó do tipo "${node.type}" fora de lugar — isso só é editável pelo Canvas.` };
+
+      const result = readMessageStep(cursorId);
+      if ('error' in result) return { error: result.error };
+
+      const isLink = !result.wait && (result.nextId === null || findNode(result.nextId)?.type === 'delay');
+      if (isLink) {
+        linkNode = result.node;
+        afterLinkId = result.nextId;
+        break;
+      }
+
+      if (result.wait) {
+        const data = result.node.data as SendMessageNodeConfig;
+        questions.push({
+          kind: 'question',
+          text: data.text,
+          buttons: data.quick_reply_buttons || [],
+          timeoutMinutes: result.wait.timeoutMinutes ?? 0,
+          reminderText: result.wait.reminderText || '',
+          saveReplyAsTagPrefix: result.wait.saveReplyAsTagPrefix,
+        });
+      } else {
+        questions.push({ kind: 'message', text: (result.node.data as SendMessageNodeConfig).text });
+      }
+
+      if (result.nextId === null) return { error: 'O fluxo termina antes de chegar a um nó de link.' };
+      cursorId = result.nextId;
     }
 
-    if (result.wait) {
-      const data = result.node.data as SendMessageNodeConfig;
-      questions.push({
-        kind: 'question',
-        text: data.text,
-        buttons: data.quick_reply_buttons || [],
-        timeoutMinutes: result.wait.timeoutMinutes ?? 0,
-        reminderText: result.wait.reminderText || '',
-        saveReplyAsTagPrefix: result.wait.saveReplyAsTagPrefix,
+    if (!linkNode) return { error: 'Não encontrei o nó de link do fluxo.' };
+    const linkData = linkNode.data as SendMessageNodeConfig;
+
+    const followups: Followup[] = [];
+    let followupCursor = afterLinkId;
+    while (followupCursor) {
+      const delayNode = findNode(followupCursor);
+      if (!delayNode) return { error: `Fluxo quebrado: nó "${followupCursor}" não existe.` };
+      if (delayNode.type !== 'delay') return { error: `Esperava um nó de espera fixa (delay) em "${followupCursor}" — isso só é editável pelo Canvas.` };
+      const delayOuts = outgoingAll(delayNode.id);
+      if (delayOuts.length !== 1) return { error: `O delay "${delayNode.id}" tem saídas inesperadas.` };
+      const msgNode = findNode(delayOuts[0].target);
+      if (msgNode?.type !== 'sendMessage') return { error: `O delay "${delayNode.id}" não leva a uma mensagem.` };
+      const msgOuts = outgoingAll(msgNode.id);
+      if (msgOuts.length > 1) return { error: `O follow-up "${msgNode.id}" tem saídas inesperadas.` };
+
+      const msgData = msgNode.data as SendMessageNodeConfig;
+      followups.push({
+        id: msgNode.id,
+        delay_minutes: (delayNode.data as DelayNodeConfig).delayMinutes ?? 0,
+        text: msgData.text,
+        link_url: msgData.link_url ?? null,
+        link_button_label: msgData.link_button_label ?? null,
       });
-    } else {
-      questions.push({ kind: 'message', text: (result.node.data as SendMessageNodeConfig).text });
+      followupCursor = msgOuts[0]?.target ?? null;
     }
 
-    if (result.nextId === null) return incompatible('O fluxo termina antes de chegar a um nó de link.');
-    cursorId = result.nextId;
+    return {
+      kind: 'tail',
+      tail: {
+        questions,
+        link_text: linkData.text,
+        link_url: linkData.link_url ?? null,
+        link_button_label: linkData.link_button_label ?? null,
+        followups,
+      },
+    };
   }
 
-  if (!linkNode) return incompatible('Não encontrei o nó de link do fluxo.');
-  const linkData = linkNode.data as SendMessageNodeConfig;
+  const rootResult = walkTail(welcomeResult.nextId, true);
+  if ('error' in rootResult) return incompatible(rootResult.error);
 
-  // 3. Follow-ups: pares delay -> mensagem (sem espera) até acabar o fluxo.
-  const followups: Followup[] = [];
-  let followupCursor = afterLinkId;
-  while (followupCursor) {
-    const delayNode = findNode(followupCursor);
-    if (!delayNode) return incompatible(`Fluxo quebrado: nó "${followupCursor}" não existe.`);
-    if (delayNode.type !== 'delay') return incompatible(`Esperava um nó de espera fixa (delay) em "${followupCursor}" — isso só é editável pelo Canvas.`);
-    const delayOuts = outgoingAll(delayNode.id);
-    if (delayOuts.length !== 1) return incompatible(`O delay "${delayNode.id}" tem saídas inesperadas.`);
-    const msgNode = findNode(delayOuts[0].target);
-    if (msgNode?.type !== 'sendMessage') return incompatible(`O delay "${delayNode.id}" não leva a uma mensagem.`);
-    const msgOuts = outgoingAll(msgNode.id);
-    if (msgOuts.length > 1) return incompatible(`O follow-up "${msgNode.id}" tem saídas inesperadas.`);
+  const triggerFormFields = {
+    triggers: triggerData.triggerTypes,
+    keywords: triggerData.keywords,
+    match_type: triggerData.match_type,
+    specific_post_id: triggerData.specific_post_id ?? null,
+    specific_story_id: triggerData.specific_story_id ?? null,
+    public_replies: triggerData.publicReplies || [],
+    welcome_dm: welcomeData.text,
+    quick_reply_button: welcomeButtons[0] ?? null,
+    welcome_dm_timeout_minutes: welcomeResult.wait?.timeoutMinutes ?? null,
+    welcome_dm_reminder_text: welcomeResult.wait?.reminderText ?? null,
+  };
 
-    const msgData = msgNode.data as SendMessageNodeConfig;
-    followups.push({
-      id: msgNode.id,
-      delay_minutes: (delayNode.data as DelayNodeConfig).delayMinutes ?? 0,
-      text: msgData.text,
-      link_url: msgData.link_url ?? null,
-      link_button_label: msgData.link_button_label ?? null,
-    });
-    followupCursor = msgOuts[0]?.target ?? null;
+  if (rootResult.kind === 'tail') {
+    return {
+      compatible: true,
+      form: {
+        ...triggerFormFields,
+        link_text: rootResult.tail.link_text,
+        link_url: rootResult.tail.link_url,
+        link_button_label: rootResult.tail.link_button_label,
+        followups: rootResult.tail.followups,
+      },
+      questions: rootResult.tail.questions,
+      condition: null,
+    };
   }
+
+  // 3. Bifurcação: os dois ramos são cada um uma cauda independente, sem
+  // condição aninhada (`allowCondition: false`).
+  const trueResult = walkTail(rootResult.trueId, false);
+  if ('error' in trueResult) return incompatible(trueResult.error);
+  if (trueResult.kind !== 'tail') return incompatible('Condição aninhada — isso só é editável pelo Canvas.');
+
+  const falseResult = walkTail(rootResult.falseId, false);
+  if ('error' in falseResult) return incompatible(falseResult.error);
+  if (falseResult.kind !== 'tail') return incompatible('Condição aninhada — isso só é editável pelo Canvas.');
 
   return {
     compatible: true,
     form: {
-      triggers: triggerData.triggerTypes,
-      keywords: triggerData.keywords,
-      match_type: triggerData.match_type,
-      specific_post_id: triggerData.specific_post_id ?? null,
-      specific_story_id: triggerData.specific_story_id ?? null,
-      public_replies: triggerData.publicReplies || [],
-      welcome_dm: welcomeData.text,
-      quick_reply_button: welcomeButtons[0] ?? null,
-      welcome_dm_timeout_minutes: welcomeResult.wait?.timeoutMinutes ?? null,
-      welcome_dm_reminder_text: welcomeResult.wait?.reminderText ?? null,
-      link_text: linkData.text,
-      link_url: linkData.link_url ?? null,
-      link_button_label: linkData.link_button_label ?? null,
-      followups,
+      ...triggerFormFields,
+      link_text: null,
+      link_url: null,
+      link_button_label: null,
+      followups: [],
     },
-    questions,
+    questions: rootResult.questions,
+    condition: {
+      splitAfterIndex: rootResult.questions.length,
+      condition: rootResult.conditionNode.data as ConditionNodeConfig,
+      trueBranch: trueResult.tail,
+      falseBranch: falseResult.tail,
+    },
   };
 }
