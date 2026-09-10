@@ -948,81 +948,69 @@ export default function Dashboard() {
 
         <div className="border-t border-sidebar-border" />
 
-        {/* Navigation Links */}
+        {/* Navigation Links — agrupados por intenção (não mais uma lista rasa
+            só "Operações"/"Sistema"), no espírito da sidebar do Linear: cada
+            grupo responde uma pergunta diferente do dia a dia da agência. */}
         <nav className="flex-1 px-4 py-6 flex flex-col gap-6">
-          {/* Operações Category */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4 mb-2">Operações</span>
-            {[
-              { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-              { id: 'automations', label: 'Automações', icon: Settings },
-              { id: 'utm', label: 'Links UTM', icon: Link2 },
-              { id: 'metrics', label: 'Métricas', icon: TrendingUp },
-              { id: 'publish', label: 'Agendamentos', icon: Send },
-              { id: 'contacts', label: 'Contatos / Leads', icon: Users },
-              { id: 'sequences', label: 'Sequências', icon: Layers },
-              { id: 'crm', label: 'CRM', icon: Building2 },
-              { id: 'inbox', label: 'Inbox', icon: MessageCircle },
-            ].map(item => {
-              const Icon = item.icon;
-              const active = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id as any);
-                    setIsEditing(false);
-                  }}
-                  className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-left ${
-                    active ? 'text-primary font-bold' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                  }`}
-                >
-                  {active && (
-                    <motion.div
-                      layoutId="nav-active-pill"
-                      className="absolute inset-0 bg-primary/10 rounded-xl"
-                      transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-                    />
-                  )}
-                  <Icon className={`relative w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <span className="relative">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Sistema Category */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4 mb-2">Sistema</span>
-            {[
-              { id: 'logs', label: 'Logs de Eventos', icon: FileCode },
-            ].map(item => {
-              const Icon = item.icon;
-              const active = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id as any);
-                    setIsEditing(false);
-                  }}
-                  className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-left ${
-                    active ? 'text-primary font-bold' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                  }`}
-                >
-                  {active && (
-                    <motion.div
-                      layoutId="nav-active-pill"
-                      className="absolute inset-0 bg-primary/10 rounded-xl"
-                      transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-                    />
-                  )}
-                  <Icon className={`relative w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <span className="relative">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {[
+            { label: null, items: [{ id: 'dashboard', label: 'Dashboard', icon: BarChart3 }] },
+            {
+              label: 'Conteúdo',
+              items: [
+                { id: 'publish', label: 'Agendamentos', icon: Send },
+                { id: 'metrics', label: 'Métricas', icon: TrendingUp },
+              ],
+            },
+            {
+              label: 'Relacionamento',
+              items: [
+                { id: 'automations', label: 'Automações', icon: Settings },
+                { id: 'contacts', label: 'Contatos / Leads', icon: Users },
+                { id: 'inbox', label: 'Inbox', icon: MessageCircle },
+                { id: 'sequences', label: 'Sequências', icon: Layers },
+              ],
+            },
+            {
+              label: 'Prospecção',
+              items: [
+                { id: 'crm', label: 'CRM', icon: Building2 },
+                { id: 'utm', label: 'Links UTM', icon: Link2 },
+              ],
+            },
+            { label: 'Sistema', items: [{ id: 'logs', label: 'Logs de Eventos', icon: FileCode }] },
+          ].map((group, gi) => (
+            <div key={gi} className="flex flex-col gap-1">
+              {group.label && (
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4 mb-2">{group.label}</span>
+              )}
+              {group.items.map(item => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveTab(item.id as any);
+                      setIsEditing(false);
+                    }}
+                    className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-left ${
+                      active ? 'text-primary font-bold' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                    }`}
+                  >
+                    {active && (
+                      <motion.div
+                        layoutId="nav-active-pill"
+                        className="absolute inset-0 bg-primary/10 rounded-xl"
+                        transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+                      />
+                    )}
+                    <Icon className={`relative w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <span className="relative">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Sidebar Footer: Usuário logado no GENSBot + Sair */}
