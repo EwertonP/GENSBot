@@ -187,7 +187,8 @@ export default function KanbanBoard({ accounts, selectedAccountId, withAccount, 
           <Card
             padding="sm"
             onClick={() => openEditor(post)}
-            className="rounded-xl hover:shadow-md transition-shadow"
+            interactive
+            className="rounded-xl"
           >
             <div className="flex gap-2">
               <div className="w-12 h-12 rounded-lg bg-accent shrink-0 overflow-hidden flex items-center justify-center">

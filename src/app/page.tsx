@@ -1105,7 +1105,14 @@ export default function Dashboard() {
         {/* 3. Tab-based Content Area — a rolagem agora acontece no container pai (acima), pra
              o header sticky ter conteúdo de verdade passando por baixo dele */}
         <main className="flex-1 p-6 pb-14 bg-background">
-          
+          <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
             <DashboardHome
@@ -1274,6 +1281,8 @@ export default function Dashboard() {
           {activeTab === 'logs' && (
             <LogsTab recentEvents={recentEvents} recentQueue={recentQueue} showToast={showToast} />
           )}
+          </motion.div>
+          </AnimatePresence>
 
         </main>
       </div>

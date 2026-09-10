@@ -147,7 +147,7 @@ export default function CrmBoard() {
         getItemStatus={(lead) => lead.status}
         onMove={moveLead}
         renderCard={(lead) => (
-          <Card padding="sm" onClick={() => openLead(lead)} className="rounded-xl hover:shadow-md transition-shadow">
+          <Card padding="sm" onClick={() => openLead(lead)} interactive className="rounded-xl">
             <p className="text-xs font-bold text-foreground truncate">{lead.name}</p>
             <p className="text-[10px] text-muted-foreground truncate">{lead.category || 'Sem categoria'} {lead.city ? `· ${lead.city}` : ''}</p>
             <div className="flex items-center gap-2 mt-2">
