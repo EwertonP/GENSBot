@@ -30,6 +30,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ContactsTab from '@/components/contacts-tab';
 import SequenceManager from '@/components/sequence-manager';
 import CrmBoard from '@/components/crm-board';
+import InboxPanel from '@/components/inbox-panel';
 const FlowBuilder = nextDynamicImport(() => import('@/components/flow-builder/FlowBuilder'), { ssr: false });
 import {
   Settings,
@@ -169,7 +170,7 @@ export default function Dashboard() {
   const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox' | 'logs'>('dashboard');
   // Sub-abas de "Agendamentos" (Onda 1) — Publicações é a lista/composer que já existia,
   // Calendário e Kanban são novos, mesma fonte de dado (scheduled_posts).
   const [publishSubTab, setPublishSubTab] = useState<'publicacoes' | 'calendario' | 'kanban'>('publicacoes');
@@ -1027,6 +1028,7 @@ export default function Dashboard() {
               { id: 'contacts', label: 'Contatos / Leads', icon: Users },
               { id: 'sequences', label: 'Sequências', icon: Layers },
               { id: 'crm', label: 'CRM', icon: Building2 },
+              { id: 'inbox', label: 'Inbox', icon: MessageCircle },
             ].map(item => {
               const Icon = item.icon;
               const active = activeTab === item.id;
@@ -1152,6 +1154,7 @@ export default function Dashboard() {
               {activeTab === 'contacts' && 'Leads & Público'}
               {activeTab === 'sequences' && 'Sequências'}
               {activeTab === 'crm' && 'CRM'}
+              {activeTab === 'inbox' && 'Inbox'}
               {activeTab === 'logs' && 'Logs de Eventos'}
             </h2>
             <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
@@ -1163,6 +1166,7 @@ export default function Dashboard() {
               {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
               {activeTab === 'sequences' && 'Séries de mensagens reutilizáveis entre automações.'}
               {activeTab === 'crm' && 'Leads de prospecção da agência, ligado ao Prospecção Gens.'}
+              {activeTab === 'inbox' && 'Converse manualmente com quem já interagiu com o bot.'}
               {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
             </p>
           </div>
@@ -2399,6 +2403,13 @@ export default function Dashboard() {
           {activeTab === 'crm' && (
             <div className="animate-fade-in">
               <CrmBoard />
+            </div>
+          )}
+
+          {/* TAB: INBOX (Onda 5) */}
+          {activeTab === 'inbox' && (
+            <div className="animate-fade-in">
+              <InboxPanel withAccount={withAccount} />
             </div>
           )}
 
