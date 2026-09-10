@@ -15,7 +15,10 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, padding = 'md', ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('bg-card border border-border rounded-lg', PADDING[padding], className)}
+      // Elevação vem de sombra por padrão (light mode) — borda só reaparece no
+      // dark mode, onde sombra quase não se vê contra o fundo quase-preto
+      // (a separação lá vem de variação de tom entre bg-background/bg-card).
+      className={cn('bg-card rounded-lg shadow-sm dark:border dark:border-border', PADDING[padding], className)}
       {...props}
     />
   )
