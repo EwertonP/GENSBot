@@ -1,50 +1,41 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { supabase } from '@/lib/supabase';
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { getAuthUser } from '@/lib/auth-api';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'video/mp4', 'video/quicktime'];
-const MAX_SIZE_BYTES = 100 * 1024 * 1024; // 100MB — folga acima do limite prático de vídeo do Instagram
+const MAX_SIZE_BYTES = 1024 * 1024 * 1024; // 1GB — teto de vídeo de Reels da própria Meta
 
-// POST: não recebe mais o arquivo em si — o corpo da requisição passando pela
-// função serverless da Vercel tem limite de ~4.5MB, bem abaixo de um vídeo de
-// Reels, e o upload falhava com "Request Entity Too Large" (texto puro, não
-// JSON, por isso o front via "Unexpected token 'R'..." ao tentar parsear).
-// Agora só pede nome/tipo/tamanho do arquivo e devolve uma signed upload URL do
-// Supabase Storage: o navegador manda os bytes direto pro Supabase, sem passar
-// pela função serverless.
-export async function POST(req: Request) {
+// POST: gera o client token que autoriza o navegador a mandar o arquivo direto
+// pro Vercel Blob (multipart, sem passar pelo corpo desta função serverless —
+// que tem limite de ~4.5MB, bem abaixo de um vídeo de Reels). Antes isso ia
+// pelo Supabase Storage via signed URL; trocado pro Blob pra não depender do
+// limite de upload configurado no projeto Supabase (50MB no plano free) e
+// aproveitar o multipart nativo do Blob pra arquivo grande.
+export async function POST(request: Request): Promise<NextResponse> {
+  const body = (await request.json()) as HandleUploadBody;
+
   try {
-    const user = await getAuthUser();
-    if (!user) return unauthorizedResponse();
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async () => {
+        const user = await getAuthUser();
+        if (!user) throw new Error('Não autenticado.');
 
-    const { fileName, fileType, fileSize } = await req.json();
-
-    if (!fileName || !fileType) {
-      return NextResponse.json({ error: 'Nome e tipo do arquivo são obrigatórios.' }, { status: 400 });
-    }
-    if (!ALLOWED_TYPES.includes(fileType)) {
-      return NextResponse.json({ error: 'Formato não suportado. Use JPG, PNG ou MP4.' }, { status: 400 });
-    }
-    if (typeof fileSize === 'number' && fileSize > MAX_SIZE_BYTES) {
-      return NextResponse.json({ error: 'Arquivo muito grande (máximo 100MB).' }, { status: 400 });
-    }
-
-    const ext = fileName.split('.').pop() || (fileType.startsWith('video') ? 'mp4' : 'jpg');
-    const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-
-    const { data, error } = await supabase.storage.from('post-media').createSignedUploadUrl(path);
-    if (error || !data) {
-      return NextResponse.json({ error: error?.message || 'Erro ao preparar o upload.' }, { status: 500 });
-    }
-
-    const { data: publicUrlData } = supabase.storage.from('post-media').getPublicUrl(path);
-
-    return NextResponse.json({
-      path: data.path,
-      token: data.token,
-      url: publicUrlData.publicUrl,
+        return {
+          allowedContentTypes: ALLOWED_TYPES,
+          maximumSizeInBytes: MAX_SIZE_BYTES,
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({ userId: user.id }),
+        };
+      },
+      // Sem onUploadCompleted: não precisamos de nada no banco quando o upload
+      // termina — o front recebe a URL do blob direto no retorno de upload()
+      // e segue pro /api/instagram/publish com ela.
     });
+
+    return NextResponse.json(jsonResponse);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 400 });
   }
 }
