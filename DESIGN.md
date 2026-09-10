@@ -144,10 +144,12 @@ precisaria ser:
    `dnd-kit`, com `DragOverlay`/ghost card e suporte a touch). Qualquer
    polish visual de Kanban daqui pra frente entra nesse componente único,
    não duplicado.
-2. **`src/app/page.tsx` com ~2600 linhas**: toda a casca do app (sidebar,
-   header, KPIs, switch de todas as abas) num único client component.
-   Reagrupar a sidebar no estilo Linear fica mais seguro depois de quebrar
-   isso em componentes por aba.
+2. ~~**`src/app/page.tsx` com ~2600 linhas**~~ — **resolvido**: todas as
+   abas viraram componentes próprios (`dashboard-home.tsx`, `automations-tab.tsx`,
+   `logs-tab.tsx`, mais os que já existiam) — `page.tsx` caiu pra ~1300
+   linhas, só a casca (sidebar, header, seletor de conta, switch de abas).
+   Reagrupar a sidebar no estilo Linear agora é seguro fazer sem editar um
+   arquivo de 2600 linhas a cada mudança.
 
 ## 7. Histórico
 
