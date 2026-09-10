@@ -146,46 +146,50 @@
 }
 
 .dark {
-  /* Paleta escura da agência GENS — mesma identidade do tema claro,
-     invertida: fundo quase-preto puro (#0F0F0F, a mesma cor da marca,
-     não um preto genérico), primary vira o lima vibrante (#DBFF69, alto
-     contraste contra o fundo escuro — 16.9:1 verificado), accent vira o
-     verde-oliva escuro (#304000) como superfície intermediária. */
+  /* Paleta escura da agência GENS, v2 — preto neutro predominante (não mais
+     verde-oliva tingindo toda superfície de destaque), lima (#DBFF69) como
+     ÚNICO ponto de verde saturado no dark mode: CTA, aba ativa, linha de
+     gráfico. Antes, `--accent`/`--secondary`/`--muted`/`--border` eram todos
+     verde-oliva (#304000-ish) — qualquer hover, badge ou superfície
+     intermediária carregava matiz verde, mesmo não sendo ação nenhuma. Esses
+     tokens agora são cinza-neutro (chroma ~0.006, quase zero) sobre o mesmo
+     fundo preto #0F0F0F, no espírito do dark mode do Linear: cor de marca só
+     onde é estado/ação, resto é neutro. */
   --background: oklch(0.168 0 89.9); /* #0F0F0F */
   --foreground: oklch(0.989 0.031 118.9); /* #F9FFE8 */
-  --card: oklch(0.22 0.025 121);
+  --card: oklch(0.205 0.006 121);
   --card-foreground: oklch(0.989 0.031 118.9);
-  --popover: oklch(0.22 0.025 121);
+  --popover: oklch(0.205 0.006 121);
   --popover-foreground: oklch(0.989 0.031 118.9);
   --primary: oklch(0.946 0.179 121.3); /* #DBFF69 */
   --primary-foreground: oklch(0.168 0 89.9); /* #0F0F0F */
-  --secondary: oklch(0.27 0.03 121);
+  --secondary: oklch(0.24 0.006 121);
   --secondary-foreground: oklch(0.989 0.031 118.9);
-  --muted: oklch(0.25 0.025 121);
-  --muted-foreground: oklch(0.68 0.035 121);
-  --accent: oklch(0.345 0.086 124); /* #304000 */
-  --accent-foreground: oklch(0.946 0.179 121.3); /* #DBFF69 */
+  --muted: oklch(0.225 0.006 121);
+  --muted-foreground: oklch(0.62 0.008 121);
+  --accent: oklch(0.26 0.006 121);
+  --accent-foreground: oklch(0.946 0.179 121.3); /* #DBFF69 — hover ainda "acende" verde no texto/ícone */
   --destructive: oklch(0.68 0.1 25);
   --destructive-foreground: oklch(0.18 0.03 25);
   --success: oklch(0.68 0.06 145);
   --success-foreground: oklch(0.16 0.03 145);
   --warning: oklch(0.75 0.09 75);
   --warning-foreground: oklch(0.18 0.03 75);
-  --border: oklch(0.35 0.035 121);
-  --input: oklch(0.35 0.035 121);
+  --border: oklch(0.3 0.006 121);
+  --input: oklch(0.3 0.006 121);
   --ring: oklch(0.946 0.179 121.3);
   --chart-1: oklch(0.946 0.179 121.3);
   --chart-2: oklch(0.68 0.06 145);
   --chart-3: oklch(0.75 0.09 75);
   --chart-4: oklch(0.551 0.154 132.3);
   --chart-5: oklch(0.68 0.1 25);
-  --sidebar: oklch(0.22 0.025 121);
+  --sidebar: oklch(0.16 0.004 121); /* levemente mais escura que o card — sidebar como "chão", não como painel */
   --sidebar-foreground: oklch(0.989 0.031 118.9);
   --sidebar-primary: oklch(0.946 0.179 121.3);
   --sidebar-primary-foreground: oklch(0.168 0 89.9);
-  --sidebar-accent: oklch(0.345 0.086 124);
+  --sidebar-accent: oklch(0.24 0.006 121);
   --sidebar-accent-foreground: oklch(0.946 0.179 121.3);
-  --sidebar-border: oklch(0.35 0.035 121);
+  --sidebar-border: oklch(0.28 0.006 121);
   --sidebar-ring: oklch(0.946 0.179 121.3);
   --shadow-color: #000000;
   --shadow-opacity: 0.08;
