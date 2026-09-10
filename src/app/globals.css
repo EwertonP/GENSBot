@@ -94,20 +94,28 @@
   --popover-foreground: oklch(0.168 0 89.9);
   --primary: oklch(0.551 0.154 132.3); /* #4D8300 */
   --primary-foreground: oklch(0.989 0.031 118.9); /* #F9FFE8 */
-  --secondary: oklch(0.95 0.02 119);
+  /* v6 — superfícies secundárias neutralizadas (mesmo ajuste já feito no dark
+     mode): eram lima-tintadas (--accent chegava a chroma 0.106, quase tão
+     saturado quanto o próprio --primary), então todo hover/badge/painel
+     intermediário carregava verde mesmo não sendo ação nenhuma. --primary
+     continua o único ponto de cor saturada; --background/--card não mudam
+     (o calor lima sutil de fundo é intencional, tipo o off-white do Cron/
+     Notion Calendar — só as superfícies EM CIMA do fundo é que precisavam
+     virar neutras). */
+  --secondary: oklch(0.95 0.004 119);
   --secondary-foreground: oklch(0.168 0 89.9);
-  --muted: oklch(0.96 0.015 119);
-  --muted-foreground: oklch(0.5 0.025 121);
-  --accent: oklch(0.966 0.106 119.6); /* #EBFFAD */
-  --accent-foreground: oklch(0.345 0.086 124); /* #304000 */
+  --muted: oklch(0.96 0.004 119);
+  --muted-foreground: oklch(0.5 0.006 121);
+  --accent: oklch(0.94 0.004 119);
+  --accent-foreground: oklch(0.345 0.086 124); /* #304000 — hover ainda "acende" verde no texto/ícone */
   --destructive: oklch(0.55 0.14 25);
   --destructive-foreground: oklch(1 0 0);
   --success: oklch(0.56 0.07 145);
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.68 0.11 75);
   --warning-foreground: oklch(0.28 0.04 75);
-  --border: oklch(0.88 0.03 119);
-  --input: oklch(0.9 0.025 119);
+  --border: oklch(0.88 0.006 119);
+  --input: oklch(0.9 0.006 119);
   --ring: oklch(0.551 0.154 132.3);
   --chart-1: oklch(0.551 0.154 132.3);
   --chart-2: oklch(0.56 0.07 145);
@@ -119,9 +127,9 @@
   --sidebar-foreground: oklch(0.168 0 89.9);
   --sidebar-primary: oklch(0.551 0.154 132.3);
   --sidebar-primary-foreground: oklch(0.989 0.031 118.9);
-  --sidebar-accent: oklch(0.966 0.106 119.6);
+  --sidebar-accent: oklch(0.94 0.004 119);
   --sidebar-accent-foreground: oklch(0.345 0.086 124);
-  --sidebar-border: oklch(0.92 0.025 119);
+  --sidebar-border: oklch(0.92 0.006 119);
   --sidebar-ring: oklch(0.551 0.154 132.3);
   --font-sans: Inter, sans-serif;
   --font-serif: Georgia, serif;
