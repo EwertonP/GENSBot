@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CalendarPicker } from '@/components/ui/calendar-picker';
 import type { PostingTimeSuggestion } from '@/lib/best-posting-time';
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
 type PostKind = 'post' | 'reels' | 'story';
@@ -268,14 +269,30 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
     setError(null);
     setSubmitting(true);
     try {
+      // Upload direto pro Supabase Storage via signed URL — o corpo da requisição
+      // pra função serverless da Vercel tem limite de ~4.5MB, então mandar o
+      // arquivo (principalmente vídeo de Reels) via FormData pra nossa própria
+      // API route batia nesse limite e voltava "Request Entity Too Large" (texto
+      // puro, não JSON: daí o erro "Unexpected token 'R'..." ao dar JSON.parse).
+      // Agora a API route só devolve a signed URL (payload pequeno, sem o
+      // arquivo) e o navegador manda os bytes direto pro Supabase.
+      const supabaseBrowser = createSupabaseBrowserClient();
       const uploadedUrls: string[] = [];
       for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        const uploadRes = await fetch('/api/instagram/upload-media', { method: 'POST', body: formData });
-        const uploadData = await uploadRes.json();
-        if (!uploadRes.ok) throw new Error(uploadData.error || 'Falha no upload da mídia.');
-        uploadedUrls.push(uploadData.url);
+        const signRes = await fetch('/api/instagram/upload-media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }),
+        });
+        const signData = await signRes.json();
+        if (!signRes.ok) throw new Error(signData.error || 'Falha ao preparar o upload da mídia.');
+
+        const { error: uploadError } = await supabaseBrowser.storage
+          .from('post-media')
+          .uploadToSignedUrl(signData.path, signData.token, file);
+        if (uploadError) throw new Error(uploadError.message || 'Falha no upload da mídia.');
+
+        uploadedUrls.push(signData.url);
       }
 
       let mediaType: MediaType;
