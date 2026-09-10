@@ -162,6 +162,14 @@ export async function waitForContainerReady(
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 
+  // Checar o status imediatamente após criar o container (sem nenhuma espera)
+  // bate numa corrida documentada da própria Meta: o ID do container ainda não
+  // propagou pros servidores que respondem esse GET, e ela devolve "Media ID
+  // is not available" mesmo o container tendo sido criado com sucesso — não é
+  // um erro de processamento de verdade. Esperar um ciclo antes da primeira
+  // checagem evita isso.
+  await new Promise((resolve) => setTimeout(resolve, intervalMs));
+
   while (Date.now() < deadline) {
     const data = await graphFetch(
       `${GRAPH_BASE}/${creationId}?fields=status_code&access_token=${accessToken}`
