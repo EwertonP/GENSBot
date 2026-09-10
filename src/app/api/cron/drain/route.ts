@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { drainQueue } from '@/lib/drain';
 
+// Mesmo padrão de src/app/api/instagram/publish/route.ts — sem isso a Vercel corta
+// em 10s (padrão do plano Hobby), curto demais pra drenar uma fila maior.
+export const maxDuration = 60;
+
 async function handleDrain(req: Request) {
   const authHeader = req.headers.get('Authorization');
   const cronSecret = process.env.CRON_SECRET || 'local_secret';

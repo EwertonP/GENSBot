@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import type { Automation } from '@/types/automation';
 import type { FlowDefinition, FlowNode, FlowEdge, SendMessageNodeConfig, ActionNodeConfig, ConditionNodeConfig, DelayNodeConfig, WaitForReplyNodeConfig } from '@/types/flow';
 import { evaluateTriggerNode, evaluateConditionNode, applyActionNode, applyWaitForReplyCapture, matchesKeywords, personalizeText, deriveAutomationTag, type ContactSnapshot } from './evaluator';
+import { triggerExternalWebhook } from '@/lib/external-webhook';
 
 export interface FlowRunContext {
   ownerUserId: string;
@@ -341,8 +342,22 @@ export async function resumeFlow(automation: Automation, ctx: FlowRunContext, pa
   }
 
   if (resumeKind === 'reply' && pausedNode?.type === 'waitForReply') {
-    const mutation = applyWaitForReplyCapture(pausedNode.data as WaitForReplyNodeConfig, ctx.text, contact);
+    const waitConfig = pausedNode.data as WaitForReplyNodeConfig;
+    const mutation = applyWaitForReplyCapture(waitConfig, ctx.text, contact);
+
+    // `flow_state` é jsonb — um update simples sobrescreveria as chaves já salvas de
+    // perguntas anteriores. Faz o merge com o valor atual do contato antes de persistir.
+    if (mutation.flow_state) {
+      mutation.flow_state = { ...((contact?.flow_state as Record<string, unknown>) || {}), ...(mutation.flow_state as Record<string, unknown>) };
+    }
+
     await persistContact(ctx, mutation);
+
+    // Mesmo evento 'lead_captured' que o caminho legado (route.ts) dispara ao capturar
+    // email/telefone — o motor de fluxo novo nunca chamava isso (Onda 0, item 3).
+    if ((waitConfig.saveReplyToField === 'email' || waitConfig.saveReplyToField === 'phone') && automation.webhook_url) {
+      triggerExternalWebhook(automation.webhook_url, { ...contact, [waitConfig.saveReplyToField]: ctx.text.trim() }, automation);
+    }
   }
 
   await walk(automation, flow, ctx, next.target, flowRunId);

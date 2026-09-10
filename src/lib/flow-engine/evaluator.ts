@@ -50,6 +50,7 @@ export interface ContactSnapshot {
   phone?: string | null;
   name?: string | null;
   username?: string | null;
+  flow_state?: Record<string, unknown> | null;
 }
 
 /** Substitui `{{primeiro_nome}}` pelo primeiro nome do contato no texto de uma mensagem. Se o nome não for conhecido, o marcador vira string vazia. */
@@ -87,13 +88,18 @@ export function evaluateConditionNode(
   }
 }
 
-/** Calcula as mutações a aplicar em `contacts` quando um nó `waitForReply` é retomado por uma resposta real (não por timeout). */
+const CONTACT_COLUMN_FIELDS = new Set(['email', 'phone', 'name']);
+
+/** Calcula as mutações a aplicar em `contacts` quando um nó `waitForReply` é retomado por uma resposta real (não por timeout).
+ * `saveReplyToField` grava direto na coluna quando é 'email'/'phone'/'name' (colunas reais); qualquer outro nome
+ * (ex: "regiao", "idade") vira uma chave dentro de `flow_state` — quem chama (runner.ts) faz o merge com o
+ * `flow_state` atual do contato antes de persistir, já que aqui não temos acesso ao valor já salvo. */
 export function applyWaitForReplyCapture(
   config: WaitForReplyNodeConfig,
   replyText: string,
   contact: ContactSnapshot | null,
-): Partial<Record<'tags' | 'email' | 'phone' | 'name', unknown>> {
-  const mutation: Partial<Record<'tags' | 'email' | 'phone' | 'name', unknown>> = {};
+): Partial<Record<'tags' | 'email' | 'phone' | 'name' | 'flow_state', unknown>> {
+  const mutation: Partial<Record<'tags' | 'email' | 'phone' | 'name' | 'flow_state', unknown>> = {};
   const trimmed = replyText.trim();
   if (!trimmed) return mutation;
 
@@ -107,7 +113,11 @@ export function applyWaitForReplyCapture(
   }
 
   if (config.saveReplyToField) {
-    mutation[config.saveReplyToField] = trimmed;
+    if (CONTACT_COLUMN_FIELDS.has(config.saveReplyToField)) {
+      mutation[config.saveReplyToField as 'email' | 'phone' | 'name'] = trimmed;
+    } else {
+      mutation.flow_state = { [config.saveReplyToField]: trimmed };
+    }
   }
 
   return mutation;

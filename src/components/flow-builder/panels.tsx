@@ -431,15 +431,26 @@ function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; o
       <Field label="Salvar a resposta num campo do contato? (opcional)">
         <select
           className={inputCls}
-          value={data.saveReplyToField || ''}
-          onChange={(e) => onChange({ ...data, saveReplyToField: (e.target.value || null) as WaitForReplyNodeConfig['saveReplyToField'] })}
+          value={data.saveReplyToField === undefined || data.saveReplyToField === null || ['', 'email', 'phone', 'name'].includes(data.saveReplyToField) ? (data.saveReplyToField || '') : 'custom'}
+          onChange={(e) => onChange({ ...data, saveReplyToField: e.target.value === 'custom' ? '' : (e.target.value || null) })}
         >
           <option value="">Nenhum</option>
           <option value="email">E-mail</option>
           <option value="phone">Telefone</option>
           <option value="name">Nome</option>
+          <option value="custom">Outro (personalizado)</option>
         </select>
       </Field>
+      {data.saveReplyToField != null && !['email', 'phone', 'name'].includes(data.saveReplyToField) && (
+        <Field label="Nome do campo personalizado">
+          <input
+            className={inputCls}
+            placeholder="ex: regiao, idade"
+            value={data.saveReplyToField}
+            onChange={(e) => onChange({ ...data, saveReplyToField: e.target.value })}
+          />
+        </Field>
+      )}
     </div>
   );
 }

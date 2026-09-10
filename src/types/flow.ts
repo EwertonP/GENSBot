@@ -48,8 +48,10 @@ export interface WaitForReplyNodeConfig {
   timeoutMinutes?: number | null;
   /** Grava a resposta livre como tag do contato (prefixo opcional), pra aparecer no CRM/listagem mesmo sem branching. */
   saveReplyAsTagPrefix?: string | null;
-  /** Grava a resposta livre direto num campo do contato. */
-  saveReplyToField?: 'email' | 'phone' | 'name' | null;
+  /** Grava a resposta livre num campo do contato. 'email'/'phone'/'name' vão pras colunas reais;
+   * qualquer outro nome (ex: "regiao", "idade") vira uma chave dentro de `contacts.flow_state`
+   * (jsonb) — não precisa de coluna nova no banco pra cada pergunta de qualificação nova. */
+  saveReplyToField?: string | null;
 }
 
 export interface ActionNodeConfig {

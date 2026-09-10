@@ -189,7 +189,6 @@ export async function drainQueue() {
           'Mensagem Estruturada';
 
         const { error: outboundMsgError } = await supabase.from('messages').insert({
-          user_id: account.user_id,
           instagram_user_id: account.instagram_user_id,
           contact_id: job.contact_id,
           direction: 'outbound',

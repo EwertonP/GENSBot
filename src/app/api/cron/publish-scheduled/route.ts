@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { publishPost, PublishMediaType } from '@/lib/instagram-publish';
 
+// Cada publicação pode esperar o processamento de vídeo pela Meta (waitForContainerReady) —
+// mesmo teto de src/app/api/instagram/publish/route.ts, teto do plano Hobby.
+export const maxDuration = 60;
+
 const DAILY_LIMIT_PER_ACCOUNT = 100;
 
 async function handlePublishScheduled(req: Request) {
