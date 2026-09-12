@@ -22,6 +22,25 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+/** Input de "palavras-chave separadas por vírgula" — guarda o texto bruto digitado em
+ * vez de recompor `value` a partir do array filtrado a cada tecla. Sem isso, digitar
+ * "," ou deixar um espaço em branco era descartado no mesmo keystroke (o array só tem
+ * entradas não-vazias, e o join reconstruía o texto sem a vírgula/espaço que o usuário
+ * acabou de digitar), impedindo escrever a próxima palavra-chave. */
+function KeywordsInput({ keywords, onChange }: { keywords: string[]; onChange: (keywords: string[]) => void }) {
+  const [text, setText] = useState(() => keywords.join(', '));
+  return (
+    <input
+      className={inputCls}
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value);
+        onChange(e.target.value.split(',').map((s) => s.trim()).filter(Boolean));
+      }}
+    />
+  );
+}
+
 function TriggerPanel({ data, onChange }: { data: TriggerNodeConfig; onChange: (d: TriggerNodeConfig) => void }) {
   const ALL_TYPES: TriggerNodeConfig['triggerTypes'] = ['dm', 'comment', 'story', 'story_mention'];
   const [newReply, setNewReply] = useState('');
@@ -48,11 +67,7 @@ function TriggerPanel({ data, onChange }: { data: TriggerNodeConfig; onChange: (
         </div>
       </Field>
       <Field label="Palavras-chave (separadas por vírgula)">
-        <input
-          className={inputCls}
-          value={data.keywords.join(', ')}
-          onChange={(e) => onChange({ ...data, keywords: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-        />
+        <KeywordsInput keywords={data.keywords} onChange={(keywords) => onChange({ ...data, keywords })} />
       </Field>
       <Field label="Tipo de correspondência">
         <select className={inputCls} value={data.match_type} onChange={(e) => onChange({ ...data, match_type: e.target.value as any })}>
@@ -282,11 +297,7 @@ export function ConditionPanel({ data, onChange }: { data: ConditionNodeConfig; 
       {data.conditionType === 'keyword' && (
         <>
           <Field label="Palavras-chave (separadas por vírgula)">
-            <input
-              className={inputCls}
-              value={(data.keywords || []).join(', ')}
-              onChange={(e) => onChange({ ...data, keywords: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-            />
+            <KeywordsInput keywords={data.keywords || []} onChange={(keywords) => onChange({ ...data, keywords })} />
           </Field>
           <Field label="Tipo de correspondência">
             <select className={inputCls} value={data.match_type || 'contains'} onChange={(e) => onChange({ ...data, match_type: e.target.value as any })}>
@@ -529,9 +540,10 @@ export function NodeConfigPanel({
         </div>
       </div>
 
-      {node.type === 'trigger' && <TriggerPanel data={node.data as TriggerNodeConfig} onChange={onChange as any} />}
+      {node.type === 'trigger' && <TriggerPanel key={node.id} data={node.data as TriggerNodeConfig} onChange={onChange as any} />}
       {node.type === 'sendMessage' && (
         <SendMessagePanel
+          key={node.id}
           data={node.data as SendMessageNodeConfig}
           onChange={onChange as any}
           sequences={sequences}
@@ -540,10 +552,10 @@ export function NodeConfigPanel({
           onUtmLinksChange={onUtmLinksChange}
         />
       )}
-      {node.type === 'condition' && <ConditionPanel data={node.data as ConditionNodeConfig} onChange={onChange as any} />}
-      {node.type === 'delay' && <DelayPanel data={node.data as DelayNodeConfig} onChange={onChange as any} />}
-      {node.type === 'waitForReply' && <WaitForReplyPanel data={node.data as WaitForReplyNodeConfig} onChange={onChange as any} />}
-      {node.type === 'action' && <ActionPanel data={node.data as ActionNodeConfig} onChange={onChange as any} />}
+      {node.type === 'condition' && <ConditionPanel key={node.id} data={node.data as ConditionNodeConfig} onChange={onChange as any} />}
+      {node.type === 'delay' && <DelayPanel key={node.id} data={node.data as DelayNodeConfig} onChange={onChange as any} />}
+      {node.type === 'waitForReply' && <WaitForReplyPanel key={node.id} data={node.data as WaitForReplyNodeConfig} onChange={onChange as any} />}
+      {node.type === 'action' && <ActionPanel key={node.id} data={node.data as ActionNodeConfig} onChange={onChange as any} />}
     </div>
   );
 }

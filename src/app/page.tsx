@@ -49,6 +49,9 @@ import {
   TrendingUp,
   Layers,
   Building2,
+  ChevronDown,
+  Calendar,
+  Columns3,
 } from 'lucide-react';
 
 interface InstagramAccountSummary {
@@ -129,6 +132,9 @@ export default function Dashboard() {
   // Sub-abas de "Agendamentos" (Onda 1) — Publicações é a lista/composer que já existia,
   // Calendário e Kanban são novos, mesma fonte de dado (scheduled_posts).
   const [publishSubTab, setPublishSubTab] = useState<'publicacoes' | 'calendario' | 'kanban'>('publicacoes');
+  // Submenu de "Agendamentos" na sidebar (Publicações/Calendário/Kanban) — expande/colapsa
+  // dentro do próprio item de navegação, em vez de abas soltas no topo do conteúdo.
+  const [publishNavExpanded, setPublishNavExpanded] = useState(false);
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -986,6 +992,78 @@ export default function Dashboard() {
               {group.items.map(item => {
                 const Icon = item.icon;
                 const active = activeTab === item.id;
+
+                // "Agendamentos" tem submenu (Publicações/Calendário/Kanban) em vez de
+                // navegar direto — clicar expande/colapsa e abre a última sub-aba usada.
+                if (item.id === 'publish') {
+                  return (
+                    <div key={item.id} className="flex flex-col gap-0.5">
+                      <button
+                        onClick={() => {
+                          if (active) {
+                            setPublishNavExpanded(prev => !prev);
+                          } else {
+                            setActiveTab('publish');
+                            setIsEditing(false);
+                            setPublishNavExpanded(true);
+                          }
+                        }}
+                        className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-left ${
+                          active ? 'text-primary font-bold' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                        }`}
+                      >
+                        {active && (
+                          <motion.div
+                            layoutId="nav-active-pill"
+                            className="absolute inset-0 bg-primary/10 rounded-xl"
+                            transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+                          />
+                        )}
+                        <Icon className={`relative w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span className="relative flex-1">{item.label}</span>
+                        <ChevronDown className={`relative w-3.5 h-3.5 transition-transform ${publishNavExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {publishNavExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden flex flex-col gap-0.5 pl-4"
+                          >
+                            {[
+                              { id: 'publicacoes' as const, label: 'Publicações', icon: Send },
+                              { id: 'calendario' as const, label: 'Calendário', icon: Calendar },
+                              { id: 'kanban' as const, label: 'Kanban', icon: Columns3 },
+                            ].map(sub => {
+                              const SubIcon = sub.icon;
+                              const subActive = active && publishSubTab === sub.id;
+                              return (
+                                <button
+                                  key={sub.id}
+                                  onClick={() => {
+                                    setActiveTab('publish');
+                                    setIsEditing(false);
+                                    setPublishSubTab(sub.id);
+                                  }}
+                                  className={`w-full flex items-center gap-2.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-left ${
+                                    subActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                                  }`}
+                                >
+                                  <SubIcon className="w-3.5 h-3.5" />
+                                  {sub.label}
+                                </button>
+                              );
+                            })}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                }
+
                 return (
                   <button
                     key={item.id}
@@ -1207,24 +1285,6 @@ export default function Dashboard() {
           {/* TAB: PUBLISH (Agendamentos — Onda 1: Publicações / Calendário / Kanban) */}
           {activeTab === 'publish' && (
             <div className="animate-fade-in max-w-5xl mx-auto">
-              <div className="flex gap-1.5 mb-5 bg-muted p-1 rounded-xl w-fit">
-                {[
-                  { id: 'publicacoes' as const, label: 'Publicações' },
-                  { id: 'calendario' as const, label: 'Calendário' },
-                  { id: 'kanban' as const, label: 'Kanban' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setPublishSubTab(tab.id)}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-                      publishSubTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
               {publishSubTab === 'publicacoes' && (
                 <PublishPanel
                   accounts={accounts.map((acc) => ({ instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
