@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,13 +9,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const { id } = await params;
     const body = await req.json();
-    const accountParam = new URL(req.url).searchParams.get('account');
-
-    const config = await getActiveInstagramAccountForUser(user.id, accountParam);
-
-    if (!config?.instagram_user_id) {
-      return NextResponse.json({ error: 'Nenhuma conta do Instagram conectada.' }, { status: 400 });
-    }
 
     // Se o body trouxer flow_definition, é um save vindo do editor visual (Fase 3) —
     // antes de sobrescrever, guarda um snapshot do flow_definition ANTERIOR em
@@ -66,28 +58,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       })
       .eq('id', id)
       .eq('user_id', user.id)
-      .eq('instagram_user_id', config.instagram_user_id)
       .select()
       .single();
 
-    if (error) {
-      // Diagnóstico temporário: PGRST116 aqui só pode ser "0 linhas bateram no WHERE"
-      // (id é PK, não tem como bater 2+). Busca a linha direto por id (sem os outros
-      // filtros) pra apontar exatamente qual condição não bateu, em vez de só repetir
-      // a mesma mensagem genérica pro usuário.
-      if (error.code === 'PGRST116') {
-        const { data: raw } = await supabase.from('automations').select('id, user_id, instagram_user_id').eq('id', id).maybeSingle();
-        const diag = !raw
-          ? `automação ${id} não existe mais`
-          : raw.user_id !== user.id
-            ? `dona de outro usuário (esperado ${user.id}, é ${raw.user_id})`
-            : raw.instagram_user_id !== config.instagram_user_id
-              ? `conta resolvida (${config.instagram_user_id}) não bate com a dona real (${raw.instagram_user_id})`
-              : 'motivo desconhecido — todos os campos batem';
-        return NextResponse.json({ error: `${error.message} [diag: ${diag}]` }, { status: 500 });
-      }
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json(data);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -100,20 +74,12 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if (!user) return unauthorizedResponse();
 
     const { id } = await params;
-    const accountParam = new URL(req.url).searchParams.get('account');
-
-    const config = await getActiveInstagramAccountForUser(user.id, accountParam);
-
-    if (!config?.instagram_user_id) {
-      return NextResponse.json({ error: 'Nenhuma conta do Instagram conectada.' }, { status: 400 });
-    }
 
     const { error } = await supabase
       .from('automations')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id)
-      .eq('instagram_user_id', config.instagram_user_id);
+      .eq('user_id', user.id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
