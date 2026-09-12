@@ -106,12 +106,14 @@ function LivePreview({
   username,
   previewUrls,
   isVideo,
+  isCarousel,
   caption,
 }: {
   kind: PostKind;
   username: string;
   previewUrls: string[];
   isVideo: boolean;
+  isCarousel: boolean;
   caption: string;
 }) {
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -160,7 +162,11 @@ function LivePreview({
         <div className="w-7 h-7 rounded-full bg-accent shrink-0" />
         <span className="text-xs font-bold text-foreground">{username}</span>
       </div>
-      <div className="relative w-full aspect-square bg-black">
+      {/* Feed (post/carrossel) usa 4:5, não mais 1:1 — o Instagram não exibe mais
+          quadrado, e a prévia cortando errado escondia isso até a hora de publicar.
+          Vídeo único de feed (não-carrossel) é publicado como REELS pela própria API
+          (ver instagram-publish.ts), então a prévia dele já é 9:16 igual o Reels. */}
+      <div className={`relative w-full bg-black ${isVideo && !isCarousel ? 'aspect-[9/16]' : 'aspect-[4/5]'}`}>
         {isVideo ? (
           <video src={previewUrls[currentIndex]} className="w-full h-full object-cover" muted />
         ) : (
@@ -459,7 +465,7 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
         </Card>
 
         <Card className="flex items-center justify-center bg-accent/40">
-          <LivePreview kind={kind} username={usernameLabel} previewUrls={previewUrls} isVideo={isVideo} caption={caption} />
+          <LivePreview kind={kind} username={usernameLabel} previewUrls={previewUrls} isVideo={isVideo} isCarousel={isCarousel} caption={caption} />
         </Card>
       </div>
 
