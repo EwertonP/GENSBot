@@ -70,7 +70,24 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       .select()
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      // Diagnóstico temporário: PGRST116 aqui só pode ser "0 linhas bateram no WHERE"
+      // (id é PK, não tem como bater 2+). Busca a linha direto por id (sem os outros
+      // filtros) pra apontar exatamente qual condição não bateu, em vez de só repetir
+      // a mesma mensagem genérica pro usuário.
+      if (error.code === 'PGRST116') {
+        const { data: raw } = await supabase.from('automations').select('id, user_id, instagram_user_id').eq('id', id).maybeSingle();
+        const diag = !raw
+          ? `automação ${id} não existe mais`
+          : raw.user_id !== user.id
+            ? `dona de outro usuário (esperado ${user.id}, é ${raw.user_id})`
+            : raw.instagram_user_id !== config.instagram_user_id
+              ? `conta resolvida (${config.instagram_user_id}) não bate com a dona real (${raw.instagram_user_id})`
+              : 'motivo desconhecido — todos os campos batem';
+        return NextResponse.json({ error: `${error.message} [diag: ${diag}]` }, { status: 500 });
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json(data);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
