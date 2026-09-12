@@ -169,7 +169,12 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await fetch(`/api/automations/${currentAutomation.id}`, {
+      // ?account= garante que o servidor resolve a conta DONA desta automação, não
+      // "a conta conectada mais recentemente" (fallback de getActiveInstagramAccountForUser
+      // quando o parâmetro falta) — sem isso, editar uma automação de uma conta que não
+      // é a mais recente falha com "Cannot coerce the result to a single JSON object"
+      // (o UPDATE filtra pela conta errada e não bate em nenhuma linha).
+      const res = await fetch(`/api/automations/${currentAutomation.id}?account=${encodeURIComponent(currentAutomation.instagram_user_id || '')}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...currentAutomation, flow_definition: flow }),
