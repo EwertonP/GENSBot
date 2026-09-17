@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { cacheProfilePicture } from '@/lib/profile-picture';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -113,7 +114,11 @@ export async function GET(req: Request) {
 
     const igUserId = profileData.user_id;
     const igUsername = profileData.username;
-    const profilePictureUrl = profileData.profile_picture_url || null;
+    // Link da Meta expira em poucos dias — cacheia uma cópia permanente no
+    // Blob antes de gravar, senão a foto some sozinha sem nenhuma ação do
+    // usuário (ver cacheProfilePicture). Se o cache falhar, cai pro link cru
+    // da Meta em vez de travar a conexão da conta.
+    const profilePictureUrl = (await cacheProfilePicture(igUserId, profileData.profile_picture_url)) || profileData.profile_picture_url || null;
 
     // 3.5. Impedir que a mesma conta do Instagram seja vinculada a dois
     // usuários do SaaS diferentes ao mesmo tempo. O webhook da Meta só manda
