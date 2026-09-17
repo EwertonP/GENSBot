@@ -140,7 +140,38 @@ export async function POST(req: Request) {
 }
 
 // Processador do payload do webhook
-async function fetchInstagramUserProfile(senderId: string, accessToken: string) {
+// Fallback pro username quando a Profile API abaixo falha com "User consent is
+// required" (erro 230 — bloqueio da Meta que não depende de código nenhum, só
+// de aprovação de App Review que o app não tem hoje; sem essa aprovação, name
+// e profile_pic seguem indisponíveis, mas o username dá pra recuperar por
+// outro caminho). A Conversations API é uma API diferente, já liberada (é a
+// mesma que manda as mensagens da automação), e devolve o username de quem
+// mandou cada mensagem em `from.username` — sem passar pela checagem de
+// consentimento. Varre as conversas mais recentes (a que acabou de chegar
+// mensagem deste remetente está entre as primeiras) até achar uma cujo
+// `from.id` bata com o senderId.
+async function fetchUsernameFromConversation(igUserId: string, senderId: string, accessToken: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://graph.instagram.com/v25.0/${igUserId}/conversations?platform=instagram&fields=messages.limit(1){from}&limit=15&access_token=${accessToken}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    for (const conversation of data.data || []) {
+      const from = conversation.messages?.data?.[0]?.from;
+      if (from?.id === senderId && from?.username) return from.username;
+    }
+  } catch (err) {
+    console.error('Erro ao buscar username via Conversations API:', err);
+  }
+  return null;
+}
+
+async function fetchInstagramUserProfile(igUserId: string, senderId: string, accessToken: string) {
+  let username: string | null = null;
+  let name: string | null = null;
+  let profile_picture_url: string | null = null;
+
   try {
     // Token do Instagram Business Login só é válido contra graph.instagram.com
     // (mesmo host usado no resto do arquivo) — graph.facebook.com rejeitava
@@ -152,11 +183,9 @@ async function fetchInstagramUserProfile(senderId: string, accessToken: string) 
     const res = await fetch(`https://graph.instagram.com/v25.0/${senderId}?fields=username,name,profile_pic&access_token=${accessToken}`);
     if (res.ok) {
       const data = await res.json();
-      return {
-        username: data.username || null,
-        name: data.name || null,
-        profile_picture_url: data.profile_pic || null,
-      };
+      username = data.username || null;
+      name = data.name || null;
+      profile_picture_url = data.profile_pic || null;
     } else {
       const errData = await res.json();
       console.error('Erro na resposta da API do perfil do Instagram:', errData);
@@ -164,7 +193,12 @@ async function fetchInstagramUserProfile(senderId: string, accessToken: string) 
   } catch (err) {
     console.error('Erro ao buscar perfil do Instagram:', err);
   }
-  return { username: null, name: null, profile_picture_url: null };
+
+  if (!username) {
+    username = await fetchUsernameFromConversation(igUserId, senderId, accessToken);
+  }
+
+  return { username, name, profile_picture_url };
 }
 
 async function processWebhookEvent(payload: any) {
@@ -249,7 +283,7 @@ async function processWebhookEvent(payload: any) {
                 triggerType: 'comment',
                 mediaId,
                 recipientRef: { comment_id: commentId },
-                resolveProfile: (id) => fetchInstagramUserProfile(id, igToken),
+                resolveProfile: (id) => fetchInstagramUserProfile(myIgId, id, igToken),
               });
               if (result.matched) {
                 const { error: analyticsError } = await supabase.from('analytics_events').insert({
@@ -305,7 +339,7 @@ async function processWebhookEvent(payload: any) {
               let profilePictureUrl = existingContact?.profile_picture_url || null;
 
               if (!profileName) {
-                const profile = await fetchInstagramUserProfile(fromUserId, igToken);
+                const profile = await fetchInstagramUserProfile(myIgId, fromUserId, igToken);
                 profileName = profile.name;
                 if (profile.username) profileUsername = profile.username;
                 if (profile.profile_picture_url) profilePictureUrl = profile.profile_picture_url;
@@ -712,7 +746,7 @@ async function processWebhookEvent(payload: any) {
               triggerType: requiredTrigger as 'dm' | 'story' | 'story_mention',
               storyId: repliedStoryId,
               recipientRef: { id: senderId },
-              resolveProfile: (id) => fetchInstagramUserProfile(id, igToken),
+              resolveProfile: (id) => fetchInstagramUserProfile(myIgId, id, igToken),
             });
             if (result.matched) {
               const { error: welcomeDmFlowError } = await supabase.from('analytics_events').insert({
@@ -770,7 +804,7 @@ async function processWebhookEvent(payload: any) {
             let profilePictureUrl = existingContact?.profile_picture_url || null;
 
             if (!profileName || profileUsername === senderId) {
-              const profile = await fetchInstagramUserProfile(senderId, igToken);
+              const profile = await fetchInstagramUserProfile(myIgId, senderId, igToken);
               if (profile.name) profileName = profile.name;
               if (profile.username) profileUsername = profile.username;
               if (profile.profile_picture_url) profilePictureUrl = profile.profile_picture_url;

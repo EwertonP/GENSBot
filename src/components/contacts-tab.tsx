@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type KeyboardEvent } from 'react';
-import { FileText, Trash2, ExternalLink, Plus, X, Pencil, StickyNote } from 'lucide-react';
+import { FileText, Trash2, ExternalLink, Plus, X, Pencil, StickyNote, Info } from 'lucide-react';
 import { tagColorClasses } from '@/lib/tag-colors';
 import { Sheet } from '@/components/ui/sheet';
 import { Card } from '@/components/ui/card';
@@ -380,7 +380,15 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                   </td>
                   <td className="py-3.5 px-4 font-bold text-foreground text-sm">
                     <div className="flex items-center gap-1.5">
-                      {item.name || <span className="text-muted-foreground font-normal italic">Não informado</span>}
+                      {item.name || (
+                        <span
+                          title="A Meta bloqueia o nome de exibição pra esse tipo de contato até o GENSBot ter uma permissão específica aprovada por eles (App Review). O @usuário ao lado é o dado confiável — clique nele pra ver o perfil real."
+                          className="text-muted-foreground font-normal italic inline-flex items-center gap-1 cursor-help"
+                        >
+                          Nome não liberado pela Meta
+                          <Info className="w-3 h-3" />
+                        </span>
+                      )}
                       {item.notes && (
                         <span title={item.notes}>
                           <StickyNote className="w-3 h-3 text-amber-500 flex-shrink-0" />
@@ -389,7 +397,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                     </div>
                   </td>
                   <td className="py-3.5 px-4 text-xs font-semibold text-primary">
-                    {item.username ? (
+                    {item.username && item.username !== item.instagram_id ? (
                       <a
                         href={`https://instagram.com/${item.username}`}
                         target="_blank"
