@@ -918,8 +918,6 @@ async function enqueueFollowups(contactId: string, auto: any, userId: string, in
     }
 
     const { error: followupInsertError } = await supabase.from('followups').insert({
-      user_id: userId,
-      instagram_user_id: instagramUserId,
       automation_id: auto.id,
       contact_id: contactId,
       step: 1,
@@ -982,8 +980,6 @@ async function enqueueFollowups(contactId: string, auto: any, userId: string, in
       }
 
       const { error: sequenceFollowupError } = await supabase.from('followups').insert({
-        user_id: userId,
-        instagram_user_id: instagramUserId,
         automation_id: auto.id,
         contact_id: contactId,
         step: i + 2, // Começa do step 2 (assumindo que o link imediato foi step 1)
@@ -1018,8 +1014,6 @@ async function enqueueFollowups(contactId: string, auto: any, userId: string, in
     };
 
     const { error: reminderFollowupError } = await supabase.from('followups').insert({
-      user_id: userId,
-      instagram_user_id: instagramUserId,
       automation_id: auto.id,
       contact_id: contactId,
       step: 2,
