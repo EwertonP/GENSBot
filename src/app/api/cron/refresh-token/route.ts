@@ -25,49 +25,52 @@ async function handleRefresh(req: Request) {
 
     if (accountsError) throw accountsError;
 
-    if (!accounts || accounts.length === 0) {
-      return NextResponse.json({ message: 'Nenhum token precisa ser renovado.' });
-    }
-
     const results = [];
 
-    for (const account of accounts) {
-      if (!account.access_token) {
-        results.push({ instagram_user_id: account.instagram_user_id, status: 'skipped', reason: 'sem_token' });
-        continue;
-      }
-
-      try {
-        const refreshResponse = await fetch(
-          `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${account.access_token}`
-        );
-        const refreshData = await refreshResponse.json();
-
-        if (!refreshResponse.ok || !refreshData.access_token) {
-          console.error('Erro ao renovar token:', account.instagram_user_id, refreshData);
-          results.push({ instagram_user_id: account.instagram_user_id, status: 'failed' });
+    // `return` cedo aqui (versão anterior) impedia o loop de foto de perfil logo
+    // abaixo de rodar sempre que nenhum token estivesse perto de expirar — ou
+    // seja, quase sempre, já que o token dura 60 dias e a foto expira bem antes.
+    if (!accounts || accounts.length === 0) {
+      results.push({ status: 'nenhum_token_a_renovar' });
+    } else {
+      for (const account of accounts) {
+        if (!account.access_token) {
+          results.push({ instagram_user_id: account.instagram_user_id, status: 'skipped', reason: 'sem_token' });
           continue;
         }
 
-        const expiresIn = refreshData.expires_in || 5184000;
-        const expiresAt = new Date();
-        expiresAt.setSeconds(expiresAt.getSeconds() + expiresIn);
+        try {
+          const refreshResponse = await fetch(
+            `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${account.access_token}`
+          );
+          const refreshData = await refreshResponse.json();
 
-        const { error: updateError } = await supabase
-          .from('instagram_accounts')
-          .update({
-            access_token: refreshData.access_token,
-            token_expires_at: expiresAt.toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', account.id);
+          if (!refreshResponse.ok || !refreshData.access_token) {
+            console.error('Erro ao renovar token:', account.instagram_user_id, refreshData);
+            results.push({ instagram_user_id: account.instagram_user_id, status: 'failed' });
+            continue;
+          }
 
-        if (updateError) throw updateError;
+          const expiresIn = refreshData.expires_in || 5184000;
+          const expiresAt = new Date();
+          expiresAt.setSeconds(expiresAt.getSeconds() + expiresIn);
 
-        results.push({ instagram_user_id: account.instagram_user_id, status: 'refreshed', expires_at: expiresAt.toISOString() });
-      } catch (err: any) {
-        console.error('Erro ao renovar token da conta', account.instagram_user_id, err);
-        results.push({ instagram_user_id: account.instagram_user_id, status: 'failed', error: err.message });
+          const { error: updateError } = await supabase
+            .from('instagram_accounts')
+            .update({
+              access_token: refreshData.access_token,
+              token_expires_at: expiresAt.toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', account.id);
+
+          if (updateError) throw updateError;
+
+          results.push({ instagram_user_id: account.instagram_user_id, status: 'refreshed', expires_at: expiresAt.toISOString() });
+        } catch (err: any) {
+          console.error('Erro ao renovar token da conta', account.instagram_user_id, err);
+          results.push({ instagram_user_id: account.instagram_user_id, status: 'failed', error: err.message });
+        }
       }
     }
 
@@ -78,27 +81,39 @@ async function handleRefresh(req: Request) {
       .from('instagram_accounts')
       .select('id, instagram_user_id, access_token');
 
+    const photoResults: { instagram_user_id: string; status: string }[] = [];
+
     if (!allAccountsError && allAccounts) {
       for (const account of allAccounts) {
-        if (!account.access_token) continue;
+        if (!account.access_token) {
+          photoResults.push({ instagram_user_id: account.instagram_user_id, status: 'sem_token' });
+          continue;
+        }
 
         const meResponse = await fetch(
           `https://graph.instagram.com/v25.0/me?fields=profile_picture_url&access_token=${account.access_token}`
         );
-        if (!meResponse.ok) continue;
+        if (!meResponse.ok) {
+          photoResults.push({ instagram_user_id: account.instagram_user_id, status: 'falha_me' });
+          continue;
+        }
         const meData = await meResponse.json();
 
         const cachedUrl = await cacheProfilePicture(account.instagram_user_id, meData.profile_picture_url);
-        if (!cachedUrl) continue;
+        if (!cachedUrl) {
+          photoResults.push({ instagram_user_id: account.instagram_user_id, status: 'falha_cache' });
+          continue;
+        }
 
         await supabase
           .from('instagram_accounts')
           .update({ profile_picture_url: cachedUrl, updated_at: new Date().toISOString() })
           .eq('id', account.id);
+        photoResults.push({ instagram_user_id: account.instagram_user_id, status: 'atualizada' });
       }
     }
 
-    return NextResponse.json({ success: true, results });
+    return NextResponse.json({ success: true, results, photoResults });
   } catch (err: any) {
     console.error('Erro na renovação de token cron:', err);
     return NextResponse.json({ error: err.message || 'Erro desconhecido' }, { status: 500 });
