@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { cacheProfilePicture } from '@/lib/profile-picture';
 
 async function handleRefresh(req: Request) {
   const authHeader = req.headers.get('Authorization');
@@ -67,6 +68,33 @@ async function handleRefresh(req: Request) {
       } catch (err: any) {
         console.error('Erro ao renovar token da conta', account.instagram_user_id, err);
         results.push({ instagram_user_id: account.instagram_user_id, status: 'failed', error: err.message });
+      }
+    }
+
+    // Foto de perfil da Meta expira em poucos dias (bem antes do token), então
+    // atualiza independente de expiração de token — pra toda conta, não só as
+    // que entraram no filtro de renovação acima (ver cacheProfilePicture).
+    const { data: allAccounts, error: allAccountsError } = await supabase
+      .from('instagram_accounts')
+      .select('id, instagram_user_id, access_token');
+
+    if (!allAccountsError && allAccounts) {
+      for (const account of allAccounts) {
+        if (!account.access_token) continue;
+
+        const meResponse = await fetch(
+          `https://graph.instagram.com/v25.0/me?fields=profile_picture_url&access_token=${account.access_token}`
+        );
+        if (!meResponse.ok) continue;
+        const meData = await meResponse.json();
+
+        const cachedUrl = await cacheProfilePicture(account.instagram_user_id, meData.profile_picture_url);
+        if (!cachedUrl) continue;
+
+        await supabase
+          .from('instagram_accounts')
+          .update({ profile_picture_url: cachedUrl, updated_at: new Date().toISOString() })
+          .eq('id', account.id);
       }
     }
 
