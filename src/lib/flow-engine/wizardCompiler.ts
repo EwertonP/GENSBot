@@ -298,6 +298,12 @@ export function decompileFlow(flow: FlowDefinition): DecompileResult {
   function readMessageStep(nodeId: string): { node: FlowNode; wait: WaitConfig | null; nextId: string | null } | { error: string } {
     const node = findNode(nodeId);
     if (!node || node.type !== 'sendMessage') return { error: `Esperava um nó de mensagem em "${nodeId}".` };
+    // `sequence_id` (sequência reutilizável anexada à mensagem) não existe no Formulário
+    // Avançado — sem essa checagem, reabrir e salvar por lá apagava a sequência em
+    // silêncio (buildFlowFromAdvancedForm nunca a regrava).
+    if ((node.data as SendMessageNodeConfig).sequence_id) {
+      return { error: `A mensagem "${node.id}" tem uma sequência anexada — isso só é editável pelo Canvas.` };
+    }
     const outs = outgoingAll(node.id);
     if (outs.length === 0) return { node, wait: null, nextId: null };
     if (outs.length > 1) return { error: `A mensagem "${node.id}" tem mais de uma saída — isso só é editável pelo Canvas.` };
@@ -309,6 +315,13 @@ export function decompileFlow(flow: FlowDefinition): DecompileResult {
 
     const waitNode = next;
     const waitData = waitNode.data as WaitForReplyNodeConfig;
+    // `saveReplyToField` (grava a resposta num campo real do contato, incluindo
+    // email/telefone) não tem equivalente no Formulário Avançado — só
+    // `saveReplyAsTagPrefix` é suportado por lá. Sem essa checagem, o campo
+    // configurado pelo Canvas era descartado em silêncio ao salvar pelo formulário.
+    if (waitData.saveReplyToField) {
+      return { error: `A espera "${waitNode.id}" grava a resposta num campo do contato — isso só é editável pelo Canvas.` };
+    }
     const replyEdge = flow.edges.find((e) => e.source === waitNode.id && (e.sourceHandle ?? null) !== 'timeout');
     const timeoutEdge = flow.edges.find((e) => e.source === waitNode.id && e.sourceHandle === 'timeout');
     if (!replyEdge) return { error: `O nó de espera "${waitNode.id}" não tem saída de resposta.` };

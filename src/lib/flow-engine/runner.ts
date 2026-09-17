@@ -50,9 +50,18 @@ async function persistContact(ctx: FlowRunContext, mutation: Record<string, unkn
   if (error) console.error('[flow-engine] Erro ao atualizar contato:', error);
 }
 
-async function enqueueSendMessage(automation: Automation, ctx: FlowRunContext, node: FlowNode, contact: ContactSnapshot | null) {
+/**
+ * `recipient` é passado explicitamente (em vez de sempre usar `ctx.recipientRef`)
+ * porque `{comment_id}` só é um destinatário válido pra UMA resposta privada por
+ * comentário — a Graph API rejeita reusar o mesmo comment_id numa segunda
+ * mensagem. `walk()` só passa `ctx.recipientRef` na primeira mensagem de uma
+ * execução disparada por comentário; toda mensagem seguinte (segunda mensagem
+ * sem espera entre elas, follow-up, retomada de delay/waitForReply) usa
+ * `{id: contactId}`, que já é o IGSID real de quem comentou.
+ */
+async function enqueueSendMessage(automation: Automation, ctx: FlowRunContext, node: FlowNode, contact: ContactSnapshot | null, recipient: { comment_id: string } | { id: string }) {
   const data = node.data as SendMessageNodeConfig;
-  const recipientId = 'comment_id' in ctx.recipientRef ? ctx.recipientRef.comment_id : ctx.contactId;
+  const recipientId = 'comment_id' in recipient ? recipient.comment_id : recipient.id;
   const text = personalizeText(data.text, contact);
 
   const buttonLabels = data.quick_reply_buttons?.length ? data.quick_reply_buttons : data.quick_reply_button ? [data.quick_reply_button] : [];
@@ -61,7 +70,7 @@ async function enqueueSendMessage(automation: Automation, ctx: FlowRunContext, n
     : undefined;
 
   let messagePayload: any = {
-    recipient: ctx.recipientRef,
+    recipient,
     message: {
       text,
       quick_replies: quickReplies,
@@ -70,7 +79,7 @@ async function enqueueSendMessage(automation: Automation, ctx: FlowRunContext, n
 
   if (data.link_url) {
     messagePayload = {
-      recipient: ctx.recipientRef,
+      recipient,
       message: {
         attachment: {
           type: 'template',
@@ -113,10 +122,14 @@ async function enqueueSequenceSteps(automation: Automation, ctx: FlowRunContext,
     const scheduledAt = new Date();
     scheduledAt.setMinutes(scheduledAt.getMinutes() + cumulativeDelay);
 
-    let payload: any = { recipient: ctx.recipientRef, message: { text: (step.text || '').trim() } };
+    // Sempre {id: contactId}, nunca ctx.recipientRef — passo de sequência é sempre
+    // uma mensagem posterior à que anexou a sequência, então nunca é a primeira
+    // mensagem de uma execução (ver comentário de enqueueSendMessage).
+    const recipient = { id: ctx.contactId };
+    let payload: any = { recipient, message: { text: (step.text || '').trim() } };
     if (step.link_url) {
       payload = {
-        recipient: ctx.recipientRef,
+        recipient,
         message: {
           attachment: {
             type: 'template',
@@ -209,11 +222,21 @@ async function enqueuePublicReply(automation: Automation, ctx: FlowRunContext, p
   if (error) console.error('[flow-engine] Erro ao enfileirar resposta pública:', error);
 }
 
-/** Caminha o grafo a partir de `startNodeId`, executando o efeito de cada nó, até parar num `delay` (agenda retomada) ou num nó terminal. */
-async function walk(automation: Automation, flow: FlowDefinition, ctx: FlowRunContext, startNodeId: string, flowRunId: string) {
+/**
+ * Caminha o grafo a partir de `startNodeId`, executando o efeito de cada nó, até
+ * parar num `delay` (agenda retomada) ou num nó terminal.
+ *
+ * `allowRecipientRefOnFirstMessage`: `{comment_id}` só vale pra UMA resposta
+ * privada por comentário (ver comentário de enqueueSendMessage) — true só na
+ * chamada inicial de `runFlow` pra um gatilho de comentário, e só até a
+ * primeira mensagem ser enfileirada nessa execução. `resumeFlow` sempre chama
+ * com false, porque a esse ponto a primeira mensagem (se houve) já foi.
+ */
+async function walk(automation: Automation, flow: FlowDefinition, ctx: FlowRunContext, startNodeId: string, flowRunId: string, allowRecipientRefOnFirstMessage = false) {
   let currentId: string | undefined = startNodeId;
   let contact = await loadContact(ctx.contactId);
   let guard = 0;
+  let commentIdAvailable = allowRecipientRefOnFirstMessage && 'comment_id' in ctx.recipientRef;
 
   while (currentId && guard < 50) {
     guard += 1;
@@ -221,7 +244,9 @@ async function walk(automation: Automation, flow: FlowDefinition, ctx: FlowRunCo
     if (!node) break;
 
     if (node.type === 'sendMessage') {
-      await enqueueSendMessage(automation, ctx, node, contact);
+      const recipient = commentIdAvailable ? ctx.recipientRef : { id: ctx.contactId };
+      commentIdAvailable = false;
+      await enqueueSendMessage(automation, ctx, node, contact, recipient);
       currentId = outgoingEdges(flow, node.id)[0]?.target;
       continue;
     }
@@ -307,7 +332,7 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
   const next = outgoingEdges(flow, triggerNode.id)[0];
   if (!next) return { matched: true };
 
-  await walk(automation, flow, ctx, next.target, randomUUID());
+  await walk(automation, flow, ctx, next.target, randomUUID(), true);
   return { matched: true };
 }
 
