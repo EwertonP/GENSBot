@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import AutomationTable from '@/components/automation-table';
 import { TailEditor } from '@/components/automation-wizard/tail-editor';
+import { StepTimeline } from '@/components/automation-wizard/step-timeline';
 import { ConditionPanel } from '@/components/flow-builder/panels';
 import type { ConditionNodeConfig } from '@/types/flow';
 import type { Automation } from '@/types/automation';
@@ -499,122 +500,6 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                         )}
                       </div>
 
-                      {/* Step 3: Mensagem DM com Quick Reply Card */}
-                      <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 relative hover:border-border transition-colors text-foreground">
-                        <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-6.5 z-10 select-none">
-                          3
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <h4 className="font-bold text-foreground text-sm">Mensagem Privada Inicial (DM no Direct)</h4>
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-muted-foreground">Conteúdo do primeiro Direct</label>
-                            <textarea
-                              required
-                              placeholder="Olá! Vi seu interesse no post. Para receber o seu link de acesso, clique no botão de resposta rápida abaixo:"
-                              value={form.welcome_dm}
-                              onChange={e => setForm(prev => ({ ...prev, welcome_dm: e.target.value }))}
-                              rows={3}
-                              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none"
-                            />
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setForm(prev => ({ ...prev, welcome_dm: `{{primeiro_nome}}, ${prev.welcome_dm}` }))}
-                                className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
-                              >
-                                + Inserir nome do lead no início
-                              </button>
-                              <p className="text-[10px] text-muted-foreground">
-                                (<code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> funciona em qualquer parte do texto)
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-muted-foreground">Texto do Botão de Resposta Rápida (Máx 20 caracteres)</label>
-                            <input
-                              type="text"
-                              maxLength={20}
-                              placeholder="Ex: Sim, quero!"
-                              value={form.quick_reply_button || ''}
-                              onChange={e => setForm(prev => ({ ...prev, quick_reply_button: e.target.value || null }))}
-                              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all font-semibold"
-                            />
-                          </div>
-
-                          {form.quick_reply_button && (
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-bold text-muted-foreground">Esperar clique por (min, opcional)</label>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  placeholder="Sem prazo, sem lembrete"
-                                  value={form.welcome_dm_timeout_minutes ?? ''}
-                                  onChange={e => setForm(prev => ({ ...prev, welcome_dm_timeout_minutes: e.target.value ? parseInt(e.target.value) : null }))}
-                                  className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
-                                />
-                              </div>
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-bold text-muted-foreground">Lembrete se não clicar (opcional)</label>
-                                <input
-                                  type="text"
-                                  placeholder="Padrão automático se vazio"
-                                  value={form.welcome_dm_reminder_text || ''}
-                                  onChange={e => setForm(prev => ({ ...prev, welcome_dm_reminder_text: e.target.value || null }))}
-                                  className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
-                                />
-                              </div>
-                              <p className="text-[9px] text-muted-foreground col-span-2 -mt-1">
-                                Deixe o tempo em branco pra esperar o clique sem prazo (sem mandar lembrete).
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Lead Capture Options */}
-                          <div className="border-t border-border pt-4 mt-2 flex flex-col gap-3">
-                            <span className="text-xs font-bold text-foreground">Captura de Leads & Integração (Opcional)</span>
-                            <div className="grid grid-cols-2 gap-4">
-                              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                                <input
-                                  type="checkbox"
-                                  checked={form.ask_email || false}
-                                  onChange={e => setForm(prev => ({ ...prev, ask_email: e.target.checked }))}
-                                  className="rounded border-border bg-accent text-primary focus:ring-primary/20 w-4 h-4"
-                                />
-                                <span className="text-xs text-muted-foreground font-semibold">Solicitar E-mail</span>
-                              </label>
-
-                              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                                <input
-                                  type="checkbox"
-                                  checked={form.ask_phone || false}
-                                  onChange={e => setForm(prev => ({ ...prev, ask_phone: e.target.checked }))}
-                                  className="rounded border-border bg-accent text-primary focus:ring-primary/20 w-4 h-4"
-                                />
-                                <span className="text-xs text-muted-foreground font-semibold">Solicitar Telefone</span>
-                              </label>
-                            </div>
-
-                            {(form.ask_email || form.ask_phone) && (
-                              <div className="flex flex-col gap-1.5 animate-fade-in mt-1">
-                                <label className="text-[11px] font-bold text-muted-foreground">URL do Webhook Externo (POST para Make/Zapier)</label>
-                                <input
-                                  type="url"
-                                  placeholder="https://hook.us1.make.com/..."
-                                  value={form.webhook_url || ''}
-                                  onChange={e => setForm(prev => ({ ...prev, webhook_url: e.target.value }))}
-                                  className="bg-accent border border-border focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-xl px-4 py-2 text-xs focus:outline-none text-foreground placeholder-muted-foreground font-mono"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
                       {/* Conditional Connector Dotted Line */}
                       <div className="relative my-1.5 z-10 pointer-events-none select-none">
                         <span className="text-[9px] font-extrabold text-primary bg-accent border border-primary/20 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap animate-fade-in">
@@ -645,9 +530,11 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                               Adicionar condição
                             </Button>
                           </div>
-                          <TailEditor
+                          <StepTimeline
+                            form={form}
+                            setForm={setForm}
                             tail={legacyTail}
-                            onChange={handleLegacyTailChange}
+                            onChangeTail={handleLegacyTailChange}
                             showToast={showToast}
                             utmLinkPicker={{
                               utmLinks,
@@ -657,6 +544,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                               generatingTrackedLink,
                               automationId: form.id,
                             }}
+                            startNumber={3}
                           />
                         </>
                       ) : (
