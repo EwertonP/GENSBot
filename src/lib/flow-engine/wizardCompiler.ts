@@ -6,6 +6,21 @@ export interface QualificationMessageStep {
   text: string;
 }
 
+/**
+ * Mensagem com botão de link — antes só existia como a mensagem final fixa
+ * (WizardTail.link_text/link_url/link_button_label). Como `kind` do array de
+ * passos, pode aparecer em qualquer posição (Etapa 4 da reorganização do
+ * formulário guiado): link no meio do fluxo, com mensagens depois dele.
+ * A mensagem final fixa continua existindo do mesmo jeito de sempre — isso
+ * aqui é aditivo, não substitui aquele mecanismo.
+ */
+export interface QualificationLinkStep {
+  kind: 'link';
+  text: string;
+  link_url: string | null;
+  link_button_label: string | null;
+}
+
 export interface QualificationQuestionStep {
   kind: 'question';
   text: string;
@@ -29,7 +44,7 @@ export interface QualificationQuestionStep {
   saveReplyToField?: string;
 }
 
-export type QualificationStep = QualificationMessageStep | QualificationQuestionStep;
+export type QualificationStep = QualificationMessageStep | QualificationQuestionStep | QualificationLinkStep;
 
 /**
  * "Cauda" do fluxo: tudo que vem depois da mensagem inicial (ou depois de uma
@@ -155,6 +170,13 @@ function createFlowBuilder() {
   function appendQualificationStep(step: QualificationStep) {
     if (step.kind === 'message') {
       appendMessageStep(step.text, []);
+      return;
+    }
+    if (step.kind === 'link') {
+      appendMessageStep(step.text, [], null);
+      const linkNode = nodes.at(-1)!;
+      (linkNode.data as SendMessageNodeConfig).link_url = step.link_url;
+      (linkNode.data as SendMessageNodeConfig).link_button_label = step.link_button_label;
       return;
     }
     appendMessageStep(step.text, step.buttons, {
@@ -436,7 +458,15 @@ export function decompileFlow(flow: FlowDefinition): DecompileResult {
           saveReplyToField: result.wait.saveReplyToField,
         });
       } else {
-        questions.push({ kind: 'message', text: (result.node.data as SendMessageNodeConfig).text });
+        // Mensagem sem espera que NÃO é o terminal desta cauda (isLink acima já
+        // cobre o terminal) — se tem link_url, é um passo de link no meio do
+        // fluxo (Etapa 4: link não precisa mais ser só a mensagem final fixa).
+        const data = result.node.data as SendMessageNodeConfig;
+        if (data.link_url) {
+          questions.push({ kind: 'link', text: data.text, link_url: data.link_url, link_button_label: data.link_button_label ?? null });
+        } else {
+          questions.push({ kind: 'message', text: data.text });
+        }
       }
 
       if (result.nextId === null) return { error: 'O fluxo termina antes de chegar a um nó de link.' };

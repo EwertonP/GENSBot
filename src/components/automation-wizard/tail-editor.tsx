@@ -67,7 +67,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
               </button>
               <div className="flex flex-col gap-1.5 pr-8">
                 <label className="text-xs font-bold text-muted-foreground">
-                  {i + 1}. {step.kind === 'message' ? 'Mensagem simples' : step.buttons.length === 0 ? 'Pergunta aberta (resposta livre)' : 'Pergunta com botões'}
+                  {i + 1}. {step.kind === 'question' ? (step.buttons.length === 0 ? 'Pergunta aberta (resposta livre)' : 'Pergunta com botões') : 'Mensagem simples'}
                 </label>
                 <textarea
                   placeholder="Texto da mensagem"

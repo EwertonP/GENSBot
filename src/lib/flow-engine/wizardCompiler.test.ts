@@ -100,6 +100,27 @@ describe('decompileFlow', () => {
     expect(result.questions[0]).toMatchObject({ kind: 'question', text: 'Em que cidade você mora?', saveReplyToField: 'cidade' });
   });
 
+  it('round-trip: mensagem com link no meio do fluxo, seguida de outra mensagem (Etapa 4)', () => {
+    const questions: QualificationStep[] = [
+      { kind: 'message', text: 'Antes do link.' },
+      { kind: 'link', text: 'Aqui está um link no meio:', link_url: 'https://exemplo.com/meio', link_button_label: 'Ver agora' },
+      { kind: 'message', text: 'Depois do link.' },
+    ];
+    const flow = buildFlowFromAdvancedForm(baseForm, questions);
+    const result = decompileFlow(flow);
+
+    expect(result.compatible).toBe(true);
+    if (!result.compatible) return;
+    // 3 passos no meio + a mensagem final fixa (link_text do baseForm) — o link
+    // no meio é aditivo, não substitui a mensagem final que sempre existiu.
+    expect(result.questions).toHaveLength(3);
+    expect(result.questions[0]).toEqual({ kind: 'message', text: 'Antes do link.' });
+    expect(result.questions[1]).toMatchObject({ kind: 'link', text: 'Aqui está um link no meio:', link_url: 'https://exemplo.com/meio', link_button_label: 'Ver agora' });
+    expect(result.questions[2]).toEqual({ kind: 'message', text: 'Depois do link.' });
+    expect(result.form.link_text).toBe(baseForm.link_text);
+    expect(result.form.link_url).toBe(baseForm.link_url);
+  });
+
   it('marca como incompatível um nó de mensagem com sequence_id anexado', () => {
     const flow = buildFlowFromAdvancedForm(baseForm, []);
     const welcomeMsgNode = flow.nodes.find((n) => n.type === 'sendMessage' && (n.data as any).text === baseForm.welcome_dm)!;
