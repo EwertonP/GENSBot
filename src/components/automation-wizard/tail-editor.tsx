@@ -184,6 +184,22 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                       className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
                     />
                   </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-muted-foreground">Salvar resposta num campo do lead (opcional)</label>
+                    <input
+                      type="text"
+                      value={step.saveReplyToField || ''}
+                      onChange={(e) =>
+                        setQuestions((prev) => {
+                          const next = [...prev];
+                          (next[i] as typeof step).saveReplyToField = e.target.value;
+                          return next;
+                        })
+                      }
+                      placeholder='ex: "email", "phone", "name", ou um nome livre como "cidade"/"idade"'
+                      className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-muted-foreground">Minutos até o lembrete</label>
@@ -235,7 +251,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
             <button
               type="button"
               onClick={() =>
-                setQuestions((prev) => [...prev, { kind: 'question', text: '', buttons: [''], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '' }])
+                setQuestions((prev) => [...prev, { kind: 'question', text: '', buttons: [''], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '', saveReplyToField: '' }])
               }
               className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
             >
@@ -245,7 +261,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
             <button
               type="button"
               onClick={() =>
-                setQuestions((prev) => [...prev, { kind: 'question', text: '', buttons: [], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '' }])
+                setQuestions((prev) => [...prev, { kind: 'question', text: '', buttons: [], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '', saveReplyToField: '' }])
               }
               className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
             >

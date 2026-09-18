@@ -20,6 +20,13 @@ export interface QualificationQuestionStep {
    * "area_marketing_digital"). Funciona tanto pra pergunta aberta quanto com botões.
    */
   saveReplyAsTagPrefix?: string;
+  /**
+   * Se preenchido, grava a resposta bruta do lead num campo do contato — "email"/
+   * "phone"/"name" vão pras colunas reais; qualquer outro nome (ex: "cidade",
+   * "idade") vira uma chave dentro de `contacts.flow_state` (mesmo comportamento
+   * de `WaitForReplyNodeConfig.saveReplyToField` no Canvas — ver types/flow.ts).
+   */
+  saveReplyToField?: string;
 }
 
 export type QualificationStep = QualificationMessageStep | QualificationQuestionStep;
@@ -68,6 +75,7 @@ interface WaitConfig {
   timeoutMinutes?: number | null;
   reminderText?: string;
   saveReplyAsTagPrefix?: string;
+  saveReplyToField?: string;
 }
 
 /** Monta o conjunto reutilizável de helpers (addNode/connect/attach) usado por qualquer compilador de flow_definition. */
@@ -119,6 +127,7 @@ function createFlowBuilder() {
     const waitId = addNode('waitForReply', {
       timeoutMinutes: hasTimeout ? wait.timeoutMinutes : null,
       saveReplyAsTagPrefix: wait.saveReplyAsTagPrefix?.trim() || null,
+      saveReplyToField: wait.saveReplyToField?.trim() || null,
     });
     connect(msgId, waitId, null);
 
@@ -133,6 +142,7 @@ function createFlowBuilder() {
     const waitForeverId = addNode('waitForReply', {
       timeoutMinutes: null,
       saveReplyAsTagPrefix: wait.saveReplyAsTagPrefix?.trim() || null,
+      saveReplyToField: wait.saveReplyToField?.trim() || null,
     });
     connect(reminderId, waitForeverId, null);
 
@@ -151,6 +161,7 @@ function createFlowBuilder() {
       timeoutMinutes: step.timeoutMinutes > 0 ? step.timeoutMinutes : DEFAULT_TIMEOUT_MINUTES,
       reminderText: step.reminderText,
       saveReplyAsTagPrefix: step.saveReplyAsTagPrefix,
+      saveReplyToField: step.saveReplyToField,
     });
   }
 
@@ -315,13 +326,6 @@ export function decompileFlow(flow: FlowDefinition): DecompileResult {
 
     const waitNode = next;
     const waitData = waitNode.data as WaitForReplyNodeConfig;
-    // `saveReplyToField` (grava a resposta num campo real do contato, incluindo
-    // email/telefone) não tem equivalente no Formulário Avançado — só
-    // `saveReplyAsTagPrefix` é suportado por lá. Sem essa checagem, o campo
-    // configurado pelo Canvas era descartado em silêncio ao salvar pelo formulário.
-    if (waitData.saveReplyToField) {
-      return { error: `A espera "${waitNode.id}" grava a resposta num campo do contato — isso só é editável pelo Canvas.` };
-    }
     const replyEdge = flow.edges.find((e) => e.source === waitNode.id && (e.sourceHandle ?? null) !== 'timeout');
     const timeoutEdge = flow.edges.find((e) => e.source === waitNode.id && e.sourceHandle === 'timeout');
     if (!replyEdge) return { error: `O nó de espera "${waitNode.id}" não tem saída de resposta.` };
@@ -329,7 +333,11 @@ export function decompileFlow(flow: FlowDefinition): DecompileResult {
     if (!timeoutEdge) {
       return {
         node,
-        wait: { timeoutMinutes: null, saveReplyAsTagPrefix: waitData.saveReplyAsTagPrefix || undefined },
+        wait: {
+          timeoutMinutes: null,
+          saveReplyAsTagPrefix: waitData.saveReplyAsTagPrefix || undefined,
+          saveReplyToField: waitData.saveReplyToField || undefined,
+        },
         nextId: replyEdge.target,
       };
     }
@@ -352,6 +360,7 @@ export function decompileFlow(flow: FlowDefinition): DecompileResult {
         timeoutMinutes: waitData.timeoutMinutes ?? null,
         reminderText: (reminderNode.data as SendMessageNodeConfig).text,
         saveReplyAsTagPrefix: waitData.saveReplyAsTagPrefix || undefined,
+        saveReplyToField: waitData.saveReplyToField || undefined,
       },
       nextId: replyEdge.target,
     };
@@ -360,6 +369,13 @@ export function decompileFlow(flow: FlowDefinition): DecompileResult {
   // 1. Mensagem inicial (+ espera opcional).
   const welcomeResult = readMessageStep(triggerOuts[0].target);
   if ('error' in welcomeResult) return incompatible(welcomeResult.error);
+  // A mensagem inicial não tem campo próprio no Formulário Avançado pra
+  // `saveReplyToField` (só as perguntas de qualificação, mais abaixo, ganharam
+  // esse suporte) — sem essa checagem, reabrir e salvar por lá apagaria esse
+  // campo em silêncio se algum dia o Canvas configurar isso na 1ª mensagem.
+  if (welcomeResult.wait?.saveReplyToField) {
+    return incompatible('A mensagem inicial grava a resposta num campo do contato — isso só é editável pelo Canvas.');
+  }
   const welcomeData = welcomeResult.node.data as SendMessageNodeConfig;
   const welcomeButtons = welcomeData.quick_reply_buttons?.length ? welcomeData.quick_reply_buttons : welcomeData.quick_reply_button ? [welcomeData.quick_reply_button] : [];
   if (welcomeButtons.length > 1) return incompatible('A mensagem inicial tem mais de um botão — o Formulário Avançado só suporta um. Edite pelo Canvas.');
@@ -417,6 +433,7 @@ export function decompileFlow(flow: FlowDefinition): DecompileResult {
           timeoutMinutes: result.wait.timeoutMinutes ?? 0,
           reminderText: result.wait.reminderText || '',
           saveReplyAsTagPrefix: result.wait.saveReplyAsTagPrefix,
+          saveReplyToField: result.wait.saveReplyToField,
         });
       } else {
         questions.push({ kind: 'message', text: (result.node.data as SendMessageNodeConfig).text });
