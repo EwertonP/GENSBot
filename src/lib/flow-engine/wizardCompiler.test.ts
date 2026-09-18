@@ -87,6 +87,28 @@ describe('decompileFlow', () => {
     expect(result.form.welcome_dm_timeout_minutes).toBeNull();
   });
 
+  it('round-trip: preserva saveReplyToField numa pergunta (antes marcava a automação como só editável pelo Canvas)', () => {
+    const questions: QualificationStep[] = [
+      { kind: 'question', text: 'Em que cidade você mora?', buttons: [], timeoutMinutes: 720, reminderText: 'Ainda por aqui?', saveReplyToField: 'cidade' },
+    ];
+    const flow = buildFlowFromAdvancedForm(baseForm, questions);
+    const result = decompileFlow(flow);
+
+    expect(result.compatible).toBe(true);
+    if (!result.compatible) return;
+    expect(result.questions).toHaveLength(1);
+    expect(result.questions[0]).toMatchObject({ kind: 'question', text: 'Em que cidade você mora?', saveReplyToField: 'cidade' });
+  });
+
+  it('marca como incompatível um nó de mensagem com sequence_id anexado', () => {
+    const flow = buildFlowFromAdvancedForm(baseForm, []);
+    const welcomeMsgNode = flow.nodes.find((n) => n.type === 'sendMessage' && (n.data as any).text === baseForm.welcome_dm)!;
+    (welcomeMsgNode.data as any).sequence_id = 'seq-1';
+
+    const result = decompileFlow(flow);
+    expect(result.compatible).toBe(false);
+  });
+
   it('marca como incompatível um flow sem nó de gatilho', () => {
     const result = decompileFlow({ nodes: [], edges: [] });
     expect(result.compatible).toBe(false);
