@@ -181,6 +181,10 @@ function InsertSlot({ id, onInsert }: { id: string; onInsert: (template: Qualifi
                 <HelpCircle className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-semibold text-foreground">Pergunta aberta</span>
               </button>
+              <button type="button" onClick={() => { onInsert(NEW_LINK); setMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer">
+                <Link2 className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-foreground">Mensagem com link</span>
+              </button>
             </div>
           </>
         )}
@@ -192,6 +196,7 @@ function InsertSlot({ id, onInsert }: { id: string; onInsert: (template: Qualifi
 const NEW_QUESTION: QualificationStep = { kind: 'question', text: '', buttons: [''], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '', saveReplyToField: '' };
 const NEW_OPEN_QUESTION: QualificationStep = { kind: 'question', text: '', buttons: [], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '', saveReplyToField: '' };
 const NEW_MESSAGE: QualificationStep = { kind: 'message', text: '' };
+const NEW_LINK: QualificationStep = { kind: 'link', text: '', link_url: null, link_button_label: null };
 
 export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utmLinkPicker, startNumber }: StepTimelineProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ welcome: true });
@@ -359,15 +364,17 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
         <InsertSlot id="slot-0" onInsert={(t) => insertQuestionAt(0, t)} />
         {tail.questions.map((step, i) => {
         const key = `q-${i}`;
-        const kindLabel = step.kind === 'message' ? 'Mensagem simples' : step.buttons.length === 0 ? 'Pergunta aberta' : 'Pergunta com botões';
+        const kindLabel = step.kind === 'question' ? (step.buttons.length === 0 ? 'Pergunta aberta' : 'Pergunta com botões') : step.kind === 'link' ? 'Mensagem com link' : 'Mensagem simples';
         const summary = step.kind === 'question' && step.buttons.length > 0
           ? `${truncate(step.text, 44)} · ${step.buttons.length} botão${step.buttons.length > 1 ? 'ões' : ''}`
-          : truncate(step.text);
+          : step.kind === 'link'
+            ? `${truncate(step.text, 44)} · ${step.link_button_label || 'sem texto de botão'}`
+            : truncate(step.text);
         return (
           <React.Fragment key={i}>
           <StepCard
             n={questionNumbers[i]}
-            icon={step.kind === 'question' ? <HelpCircle className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+            icon={step.kind === 'question' ? <HelpCircle className="w-4 h-4" /> : step.kind === 'link' ? <Link2 className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
             kind={kindLabel}
             summary={summary}
             expanded={!!expanded[key]}
@@ -403,6 +410,44 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
                 + Inserir nome do lead no início
               </button>
             </div>
+
+            {step.kind === 'link' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">URL do link</label>
+                  <input
+                    type="url"
+                    placeholder="https://sualandingpage.com"
+                    value={step.link_url || ''}
+                    onChange={(e) =>
+                      setQuestions((prev) => {
+                        const next = [...prev];
+                        (next[i] as typeof step).link_url = e.target.value || null;
+                        return next;
+                      })
+                    }
+                    className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">Texto do botão</label>
+                  <input
+                    type="text"
+                    maxLength={20}
+                    placeholder="Acessar Link"
+                    value={step.link_button_label || ''}
+                    onChange={(e) =>
+                      setQuestions((prev) => {
+                        const next = [...prev];
+                        (next[i] as typeof step).link_button_label = e.target.value || null;
+                        return next;
+                      })
+                    }
+                    className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                  />
+                </div>
+              </div>
+            )}
 
             {step.kind === 'question' && (
               <>
@@ -584,12 +629,17 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
                 <HelpCircle className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-semibold text-foreground">Pergunta aberta</span>
               </button>
+              <button type="button" onClick={() => addQuestion(NEW_LINK)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer">
+                <Link2 className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-foreground">Mensagem com link</span>
+              </button>
             </div>
           </>
         )}
       </div>
 
-      {/* Envio do link — antes era sempre a última seção fixa; continua no fim por enquanto (etapa futura solta essa amarra). */}
+      {/* Envio do link — a mensagem final continua sempre existindo (esta seção fixa); as
+          "Mensagem com link" do menu acima são adicionais, no meio do fluxo (Etapa 4). */}
       <StepCard
         n={linkN}
         icon={<Link2 className="w-4 h-4" />}
