@@ -1,10 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Trash2, ChevronDown, MessageSquare, HelpCircle, Link2, Clock, Settings2 } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, MessageSquare, HelpCircle, Link2, Clock, Settings2, GripVertical } from 'lucide-react';
+import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import type { Automation } from '@/types/automation';
 import type { QualificationStep, WizardTail } from '@/lib/flow-engine/wizardCompiler';
 import type { UtmLinkPickerProps } from './tail-editor';
+
+/** Move um item de `from` para a posição `to` (índice no array ANTES da remoção). */
+function moveItem<T>(arr: T[], from: number, to: number): T[] {
+  const copy = [...arr];
+  const [item] = copy.splice(from, 1);
+  copy.splice(to > from ? to - 1 : to, 0, item);
+  return copy;
+}
 
 /**
  * Etapa 1+2 da reorganização do formulário guiado (ver plano tracejado na
@@ -50,6 +60,7 @@ function StepCard({
   expanded,
   onToggle,
   onDelete,
+  dragHandle,
   children,
 }: {
   n: number;
@@ -59,6 +70,8 @@ function StepCard({
   expanded: boolean;
   onToggle: () => void;
   onDelete?: () => void;
+  /** Alça de arrastar (ícone + listeners do dnd-kit) — só as perguntas/mensagens são reordenáveis. */
+  dragHandle?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -66,10 +79,11 @@ function StepCard({
       <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs border-2 border-background shadow-sm absolute left-[-26px] top-4 z-10 select-none">
         {n}
       </div>
+      {dragHandle}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-6 py-4 text-left cursor-pointer"
+        className={`w-full flex items-center gap-3 px-6 py-4 text-left cursor-pointer ${dragHandle ? 'pl-11' : ''}`}
       >
         <span className="text-muted-foreground flex-shrink-0">{icon}</span>
         <div className="flex-1 min-w-0">
@@ -116,6 +130,65 @@ function AdvancedOptions({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Alça de arrastar — só ela recebe os listeners do dnd-kit, pra não conflitar com o clique de expandir/recolher o card. */
+function DragHandle({ id }: { id: string }) {
+  const { attributes, listeners, setNodeRef } = useDraggable({ id });
+  return (
+    <button
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      type="button"
+      className="absolute left-2 top-4 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing p-1 z-10 touch-none"
+      aria-label="Arrastar pra reordenar"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <GripVertical className="w-4 h-4" />
+    </button>
+  );
+}
+
+/** Zona entre dois passos — alvo de drop pra reordenar, e um "+" pra inserir um passo novo ali mesmo. */
+function InsertSlot({ id, onInsert }: { id: string; onInsert: (template: QualificationStep) => void }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div ref={setNodeRef} className={`relative flex items-center h-4 -my-2 transition-colors ${isOver ? 'bg-primary/10 rounded-lg' : ''}`}>
+      <div className="flex-1 border-t border-dashed border-transparent" />
+      <div className="absolute left-1/2 -translate-x-1/2">
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          className={`w-5 h-5 rounded-full border border-dashed border-border bg-card flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary cursor-pointer transition-opacity ${isOver ? 'opacity-100 border-primary text-primary' : 'opacity-0 hover:opacity-100'}`}
+          aria-label="Inserir passo aqui"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-56 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+              <button type="button" onClick={() => { onInsert(NEW_MESSAGE); setMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer">
+                <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-foreground">Mensagem simples</span>
+              </button>
+              <button type="button" onClick={() => { onInsert(NEW_QUESTION); setMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer">
+                <HelpCircle className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-foreground">Pergunta com botões</span>
+              </button>
+              <button type="button" onClick={() => { onInsert(NEW_OPEN_QUESTION); setMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer">
+                <HelpCircle className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-foreground">Pergunta aberta</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const NEW_QUESTION: QualificationStep = { kind: 'question', text: '', buttons: [''], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '', saveReplyToField: '' };
 const NEW_OPEN_QUESTION: QualificationStep = { kind: 'question', text: '', buttons: [], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '', saveReplyToField: '' };
 const NEW_MESSAGE: QualificationStep = { kind: 'message', text: '' };
@@ -134,6 +207,29 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
     setQuestions((prev) => [...prev, { ...template }]);
     setExpanded((prev) => ({ ...prev, [key]: true }));
     setAddMenuOpen(false);
+  };
+
+  const insertQuestionAt = (index: number, template: QualificationStep) => {
+    setQuestions((prev) => {
+      const next = [...prev];
+      next.splice(index, 0, { ...template });
+      return next;
+    });
+    setExpanded((prev) => ({ ...prev, [`q-${index}`]: true }));
+  };
+
+  const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const handleQuestionDragEnd = (event: DragEndEvent) => {
+    setDraggingIndex(null);
+    const { active, over } = event;
+    if (!over) return;
+    const from = parseInt(String(active.id).replace('drag-q-', ''), 10);
+    const to = parseInt(String(over.id).replace('slot-', ''), 10);
+    if (Number.isNaN(from) || Number.isNaN(to) || from === to) return;
+    // Não faz sentido soltar exatamente no slot imediatamente antes/depois de onde já estava.
+    if (to === from + 1) return;
+    setQuestions((prev) => moveItem(prev, from, to));
   };
 
   let n = startNumber;
@@ -256,16 +352,20 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
         </AdvancedOptions>
       </StepCard>
 
-      {/* Perguntas de qualificação — cada uma é o seu próprio passo numerado, recolhido por padrão. */}
-      {tail.questions.map((step, i) => {
+      {/* Perguntas de qualificação — cada uma é o seu próprio passo numerado, recolhido por padrão.
+          Arrastável (alça à esquerda) e com um "+" entre cada par pra inserir um passo novo
+          bem naquele ponto, em vez de só no fim da lista. */}
+      <DndContext sensors={dragSensors} onDragStart={(e) => setDraggingIndex(parseInt(String(e.active.id).replace('drag-q-', ''), 10))} onDragEnd={handleQuestionDragEnd}>
+        <InsertSlot id="slot-0" onInsert={(t) => insertQuestionAt(0, t)} />
+        {tail.questions.map((step, i) => {
         const key = `q-${i}`;
         const kindLabel = step.kind === 'message' ? 'Mensagem simples' : step.buttons.length === 0 ? 'Pergunta aberta' : 'Pergunta com botões';
         const summary = step.kind === 'question' && step.buttons.length > 0
           ? `${truncate(step.text, 44)} · ${step.buttons.length} botão${step.buttons.length > 1 ? 'ões' : ''}`
           : truncate(step.text);
         return (
+          <React.Fragment key={i}>
           <StepCard
-            key={i}
             n={questionNumbers[i]}
             icon={step.kind === 'question' ? <HelpCircle className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
             kind={kindLabel}
@@ -273,6 +373,7 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
             expanded={!!expanded[key]}
             onToggle={() => toggle(key)}
             onDelete={() => setQuestions((prev) => prev.filter((_, x) => x !== i))}
+            dragHandle={<DragHandle id={`drag-q-${i}`} />}
           >
             <div className="flex flex-col gap-1.5">
               <textarea
@@ -443,8 +544,19 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
               </>
             )}
           </StepCard>
+          <InsertSlot id={`slot-${i + 1}`} onInsert={(t) => insertQuestionAt(i + 1, t)} />
+          </React.Fragment>
         );
-      })}
+        })}
+        <DragOverlay>
+          {draggingIndex !== null && tail.questions[draggingIndex] ? (
+            <div className="bg-card border border-primary rounded-2xl shadow-xl px-6 py-4 flex items-center gap-3 opacity-90">
+              {tail.questions[draggingIndex].kind === 'question' ? <HelpCircle className="w-4 h-4 text-muted-foreground" /> : <MessageSquare className="w-4 h-4 text-muted-foreground" />}
+              <p className="text-sm font-semibold text-foreground truncate">{truncate(tail.questions[draggingIndex].text)}</p>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Botão único de adicionar passo, com menu de tipos — antes eram 3 botões sempre visíveis. */}
       <div className="relative -mt-2">
