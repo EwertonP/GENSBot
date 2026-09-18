@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Trash2, ChevronDown, MessageSquare, HelpCircle, Link2, Clock, Settings2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, MessageSquare, HelpCircle, Link2, Clock, Settings2, GripVertical, GitBranch } from 'lucide-react';
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { Automation } from '@/types/automation';
@@ -43,6 +43,12 @@ interface StepTimelineProps {
   utmLinkPicker?: UtmLinkPickerProps;
   /** Número do primeiro passo desta timeline — os anteriores (gatilho, respostas públicas) já usam 1 e 2. */
   startNumber: number;
+  /**
+   * Presente só quando a automação ainda não tem ramificação — adiciona a opção
+   * "Ramificar (se/senão)" no menu de adicionar passo (Etapa 5). Chamado com o
+   * índice de perguntas já existentes (a condição entra depois de todas elas).
+   */
+  onAddCondition?: (afterIndex: number) => void;
 }
 
 function truncate(text: string, max = 60): string {
@@ -51,8 +57,10 @@ function truncate(text: string, max = 60): string {
   return clean.length > max ? `${clean.slice(0, max)}…` : clean;
 }
 
-/** Card recolhível — cabeçalho (ícone + tipo + resumo de 1 linha) sempre visível, corpo só quando expandido. */
-function StepCard({
+/** Card recolhível — cabeçalho (ícone + tipo + resumo de 1 linha) sempre visível, corpo só quando expandido.
+ * Exportado pra automations-tab.tsx reusar no card da condição (Etapa 5), que continua com dados/lógica
+ * separados (wizardCondition) mas ganha a mesma aparência de passo numerado da timeline. */
+export function StepCard({
   n,
   icon,
   kind,
@@ -198,7 +206,7 @@ const NEW_OPEN_QUESTION: QualificationStep = { kind: 'question', text: '', butto
 const NEW_MESSAGE: QualificationStep = { kind: 'message', text: '' };
 const NEW_LINK: QualificationStep = { kind: 'link', text: '', link_url: null, link_button_label: null };
 
-export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utmLinkPicker, startNumber }: StepTimelineProps) {
+export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utmLinkPicker, startNumber, onAddCondition }: StepTimelineProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ welcome: true });
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -633,6 +641,16 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
                 <Link2 className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-semibold text-foreground">Mensagem com link</span>
               </button>
+              {onAddCondition && (
+                <button
+                  type="button"
+                  onClick={() => { onAddCondition(tail.questions.length); setAddMenuOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer border-t border-border"
+                >
+                  <GitBranch className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-semibold text-foreground">Ramificar (se/senão)</span>
+                </button>
+              )}
             </div>
           </>
         )}

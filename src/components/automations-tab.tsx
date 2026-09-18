@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import nextDynamicImport from 'next/dynamic';
 import {
   Plus,
@@ -18,7 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import AutomationTable from '@/components/automation-table';
 import { TailEditor } from '@/components/automation-wizard/tail-editor';
-import { StepTimeline } from '@/components/automation-wizard/step-timeline';
+import { StepTimeline, StepCard } from '@/components/automation-wizard/step-timeline';
+import { GitBranch } from 'lucide-react';
 import { ConditionPanel } from '@/components/flow-builder/panels';
 import type { ConditionNodeConfig } from '@/types/flow';
 import type { Automation } from '@/types/automation';
@@ -93,12 +94,17 @@ export default function AutomationsTab(props: AutomationsTabProps) {
     form, setForm, handleSaveAutomation, wizardIncompatibleReason, keywordInput, handleKeywordsChange,
     handleLoadMedia, mediaList, handleLoadStories, loadingStories, storyList, publicReplyInput,
     setPublicReplyInput, handleAddPublicReply, handleRemovePublicReply, showToast, qualificationSteps,
-    setQualificationSteps, pendingConditionSplitIndex, setPendingConditionSplitIndex, addCondition,
+    setQualificationSteps, addCondition,
     removeCondition, wizardCondition, setWizardCondition, activeBranchTab, setActiveBranchTab,
     legacyTail, handleLegacyTailChange, utmLinks, selectedUtmLinkId, handleSelectUtmLink,
     handleGenerateTrackedLink, generatingTrackedLink, config, showMediaModal, setShowMediaModal,
     mediaFilter, setMediaFilter, showStoryModal, setShowStoryModal,
   } = props;
+
+  // Card da condição (Etapa 5) — recolhido por padrão, mesma linguagem visual
+  // dos passos numerados da timeline (StepCard), mas os dados/lógica dos ramos
+  // continuam em wizardCondition (não fundidos no array único ainda).
+  const [conditionExpanded, setConditionExpanded] = useState(true);
 
   return (
     <>
@@ -500,53 +506,28 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                         )}
                       </div>
 
-                      {/* Conditional Connector Dotted Line */}
-                      <div className="relative my-1.5 z-10 pointer-events-none select-none">
-                        <span className="text-[9px] font-extrabold text-primary bg-accent border border-primary/20 px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs absolute left-[-26px] translate-x-[-12%] top-[-8px] whitespace-nowrap animate-fade-in">
-                          Click
-                        </span>
-                      </div>
-
-                      {/* Steps 4-6: Perguntas + Link + Follow-ups — sem condição é uma única
-                          cauda (TailEditor); com condição, as perguntas antes do split ficam
-                          aqui e o resto vira dois ramos independentes logo abaixo. */}
+                      {/* Steps 4+: Perguntas + Link + Follow-ups — sem condição é uma única
+                          timeline (StepTimeline); com condição, as perguntas antes do split
+                          ficam num StepTimeline parcial e a condição entra como um passo
+                          numerado próprio, com os dois ramos indentados dentro dela (Etapa 5). */}
                       {!wizardCondition ? (
-                        <>
-                          <div className="bg-card border border-dashed border-primary/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                            <span className="text-xs font-bold text-foreground flex-1">
-                              Quer ramificar o fluxo aqui (se/senão)? Escolha depois de qual pergunta a condição entra.
-                            </span>
-                            <select
-                              value={Math.min(pendingConditionSplitIndex, qualificationSteps.length)}
-                              onChange={e => setPendingConditionSplitIndex(parseInt(e.target.value))}
-                              className="bg-accent border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground"
-                            >
-                              <option value={0}>Logo no início (antes de qualquer pergunta)</option>
-                              {qualificationSteps.map((_, i) => (
-                                <option key={i} value={i + 1}>Depois da pergunta {i + 1}</option>
-                              ))}
-                            </select>
-                            <Button type="button" variant="secondary" onClick={() => addCondition(Math.min(pendingConditionSplitIndex, qualificationSteps.length))}>
-                              Adicionar condição
-                            </Button>
-                          </div>
-                          <StepTimeline
-                            form={form}
-                            setForm={setForm}
-                            tail={legacyTail}
-                            onChangeTail={handleLegacyTailChange}
-                            showToast={showToast}
-                            utmLinkPicker={{
-                              utmLinks,
-                              selectedUtmLinkId,
-                              onSelectUtmLink: handleSelectUtmLink,
-                              onGenerateTrackedLink: handleGenerateTrackedLink,
-                              generatingTrackedLink,
-                              automationId: form.id,
-                            }}
-                            startNumber={3}
-                          />
-                        </>
+                        <StepTimeline
+                          form={form}
+                          setForm={setForm}
+                          tail={legacyTail}
+                          onChangeTail={handleLegacyTailChange}
+                          showToast={showToast}
+                          utmLinkPicker={{
+                            utmLinks,
+                            selectedUtmLinkId,
+                            onSelectUtmLink: handleSelectUtmLink,
+                            onGenerateTrackedLink: handleGenerateTrackedLink,
+                            generatingTrackedLink,
+                            automationId: form.id,
+                          }}
+                          startNumber={3}
+                          onAddCondition={(afterIndex) => addCondition(afterIndex)}
+                        />
                       ) : (
                         <>
                           {qualificationSteps.length > 0 && (
@@ -559,43 +540,47 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                             />
                           )}
 
-                          <div className="bg-card border border-accent rounded-2xl p-6 shadow-xs flex flex-col gap-4 text-foreground">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-bold text-foreground text-sm">Condição (Se / Senão)</h4>
-                              <button type="button" onClick={removeCondition} className="text-xs font-bold text-destructive hover:underline cursor-pointer">
-                                Remover condição
-                              </button>
-                            </div>
+                          <StepCard
+                            n={3 + qualificationSteps.length}
+                            icon={<GitBranch className="w-4 h-4" />}
+                            kind="Ramificação"
+                            summary="Se / senão — dois caminhos independentes a partir daqui"
+                            expanded={conditionExpanded}
+                            onToggle={() => setConditionExpanded(v => !v)}
+                            onDelete={removeCondition}
+                          >
                             <ConditionPanel
                               data={wizardCondition.condition}
                               onChange={(d: ConditionNodeConfig) => setWizardCondition(prev => prev && { ...prev, condition: d })}
                             />
-                          </div>
 
-                          <div className="flex gap-2">
-                            <Button type="button" variant={activeBranchTab === 'true' ? 'primary' : 'secondary'} onClick={() => setActiveBranchTab('true')}>
-                              Se verdadeiro
-                            </Button>
-                            <Button type="button" variant={activeBranchTab === 'false' ? 'primary' : 'secondary'} onClick={() => setActiveBranchTab('false')}>
-                              Se falso
-                            </Button>
-                          </div>
+                            <div className="flex gap-2">
+                              <Button type="button" variant={activeBranchTab === 'true' ? 'primary' : 'secondary'} onClick={() => setActiveBranchTab('true')}>
+                                Se verdadeiro
+                              </Button>
+                              <Button type="button" variant={activeBranchTab === 'false' ? 'primary' : 'secondary'} onClick={() => setActiveBranchTab('false')}>
+                                Se falso
+                              </Button>
+                            </div>
 
-                          {activeBranchTab === 'true' ? (
-                            <TailEditor
-                              tail={wizardCondition.trueBranch}
-                              onChange={updater => setWizardCondition(prev => prev && { ...prev, trueBranch: updater(prev.trueBranch) })}
-                              showToast={showToast}
-                              title="Ramo Verdadeiro"
-                            />
-                          ) : (
-                            <TailEditor
-                              tail={wizardCondition.falseBranch}
-                              onChange={updater => setWizardCondition(prev => prev && { ...prev, falseBranch: updater(prev.falseBranch) })}
-                              showToast={showToast}
-                              title="Ramo Falso"
-                            />
-                          )}
+                            <div className="border-l-2 border-border pl-4 flex flex-col gap-4">
+                              {activeBranchTab === 'true' ? (
+                                <TailEditor
+                                  tail={wizardCondition.trueBranch}
+                                  onChange={updater => setWizardCondition(prev => prev && { ...prev, trueBranch: updater(prev.trueBranch) })}
+                                  showToast={showToast}
+                                  title="Ramo Verdadeiro"
+                                />
+                              ) : (
+                                <TailEditor
+                                  tail={wizardCondition.falseBranch}
+                                  onChange={updater => setWizardCondition(prev => prev && { ...prev, falseBranch: updater(prev.falseBranch) })}
+                                  showToast={showToast}
+                                  title="Ramo Falso"
+                                />
+                              )}
+                            </div>
+                          </StepCard>
                         </>
                       )}
                     </div>
