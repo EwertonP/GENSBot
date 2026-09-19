@@ -20,11 +20,10 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, padding = 'md', interactive, ...props }, ref) => (
     <div
       ref={ref}
-      // Elevação vem de sombra por padrão (light mode) — borda só reaparece no
-      // dark mode, onde sombra quase não se vê contra o fundo quase-preto
-      // (a separação lá vem de variação de tom entre bg-background/bg-card).
+      // Borda de 1px + sombra dura, como o card do site da agência: as duas
+      // juntas, não uma ou outra. A sombra não tem blur — é o gesto de marca.
       className={cn(
-        'bg-card rounded-lg shadow-sm dark:border dark:border-border transition-all duration-150',
+        'bg-card rounded-lg border border-border shadow-sm transition-all duration-150',
         interactive && 'cursor-pointer hover:shadow-md hover:-translate-y-0.5',
         PADDING[padding],
         className

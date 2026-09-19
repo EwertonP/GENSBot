@@ -1,18 +1,12 @@
 import type { Metadata } from "next";
-import Script from "next/script";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Sora } from "next/font/google";
 import { MotionConfig } from "motion/react";
 import "./globals.css";
-import { noFlashThemeScript } from "@/lib/theme";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const sora = Sora({
+  variable: "--font-sora",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -26,18 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      suppressHydrationWarning
-    >
-      <head>
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: noFlashThemeScript }}
-        />
-      </head>
+    <html lang="pt-BR" className={`${sora.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <MotionConfig reducedMotion="user">{children}</MotionConfig>
       </body>

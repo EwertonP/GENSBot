@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
-import ThemeToggle from '@/components/theme-toggle';
 import Logo from '@/components/logo';
 import type { Automation } from '@/types/automation';
 import { buildFlowFromAdvancedForm, decompileFlow, type QualificationStep, type WizardCondition, type WizardTail } from '@/lib/flow-engine/wizardCompiler';
@@ -1098,7 +1097,6 @@ export default function Dashboard() {
               <HelpCircle className="w-3.5 h-3.5" />
               <span>v1.3.0 • eGrow Edition</span>
             </div>
-            <ThemeToggle />
           </div>
           {currentUser && (
             <div className="flex items-center gap-2 rounded-2xl bg-muted p-2">

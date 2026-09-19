@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 import { useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
-import ThemeToggle from '@/components/theme-toggle';
 import { LogoMark } from '@/components/logo';
 
 export default function LoginPage() {
@@ -32,7 +31,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
-      <ThemeToggle className="absolute top-4 right-4" />
       <div className="w-full max-w-md">
 
         {/* Logo & Brand */}
