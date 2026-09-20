@@ -147,12 +147,23 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
   const [period, setPeriod] = useState<7 | 30 | 90>(30);
   const [data, setData] = useState<ContentPerformance | null>(null);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(false);
 
   useEffect(() => {
     setLoading(true);
+    setErro(false);
     fetch(withAccount(`/api/dashboard/content-performance?period=${period}`))
-      .then((res) => res.json())
-      .then((result) => setData(result))
+      .then(async (res) => {
+        const result = await res.json();
+        // Uma resposta de erro ({ error }) não traz `summary`. Sem esta checagem,
+        // qualquer 500/401 derrubava o Dashboard inteiro ao ler `summary.posts`.
+        if (!res.ok || !result?.summary) throw new Error(result?.error || 'Resposta inválida');
+        setData(result);
+      })
+      .catch(() => {
+        setData(null);
+        setErro(true);
+      })
       .finally(() => setLoading(false));
   }, [selectedAccountId, period]);
 
@@ -179,8 +190,12 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
         </div>
       </div>
 
-      {loading || !data ? (
+      {loading ? (
         <p className="text-xs text-muted-foreground">Carregando desempenho de conteúdo...</p>
+      ) : erro || !data ? (
+        <p role="alert" className="text-xs text-muted-foreground">
+          Não foi possível carregar o desempenho de conteúdo agora. Tente atualizar a página.
+        </p>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
