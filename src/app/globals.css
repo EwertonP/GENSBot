@@ -203,6 +203,18 @@
   }
 }
 
+/* Título de seção em caixa alta com tracking positivo — o "eyebrow" do design
+   system da marca (design.md §2.2). É a polaridade contra o tracking negativo
+   dos títulos que dá o ritmo editorial; usar em rótulos de seção, não em texto
+   corrido. */
+@utility eyebrow {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
 /* Anima só quando o SO permite — troca spring/slide por cross-fade curto,
    sem desligar feedback de estado (cor/opacidade continuam). */
 @media (prefers-reduced-motion: reduce) {

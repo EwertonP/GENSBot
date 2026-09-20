@@ -24,6 +24,8 @@ import InboxPanel from '@/components/inbox-panel';
 import LogsTab from '@/components/logs-tab';
 import DashboardHome from '@/components/dashboard-home';
 import AutomationsTab from '@/components/automations-tab';
+import ClientesTab from '@/components/clientes-tab';
+import type { DestinoConta } from '@/lib/clientes';
 import { Instagram } from '@/components/instagram-icon';
 import type { IgMedia, IgStory } from '@/types/instagram-media';
 import {
@@ -48,6 +50,7 @@ import {
   TrendingUp,
   Layers,
   Building2,
+  Briefcase,
   ChevronDown,
   Calendar,
   Columns3,
@@ -127,7 +130,7 @@ export default function Dashboard() {
   const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'clientes' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox' | 'logs'>('dashboard');
   // Sub-abas de "Agendamentos" (Onda 1) — Publicações é a lista/composer que já existia,
   // Calendário e Kanban são novos, mesma fonte de dado (scheduled_posts).
   const [publishSubTab, setPublishSubTab] = useState<'publicacoes' | 'calendario' | 'kanban'>('publicacoes');
@@ -958,7 +961,13 @@ export default function Dashboard() {
             grupo responde uma pergunta diferente do dia a dia da agência. */}
         <nav className="flex-1 px-4 py-6 flex flex-col gap-6">
           {[
-            { label: null, items: [{ id: 'dashboard', label: 'Dashboard', icon: BarChart3 }] },
+            {
+              label: null,
+              items: [
+                { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+                { id: 'clientes', label: 'Clientes', icon: Briefcase },
+              ],
+            },
             {
               label: 'Conteúdo',
               items: [
@@ -1145,6 +1154,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-lg font-bold text-foreground tracking-tight">
               {activeTab === 'dashboard' && 'Dashboard'}
+              {activeTab === 'clientes' && 'Clientes'}
               {activeTab === 'automations' && 'Automações'}
               {activeTab === 'utm' && 'Links UTM'}
               {activeTab === 'metrics' && 'Métricas'}
@@ -1157,6 +1167,7 @@ export default function Dashboard() {
             </h2>
             <p className="text-xs text-muted-foreground font-medium mt-0.5">
               {activeTab === 'dashboard' && 'Bem-vindo de volta! Veja o que está acontecendo com sua automação.'}
+              {activeTab === 'clientes' && 'Ficha, contrato e contatos de cada cliente da agência.'}
               {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
               {activeTab === 'utm' && 'Gere links rastreáveis pra saber de onde vêm seus leads.'}
               {activeTab === 'metrics' && 'Acompanhe o desempenho de cada perfil conectado.'}
@@ -1307,6 +1318,19 @@ export default function Dashboard() {
                 />
               )}
             </div>
+          )}
+
+          {/* TAB: CLIENTES — a espinha do sistema unificado */}
+          {activeTab === 'clientes' && (
+            <ClientesTab
+              showToast={showToast}
+              onAbrirConta={(destino: DestinoConta, instagramUserId: string) => {
+                // Escopa o app inteiro na conta do cliente e abre a aba pedida.
+                handleSelectAccount(instagramUserId);
+                setActiveTab(destino);
+                setIsEditing(false);
+              }}
+            />
           )}
 
           {/* TAB 3: CONTACTS */}
