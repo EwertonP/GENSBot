@@ -1,10 +1,16 @@
 # Telas do GENSBot 2.0 — análise a partir do Modo Criador
 
-> Versão 1 · 2026-09-21 · Companheiro do `PROJETO_GENSBOT_2.0.md`.
+> Versão 2 · 2026-09-21 · Companheiro do `PROJETO_GENSBOT_2.0.md`.
 >
 > Aquele documento responde **o que** construir e em que ordem. Este responde **como cada tela
 > funciona** e **o que existe por trás dela**: tabelas, rotas, quem pode ver o quê e como uma tela
 > conversa com a outra.
+>
+> **Mudança da v1 para a v2.** A v1 foi escrita a partir da análise do Modo Criador e marcava a
+> esteira de conteúdo e o link de aprovação como lacunas. Entre a escrita e a revisão, os dois foram
+> implementados (commit `63f5e3a`, mais o Design System SaaS em `e3f123f`, ambos já na `main`). As
+> seções §3.5, §3.6, §4.1, §5 e §7 foram corrigidas contra o código real. O desenho que saiu difere
+> do que este documento havia proposto — e em parte é melhor. As diferenças estão em §3.6.
 
 ---
 
@@ -225,14 +231,24 @@ move o status adiante.
 
 **Por trás**
 
-`conteudo_items` cobre quase tudo. Duas lacunas:
+`[EXISTE]` **Comentários foram implementados**, mas não como tabela: são um `jsonb` na própria linha
+do item (`conteudo_items.comentarios_revisao`). Cada comentário tem autor, tipo (`cliente` ou
+`equipe`), texto, data, se está resolvido — e dois campos que a proposta original não previa e que
+são melhores do que ela:
 
-`[LACUNA]` **Não existe tabela de comentários.** O Modo Criador notifica "Bruno comentou no Post 02 —
-Clínica Vitta". Sem isso, a revisão interna volta para o WhatsApp, que é exatamente o problema que o
-sistema deveria resolver. Proposta: `conteudo_comentarios` (item, autor, corpo, se veio do cliente,
-data).
+| Campo | Para quê |
+|---|---|
+| `slide_index` | Comentar **um slide específico** de um carrossel |
+| `timestamp_seconds` | Comentar **um momento específico** de um vídeo ou reel |
 
-`[LACUNA]` **Não existe prazo interno**, como dito em §3.1.
+Isso muda a conversa de revisão. Em vez de "o terceiro card está com o texto errado", o comentário
+fica preso ao slide 3. Em vez de "tem um corte estranho lá pelos 30 segundos", fica em 00:27.
+
+**Ressalva do formato.** `jsonb` é simples e rápido de construir, mas tem um custo: não dá para
+consultar comentários entre itens sem varrer o campo. Um relatório do tipo "quantos ajustes o cliente
+X pediu no mês" fica caro. Enquanto o volume for pequeno, funciona. Se virar relatório, vira tabela.
+
+`[LACUNA]` **Não existe prazo interno**, como dito em §3.1. Continua em aberto.
 
 ### 3.6 Preview de Feed e o link de aprovação
 
@@ -247,44 +263,65 @@ ordem personalizada e cronológica.
 Ou seja: o link é **por cliente e por mês**, e precisa ser **ativado explicitamente**. O cliente vê
 o feed como ficará no Instagram — imagem e legenda — e aprova ou pede ajuste **sem criar conta**.
 
-**No GENSBot 2.0** `[PROPOSTO]`
+**No GENSBot 2.0** `[EXISTE]` — implementado em 2026-09-20
 
-Duas telas distintas, e é importante não confundi-las:
+O que existe hoje, lido do código (`src/app/aprovacao/[token]/page.tsx`,
+`src/app/api/aprovacao/[token]/route.ts`, migration `20260920_conteudo_aprovacao.sql`):
 
-1. **Interna** (a aba): a equipe monta a ordem do feed e decide o que entra no link.
-2. **Pública** (o link): o cliente abre no celular, sem login, e aprova ou comenta.
+| Decisão | Como ficou | O que este documento propunha |
+|---|---|---|
+| Unidade do link | **Um token por item de conteúdo** (`conteudo_items.token_aprovacao`, uuid único) | Um token por cliente e mês |
+| Onde mora | Coluna na própria tabela, gerada por padrão ao criar o item | Tabela `aprovacao_links` |
+| Ativação | Não tem: o token existe desde que o item nasce | Ativar o mês explicitamente |
+| Expiração e revogação | Não tem | Revogável, com validade |
+| Comentários | `jsonb` no item, com slide e timecode | Tabela própria |
+| Compartilhamento | **Link pronto para WhatsApp**, com mensagem formatada | "Compartilhar preview" genérico |
+| Acesso ao banco | Service role no servidor, token na URL | Igual |
+| Efeito de aprovar | Vai para `agendamento` | Igual |
+| Efeito de pedir ajuste | Vai para `travado` e grava o comentário | Igual |
 
-**Por trás — o problema de segurança**
+**Duas escolhas que ficaram melhores que a proposta.** O comentário preso a um slide ou a um segundo
+do vídeo (§3.5) resolve um problema real de revisão. E o `gerarLinkWhatsAppAprovacao` reconhece como
+a conversa com o cliente acontece de fato no Brasil: o link sai pronto, com texto, direto no WhatsApp
+do contato — em vez de um botão de copiar que ninguém usa.
 
-Nossa RLS se apoia em `private.agencia_atual()`, que devolve nulo para quem não está logado. Ou seja,
-**a política que protege tudo o mais não serve para o link público**. Três exigências:
+**Por trás — como a segurança funciona**
 
-1. O endereço precisa de um **token aleatório e longo**, não o id do cliente. Id sequencial ou uuid
-   exposto vira convite para tentar o do vizinho.
-2. O token é **por cliente e por mês**, revogável, e só vale enquanto o mês estiver ativado.
-3. A rota pública roda no **servidor com service role**, valida o token e devolve **apenas** os itens
-   daquele cliente e mês, já filtrados. Nunca entrega a consulta ao navegador.
+Nossa RLS se apoia em `private.agencia_atual()`, que devolve nulo para quem não está logado. A
+política que protege todo o resto **não serve** para o link público. A implementação contorna isso do
+jeito certo: a rota roda no servidor com service role, recebe o token pela URL, e devolve apenas
+aquele item. O navegador nunca consulta o banco.
 
 ```mermaid
 sequenceDiagram
     participant C as Cliente (sem login)
-    participant R as Rota pública
-    participant DB as Banco
+    participant R as Rota no servidor
+    participant DB as Banco (service role)
     C->>R: abre /aprovacao/<token>
-    R->>DB: valida token e mês ativo
-    DB-->>R: itens daquele cliente e mês
-    R-->>C: preview do feed
-    C->>R: aprovar ou pedir ajuste
-    R->>DB: muda status e grava comentário
-    DB-->>R: ok
+    R->>DB: busca item por token_aprovacao
+    DB-->>R: item + dados do cliente
+    R-->>C: preview fiel ao Instagram
+    C->>R: aprovar, ou pedir ajuste em um slide/segundo
+    R->>DB: muda status e acrescenta ao comentarios_revisao
     R-->>C: confirmação
 ```
 
-`[LACUNA]` **Não existe tabela de link de aprovação.** Proposta: `aprovacao_links` (cliente, mês,
-token, ativo, criado por, expira em, último acesso).
+O token é `gen_random_uuid()`: aleatório e com entropia suficiente para não ser adivinhado. Correto.
 
-**Regra de produto:** aprovar move o item de `revisao_cliente` para `agendamento`. Pedir ajuste move
-para `travado` e grava o comentário. O cliente nunca vê status interno nem nome de quem editou.
+**Quatro pontos em aberto, encontrados ao ler o código.** Nenhum é grave, mas todos merecem decisão:
+
+1. **O link nunca expira nem pode ser revogado.** Uma vez enviado ao cliente, vale para sempre. Se um
+   contato sair da empresa dele, o link continua valendo na mão dessa pessoa.
+2. **A rota devolve o item em qualquer status.** Quem tiver o link vê o conteúdo mesmo em
+   `planejamento` ou `copy` — ou seja, trabalho pela metade. Faria sentido só responder quando o
+   item estiver em `revisao_cliente`.
+3. **Aprovar funciona a partir de qualquer status.** Não há checagem de que o item estava em
+   `revisao_cliente`, então um item em `planejamento` pode saltar direto para `agendamento`.
+4. **O nome do autor vem do corpo da requisição**, sem validação. O comentário pode ser assinado com
+   qualquer nome.
+
+Os pontos 2 e 3 se resolvem com uma linha de condição na rota. O 1 é decisão de produto: validade por
+tempo, por mês, ou revogação manual.
 
 ### 3.7 A ficha do cliente
 
@@ -410,10 +447,9 @@ a visão consolidada.
 | Minhas demandas | `conteudo_items`, `membros` | `GET /api/demandas` | `[LACUNA]` |
 | Clientes (lista) | `clientes`, `instagram_accounts` | `GET/POST /api/clientes` | `[EXISTE]` |
 | Ficha do cliente | `clientes`, `cliente_contatos`, `cliente_acessos` | `GET/PATCH /api/clientes/[id]` | `[EXISTE]` |
-| Grid do mês | `conteudo_items` | `GET /api/clientes/[id]/conteudo?mes=` | `[LACUNA]` |
-| Demanda | `conteudo_items`, comentários | `PATCH /api/conteudo/[id]` | `[LACUNA]` |
-| Preview interno | `conteudo_items`, links | `GET /api/clientes/[id]/preview?mes=` | `[LACUNA]` |
-| **Aprovação pública** | links, `conteudo_items`, comentários | `GET/POST /aprovacao/[token]` | `[LACUNA]` |
+| Esteira do cliente | `conteudo_items` | `GET/POST /api/conteudo` | `[EXISTE]` (`esteira-tab.tsx`) |
+| Demanda | `conteudo_items` (comentários em `jsonb`) | `PATCH /api/conteudo/[id]` | `[EXISTE]` |
+| **Aprovação pública** | `conteudo_items.token_aprovacao` | `GET/POST /api/aprovacao/[token]` e página `/aprovacao/[token]` | `[EXISTE]` |
 | Calendário geral | `conteudo_items`, `clientes` | `GET /api/calendario?mes=` | `[LACUNA]` |
 | Equipe | `membros`, `cargos`, `membro_cargos`, metas | `GET/PATCH /api/equipe` | Parcial |
 | Automações | `automations`, `utm_links` | rotas atuais | `[EXISTE]` |
@@ -513,8 +549,8 @@ correspondente.
 
 | # | Lacuna | Tela afetada | Proposta |
 |---|---|---|---|
-| L1 | Comentários em um item | Demanda, aprovação | `conteudo_comentarios` (item, autor, corpo, origem cliente, data) |
-| L2 | Link de aprovação por cliente e mês | Preview público | `aprovacao_links` (cliente, mês, token, ativo, expira, último acesso) |
+| ~~L1~~ | ~~Comentários em um item~~ | — | **Resolvido** como `comentarios_revisao jsonb`, com slide e timecode (§3.5). Vira tabela se virar relatório |
+| ~~L2~~ | ~~Link de aprovação~~ | — | **Resolvido** como `token_aprovacao` por item (§3.6). Faltam expiração, revogação e checagem de status |
 | L3 | Prazo interno, separado da data de publicação | Demandas, alertas | Coluna `prazo` em `conteudo_items` |
 | L4 | Metas por membro e mês | Relatório de equipe | `membro_metas` |
 | L5 | Tarefas de rotina | Rotina, Minhas demandas | Ver §5.3 |
@@ -566,20 +602,22 @@ bastante — e obriga a não cair na tentação de construir o que só faria sen
 
 Alinhada às ondas do `PROJETO_GENSBOT_2.0.md`, mas na granularidade de tela.
 
-| Ordem | Tela | Destrava | Depende de |
+| Ordem | Tela | Destrava | Situação |
 |---|---|---|---|
-| 1 | Grid do mês e demanda | A esteira sai do papel | L1, L3 |
-| 2 | Aprovação pública | A dor mais cara da agência | L2, tela 1 |
-| 3 | Minhas demandas | A equipe passa a trabalhar pelo sistema | tela 1 |
-| 4 | Calendário do cliente e geral | Enxergar choque de prazos | tela 1 |
-| 5 | Equipe e relatório | Medir entrega | L4 |
-| 6 | Abas do cliente (automações, contatos, inbox, métricas) | Unifica o que já existe | Onda 2 do projeto |
-| 7 | Rotina e recorrências | Cobre o dia a dia | L5, L6 |
-| 8 | Configurações, Drive, notificações | Fecha a operação | L9 |
+| ~~1~~ | ~~Esteira e demanda~~ | A esteira saiu do papel | **Feito** (`esteira-tab.tsx`) |
+| ~~2~~ | ~~Aprovação pública~~ | A dor mais cara da agência | **Feito** (`/aprovacao/[token]`) |
+| 1 | **Endurecer a aprovação** | Fecha os 4 pontos de §3.6 | Pequeno, e o mais urgente |
+| 2 | Minhas demandas | A equipe passa a trabalhar pelo sistema | Depende de L3 (prazo) |
+| 3 | Calendário do cliente e geral | Enxergar choque de prazos | — |
+| 4 | Equipe e relatório | Medir entrega | L4 |
+| 5 | Abas do cliente (automações, contatos, inbox, métricas) | Unifica o que já existe | Onda 2 do projeto |
+| 6 | Rotina e recorrências | Cobre o dia a dia | L5, L6 |
+| 7 | Configurações, Drive, notificações | Fecha a operação | L9 |
 
-**Por que aprovação em segundo lugar.** É a tela com maior retorno por esforço: resolve a aprovação
-perdida no WhatsApp, é a que o cliente vê — portanto a que mais comunica profissionalismo — e não
-depende de equipe nem de permissões.
+**Por que endurecer a aprovação vem primeiro.** É a única tela que uma pessoa de fora abre. Hoje o
+link não expira, mostra o item em qualquer status e aceita aprovação a partir de qualquer status
+(§3.6). São correções pequenas, e o custo de deixá-las para depois cresce a cada link enviado a um
+cliente real.
 
 ---
 
@@ -587,8 +625,8 @@ depende de equipe nem de permissões.
 
 - [ ] **Rotina**: tabela separada ou tipo dentro de `conteudo_items`? (§5.3)
 - [ ] **Prazo interno**: um campo por item, ou derivado do dia de revisão do cliente?
-- [ ] **Token de aprovação**: expira por tempo, ao fim do mês, ou só manualmente?
-- [ ] O cliente, pelo link, pode comentar **item a item** ou só aprovar o mês inteiro?
+- [ ] **Token de aprovação**: hoje não expira. Deve expirar por tempo, ao fim do mês, ou só por revogação manual? (§3.6)
+- [ ] **Aprovação de um item por vez**, como está, ou também um link do mês inteiro, como no Modo Criador? O feed se aprova como conjunto; o item, isolado, não mostra como fica a grade.
 - [ ] **Seleção de fotos**: faz sentido para a GENS ou é específico de quem faz ensaio?
 - [ ] **Vertical**: precisa existir, ou o nicho basta enquanto houver uma só?
 - [ ] O item semeado automaticamente (6 posts em branco ao criar o cliente) ajuda ou atrapalha?
@@ -607,6 +645,11 @@ O que **não** foi possível ver: um item de conteúdo preenchido com mídia, o 
 do ponto de vista do cliente, e as telas de Biblioteca, Seleção de Fotos, Rotina e Lixeira. As partes
 correspondentes deste documento são inferência a partir da estrutura observada, e estão marcadas como
 propostas.
+
+**Revisão da v2 (2026-09-21).** As seções sobre esteira e aprovação foram reescritas contra o código
+que entrou na `main` em 2026-09-20 (`63f5e3a`), lendo a migration, a rota pública e o módulo de
+domínio. Os quatro pontos em aberto de §3.6 saíram da leitura do código, não de teste em execução —
+o fluxo de aprovação ainda não foi exercitado no navegador com um item real.
 
 Referências cruzadas: `PROJETO_GENSBOT_2.0.md` (decisões, roadmap, modelo de dados) e
 `design/design.md` (a linguagem visual, que não vem do Modo Criador e sim do site da agência).
