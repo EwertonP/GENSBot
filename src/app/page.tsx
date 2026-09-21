@@ -312,12 +312,11 @@ export default function Dashboard() {
 
       if (preferredAccountId && data.some(a => a.instagram_user_id === preferredAccountId)) {
         nextSelected = preferredAccountId;
-      } else if (stored === 'all' && data.length > 1) {
-        nextSelected = 'all';
-      } else if (stored && data.some(a => a.instagram_user_id === stored)) {
+      } else if (stored && (stored === 'all' || data.some(a => a.instagram_user_id === stored))) {
         nextSelected = stored;
       } else if (data.length > 0) {
-        nextSelected = data[0].instagram_user_id;
+        // Padrão de Entrada: Visão Agência Geral (todas as contas) se houver mais de 1 conta
+        nextSelected = data.length > 1 ? 'all' : data[0].instagram_user_id;
       }
 
       setSelectedAccountId(nextSelected);
@@ -850,7 +849,11 @@ export default function Dashboard() {
                 aria-expanded={accountMenuOpen}
                 className="w-full flex items-center gap-2.5 p-2 rounded-xl bg-accent/60 hover:bg-accent border border-border/70 hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group"
               >
-                {config?.profile_picture_url ? (
+                {selectedAccountId === 'all' ? (
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 border border-primary/40">
+                    <Building2 className="w-4 h-4 text-primary" />
+                  </div>
+                ) : config?.profile_picture_url ? (
                   <img
                     src={config.profile_picture_url}
                     alt="Instagram Profile"
@@ -862,9 +865,11 @@ export default function Dashboard() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0 leading-tight">
-                  <p className="text-xs font-bold text-foreground truncate">@{config?.instagram_username || '...'}</p>
+                  <p className="text-xs font-bold text-foreground truncate">
+                    {selectedAccountId === 'all' ? '🌐 Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}
+                  </p>
                   <p className="text-[10px] text-muted-foreground truncate">
-                    {accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conta ativa'}
+                    {selectedAccountId === 'all' ? `Consolidado (${accounts.length} clientes)` : accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conta ativa'}
                   </p>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} />
@@ -1125,6 +1130,20 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {selectedAccountId !== 'all' && accounts.length > 1 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/30 text-xs font-semibold text-foreground animate-in fade-in duration-200">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span>Operando como: <strong className="text-primary font-bold">@{config?.instagram_username || selectedAccountId}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => handleSelectAccount('all')}
+                  className="ml-1 text-[11px] px-2 py-0.5 rounded-md bg-card hover:bg-accent border border-border/80 text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                  title="Voltar para a Visão Geral da Agência"
+                >
+                  ✕ Visão Agência
+                </button>
+              </div>
+            )}
             <button
               onClick={handleManualDrain}
               title="Processar fila agora"

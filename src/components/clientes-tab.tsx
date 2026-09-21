@@ -303,12 +303,20 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                       {conta ? `@${conta.instagram_username ?? conta.instagram_user_id}` : 'Sem Instagram'}
                     </span>
                   </span>
-                  {(c.posts_mes != null || c.reels_mes != null) ? (
-                    <span className="shrink-0 text-[11px] font-mono font-medium px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground tabular-nums border border-border/50">
-                      {posts}p · {reels}r
-                    </span>
+                  {conta ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAbrirConta('publish', conta.instagram_user_id);
+                      }}
+                      className="h-7 text-[11px] font-bold px-2.5 rounded-lg bg-primary/10 border-primary/30 text-primary hover:bg-primary hover:text-black transition-all shrink-0 cursor-pointer"
+                    >
+                      🎯 Operar Painel
+                    </Button>
                   ) : (
-                    <span className="text-[10px] text-muted-foreground/50 font-mono">0 entregas</span>
+                    <span className="text-[10px] text-muted-foreground/50 font-mono">Sem conta</span>
                   )}
                 </div>
               </Card>
