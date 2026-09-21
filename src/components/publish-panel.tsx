@@ -41,6 +41,7 @@ import { CalendarPicker } from '@/components/ui/calendar-picker';
 import type { PostingTimeSuggestion } from '@/lib/best-posting-time';
 import type { PrefillAgendamento } from '@/lib/conteudo';
 import { detectarGatilhosDaLegenda, type PublishAutomationConfig } from '@/lib/publish-automation';
+import type { Automation } from '@/types/automation';
 import { upload } from '@vercel/blob/client';
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
@@ -307,6 +308,51 @@ export default function PublishPanel({
   const [autoPublicReply, setAutoPublicReply] = useState('');
   const [autoDetectedPrompt, setAutoDetectedPrompt] = useState<{ keyword: string; dm: string; publicReply: string } | null>(null);
 
+  // Automações Salvas da Biblioteca
+  const [savedAutomations, setSavedAutomations] = useState<Automation[]>([]);
+  const [loadingAutomations, setLoadingAutomations] = useState(false);
+  const [selectedSavedId, setSelectedSavedId] = useState<string>('custom');
+  const [saveToLibrary, setSaveToLibrary] = useState(false);
+
+  // Carrega automações salvas na biblioteca da conta atual
+  useEffect(() => {
+    if (!targetAccount) return;
+    setLoadingAutomations(true);
+    fetch(withAccount('/api/automations', targetAccount))
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setSavedAutomations(data);
+      })
+      .catch(() => setSavedAutomations([]))
+      .finally(() => setLoadingAutomations(false));
+  }, [targetAccount]);
+
+  function handleSelectSavedAutomation(id: string) {
+    setSelectedSavedId(id);
+    if (id === 'custom') return;
+
+    const aut = savedAutomations.find((a) => a.id === id);
+    if (aut) {
+      setAutoEnabled(true);
+      const kw =
+        Array.isArray(aut.keywords) && aut.keywords.length > 0
+          ? aut.keywords.join(', ')
+          : aut.triggers && aut.triggers.length > 0
+          ? aut.triggers.join(', ')
+          : 'QUERO';
+      setAutoKeywords(kw);
+      setAutoMatchType(aut.match_type || 'contains');
+      setAutoWelcomeDm(aut.welcome_dm || '');
+      setAutoLinkUrl(aut.link_url || '');
+      setAutoLinkButtonLabel(aut.link_button_label || '');
+      setAutoPublicReply(
+        Array.isArray(aut.public_replies) && aut.public_replies.length > 0
+          ? aut.public_replies[0]
+          : ''
+      );
+    }
+  }
+
   // Monitora a legenda para sugerir ativação inteligente de CTA (ex: "Comente QUERO")
   useEffect(() => {
     if (!caption) {
@@ -492,6 +538,23 @@ export default function PublishPanel({
 
       const publishData = await publishRes.json();
       if (!publishRes.ok) throw new Error(publishData.error || 'Falha ao publicar ou agendar.');
+
+      if (autoEnabled && saveToLibrary && automationPayload) {
+        fetch(withAccount('/api/automations', targetAccount), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: `Automação: ${automationPayload.keywords.join(', ')}`,
+            keywords: automationPayload.keywords,
+            match_type: automationPayload.match_type,
+            welcome_dm: automationPayload.welcome_dm,
+            link_url: automationPayload.link_url,
+            link_button_label: automationPayload.link_button_label,
+            public_replies: automationPayload.public_replies,
+            status: 'active',
+          }),
+        }).catch(() => {});
+      }
 
       setFiles([]);
       setPreviewUrls([]);
@@ -814,6 +877,29 @@ export default function PublishPanel({
               {/* Campos da Automação (quando ativado) */}
               {autoEnabled && (
                 <div className="mt-4 pt-4 border-t border-border/60 flex flex-col gap-3.5 animate-in fade-in zoom-in-95 duration-150">
+                  {/* Seletor de Automação Salva da Biblioteca */}
+                  <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-accent/30 border border-border/70">
+                    <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                        Usar Automação Salva
+                      </span>
+                      {loadingAutomations && <span className="text-[10px] text-muted-foreground animate-pulse">Carregando...</span>}
+                    </label>
+                    <select
+                      value={selectedSavedId}
+                      onChange={(e) => handleSelectSavedAutomation(e.target.value)}
+                      className="h-9 px-3 rounded-lg bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-primary/60 cursor-pointer font-medium"
+                    >
+                      <option value="custom">✏️ Criar / Personalizar Regra para Este Post</option>
+                      {savedAutomations.map((aut) => (
+                        <option key={aut.id} value={aut.id}>
+                          ⚡ {aut.name} ({aut.keywords.join(', ')})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   {/* Palavras-chave / Gatilhos */}
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
@@ -966,6 +1052,19 @@ export default function PublishPanel({
                       <span className="text-foreground/80 truncate max-w-xs">{autoWelcomeDm || 'Mensagem enviada com sucesso!'}</span>
                     </div>
                   </div>
+
+                  {/* Opção para Salvar na Biblioteca Central */}
+                  <label className="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={saveToLibrary}
+                      onChange={(e) => setSaveToLibrary(e.target.checked)}
+                      className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-xs text-foreground font-medium">
+                      Salvar também esta automação na biblioteca principal para uso em futuros posts
+                    </span>
+                  </label>
                 </div>
               )}
             </div>
