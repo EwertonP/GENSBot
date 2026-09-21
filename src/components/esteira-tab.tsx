@@ -684,12 +684,19 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               setSincronizandoNotion(true);
               try {
                 const res = await fetch('/api/cron/notion-sync', { method: 'POST' });
-                const data = await res.json();
-                if (data.success) {
-                  showToast(`Notion sincronizado! ${data.totalCreated} criados, ${data.totalUpdated} atualizados.`, 'success');
+                const text = await res.text();
+                let data: any = {};
+                try {
+                  data = JSON.parse(text);
+                } catch {
+                  data = { error: text };
+                }
+
+                if (res.ok && data.success) {
+                  showToast(`Notion sincronizado! ${data.totalCreated || 0} criados, ${data.totalUpdated || 0} atualizados.`, 'success');
                   carregarDados();
                 } else {
-                  throw new Error(data.error || 'Falha ao sincronizar.');
+                  throw new Error(data.error || data.message || 'Falha ao sincronizar.');
                 }
               } catch (err: any) {
                 showToast(err.message || 'Erro ao sincronizar com o Notion.', 'error');

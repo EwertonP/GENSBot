@@ -1,13 +1,31 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { queryNotionDatabase, searchNotionDatabases, mapNotionPageToDemand } from '@/lib/notion';
+import { getContextoAgencia } from '@/lib/clientes-server';
 
 export async function handleNotionSync(req: Request) {
   const authHeader = req.headers.get('Authorization');
-  const cronSecret = process.env.CRON_SECRET || 'local_secret';
+  const cronSecret = process.env.CRON_SECRET;
 
-  if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${cronSecret}`) {
-    return new Response('Não autorizado', { status: 401 });
+  // 1. Vercel Cron com Bearer Token
+  const isVercelCron = Boolean(cronSecret && authHeader === `Bearer ${cronSecret}`);
+
+  // 2. Chamada manual pela interface (Usuário autenticado na sessão do Supabase)
+  let isUserAuth = false;
+  if (!isVercelCron) {
+    try {
+      const auth = await getContextoAgencia();
+      if (auth.ok) {
+        isUserAuth = true;
+      }
+    } catch {
+      // Ignora e faz fallback para verificacao
+    }
+  }
+
+  // Se estiver em produção e não for nem Cron da Vercel nem usuário logado no app:
+  if (process.env.NODE_ENV === 'production' && !isVercelCron && !isUserAuth) {
+    return NextResponse.json({ error: 'Não autorizado. Faça login para sincronizar com o Notion.' }, { status: 401 });
   }
 
   try {
