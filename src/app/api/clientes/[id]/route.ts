@@ -27,6 +27,22 @@ export async function GET(_req: Request, { params }: Params) {
   if (error) return traduzirErroBanco(error, 'GET /api/clientes/[id]');
   if (!cliente) return respostaErro('Cliente não encontrado.', 404);
 
+  let clienteFinal = cliente;
+  if (!clienteFinal.foto_url && clienteFinal.instagram_account_id) {
+    const { data: conta } = await supabase
+      .from('instagram_accounts')
+      .select('profile_picture_url, instagram_username')
+      .eq('id', clienteFinal.instagram_account_id)
+      .maybeSingle();
+    if (conta?.profile_picture_url) {
+      clienteFinal = {
+        ...clienteFinal,
+        foto_url: conta.profile_picture_url,
+        instagram_username: conta.instagram_username,
+      };
+    }
+  }
+
   const { data: contatos, error: erroContatos } = await supabase
     .from('cliente_contatos')
     .select('*')
@@ -34,7 +50,7 @@ export async function GET(_req: Request, { params }: Params) {
     .order('criado_em', { ascending: true });
   if (erroContatos) return traduzirErroBanco(erroContatos, 'GET /api/clientes/[id] contatos');
 
-  return NextResponse.json({ cliente, contatos: contatos ?? [] });
+  return NextResponse.json({ cliente: clienteFinal, contatos: contatos ?? [] });
 }
 
 // PATCH: edição parcial. Arquivar/restaurar é só `{ ativo: false | true }`.
@@ -61,9 +77,21 @@ export async function PATCH(req: Request, { params }: Params) {
     return respostaErro('Conta de Instagram não encontrada.', 400);
   }
 
+  const updateData = { ...parsed.data };
+  if (!updateData.foto_url && contaId) {
+    const { data: conta } = await supabase
+      .from('instagram_accounts')
+      .select('profile_picture_url')
+      .eq('id', contaId)
+      .maybeSingle();
+    if (conta?.profile_picture_url) {
+      updateData.foto_url = conta.profile_picture_url;
+    }
+  }
+
   const { data, error } = await supabase
     .from('clientes')
-    .update(parsed.data)
+    .update(updateData)
     .eq('id', id)
     .select('*')
     .maybeSingle();

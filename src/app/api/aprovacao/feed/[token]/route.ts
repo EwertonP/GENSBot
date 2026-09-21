@@ -60,8 +60,13 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ error: 'Erro ao carregar posts do feed.' }, { status: 500 });
   }
 
+  const clienteTratado = {
+    ...cliente,
+    foto_url: cliente.foto_url || (cliente as any).instagram_accounts?.profile_picture_url || null,
+  };
+
   return NextResponse.json({
-    cliente,
+    cliente: clienteTratado,
     posts: posts || [],
     total: posts?.length || 0,
   });

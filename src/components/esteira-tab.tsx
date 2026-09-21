@@ -38,6 +38,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sheet } from '@/components/ui/sheet';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
+import { Instagram } from '@/components/instagram-icon';
 import {
   STATUS_LABELS,
   COLUNAS_KANBAN,
@@ -799,6 +800,27 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                           </div>
                         )}
 
+                        {/* Status de Aprovação com Cliente */}
+                        {item.status === 'revisao_cliente' && (
+                          <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2 text-[10px]">
+                            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold min-w-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                              <span className="truncate">Aguardando {item.cliente?.nome || 'Cliente'}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(`/aprovacao/${item.token_aprovacao}`, '_blank');
+                              }}
+                              title="Ver exatamente como o cliente visualiza a tela de aprovação"
+                              className="text-muted-foreground hover:text-foreground shrink-0 font-mono text-[9px] underline cursor-pointer"
+                            >
+                              Ver tela
+                            </button>
+                          </div>
+                        )}
+
                         {/* Ações Rápidas: Link, Editar e Enviar p/ Aprovação */}
                         <div className="border-t border-border/60 pt-2.5 flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1">
@@ -835,11 +857,19 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                               e.stopPropagation();
                               handleEnviarParaAprovacao(item);
                             }}
-                            title="Avança para revisão e abre no WhatsApp Web do cliente/grupo"
-                            className="text-[11px] font-bold text-foreground bg-lime hover:bg-lime/85 px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-foreground/15 shadow-2xs transition-all cursor-pointer"
+                            title={
+                              item.status === 'revisao_cliente'
+                                ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
+                                : 'Avança para revisão e abre no WhatsApp Web do cliente/grupo'
+                            }
+                            className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-all cursor-pointer ${
+                              item.status === 'revisao_cliente'
+                                ? 'bg-amber-400 hover:bg-amber-300 text-amber-950 border-amber-500/30'
+                                : 'bg-lime hover:bg-lime/85 text-foreground border-foreground/15'
+                            }`}
                           >
                             <Send className="w-3 h-3" />
-                            <span>Aprovação</span>
+                            <span>{item.status === 'revisao_cliente' ? 'Reenviar' : 'Aprovação'}</span>
                           </button>
                         </div>
                       </Card>
@@ -1003,10 +1033,19 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                         : 'border-transparent hover:bg-accent/60'
                     }`}
                   >
-                    <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
+                    <div className="relative shrink-0">
+                      <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
+                      {c.foto_url && (
+                        <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center p-0.5 border border-card shadow-2xs">
+                          <Instagram className="w-2 h-2 text-white" />
+                        </span>
+                      )}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{c.nicho || 'Geral'}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {(c as any).instagram_username ? `@${(c as any).instagram_username}` : c.nicho || 'Geral'}
+                      </p>
                     </div>
                     {isSelected && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
                   </button>

@@ -25,8 +25,18 @@ export async function GET(req: Request) {
 
   // Só campos públicos: nunca o access_token.
   const contas = await listarContasSeguro(user.id);
+  const contasMap = new Map(contas.map((c) => [c.id, c]));
 
-  return NextResponse.json({ clientes: clientes ?? [], contas });
+  const clientesTratados = (clientes ?? []).map((c) => {
+    const conta = c.instagram_account_id ? contasMap.get(c.instagram_account_id) : null;
+    return {
+      ...c,
+      foto_url: c.foto_url || conta?.profile_picture_url || null,
+      instagram_username: conta?.instagram_username || null,
+    };
+  });
+
+  return NextResponse.json({ clientes: clientesTratados, contas });
 }
 
 // POST: cria um cliente. A agência vem do membro autenticado, nunca do corpo.
@@ -50,9 +60,22 @@ export async function POST(req: Request) {
     return respostaErro('Conta de Instagram não encontrada.', 400);
   }
 
+  // Se foto_url não foi informada manualmente, herda a foto de perfil do Instagram conectado
+  let fotoUrl = parsed.data.foto_url;
+  if (!fotoUrl && contaId) {
+    const { data: conta } = await supabase
+      .from('instagram_accounts')
+      .select('profile_picture_url')
+      .eq('id', contaId)
+      .maybeSingle();
+    if (conta?.profile_picture_url) {
+      fotoUrl = conta.profile_picture_url;
+    }
+  }
+
   const { data, error } = await supabase
     .from('clientes')
-    .insert({ ...parsed.data, agencia_id: membro.agencia_id })
+    .insert({ ...parsed.data, foto_url: fotoUrl, agencia_id: membro.agencia_id })
     .select('*')
     .single();
 

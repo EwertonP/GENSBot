@@ -70,7 +70,43 @@ export async function GET(req: Request) {
     return traduzirErroBanco(error, 'GET /api/conteudo');
   }
 
-  return NextResponse.json({ items: data || [] });
+  const items = (data || []) as any[];
+  const contasIdsParaBuscar = Array.from(
+    new Set(
+      items
+        .map((it) => it.cliente)
+        .filter((c) => c && !c.foto_url && c.instagram_account_id)
+        .map((c) => c.instagram_account_id)
+    )
+  );
+
+  let contasMap = new Map<string, any>();
+  if (contasIdsParaBuscar.length > 0) {
+    const { data: contas } = await supabase
+      .from('instagram_accounts')
+      .select('id, instagram_username, profile_picture_url')
+      .in('id', contasIdsParaBuscar);
+    contasMap = new Map((contas || []).map((c: any) => [c.id, c]));
+  }
+
+  const itemsTratados = items.map((it) => {
+    if (it.cliente && !it.cliente.foto_url && it.cliente.instagram_account_id) {
+      const conta = contasMap.get(it.cliente.instagram_account_id);
+      if (conta?.profile_picture_url) {
+        return {
+          ...it,
+          cliente: {
+            ...it.cliente,
+            foto_url: conta.profile_picture_url,
+            instagram_username: conta.instagram_username,
+          },
+        };
+      }
+    }
+    return it;
+  });
+
+  return NextResponse.json({ items: itemsTratados });
 }
 
 export async function POST(req: Request) {

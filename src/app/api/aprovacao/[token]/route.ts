@@ -33,7 +33,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
         nome,
         cor,
         nicho,
-        foto_url
+        foto_url,
+        instagram_account_id
       )
     `)
     .eq('token_aprovacao', token)
@@ -41,6 +42,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
 
   if (error || !item) {
     return NextResponse.json({ error: 'Publicação não encontrada ou link expirado.' }, { status: 404 });
+  }
+
+  const clienteItem = (item as any)?.cliente;
+  if (clienteItem && !clienteItem.foto_url && clienteItem.instagram_account_id) {
+    const { data: conta } = await supabase
+      .from('instagram_accounts')
+      .select('profile_picture_url, instagram_username')
+      .eq('id', clienteItem.instagram_account_id)
+      .maybeSingle();
+    if (conta?.profile_picture_url) {
+      clienteItem.foto_url = conta.profile_picture_url;
+      clienteItem.instagram_username = conta.instagram_username;
+    }
   }
 
   // O token nasce com o item e nunca muda, então o link existe muito antes de a
