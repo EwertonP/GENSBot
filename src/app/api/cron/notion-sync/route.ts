@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { queryNotionDatabase, searchNotionDatabases, mapNotionPageToDemand } from '@/lib/notion';
+import { queryNotionDatabase, searchNotionDatabases, mapNotionPageToDemand, correspondeClienteEnotionDb } from '@/lib/notion';
 import { getContextoAgencia } from '@/lib/clientes-server';
 
 export async function handleNotionSync(req: Request) {
@@ -78,27 +78,17 @@ export async function handleNotionSync(req: Request) {
       }
     }
 
-    // B. Para databases descobertas no Notion, faz o matching com o cliente pelo nome da database ou nome da página pai
+    // B. Para databases descobertas no Notion, faz o matching estrito com o cliente
     for (const db of discoveredDbs) {
       if (targetDatabases.some((t) => t.databaseId === db.id)) continue; // Já incluído acima
 
-      const dbTitleLower = db.title.toLowerCase();
-      // Tenta encontrar um cliente cujo nome bata com o título da database
-      const clienteCorrespondente = clientes.find(
-        (c) => dbTitleLower.includes(c.nome.toLowerCase()) || c.nome.toLowerCase().includes(dbTitleLower.replace('calendário de conteúdo', '').trim())
-      );
+      // Procura cliente cuja identidade/nome bata com o título da database
+      const clienteCorrespondente = clientes.find((c) => correspondeClienteEnotionDb(c.nome, db.title));
 
       if (clienteCorrespondente) {
         targetDatabases.push({
           clienteId: clienteCorrespondente.id,
           agenciaId: clienteCorrespondente.agencia_id,
-          databaseId: db.id,
-        });
-      } else if (clientes.length === 1) {
-        // Se houver apenas 1 cliente cadastrado no GENSBot, vincula todas as tabelas encontradas a este cliente
-        targetDatabases.push({
-          clienteId: clientes[0].id,
-          agenciaId: clientes[0].agencia_id,
           databaseId: db.id,
         });
       }

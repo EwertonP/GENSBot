@@ -69,3 +69,27 @@ describe('mapNotionPageToDemand', () => {
     expect(mapped.status).toBe('criacao_arte');
   });
 });
+
+describe('correspondeClienteEnotionDb', () => {
+  it('associa corretamente clientes pelos nomes e handles sem confundir com outros clientes', async () => {
+    const { correspondeClienteEnotionDb } = await import('./notion');
+
+    // EduSaúde só deve dar match com EduSaúde
+    expect(correspondeClienteEnotionDb('@edusaudepreparatorio', '📋 Criativos — EduSaúde')).toBe(true);
+    expect(correspondeClienteEnotionDb('@edusaudepreparatorio', '📋 Conteúdos — Dra. Laís Leal')).toBe(false);
+    expect(correspondeClienteEnotionDb('@edusaudepreparatorio', '📋 Conteúdos — NETMais+')).toBe(false);
+
+    // Dra. Laís
+    expect(correspondeClienteEnotionDb('@laisleal.dermato', '📋 Conteúdos — Dra. Laís Leal')).toBe(true);
+    expect(correspondeClienteEnotionDb('@laisleal.dermato', '💅 Calendário Editorial — Dra. Laís')).toBe(true);
+    expect(correspondeClienteEnotionDb('@laisleal.dermato', '📋 Criativos — EduSaúde')).toBe(false);
+
+    // Dra. Camila Lucas
+    expect(correspondeClienteEnotionDb('@camilalucas_adv', '📋 Conteúdos — Dra. Camila Lucas')).toBe(true);
+    expect(correspondeClienteEnotionDb('@camilalucas_adv', '📋 Criativos — EduSaúde')).toBe(false);
+
+    // Dr. Fellipe Bezerra
+    expect(correspondeClienteEnotionDb('@drfellipbezerra', '📋 Conteúdos — Dr. Fellipe Bezerra')).toBe(true);
+    expect(correspondeClienteEnotionDb('@drfellipbezerra', '📋 Conteúdos — Dra. Camila Lucas')).toBe(false);
+  });
+});
