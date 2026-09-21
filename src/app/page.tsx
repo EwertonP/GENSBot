@@ -25,6 +25,7 @@ import LogsTab from '@/components/logs-tab';
 import DashboardHome from '@/components/dashboard-home';
 import AutomationsTab from '@/components/automations-tab';
 import ClientesTab from '@/components/clientes-tab';
+import EsteiraTab from '@/components/esteira-tab';
 import type { DestinoConta } from '@/lib/clientes';
 import { Instagram } from '@/components/instagram-icon';
 import type { IgMedia, IgStory } from '@/types/instagram-media';
@@ -130,7 +131,7 @@ export default function Dashboard() {
   const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'clientes' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'clientes' | 'esteira' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox' | 'logs'>('dashboard');
   // Sub-abas de "Agendamentos" (Onda 1) — Publicações é a lista/composer que já existia,
   // Calendário e Kanban são novos, mesma fonte de dado (scheduled_posts).
   const [publishSubTab, setPublishSubTab] = useState<'publicacoes' | 'calendario' | 'kanban'>('publicacoes');
@@ -977,6 +978,7 @@ export default function Dashboard() {
             {
               label: 'Conteúdo',
               items: [
+                { id: 'esteira', label: 'Demandas & Aprovação', icon: Layers },
                 { id: 'publish', label: 'Agendamentos', icon: Send },
                 { id: 'metrics', label: 'Métricas', icon: TrendingUp },
               ],
@@ -1150,6 +1152,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-bold font-display text-foreground tracking-tight">
                 {activeTab === 'dashboard' && 'Dashboard'}
                 {activeTab === 'clientes' && 'Clientes'}
+                {activeTab === 'esteira' && 'Demandas & Aprovação'}
                 {activeTab === 'automations' && 'Automações'}
                 {activeTab === 'utm' && 'Links UTM'}
                 {activeTab === 'metrics' && 'Métricas'}
@@ -1164,6 +1167,7 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground font-medium">
               {activeTab === 'dashboard' && 'Visão unificada das métricas, fila e performance das automações.'}
               {activeTab === 'clientes' && 'Dossiê, contratos e contatos organizados por cliente.'}
+              {activeTab === 'esteira' && 'Esteira de produção de posts e reels com link de aprovação direta pelo WhatsApp.'}
               {activeTab === 'automations' && 'Fluxos e funis de resposta automática no Instagram.'}
               {activeTab === 'utm' && 'Links rastreáveis conectados a campanhas e automações.'}
               {activeTab === 'metrics' && 'Performance e crescimento das contas conectadas.'}
@@ -1329,6 +1333,11 @@ export default function Dashboard() {
                 setIsEditing(false);
               }}
             />
+          )}
+
+          {/* TAB: ESTEIRA DE DEMANDAS & APROVAÇÃO */}
+          {activeTab === 'esteira' && (
+            <EsteiraTab showToast={showToast} />
           )}
 
           {/* TAB 3: CONTACTS */}

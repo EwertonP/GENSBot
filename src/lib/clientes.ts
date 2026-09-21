@@ -63,7 +63,7 @@ export interface ContaInstagramResumo {
 }
 
 /** Abas do GENSBot que já sabem trabalhar escopadas numa conta do Instagram. */
-export type DestinoConta = 'automations' | 'contacts' | 'inbox' | 'metrics' | 'publish';
+export type DestinoConta = 'automations' | 'contacts' | 'inbox' | 'metrics' | 'publish' | 'esteira';
 
 export type ParseResult<T> = { ok: true; data: T } | { ok: false; error: string };
 

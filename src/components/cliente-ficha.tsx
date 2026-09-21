@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Users,
   Zap,
+  Layers,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,7 @@ function formDe(c: Cliente): Form {
 }
 
 const ATALHOS: { destino: DestinoConta; rotulo: string; icone: React.ElementType }[] = [
+  { destino: 'esteira', rotulo: 'Demandas & Aprovação', icone: Layers },
   { destino: 'automations', rotulo: 'Automações', icone: Zap },
   { destino: 'contacts', rotulo: 'Leads & Público', icone: Users },
   { destino: 'inbox', rotulo: 'Inbox', icone: MessageCircle },
