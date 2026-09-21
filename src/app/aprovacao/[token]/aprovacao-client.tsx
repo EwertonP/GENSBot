@@ -18,6 +18,7 @@ import { formatarTimecode, type ConteudoItem, type ComentarioRevisao } from '@/l
 import { InstagramCarrosselPreview } from '@/components/aprovacao/instagram-carrossel-preview';
 import { InstagramStoryPreview } from '@/components/aprovacao/instagram-story-preview';
 import { InstagramReelsPreview } from '@/components/aprovacao/instagram-reels-preview';
+import { ClienteAvatar } from '@/components/cliente-avatar';
 
 interface PaginaAprovacaoClientProps {
   itemInicial: ConteudoItem | null;
@@ -175,25 +176,30 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   const isCarrossel = (item.tipo as string) === 'carrossel' || (arquivos.length > 1 && !isStory);
 
   return (
-    <div className="min-h-screen bg-[#f4f5ee] flex flex-col items-center justify-start py-4 px-3 sm:px-6 font-sans text-foreground">
+    <div className="min-h-screen bg-[#f4f5ee] flex flex-col items-center justify-start py-4 px-3 sm:px-6 md:py-8 font-sans text-foreground">
       
       {/* Top Header da Agência GENS */}
-      <header className="w-full max-w-md flex items-center justify-between py-2.5 mb-3 px-1">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold font-display tracking-tight text-foreground">Agência GENS</span>
+      <header className="w-full max-w-md lg:max-w-5xl xl:max-w-6xl flex items-center justify-between py-2.5 mb-3 lg:mb-6 px-1">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          <span className="text-sm sm:text-base font-bold font-display tracking-tight text-foreground">Agência GENS</span>
           <span className="text-xs text-muted-foreground font-mono">✳</span>
-          <span className="text-[11px] font-semibold text-muted-foreground">Aprovação</span>
+          <span className="text-xs font-semibold text-muted-foreground">Central de Aprovação</span>
         </div>
-        <Badge
-          variant={sucessoAprovado ? 'success' : item.status === 'travado' ? 'destructive' : 'warning'}
-          className="text-[10px] font-bold"
-        >
-          {sucessoAprovado ? 'Aprovado' : item.status === 'travado' ? 'Ajustes Solicitados' : 'Aguardando Aprovação'}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <span className="hidden sm:inline text-xs font-medium text-muted-foreground mr-1">
+            {isStory ? 'Story' : isReel ? 'Reels' : isCarrossel ? `Carrossel (${arquivos.length} fotos)` : 'Feed'}
+          </span>
+          <Badge
+            variant={sucessoAprovado ? 'success' : item.status === 'travado' ? 'destructive' : 'warning'}
+            className="text-[10px] sm:text-xs font-bold px-2.5 py-1"
+          >
+            {sucessoAprovado ? 'Aprovado' : item.status === 'travado' ? 'Ajustes Solicitados' : 'Aguardando Aprovação'}
+          </Badge>
+        </div>
       </header>
 
-      {/* Renderizador Específico do Formato do Instagram (Sem Barras Pretas) */}
-      <main className="w-full max-w-md flex flex-col items-center gap-4">
+      {/* --- VISÃO MOBILE (< lg) --- */}
+      <main className="w-full max-w-md flex flex-col items-center gap-4 lg:hidden">
         {isStory ? (
           <InstagramStoryPreview
             clienteNome={clienteNome}
@@ -305,8 +311,181 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
         </div>
       </main>
 
+      {/* --- VISÃO DESKTOP (>= lg) estilo Instagram Web --- */}
+      <main className="hidden lg:grid grid-cols-12 gap-8 items-start w-full max-w-5xl xl:max-w-6xl mx-auto">
+        {/* Coluna da Esquerda: Estágio Visual de Mídia (Carrossel / Reels / Story) */}
+        <div className="col-span-6 xl:col-span-7 flex flex-col items-center justify-center">
+          {isStory ? (
+            <InstagramStoryPreview
+              clienteNome={clienteNome}
+              clienteCor={clienteCor}
+              clienteFotoUrl={clienteFotoUrl}
+              arquivos={arquivos}
+              slideAtual={slideAtual}
+              onMudarSlide={setSlideAtual}
+              onPedirAjuste={handleAbrirAjusteSlide}
+            />
+          ) : isReel ? (
+            <InstagramReelsPreview
+              clienteNome={clienteNome}
+              clienteCor={clienteCor}
+              clienteFotoUrl={clienteFotoUrl}
+              arquivoVideo={arquivos[0] || null}
+              titulo={item.titulo}
+              legenda={item.legenda}
+              tempoAtual={videoTempo}
+              onAtualizarTempo={setVideoTempo}
+              onPedirAjuste={handleAbrirAjusteVideo}
+            />
+          ) : (
+            <InstagramCarrosselPreview
+              clienteNome={clienteNome}
+              clienteCor={clienteCor}
+              clienteFotoUrl={clienteFotoUrl}
+              arquivos={arquivos}
+              titulo={item.titulo}
+              legenda={item.legenda}
+              slideAtual={slideAtual}
+              onMudarSlide={setSlideAtual}
+              onPedirAjuste={handleAbrirAjusteSlide}
+            />
+          )}
+        </div>
+
+        {/* Coluna da Direita: Painel de Informações, Legenda, Histórico e Botões de Aprovação */}
+        <div className="col-span-6 xl:col-span-5 sticky top-8 bg-card rounded-3xl border border-border/80 p-6 shadow-xl flex flex-col justify-between gap-6 min-h-[560px]">
+          <div className="flex flex-col gap-4">
+            {/* Header do Cliente */}
+            <div className="flex items-center justify-between border-b border-border/60 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-[2px] rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600">
+                  <ClienteAvatar
+                    nome={clienteNome}
+                    cor={clienteCor}
+                    fotoUrl={clienteFotoUrl}
+                    tamanho="md"
+                    className="ring-2 ring-card"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground leading-tight">{clienteNome}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {isStory ? 'Story do Instagram' : isReel ? 'Reels 9:16' : isCarrossel ? `Carrossel (${arquivos.length} fotos)` : 'Publicação no Feed'}
+                  </p>
+                </div>
+              </div>
+              <Badge
+                variant={sucessoAprovado ? 'success' : item.status === 'travado' ? 'destructive' : 'warning'}
+                className="text-[10px] font-bold"
+              >
+                {sucessoAprovado ? 'Aprovado' : item.status === 'travado' ? 'Ajustes Solicitados' : 'Pendente'}
+              </Badge>
+            </div>
+
+            {/* Título & Legenda Completa do Conteúdo */}
+            <div className="flex flex-col gap-2">
+              {item.titulo && (
+                <h2 className="text-base font-bold font-display text-foreground leading-snug">
+                  {item.titulo}
+                </h2>
+              )}
+
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Legenda do Post
+              </div>
+              
+              <div className="bg-accent/30 rounded-2xl p-4 border border-border/60 max-h-60 overflow-y-auto text-xs leading-relaxed text-foreground/90 whitespace-pre-line font-normal">
+                {item.legenda ? (
+                  item.legenda
+                ) : (
+                  <span className="italic text-muted-foreground text-xs">Nenhuma legenda informada para este post.</span>
+                )}
+              </div>
+            </div>
+
+            {/* Histórico de Comentários / Ajustes Registrados */}
+            {comentarios.length > 0 && (
+              <div className="flex flex-col gap-2 pt-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Ajustes Registrados ({comentarios.length})
+                </span>
+                <div className="flex flex-col gap-2 max-h-44 overflow-y-auto pr-1">
+                  {comentarios.map((c) => (
+                    <div key={c.id} className="p-3 rounded-xl bg-accent/40 border border-border/60 text-xs flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-foreground">{c.autor}</span>
+                        {c.slide_index != null && (
+                          <span className="text-[10px] font-mono font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                            Slide {c.slide_index}
+                          </span>
+                        )}
+                        {c.timestamp_seconds != null && (
+                          <span className="text-[10px] font-mono font-bold bg-lime text-foreground px-2 py-0.5 rounded-full flex items-center gap-1 border border-foreground/10">
+                            ⏱ {formatarTimecode(c.timestamp_seconds)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-muted-foreground text-xs leading-relaxed">{c.texto}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer do Painel: Botões Finais de Aprovação / Ajuste */}
+          <div className="border-t border-border/60 pt-4 flex flex-col gap-3">
+            {sucessoAprovado ? (
+              <div className="p-4 rounded-2xl bg-success/15 border border-success/30 text-success flex items-center justify-center gap-2.5 font-bold text-xs shadow-xs">
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                <span>Publicação aprovada para publicação no Instagram! 🎉</span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                <p className="text-xs text-muted-foreground text-center font-medium">
+                  Selecione uma ação para finalizar a revisão do conteúdo:
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (isReel) {
+                        handleAbrirAjusteVideo(videoTempo);
+                      } else {
+                        handleAbrirAjusteSlide(slideAtual + 1);
+                      }
+                    }}
+                    disabled={enviando}
+                    className="rounded-xl text-xs font-bold h-11 border-border/80 hover:bg-accent"
+                  >
+                    <MessageSquarePlus className="w-4 h-4 mr-1.5 text-primary" />
+                    {isReel
+                      ? `Ajustar aos ${formatarTimecode(videoTempo)}`
+                      : arquivos.length > 1
+                      ? `Ajustar Slide ${slideAtual + 1}`
+                      : 'Sugerir Ajuste'}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="lime"
+                    onClick={handleAprovar}
+                    loading={enviando}
+                    className="rounded-xl text-xs font-bold shadow-md h-11"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                    Aprovar Post
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
       {/* Footer discreto */}
-      <footer className="mt-6 mb-2 text-center text-[11px] text-muted-foreground">
+      <footer className="mt-8 mb-2 text-center text-[11px] text-muted-foreground">
         Visualizador nativo de Instagram powered by <strong className="font-semibold text-foreground">Agência GENS</strong>
       </footer>
 
