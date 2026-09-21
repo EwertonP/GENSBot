@@ -823,41 +823,49 @@ export default function Dashboard() {
       )}
 
       {/* 1. Left Sidebar Navigation (Off-canvas no mobile) */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-72 bg-sidebar/90 backdrop-blur-2xl md:bg-sidebar md:backdrop-blur-none text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:sticky md:top-0 inset-y-0 left-0 z-50 w-72 h-screen bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
 
-        {/* Brand Header */}
-        <div className="px-6 pt-6 pb-4 flex items-center">
-          <Logo className="h-8" />
-        </div>
+        {/* Brand & Workspace Header */}
+        <div className="p-4 pb-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between px-2 pt-1">
+            <div className="flex items-center gap-2">
+              <Logo className="h-6 w-auto" />
+              <span className="text-[10px] font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded border border-border">
+                2.0
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground font-mono font-bold" title="Agência GENS">
+              ✳
+            </span>
+          </div>
 
-        {/* Seletor de Conta do Instagram (perfil ativo) */}
-        <div className="px-4 pb-4">
+          {/* Seletor de Conta do Instagram (perfil ativo) */}
           {accounts.length > 0 ? (
-            <div className="relative">
+            <div className="relative mt-2">
               <button
                 onClick={() => setAccountMenuOpen(o => !o)}
                 aria-haspopup="listbox"
                 aria-expanded={accountMenuOpen}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-muted hover:bg-accent transition-colors cursor-pointer text-left"
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl bg-accent/60 hover:bg-accent border border-border/70 hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group"
               >
                 {config?.profile_picture_url ? (
                   <img
                     src={config.profile_picture_url}
                     alt="Instagram Profile"
-                    className="w-11 h-11 rounded-full object-cover border-2 border-card shadow-sm flex-shrink-0"
+                    className="w-8 h-8 rounded-full object-cover border border-border shadow-2xs flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Instagram className="w-5 h-5 text-primary" />
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Instagram className="w-4 h-4 text-primary" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0 leading-tight">
-                  <p className="text-sm font-bold text-foreground truncate">@{config?.instagram_username || '...'}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conta conectada'}
+                  <p className="text-xs font-bold text-foreground truncate">@{config?.instagram_username || '...'}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conta ativa'}
                   </p>
                 </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`text-muted-foreground flex-shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {accountMenuOpen && (
@@ -866,19 +874,19 @@ export default function Dashboard() {
                     className="fixed inset-0 z-40"
                     onClick={() => setAccountMenuOpen(false)}
                   />
-                  <div className="absolute left-0 top-full mt-2 w-full bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden">
+                  <div className="absolute left-0 top-full mt-1.5 w-full bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                     <div className="max-h-64 overflow-y-auto py-1">
                       {accounts.length > 1 && (
                         <button
                           onClick={() => handleSelectAccount('all')}
-                          className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer ${
-                            selectedAccountId === 'all' ? 'bg-accent' : ''
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent transition-colors cursor-pointer ${
+                            selectedAccountId === 'all' ? 'bg-accent font-bold' : ''
                           }`}
                         >
                           <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
                             <Users className="w-3 h-3 text-primary" />
                           </div>
-                          <span className="text-xs font-semibold text-foreground flex-1 truncate">
+                          <span className="text-xs text-foreground flex-1 truncate">
                             Todas as contas ({accounts.length})
                           </span>
                           {selectedAccountId === 'all' && (
@@ -892,8 +900,8 @@ export default function Dashboard() {
                         <button
                           key={acc.instagram_user_id}
                           onClick={() => handleSelectAccount(acc.instagram_user_id)}
-                          className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer ${
-                            acc.instagram_user_id === selectedAccountId ? 'bg-accent' : ''
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent transition-colors cursor-pointer ${
+                            acc.instagram_user_id === selectedAccountId ? 'bg-accent font-bold' : ''
                           }`}
                         >
                           <div className="relative flex-shrink-0">
@@ -907,11 +915,11 @@ export default function Dashboard() {
                             {health && (health.status === 'warning' || health.status === 'expired') && (
                               <span
                                 title={health.status === 'expired' ? 'Token expirado' : `Token expira em ${health.daysRemaining} dia(s)`}
-                                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${health.status === 'expired' ? 'bg-destructive' : 'bg-warning'}`}
+                                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-card ${health.status === 'expired' ? 'bg-destructive' : 'bg-warning'}`}
                               />
                             )}
                           </div>
-                          <span className="text-xs font-semibold text-foreground flex-1 truncate">
+                          <span className="text-xs text-foreground flex-1 truncate">
                             @{acc.instagram_username || acc.instagram_user_id}
                           </span>
                           {acc.instagram_user_id === selectedAccountId && (
@@ -924,7 +932,7 @@ export default function Dashboard() {
                     <div className="border-t border-border py-1">
                       <button
                         onClick={() => { setAccountMenuOpen(false); handleConnectInstagram(); }}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent text-primary text-xs font-bold cursor-pointer"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent text-primary text-xs font-semibold cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         Conectar outra conta
@@ -932,7 +940,7 @@ export default function Dashboard() {
                       {selectedAccountId !== 'all' && (
                         <button
                           onClick={() => { setAccountMenuOpen(false); handleDisconnect(); }}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-accent text-destructive text-xs font-bold cursor-pointer"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent text-destructive text-xs font-semibold cursor-pointer"
                         >
                           <LogOut className="w-3.5 h-3.5" />
                           Desconectar esta conta
@@ -946,7 +954,7 @@ export default function Dashboard() {
           ) : (
             <button
               onClick={handleConnectInstagram}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs transition-all shadow-md shadow-primary/10 cursor-pointer"
+              className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-all shadow-xs cursor-pointer"
             >
               <Instagram className="w-3.5 h-3.5" />
               Conectar Instagram
@@ -954,15 +962,13 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="border-t border-sidebar-border" />
+        <div className="border-t border-sidebar-border mx-4" />
 
-        {/* Navigation Links — agrupados por intenção (não mais uma lista rasa
-            só "Operações"/"Sistema"), no espírito da sidebar do Linear: cada
-            grupo responde uma pergunta diferente do dia a dia da agência. */}
-        <nav className="flex-1 px-4 py-6 flex flex-col gap-6">
+        {/* Navigation Links — Linear-inspired grouping */}
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-5 overflow-y-auto">
           {[
             {
-              label: null,
+              label: 'Geral',
               items: [
                 { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
                 { id: 'clientes', label: 'Clientes', icon: Briefcase },
@@ -979,7 +985,7 @@ export default function Dashboard() {
               label: 'Relacionamento',
               items: [
                 { id: 'automations', label: 'Automações', icon: Settings },
-                { id: 'contacts', label: 'Contatos / Leads', icon: Users },
+                { id: 'contacts', label: 'Contatos & Leads', icon: Users },
                 { id: 'inbox', label: 'Inbox', icon: MessageCircle },
                 { id: 'sequences', label: 'Sequências', icon: Layers },
               ],
@@ -987,22 +993,20 @@ export default function Dashboard() {
             {
               label: 'Prospecção',
               items: [
-                { id: 'crm', label: 'CRM', icon: Building2 },
+                { id: 'crm', label: 'CRM da Agência', icon: Building2 },
                 { id: 'utm', label: 'Links UTM', icon: Link2 },
               ],
             },
             { label: 'Sistema', items: [{ id: 'logs', label: 'Logs de Eventos', icon: FileCode }] },
           ].map((group, gi) => (
-            <div key={gi} className="flex flex-col gap-1">
+            <div key={gi} className="flex flex-col gap-0.5">
               {group.label && (
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-4 mb-2">{group.label}</span>
+                <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-widest px-3 mb-1">{group.label}</span>
               )}
               {group.items.map(item => {
                 const Icon = item.icon;
                 const active = activeTab === item.id;
 
-                // "Agendamentos" tem submenu (Publicações/Calendário/Kanban) em vez de
-                // navegar direto — clicar expande/colapsa e abre a última sub-aba usada.
                 if (item.id === 'publish') {
                   return (
                     <div key={item.id} className="flex flex-col gap-0.5">
@@ -1016,20 +1020,15 @@ export default function Dashboard() {
                             setPublishNavExpanded(true);
                           }
                         }}
-                        className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-left ${
-                          active ? 'text-primary font-bold' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                        className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
+                          active 
+                            ? 'text-foreground bg-sidebar-accent font-bold shadow-2xs border border-border/50' 
+                            : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                         }`}
                       >
-                        {active && (
-                          <motion.div
-                            layoutId="nav-active-pill"
-                            className="absolute inset-0 bg-primary/10 rounded-xl"
-                            transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-                          />
-                        )}
-                        <Icon className={`relative w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <Icon className={`relative w-4 h-4 ${active ? 'text-foreground' : 'text-muted-foreground'}`} />
                         <span className="relative flex-1">{item.label}</span>
-                        <ChevronDown className={`relative w-3.5 h-3.5 transition-transform ${publishNavExpanded ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`relative w-3 h-3 transition-transform ${publishNavExpanded ? 'rotate-180' : ''}`} />
                       </button>
 
                       <AnimatePresence initial={false}>
@@ -1038,8 +1037,8 @@ export default function Dashboard() {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden flex flex-col gap-0.5 pl-4"
+                            transition={{ duration: 0.15 }}
+                            className="overflow-hidden flex flex-col gap-0.5 pl-3 mt-0.5"
                           >
                             {[
                               { id: 'publicacoes' as const, label: 'Publicações', icon: Send },
@@ -1056,8 +1055,10 @@ export default function Dashboard() {
                                     setIsEditing(false);
                                     setPublishSubTab(sub.id);
                                   }}
-                                  className={`w-full flex items-center gap-2.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-left ${
-                                    subActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left ${
+                                    subActive 
+                                      ? 'text-foreground font-bold bg-accent' 
+                                      : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground font-medium'
                                   }`}
                                 >
                                   <SubIcon className="w-3.5 h-3.5" />
@@ -1079,18 +1080,13 @@ export default function Dashboard() {
                       setActiveTab(item.id as any);
                       setIsEditing(false);
                     }}
-                    className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer text-left ${
-                      active ? 'text-primary font-bold' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                    className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
+                      active 
+                        ? 'text-foreground bg-sidebar-accent font-bold shadow-2xs border border-border/50' 
+                        : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                     }`}
                   >
-                    {active && (
-                      <motion.div
-                        layoutId="nav-active-pill"
-                        className="absolute inset-0 bg-primary/10 rounded-xl"
-                        transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-                      />
-                    )}
-                    <Icon className={`relative w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <Icon className={`relative w-4 h-4 ${active ? 'text-foreground' : 'text-muted-foreground'}`} />
                     <span className="relative">{item.label}</span>
                   </button>
                 );
@@ -1099,27 +1095,26 @@ export default function Dashboard() {
           ))}
         </nav>
 
-        {/* Sidebar Footer: Usuário logado no GENSBot + Sair */}
-        <div className="p-4 border-t border-sidebar-border flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-1.5">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span>v1.3.0 • eGrow Edition</span>
-            </div>
-          </div>
+        {/* Sidebar Footer: Usuário logado */}
+        <div className="p-3 border-t border-sidebar-border flex flex-col gap-2">
           {currentUser && (
-            <div className="flex items-center gap-2 rounded-2xl bg-muted p-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-bold text-xs flex-shrink-0">
+            <div className="flex items-center gap-2.5 rounded-xl bg-accent/40 border border-border/60 p-2">
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs flex-shrink-0">
                 {(currentUser.user_metadata?.full_name || currentUser.email || '?')[0].toUpperCase()}
               </div>
-              <p className="flex-1 min-w-0 text-xs text-foreground font-semibold truncate">
-                {currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0]}
-              </p>
+              <div className="flex-1 min-w-0 leading-tight">
+                <p className="text-xs text-foreground font-semibold truncate">
+                  {currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0]}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {currentUser.email}
+                </p>
+              </div>
               <button
                 id="app-logout-button"
                 onClick={handleAppLogout}
                 title="Sair da conta"
-                className="p-1.5 rounded-full hover:bg-accent text-muted-foreground hover:text-destructive transition-colors cursor-pointer flex-shrink-0"
+                className="p-1 rounded-lg hover:bg-accent text-muted-foreground hover:text-destructive transition-colors cursor-pointer flex-shrink-0"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -1129,69 +1124,72 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto bg-background w-full relative">
+      <div className="flex-1 flex flex-col min-h-screen bg-background w-full relative">
 
-        {/* Mobile Top Bar (Só aparece em telas pequenas) — chrome translúcido, fixo, conteúdo passa por baixo */}
-        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-5 py-4 bg-card/80 backdrop-blur-xl relative after:content-[''] after:absolute after:left-0 after:right-0 after:top-full after:h-3 after:bg-gradient-to-b after:from-background/40 after:to-transparent after:pointer-events-none">
-          <div className="flex items-center gap-3">
+        {/* Mobile Top Bar */}
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-card/90 backdrop-blur-xl border-b border-border">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Abrir menu de navegação"
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground p-1"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
-            <Logo className="h-6" />
+            <Logo className="h-5" />
           </div>
-          {/* Avatar na top bar mobile */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/30 flex items-center justify-center text-primary-foreground font-bold text-xs shadow-md">
+          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs shadow-xs">
             {currentUser?.email?.substring(0, 1).toUpperCase()}
           </div>
         </div>
 
-        {/* Top Header Bar — sticky + translúcido, conteúdo da aba passa por baixo ao rolar */}
-        <header className="hidden md:flex sticky top-0 z-30 h-16 px-6 items-center justify-between flex-shrink-0 bg-background/75 backdrop-blur-xl relative after:content-[''] after:absolute after:left-0 after:right-0 after:top-full after:h-3 after:bg-gradient-to-b after:from-background/40 after:to-transparent after:pointer-events-none">
+        {/* Top Header Bar */}
+        <header className="hidden md:flex sticky top-0 z-30 h-16 px-8 items-center justify-between flex-shrink-0 bg-background/85 backdrop-blur-md border-b border-border/60">
           <div>
-            <h2 className="text-lg font-bold text-foreground tracking-tight">
-              {activeTab === 'dashboard' && 'Dashboard'}
-              {activeTab === 'clientes' && 'Clientes'}
-              {activeTab === 'automations' && 'Automações'}
-              {activeTab === 'utm' && 'Links UTM'}
-              {activeTab === 'metrics' && 'Métricas'}
-              {activeTab === 'publish' && 'Agendamentos'}
-              {activeTab === 'contacts' && 'Leads & Público'}
-              {activeTab === 'sequences' && 'Sequências'}
-              {activeTab === 'crm' && 'CRM'}
-              {activeTab === 'inbox' && 'Inbox'}
-              {activeTab === 'logs' && 'Logs de Eventos'}
-            </h2>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5">
-              {activeTab === 'dashboard' && 'Bem-vindo de volta! Veja o que está acontecendo com sua automação.'}
-              {activeTab === 'clientes' && 'Ficha, contrato e contatos de cada cliente da agência.'}
-              {activeTab === 'automations' && 'Crie e configure fluxos de funil de resposta automática.'}
-              {activeTab === 'utm' && 'Gere links rastreáveis pra saber de onde vêm seus leads.'}
-              {activeTab === 'metrics' && 'Acompanhe o desempenho de cada perfil conectado.'}
-              {activeTab === 'publish' && 'Publique, agende e aprove posts, reels e stories das contas conectadas.'}
-              {activeTab === 'contacts' && 'Pessoas que comentaram ou iniciaram conversas com o bot.'}
-              {activeTab === 'sequences' && 'Séries de mensagens reutilizáveis entre automações.'}
-              {activeTab === 'crm' && 'Leads de prospecção da agência, ligado ao Prospecção Gens.'}
-              {activeTab === 'inbox' && 'Converse manualmente com quem já interagiu com o bot.'}
-              {activeTab === 'logs' && 'Histórico completo dos webhooks Meta e fila de disparos.'}
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold font-display text-foreground tracking-tight">
+                {activeTab === 'dashboard' && 'Dashboard'}
+                {activeTab === 'clientes' && 'Clientes'}
+                {activeTab === 'automations' && 'Automações'}
+                {activeTab === 'utm' && 'Links UTM'}
+                {activeTab === 'metrics' && 'Métricas'}
+                {activeTab === 'publish' && 'Agendamentos'}
+                {activeTab === 'contacts' && 'Leads & Público'}
+                {activeTab === 'sequences' && 'Sequências'}
+                {activeTab === 'crm' && 'CRM'}
+                {activeTab === 'inbox' && 'Inbox'}
+                {activeTab === 'logs' && 'Logs de Eventos'}
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground font-medium">
+              {activeTab === 'dashboard' && 'Visão unificada das métricas, fila e performance das automações.'}
+              {activeTab === 'clientes' && 'Dossiê, contratos e contatos organizados por cliente.'}
+              {activeTab === 'automations' && 'Fluxos e funis de resposta automática no Instagram.'}
+              {activeTab === 'utm' && 'Links rastreáveis conectados a campanhas e automações.'}
+              {activeTab === 'metrics' && 'Performance e crescimento das contas conectadas.'}
+              {activeTab === 'publish' && 'Calendário, esteira e agendamento de posts, reels e stories.'}
+              {activeTab === 'contacts' && 'Pessoas captadas e qualificadas pelas automações.'}
+              {activeTab === 'sequences' && 'Sequências e fluxos programados de mensagens.'}
+              {activeTab === 'crm' && 'Pipeline de prospecção B2B da agência.'}
+              {activeTab === 'inbox' && 'Central de mensagens diretas e atendimento.'}
+              {activeTab === 'logs' && 'Auditoria de webhooks e histórico da fila de disparos.'}
             </p>
           </div>
 
-          <button
-            onClick={handleManualDrain}
-            title="Forçar Processamento da Fila"
-            className="p-2.5 rounded-xl bg-card hover:bg-accent border border-border shadow-xs transition-all cursor-pointer text-muted-foreground hover:text-foreground"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={handleManualDrain}
+              title="Processar fila agora"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card hover:bg-accent border border-border text-xs font-semibold shadow-2xs transition-all cursor-pointer text-foreground"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>Sincronizar</span>
+            </button>
+          </div>
         </header>
 
-        {/* 3. Tab-based Content Area — a rolagem agora acontece no container pai (acima), pra
-             o header sticky ter conteúdo de verdade passando por baixo dele */}
-        <main className="flex-1 p-6 pb-14 bg-background">
+        {/* 3. Tab-based Content Area */}
+        <main className="flex-1 p-6 md:p-8 bg-background max-w-7xl w-full mx-auto">
           <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
