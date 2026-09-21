@@ -240,3 +240,53 @@ export async function updateNotionPageStatus(pageId: string, newStatusName: stri
 
   return true;
 }
+
+/** Normaliza strings para comparação imune a emojis, acentos e prefixos da agência */
+export function normalizarNomeComparacao(str: string): string {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/^[@\s]+/, '')
+    .replace(/[^\w\s]/gi, ' ')
+    .replace(/\b(dr|dra|doutor|doutora|clinica|centro|diagnostico|radiologia|laboratorio|lab|adv|advocacia|dermato|dermatologia|odonto|odontologia|preparatorio|conteudos|criativos|calendario|editorial|posts|postados)\b/g, ' ')
+    .replace(/\s+/g, '')
+    .trim();
+}
+
+/** Verifica se o título da database no Notion pertence ao cliente da agência */
+export function correspondeClienteEnotionDb(nomeCliente: string, tituloNotionDb: string): boolean {
+  const normCliente = normalizarNomeComparacao(nomeCliente);
+  const normDb = normalizarNomeComparacao(tituloNotionDb);
+
+  if (!normCliente || !normDb) return false;
+  if (normCliente === normDb) return true;
+  if (normDb.includes(normCliente) || normCliente.includes(normDb)) return true;
+
+  const palavrasCliente = nomeCliente
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/^[@\s]+/, '')
+    .split(/[\s._-]+/)
+    .filter((p) => p.length >= 4 && !['dermato', 'advocacia', 'preparatorio', 'odonto', 'cardio', 'dsgn'].includes(p));
+
+  const palavrasDb = tituloNotionDb
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .split(/[\s._-]+/)
+    .filter((p) => p.length >= 4 && !['conteudos', 'criativos', 'calendario', 'editorial'].includes(p));
+
+  for (const pc of palavrasCliente) {
+    for (const pdb of palavrasDb) {
+      if (pc === pdb || (pc.length >= 5 && pdb.includes(pc)) || (pdb.length >= 5 && pc.includes(pdb))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
