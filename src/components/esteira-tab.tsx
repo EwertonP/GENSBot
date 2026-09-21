@@ -28,6 +28,9 @@ import {
   Check,
   X,
   Edit2,
+  UploadCloud,
+  Loader2,
+  Phone,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,16 +50,20 @@ import {
   type ConteudoItem,
   type StatusConteudo,
   type TipoConteudo,
+  type ArquivoConteudo,
+  type PrefillAgendamento,
 } from '@/lib/conteudo';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
+import { upload } from '@vercel/blob/client';
 
 interface EsteiraTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
   clienteFiltroId?: string | null;
+  onIrParaAgendamento?: (prefill: PrefillAgendamento) => void;
 }
 
-export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabProps) {
+export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendamento }: EsteiraTabProps) {
   const [items, setItems] = useState<ConteudoItem[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [membros, setMembros] = useState<MembroEquipe[]>([]);
@@ -100,6 +107,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
   const [formDataProgramada, setFormDataProgramada] = useState('');
   const [formPrazoInterno, setFormPrazoInterno] = useState('');
   const [formUrls, setFormUrls] = useState('');
+  const [formArquivos, setFormArquivos] = useState<ArquivoConteudo[]>([]);
+  const [formUploading, setFormUploading] = useState(false);
+  const [showManualUrlsForm, setShowManualUrlsForm] = useState(false);
 
   // Modal Editar Item
   const [itemEmEdicao, setItemEmEdicao] = useState<ConteudoItem | null>(null);
@@ -115,6 +125,15 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
   const [editDataProgramada, setEditDataProgramada] = useState('');
   const [editPrazoInterno, setEditPrazoInterno] = useState('');
   const [editUrls, setEditUrls] = useState('');
+  const [editArquivos, setEditArquivos] = useState<ArquivoConteudo[]>([]);
+  const [editUploading, setEditUploading] = useState(false);
+  const [showManualUrlsEdit, setShowManualUrlsEdit] = useState(false);
+
+  // Modal Envio Inteligente para Aprovação (WhatsApp Web Seguro)
+  const [modalAprovacaoAberto, setModalAprovacaoAberto] = useState(false);
+  const [itemParaAprovacao, setItemParaAprovacao] = useState<ConteudoItem | null>(null);
+  const [telefoneAprovacaoCustom, setTelefoneAprovacaoCustom] = useState('');
+  const [uploadingAprovacao, setUploadingAprovacao] = useState(false);
 
   // Carrega clientes, membros e itens
   async function carregarDados() {
@@ -188,67 +207,108 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
     }
   }
 
-  // Envio Inteligente para WhatsApp Web
-  async function handleEnviarParaAprovacao(item: ConteudoItem) {
-    // 1. Se ainda não estiver em revisao_cliente, transiciona automaticamente
-    if (item.status !== 'revisao_cliente') {
+  // Helper para upload de mídias direto no Vercel Blob com fallback
+  async function handleUploadArquivos(fileList: FileList | File[]): Promise<ArquivoConteudo[]> {
+    const files = Array.from(fileList);
+    const novos: ArquivoConteudo[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const isVid = f.type.startsWith('video');
       try {
-        const res = await fetch(`/api/conteudo/${item.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'revisao_cliente' }),
+        const blob = await upload(f.name, f, {
+          access: 'public',
+          handleUploadUrl: '/api/instagram/upload-media',
+          multipart: true,
         });
-        if (res.ok) {
-          setItems((prev) =>
-            prev.map((i) => (i.id === item.id ? { ...i, status: 'revisao_cliente' } : i))
-          );
-        }
+        novos.push({
+          id: crypto.randomUUID(),
+          url: blob.url,
+          tipo: isVid ? 'video' : 'imagem',
+          ordem: i + 1,
+          nome: f.name,
+        });
       } catch {
-        // segue com envio
+        const localUrl = URL.createObjectURL(f);
+        novos.push({
+          id: crypto.randomUUID(),
+          url: localUrl,
+          tipo: isVid ? 'video' : 'imagem',
+          ordem: i + 1,
+          nome: f.name,
+        });
       }
     }
+    return novos;
+  }
 
-    // 2. Localiza contato do cliente (prioriza grupo de whatsapp ou contato com telefone)
+  // Abertura do Modal de Envio para Aprovação (WhatsApp Web Seguro)
+  function handleAbrirModalAprovacao(item: ConteudoItem) {
+    setItemParaAprovacao(item);
     const contatos = item.cliente?.contatos || [];
     const grupo = contatos.find((c) => c.e_grupo_whatsapp && c.telefone);
-    const primeiroComTelefone = contatos.find((c) => c.telefone);
-    const telefoneFinal = grupo?.telefone || primeiroComTelefone?.telefone || null;
+    const primeiro = contatos.find((c) => c.telefone);
+    const tel = grupo?.telefone || primeiro?.telefone || '';
+    setTelefoneAprovacaoCustom(tel);
+    setModalAprovacaoAberto(true);
+  }
 
-    // 3. Gera link do WhatsApp Web
-    const linkWa = gerarLinkWhatsAppAprovacao({
-      telefone: telefoneFinal,
-      nomeCliente: item.cliente?.nome || 'Cliente',
-      tituloPost: item.titulo || 'Publicação',
-      token: item.token_aprovacao,
-      preferWeb: true,
-    });
-
-    // 4. Copia o link e o texto para o clipboard como garantia
-    const { texto, linkAprovacao } = gerarMensagemAprovacao({
-      nomeCliente: item.cliente?.nome || 'Cliente',
-      tituloPost: item.titulo || 'Publicação',
-      token: item.token_aprovacao,
-    });
-    try {
-      await navigator.clipboard.writeText(`${texto}\n\nLink direto: ${linkAprovacao}`);
-    } catch {
-      // silencioso
+  // Envio Direto para Tela de Agendamento (Creator Studio)
+  function handleLevarParaAgendamento(item: ConteudoItem) {
+    if (!onIrParaAgendamento) {
+      showToast('Navegador de agendamento não configurado.', 'error');
+      return;
     }
-
-    // 5. Abre no WhatsApp Web
-    window.open(linkWa, '_blank');
-    showToast(
-      telefoneFinal
-        ? 'Aprovando: WhatsApp Web aberto com a mensagem pronta!'
-        : 'WhatsApp Web aberto! Escolha a conversa ou grupo para colar a mensagem.',
-      'success'
-    );
+    const mediaUrls = (item.arquivos || []).map((a) => a.url);
+    const clienteConta = item.cliente?.instagram_accounts?.instagram_username || null;
+    const prefill: PrefillAgendamento = {
+      conteudoId: item.id,
+      clienteNome: item.cliente?.nome || 'Cliente',
+      instagramAccountId: (item.cliente as any)?.instagram_account_id || null,
+      instagramUserId: clienteConta,
+      kind: item.tipo === 'reel' ? 'reels' : item.tipo === 'story' ? 'story' : 'post',
+      mediaUrls,
+      caption: item.legenda || '',
+      scheduledAt: item.data_programada || null,
+      titulo: item.titulo || 'Publicação',
+    };
+    onIrParaAgendamento(prefill);
+    showToast(`Demanda "${item.titulo}" enviada para Agendamentos!`, 'success');
   }
 
   function handleCopiarLinkAprovacao(token: string) {
     const link = `${window.location.origin}/aprovacao/${token}`;
     navigator.clipboard.writeText(link);
     showToast('Link de aprovação copiado!', 'success');
+  }
+
+  // Upload em Nova Demanda
+  async function handleFormFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files?.length) return;
+    setFormUploading(true);
+    try {
+      const uploaded = await handleUploadArquivos(e.target.files);
+      setFormArquivos((prev) => [...prev, ...uploaded]);
+      showToast(`${uploaded.length} arquivo(s) carregado(s)!`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao carregar arquivos.', 'error');
+    } finally {
+      setFormUploading(false);
+    }
+  }
+
+  // Upload em Editar Demanda
+  async function handleEditFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files?.length) return;
+    setEditUploading(true);
+    try {
+      const uploaded = await handleUploadArquivos(e.target.files);
+      setEditArquivos((prev) => [...prev, ...uploaded]);
+      showToast(`${uploaded.length} arquivo(s) carregado(s)!`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao carregar arquivos.', 'error');
+    } finally {
+      setEditUploading(false);
+    }
   }
 
   // Abre Modal com defaults limpos
@@ -269,6 +329,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
     setFormDataProgramada('');
     setFormPrazoInterno('');
     setFormUrls('');
+    setFormArquivos([]);
+    setShowManualUrlsForm(false);
     setModalNovoAberto(true);
   }
 
@@ -289,8 +351,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
           id: crypto.randomUUID(),
           url,
           tipo: formTipo === 'reel' ? ('video' as const) : ('imagem' as const),
-          ordem: idx + 1,
+          ordem: formArquivos.length + idx + 1,
         }));
+      const arquivosFinais = [...formArquivos, ...urlsArray];
 
       const res = await fetch('/api/conteudo', {
         method: 'POST',
@@ -306,7 +369,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
           editor_id: formEditorId || null,
           data_programada: formDataProgramada ? new Date(formDataProgramada).toISOString() : null,
           prazo: formPrazoInterno ? new Date(formPrazoInterno).toISOString() : null,
-          arquivos: urlsArray,
+          arquivos: arquivosFinais,
         }),
       });
 
@@ -373,7 +436,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
     setEditEditorId(item.editor_id || '');
     setEditDataProgramada(item.data_programada ? item.data_programada.slice(0, 10) : '');
     setEditPrazoInterno(item.prazo ? item.prazo.slice(0, 10) : '');
-    setEditUrls((item.arquivos || []).map((a) => a.url).join('\n'));
+    setEditUrls('');
+    setEditArquivos(item.arquivos || []);
+    setShowManualUrlsEdit(false);
   }
 
   async function handleSalvarEdicao(e: React.FormEvent) {
@@ -390,8 +455,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
           id: crypto.randomUUID(),
           url,
           tipo: editTipo === 'reel' ? ('video' as const) : ('imagem' as const),
-          ordem: idx + 1,
+          ordem: editArquivos.length + idx + 1,
         }));
+      const arquivosFinais = [...editArquivos, ...urlsArray];
 
       const res = await fetch(`/api/conteudo/${itemEmEdicao.id}`, {
         method: 'PATCH',
@@ -406,7 +472,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
           editor_id: editEditorId || null,
           data_programada: editDataProgramada ? new Date(editDataProgramada).toISOString() : null,
           prazo: editPrazoInterno ? new Date(editPrazoInterno).toISOString() : null,
-          arquivos: urlsArray,
+          arquivos: arquivosFinais,
         }),
       });
 
@@ -850,26 +916,41 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                             </button>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEnviarParaAprovacao(item);
-                            }}
-                            title={
-                              item.status === 'revisao_cliente'
-                                ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
-                                : 'Avança para revisão e abre no WhatsApp Web do cliente/grupo'
-                            }
-                            className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-all cursor-pointer ${
-                              item.status === 'revisao_cliente'
-                                ? 'bg-amber-400 hover:bg-amber-300 text-amber-950 border-amber-500/30'
-                                : 'bg-lime hover:bg-lime/85 text-foreground border-foreground/15'
-                            }`}
-                          >
-                            <Send className="w-3 h-3" />
-                            <span>{item.status === 'revisao_cliente' ? 'Reenviar' : 'Aprovação'}</span>
-                          </button>
+                          {item.status === 'agendamento' ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLevarParaAgendamento(item);
+                              }}
+                              title="Levar demanda aprovada direto para a tela de Agendamento do Instagram"
+                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-primary hover:bg-primary/85 text-primary-foreground border border-primary/40 shadow-xs transition-all cursor-pointer"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              <span>Agendar</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAbrirModalAprovacao(item);
+                              }}
+                              title={
+                                item.status === 'revisao_cliente'
+                                  ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
+                                  : 'Enviar para aprovação no WhatsApp Web'
+                              }
+                              className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-all cursor-pointer ${
+                                item.status === 'revisao_cliente'
+                                  ? 'bg-amber-400 hover:bg-amber-300 text-amber-950 border-amber-500/30'
+                                  : 'bg-lime hover:bg-lime/85 text-foreground border-foreground/15'
+                              }`}
+                            >
+                              <Send className="w-3 h-3" />
+                              <span>{item.status === 'revisao_cliente' ? 'Reenviar' : 'Aprovação'}</span>
+                            </button>
+                          )}
                         </div>
                       </Card>
                     );
@@ -947,18 +1028,33 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                         >
                           <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEnviarParaAprovacao(item);
-                          }}
-                          title="Enviar p/ Aprovação no WhatsApp"
-                          className="px-2.5 py-1 rounded-lg bg-lime text-foreground font-bold flex items-center gap-1 shadow-2xs"
-                        >
-                          <Send className="w-3 h-3" />
-                          <span>WhatsApp</span>
-                        </button>
+                        {item.status === 'agendamento' ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLevarParaAgendamento(item);
+                            }}
+                            title="Levar demanda aprovada para a tela de Agendamento"
+                            className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Agendar</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAbrirModalAprovacao(item);
+                            }}
+                            title="Enviar p/ Aprovação no WhatsApp"
+                            className="px-2.5 py-1 rounded-lg bg-lime hover:bg-lime/85 text-foreground font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
+                          >
+                            <Send className="w-3 h-3" />
+                            <span>WhatsApp</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1206,17 +1302,90 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
             </div>
           </div>
 
-          {/* 6. MÍDIAS E ARQUIVOS INICIAIS */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground">
-              Links das Mídias / Slides (Um por linha)
-            </label>
-            <Textarea
-              placeholder="https://.../slide-01.png&#10;https://.../slide-02.png"
-              value={formUrls}
-              onChange={(e) => setFormUrls(e.target.value)}
-              rows={2}
-            />
+          {/* 6. MÍDIAS E ARQUIVOS DA POSTAGEM */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                <span>Mídias da Demanda ({formArquivos.length} anexadas)</span>
+              </label>
+              {formUploading && (
+                <span className="text-[11px] text-primary flex items-center gap-1 animate-pulse font-medium">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Carregando...
+                </span>
+              )}
+            </div>
+
+            {/* Dropzone com input de arquivo */}
+            <div className="relative border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl p-4 transition-all text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5">
+              <input
+                type="file"
+                multiple={formTipo !== 'reel'}
+                accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                onChange={handleFormFilesChange}
+                disabled={formUploading}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
+              />
+              <div className="w-8 h-8 rounded-xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
+                <UploadCloud className="w-4 h-4 text-primary" />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-xs font-bold text-foreground">
+                  Clique ou arraste as fotos/vídeo desta postagem
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {formTipo === 'reel' ? 'Vídeo MP4 ou MOV em 9:16' : 'JPG, PNG ou WEBP em 4:5. Selecione várias para Carrossel.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Miniaturas das mídias anexadas */}
+            {formArquivos.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {formArquivos.map((arq, idx) => (
+                  <div
+                    key={arq.id || idx}
+                    className="relative w-16 h-20 rounded-xl overflow-hidden border border-border/80 bg-accent/50 group shadow-2xs"
+                  >
+                    {arq.tipo === 'video' ? (
+                      <video src={arq.url} className="w-full h-full object-cover" muted />
+                    ) : (
+                      <img src={arq.url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                    )}
+                    <span className="absolute bottom-1 left-1 text-[8px] font-mono font-bold bg-black/75 text-white px-1 rounded">
+                      #{idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFormArquivos((prev) => prev.filter((_, i) => i !== idx))}
+                      className="absolute top-1 right-1 p-0.5 rounded-full bg-destructive text-white hover:scale-110 transition-transform cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Opção secundária: Inserir Link Manual (URL) */}
+            <div className="mt-0.5">
+              <button
+                type="button"
+                onClick={() => setShowManualUrlsForm((v) => !v)}
+                className="text-[11px] text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
+              >
+                <span>{showManualUrlsForm ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
+              </button>
+              {showManualUrlsForm && (
+                <Textarea
+                  placeholder="https://.../slide-01.png&#10;https://.../slide-02.png"
+                  value={formUrls}
+                  onChange={(e) => setFormUrls(e.target.value)}
+                  rows={2}
+                  className="mt-1.5 text-xs font-mono"
+                />
+              )}
+            </div>
           </div>
 
           {/* 7. COPY / LEGENDA */}
@@ -1510,16 +1679,89 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
               </div>
 
               {/* Mídias / Arquivos */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-foreground">
-                  URLs das Mídias / Slides (Um link por linha)
-                </label>
-                <Textarea
-                  value={editUrls}
-                  onChange={(e) => setEditUrls(e.target.value)}
-                  placeholder="https://.../slide1.png&#10;https://.../slide2.png"
-                  rows={3}
-                />
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                    <span>Mídias da Demanda ({editArquivos.length} anexadas)</span>
+                  </label>
+                  {editUploading && (
+                    <span className="text-[11px] text-primary flex items-center gap-1 animate-pulse font-medium">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Carregando...
+                    </span>
+                  )}
+                </div>
+
+                {/* Dropzone com input de arquivo */}
+                <div className="relative border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl p-4 transition-all text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5">
+                  <input
+                    type="file"
+                    multiple={editTipo !== 'reel'}
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                    onChange={handleEditFilesChange}
+                    disabled={editUploading}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
+                  />
+                  <div className="w-8 h-8 rounded-xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
+                    <UploadCloud className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-xs font-bold text-foreground">
+                      Clique ou arraste novas fotos/vídeos para esta demanda
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {editTipo === 'reel' ? 'Vídeo MP4 ou MOV em 9:16' : 'JPG, PNG ou WEBP em 4:5. Selecione várias para Carrossel.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Miniaturas das mídias anexadas */}
+                {editArquivos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {editArquivos.map((arq, idx) => (
+                      <div
+                        key={arq.id || idx}
+                        className="relative w-16 h-20 rounded-xl overflow-hidden border border-border/80 bg-accent/50 group shadow-2xs"
+                      >
+                        {arq.tipo === 'video' ? (
+                          <video src={arq.url} className="w-full h-full object-cover" muted />
+                        ) : (
+                          <img src={arq.url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                        )}
+                        <span className="absolute bottom-1 left-1 text-[8px] font-mono font-bold bg-black/75 text-white px-1 rounded">
+                          #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEditArquivos((prev) => prev.filter((_, i) => i !== idx))}
+                          className="absolute top-1 right-1 p-0.5 rounded-full bg-destructive text-white hover:scale-110 transition-transform cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Opção secundária: Inserir Link Manual (URL) */}
+                <div className="mt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowManualUrlsEdit((v) => !v)}
+                    className="text-[11px] text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>{showManualUrlsEdit ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
+                  </button>
+                  {showManualUrlsEdit && (
+                    <Textarea
+                      placeholder="https://.../slide-01.png&#10;https://.../slide-02.png"
+                      value={editUrls}
+                      onChange={(e) => setEditUrls(e.target.value)}
+                      rows={2}
+                      className="mt-1.5 text-xs font-mono"
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Legenda do Instagram */}
@@ -1577,6 +1819,21 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
               </Button>
 
               <div className="flex items-center gap-2">
+                {itemEmEdicao.status === 'agendamento' && (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      handleLevarParaAgendamento(itemEmEdicao);
+                      setItemEmEdicao(null);
+                    }}
+                    className="bg-primary hover:bg-primary/85 text-primary-foreground font-bold shadow-xs text-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 mr-1" />
+                    Levar p/ Agendamento
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="ghost"
@@ -1591,6 +1848,264 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
               </div>
             </div>
           </form>
+        )}
+      </Sheet>
+
+      {/* 5. Modal de Envio para Aprovação (WhatsApp Web Seguro) */}
+      <Sheet
+        open={modalAprovacaoAberto}
+        onClose={() => setModalAprovacaoAberto(false)}
+        aria-label="Enviar para Aprovação"
+      >
+        {itemParaAprovacao && (
+          <div className="flex flex-col max-h-[85vh] sm:max-h-[88vh] max-w-lg w-full">
+            {/* Header Fixo */}
+            <div className="p-5 sm:p-6 border-b border-border shrink-0 flex items-start justify-between gap-4">
+              <div>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono flex items-center gap-1.5">
+                  <Send className="w-3 h-3 text-lime" />
+                  Aprovação de Conteúdo
+                </span>
+                <h3 className="text-xl font-bold font-display text-foreground tracking-tight mt-1">
+                  Enviar no WhatsApp
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {itemParaAprovacao.cliente?.nome || 'Cliente'} · {itemParaAprovacao.titulo || 'Publicação'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalAprovacaoAberto(false)}
+                className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Conteúdo Rolável */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
+              {/* 1. Verificação de Mídias */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                    <span>Mídias Anexadas à Demanda</span>
+                  </label>
+                  <span className="text-[11px] font-mono text-muted-foreground">
+                    {(itemParaAprovacao.arquivos || []).length} {itemParaAprovacao.tipo === 'reel' ? 'vídeo' : 'slide(s)'}
+                  </span>
+                </div>
+
+                {(itemParaAprovacao.arquivos || []).length === 0 ? (
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col gap-3 text-xs">
+                    <div className="flex items-start gap-2.5 text-amber-700 dark:text-amber-400">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold">Nenhuma foto ou vídeo anexado ainda!</p>
+                        <p className="text-[11px] mt-0.5 text-muted-foreground">
+                          O cliente precisa visualizar a arte ou vídeo para aprovar. Anexe os arquivos agora:
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Dropzone rápido dentro do modal de aprovação */}
+                    <div className="relative border-2 border-dashed border-amber-500/30 rounded-xl p-4 text-center bg-card hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5">
+                      <input
+                        type="file"
+                        multiple={itemParaAprovacao.tipo !== 'reel'}
+                        accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                        disabled={uploadingAprovacao}
+                        onChange={async (e) => {
+                          if (!e.target.files?.length) return;
+                          setUploadingAprovacao(true);
+                          try {
+                            const novos = await handleUploadArquivos(e.target.files);
+                            const atualizados = [...(itemParaAprovacao.arquivos || []), ...novos];
+                            await fetch(`/api/conteudo/${itemParaAprovacao.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ arquivos: atualizados }),
+                            });
+                            setItemParaAprovacao({ ...itemParaAprovacao, arquivos: atualizados });
+                            setItems((prev) =>
+                              prev.map((i) => (i.id === itemParaAprovacao.id ? { ...i, arquivos: atualizados } : i))
+                            );
+                            showToast(`${novos.length} mídia(s) anexada(s) à demanda!`, 'success');
+                          } catch (err: any) {
+                            showToast(err.message || 'Erro ao anexar arquivos.', 'error');
+                          } finally {
+                            setUploadingAprovacao(false);
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
+                      />
+                      <UploadCloud className="w-5 h-5 text-primary" />
+                      <span className="text-xs font-bold text-foreground">
+                        {uploadingAprovacao ? 'Enviando arquivos...' : 'Clique para selecionar fotos ou vídeo'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        JPG, PNG ou MP4 da postagem
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-accent/30 border border-border/70 space-y-2.5">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      {itemParaAprovacao.arquivos.map((arq, idx) => (
+                        <div
+                          key={arq.id || idx}
+                          className="relative w-14 h-16 rounded-xl overflow-hidden border border-border/80 shrink-0 shadow-2xs"
+                        >
+                          {arq.tipo === 'video' ? (
+                            <video src={arq.url} className="w-full h-full object-cover" muted />
+                          ) : (
+                            <img src={arq.url} alt="" className="w-full h-full object-cover" />
+                          )}
+                          <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-black/80 text-white font-mono px-1 rounded">
+                            #{idx + 1}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                      Mídias prontas e formatadas para exibição no link de aprovação.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Destinatário no WhatsApp */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-primary" />
+                  <span>Destinatário no WhatsApp</span>
+                </label>
+
+                {/* Contatos cadastrados no cliente */}
+                {(itemParaAprovacao.cliente?.contatos || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {itemParaAprovacao.cliente?.contatos?.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setTelefoneAprovacaoCustom(c.telefone || '')}
+                        className={`text-xs px-2.5 py-1 rounded-xl border flex items-center gap-1.5 cursor-pointer transition-all ${
+                          telefoneAprovacaoCustom === (c.telefone || '')
+                            ? 'bg-foreground text-background border-foreground font-bold'
+                            : 'bg-card text-muted-foreground hover:text-foreground border-border/80'
+                        }`}
+                      >
+                        <span>{c.nome}</span>
+                        {c.e_grupo_whatsapp && (
+                          <span className="text-[9px] bg-lime/20 text-lime-800 dark:text-lime-300 px-1 rounded font-semibold">
+                            Grupo
+                          </span>
+                        )}
+                        {c.telefone && <span className="font-mono text-[10px] opacity-80">({c.telefone})</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <Input
+                  placeholder="Número de WhatsApp com DDD (ex: 11987654321)"
+                  value={telefoneAprovacaoCustom}
+                  onChange={(e) => setTelefoneAprovacaoCustom(e.target.value)}
+                  className="text-xs font-mono"
+                />
+              </div>
+
+              {/* 3. Prévia da Mensagem */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                  <span>Mensagem Formatada para Envio</span>
+                </label>
+                <div className="p-3.5 rounded-2xl bg-accent/40 border border-border/70 text-xs font-mono text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {gerarMensagemAprovacao({
+                    nomeCliente: itemParaAprovacao.cliente?.nome || 'Cliente',
+                    tituloPost: itemParaAprovacao.titulo || 'Publicação',
+                    token: itemParaAprovacao.token_aprovacao,
+                  }).texto}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Fixo com Botão WhatsApp Web Imune a Bloqueadores de Popup */}
+            <div className="p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    handleCopiarLinkAprovacao(itemParaAprovacao.token_aprovacao);
+                  }}
+                  className="text-xs flex-1 sm:flex-none"
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copiar Link
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const { texto, linkAprovacao } = gerarMensagemAprovacao({
+                      nomeCliente: itemParaAprovacao.cliente?.nome || 'Cliente',
+                      tituloPost: itemParaAprovacao.titulo || 'Publicação',
+                      token: itemParaAprovacao.token_aprovacao,
+                    });
+                    navigator.clipboard.writeText(`${texto}\n\nLink direto: ${linkAprovacao}`);
+                    showToast('Mensagem completa copiada para o clipboard!', 'success');
+                  }}
+                  className="text-xs flex-1 sm:flex-none"
+                >
+                  <MessageSquare className="w-3 h-3 mr-1" />
+                  Copiar Texto
+                </Button>
+              </div>
+
+              {/* Link direto no WhatsApp Web (Abre em nova aba diretamente sem bloqueio do navegador) */}
+              <a
+                href={gerarLinkWhatsAppAprovacao({
+                  telefone: telefoneAprovacaoCustom || null,
+                  nomeCliente: itemParaAprovacao.cliente?.nome || 'Cliente',
+                  tituloPost: itemParaAprovacao.titulo || 'Publicação',
+                  token: itemParaAprovacao.token_aprovacao,
+                  preferWeb: true,
+                })}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={async () => {
+                  if (itemParaAprovacao.status !== 'revisao_cliente') {
+                    try {
+                      await fetch(`/api/conteudo/${itemParaAprovacao.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'revisao_cliente' }),
+                      });
+                      setItems((prev) =>
+                        prev.map((i) =>
+                          i.id === itemParaAprovacao.id ? { ...i, status: 'revisao_cliente' } : i
+                        )
+                      );
+                    } catch {
+                      // silencioso
+                    }
+                  }
+                  showToast('WhatsApp Web aberto com sucesso!', 'success');
+                  setModalAprovacaoAberto(false);
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-lime hover:bg-lime/85 text-foreground font-bold text-xs shadow-2xs transition-all cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Abrir WhatsApp Web</span>
+                <ExternalLink className="w-3 h-3 opacity-60" />
+              </a>
+            </div>
+          </div>
         )}
       </Sheet>
     </div>

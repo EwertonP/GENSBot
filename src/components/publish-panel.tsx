@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CalendarPicker } from '@/components/ui/calendar-picker';
 import type { PostingTimeSuggestion } from '@/lib/best-posting-time';
+import type { PrefillAgendamento } from '@/lib/conteudo';
 import { upload } from '@vercel/blob/client';
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
@@ -61,6 +62,8 @@ interface PublishPanelProps {
   accounts: AccountOption[];
   selectedAccountId: string | null;
   withAccount: (url: string, accountIdOverride?: string | null) => string;
+  prefillData?: PrefillAgendamento | null;
+  onClearPrefill?: () => void;
 }
 
 const STATUS_META: Record<
@@ -251,11 +254,18 @@ function InstagramPhoneMockup({
   );
 }
 
-export default function PublishPanel({ accounts, selectedAccountId, withAccount }: PublishPanelProps) {
+export default function PublishPanel({
+  accounts,
+  selectedAccountId,
+  withAccount,
+  prefillData,
+  onClearPrefill,
+}: PublishPanelProps) {
   const [targetAccount, setTargetAccount] = useState<string>('');
   const [kind, setKind] = useState<PostKind>('post');
   const [files, setFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [prefillRemoteUrls, setPrefillRemoteUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState('');
   const [collaboratorsInput, setCollaboratorsInput] = useState('');
   const [userTagsInput, setUserTagsInput] = useState('');
@@ -264,6 +274,30 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<PostingTimeSuggestion[]>([]);
+
+  // Carrega dados da demanda aprovada quando prefillData estiver presente
+  useEffect(() => {
+    if (!prefillData) return;
+    if (prefillData.kind) setKind(prefillData.kind);
+    if (prefillData.caption) setCaption(prefillData.caption);
+    if (prefillData.mediaUrls && prefillData.mediaUrls.length > 0) {
+      setPreviewUrls(prefillData.mediaUrls);
+      setPrefillRemoteUrls(prefillData.mediaUrls);
+      setFiles([]);
+    }
+    if (prefillData.scheduledAt) {
+      setScheduleEnabled(true);
+      try {
+        setScheduledAt(new Date(prefillData.scheduledAt));
+      } catch {
+        // ignora data inválida
+      }
+    }
+    if (prefillData.instagramUserId) {
+      const conta = accounts.find((a) => a.instagram_user_id === prefillData.instagramUserId);
+      if (conta) setTargetAccount(conta.instagram_user_id);
+    }
+  }, [prefillData, accounts]);
 
   // Lista de Publicações
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
@@ -274,7 +308,7 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
   useEffect(() => {
     if (selectedAccountId && selectedAccountId !== 'all') {
       setTargetAccount(selectedAccountId);
-    } else if (accounts.length > 0) {
+    } else if (accounts.length > 0 && !targetAccount) {
       setTargetAccount(accounts[0].instagram_user_id);
     }
   }, [selectedAccountId, accounts]);
@@ -304,26 +338,40 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
     if (kind === 'post') {
       const merged = [...files, ...selected].slice(0, 10);
       setFiles(merged);
-      setPreviewUrls(merged.map((f) => URL.createObjectURL(f)));
+      const localPreviews = merged.map((f) => URL.createObjectURL(f));
+      setPreviewUrls([...prefillRemoteUrls, ...localPreviews].slice(0, 10));
     } else {
       const single = selected.slice(0, 1);
       setFiles(single);
+      setPrefillRemoteUrls([]);
       setPreviewUrls(single.map((f) => URL.createObjectURL(f)));
     }
   };
 
   const handleRemoveFile = (index: number) => {
-    const updatedFiles = files.filter((_, i) => i !== index);
+    if (prefillRemoteUrls.length > 0 && index < prefillRemoteUrls.length) {
+      const updatedRemote = prefillRemoteUrls.filter((_, i) => i !== index);
+      setPrefillRemoteUrls(updatedRemote);
+      const updatedFilesPreview = files.map((f) => URL.createObjectURL(f));
+      setPreviewUrls([...updatedRemote, ...updatedFilesPreview]);
+      return;
+    }
+    const fileIndex = index - prefillRemoteUrls.length;
+    const updatedFiles = files.filter((_, i) => i !== fileIndex);
     setFiles(updatedFiles);
-    setPreviewUrls(updatedFiles.map((f) => URL.createObjectURL(f)));
+    const updatedFilesPreview = updatedFiles.map((f) => URL.createObjectURL(f));
+    setPreviewUrls([...prefillRemoteUrls, ...updatedFilesPreview]);
   };
 
-  const isVideo = files[0]?.type.startsWith('video') ?? false;
-  const isCarousel = kind === 'post' && files.length > 1;
+  const isVideo =
+    files[0]?.type.startsWith('video') ||
+    kind === 'reels' ||
+    Boolean(previewUrls[0]?.match(/\.(mp4|mov|webm)(\?.*)?$/i));
+  const isCarousel = kind === 'post' && (files.length > 1 || previewUrls.length > 1);
   const usernameLabel = `@${accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || 'agenciagens'}`;
 
   const handleSubmit = async () => {
-    if (files.length === 0 || !targetAccount) {
+    if ((files.length === 0 && prefillRemoteUrls.length === 0) || !targetAccount) {
       setError('Selecione uma conta e adicione pelo menos uma imagem ou vídeo.');
       return;
     }
@@ -331,7 +379,7 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
     setSubmitting(true);
 
     try {
-      const uploadedUrls: string[] = [];
+      let uploadedUrls: string[] = [...prefillRemoteUrls];
       for (const file of files) {
         const blob = await upload(file.name, file, {
           access: 'public',
@@ -339,6 +387,10 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
           multipart: true,
         });
         uploadedUrls.push(blob.url);
+      }
+
+      if (uploadedUrls.length === 0) {
+        throw new Error('Nenhuma mídia disponível para publicação.');
       }
 
       let mediaType: MediaType;
@@ -362,6 +414,7 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
           collaborators: collaborators.length > 0 ? collaborators : undefined,
           user_tags: userTags.length > 0 ? userTags : undefined,
           scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
+          conteudo_item_id: prefillData?.conteudoId || undefined,
         }),
       });
 
@@ -370,11 +423,13 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
 
       setFiles([]);
       setPreviewUrls([]);
+      setPrefillRemoteUrls([]);
       setCaption('');
       setCollaboratorsInput('');
       setUserTagsInput('');
       setScheduleEnabled(false);
       setScheduledAt(null);
+      onClearPrefill?.();
       loadPosts();
     } catch (err: any) {
       setError(err.message);
@@ -434,6 +489,39 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Lado Esquerdo: Formulário de Criação (lg:col-span-7) */}
         <Card padding="lg" className="lg:col-span-7 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-6">
+          {/* Banner de Demanda Aprovada Vinculada */}
+          {prefillData && (
+            <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-between gap-3 text-xs animate-fade-in">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-xl bg-primary/20 flex items-center justify-center shrink-0 text-primary">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-foreground truncate">
+                    Demanda Aprovada: {prefillData.titulo}
+                  </p>
+                  <p className="text-muted-foreground text-[11px] truncate">
+                    Cliente: <span className="font-semibold text-foreground">{prefillData.clienteNome}</span> · Mídias, legenda e data preenchidos automaticamente.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => {
+                  setPrefillRemoteUrls([]);
+                  setPreviewUrls([]);
+                  setCaption('');
+                  onClearPrefill?.();
+                }}
+                className="text-xs h-7 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+              >
+                Desvincular
+              </Button>
+            </div>
+          )}
+
           {/* Seletor de Formato: Post, Reels, Story */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold text-foreground">Formato da Publicação</label>
@@ -453,6 +541,7 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
                       setKind(opt.id);
                       setFiles([]);
                       setPreviewUrls([]);
+                      setPrefillRemoteUrls([]);
                     }}
                     className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
                       active
@@ -478,7 +567,7 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-foreground">Mídia da Publicação</label>
               <span className="text-[11px] font-mono text-muted-foreground">
-                {kind === 'post' ? `${files.length}/10 imagens` : '1 arquivo'}
+                {kind === 'post' ? `${previewUrls.length}/10 itens` : `${previewUrls.length} item`}
               </span>
             </div>
 
@@ -507,24 +596,31 @@ export default function PublishPanel({ accounts, selectedAccountId, withAccount 
             {/* Miniaturas de Slides de Carrossel */}
             {previewUrls.length > 0 && (
               <div className="flex flex-wrap gap-2.5 pt-1">
-                {previewUrls.map((url, idx) => (
-                  <div
-                    key={idx}
-                    className="relative w-16 h-20 rounded-xl overflow-hidden border border-border/80 bg-accent/60 group shadow-2xs"
-                  >
-                    <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
-                    <span className="absolute bottom-1 left-1 text-[9px] font-mono font-bold bg-black/70 text-white px-1 rounded">
-                      #{idx + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFile(idx)}
-                      className="absolute top-1 right-1 p-0.5 rounded-full bg-destructive text-white hover:scale-110 transition-transform"
+                {previewUrls.map((url, idx) => {
+                  const isItemVideo = isVideo || Boolean(url.match(/\.(mp4|mov|webm)(\?.*)?$/i));
+                  return (
+                    <div
+                      key={idx}
+                      className="relative w-16 h-20 rounded-xl overflow-hidden border border-border/80 bg-accent/60 group shadow-2xs"
                     >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+                      {isItemVideo ? (
+                        <video src={url} className="w-full h-full object-cover" muted />
+                      ) : (
+                        <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                      )}
+                      <span className="absolute bottom-1 left-1 text-[9px] font-mono font-bold bg-black/70 text-white px-1 rounded">
+                        #{idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFile(idx)}
+                        className="absolute top-1 right-1 p-0.5 rounded-full bg-destructive text-white hover:scale-110 transition-transform"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

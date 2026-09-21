@@ -38,6 +38,18 @@ export interface ComentarioRevisao {
   resolvido?: boolean;
 }
 
+export interface PrefillAgendamento {
+  conteudoId: string;
+  clienteNome: string;
+  instagramAccountId?: string | null;
+  instagramUserId?: string | null;
+  kind: 'post' | 'reels' | 'story';
+  mediaUrls: string[];
+  caption: string;
+  scheduledAt?: string | null;
+  titulo: string;
+}
+
 export interface ConteudoItem {
   id: string;
   agencia_id: string;

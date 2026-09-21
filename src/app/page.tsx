@@ -29,6 +29,7 @@ import EquipeTab from '@/components/equipe-tab';
 import RotinaTab from '@/components/rotina-tab';
 import CalendarioGeral from '@/components/calendario-geral';
 import type { DestinoConta } from '@/lib/clientes';
+import type { PrefillAgendamento } from '@/lib/conteudo';
 import { Instagram } from '@/components/instagram-icon';
 import type { IgMedia, IgStory } from '@/types/instagram-media';
 import {
@@ -88,6 +89,7 @@ export default function Dashboard() {
   const [accounts, setAccounts] = useState<InstagramAccountSummary[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [prefillAgendamento, setPrefillAgendamento] = useState<PrefillAgendamento | null>(null);
   const [stats, setStats] = useState({ automations: 0, contacts: 0, automationsTriggered: 0, events: 0, leadsGenerated: 0 });
   const [funnel, setFunnel] = useState({ comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
   const [weeklyChart, setWeeklyChart] = useState<{ day: string; comments: number; dms: number }[]>([]);
@@ -1246,6 +1248,8 @@ export default function Dashboard() {
                 accounts={accounts.map((acc) => ({ instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
                 selectedAccountId={selectedAccountId}
                 withAccount={withAccount}
+                prefillData={prefillAgendamento}
+                onClearPrefill={() => setPrefillAgendamento(null)}
               />
             </div>
           )}
@@ -1270,7 +1274,13 @@ export default function Dashboard() {
 
           {/* TAB: ESTEIRA DE DEMANDAS & APROVAÇÃO */}
           {activeTab === 'esteira' && (
-            <EsteiraTab showToast={showToast} />
+            <EsteiraTab
+              showToast={showToast}
+              onIrParaAgendamento={(prefill) => {
+                setPrefillAgendamento(prefill);
+                setActiveTab('publish');
+              }}
+            />
           )}
 
           {/* TAB: CALENDÁRIO GERAL DA AGÊNCIA */}

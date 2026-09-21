@@ -18,7 +18,17 @@ export async function POST(req: Request) {
     if (!user) return unauthorizedResponse();
 
     const body = await req.json();
-    const { instagram_user_id, media_type, media_url, media_urls, caption, scheduled_at, collaborators, user_tags } = body as {
+    const {
+      instagram_user_id,
+      media_type,
+      media_url,
+      media_urls,
+      caption,
+      scheduled_at,
+      collaborators,
+      user_tags,
+      conteudo_item_id,
+    } = body as {
       instagram_user_id: string;
       media_type: PublishMediaType;
       media_url: string;
@@ -27,6 +37,7 @@ export async function POST(req: Request) {
       scheduled_at?: string;
       collaborators?: string[];
       user_tags?: { username: string }[];
+      conteudo_item_id?: string;
     };
 
     if (!instagram_user_id || !media_type || !media_url) {
@@ -62,6 +73,18 @@ export async function POST(req: Request) {
         .single();
 
       if (error) throw error;
+
+      if (conteudo_item_id) {
+        await supabase
+          .from('conteudo_items')
+          .update({
+            scheduled_post_id: data.id,
+            status: 'agendamento',
+            atualizado_em: new Date().toISOString(),
+          })
+          .eq('id', conteudo_item_id);
+      }
+
       return NextResponse.json(data);
     }
 
@@ -92,6 +115,19 @@ export async function POST(req: Request) {
         .single();
 
       if (error) throw error;
+
+      if (conteudo_item_id) {
+        await supabase
+          .from('conteudo_items')
+          .update({
+            scheduled_post_id: data.id,
+            status: 'publicado',
+            publicado_em: data.published_at || new Date().toISOString(),
+            atualizado_em: new Date().toISOString(),
+          })
+          .eq('id', conteudo_item_id);
+      }
+
       return NextResponse.json(data);
     } catch (publishErr: any) {
       const { data } = await supabase
