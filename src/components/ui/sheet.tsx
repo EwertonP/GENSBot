@@ -43,7 +43,7 @@ export function Sheet({ open, onClose, children, className, 'aria-label': ariaLa
             aria-modal="true"
             aria-label={ariaLabel}
             className={cn(
-              'bg-card border border-accent rounded-2xl shadow-2xl overflow-hidden text-foreground',
+              'bg-card border border-border/80 rounded-2xl shadow-2xl overflow-hidden text-foreground max-h-[92vh] flex flex-col',
               className
             )}
             initial={{ opacity: 0, scale: 0.96, y: 8 }}

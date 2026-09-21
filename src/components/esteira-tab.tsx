@@ -26,6 +26,8 @@ import {
   Copy,
   LayoutGrid,
   Check,
+  X,
+  Edit2,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -97,6 +99,21 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
   const [formDataProgramada, setFormDataProgramada] = useState('');
   const [formPrazoInterno, setFormPrazoInterno] = useState('');
   const [formUrls, setFormUrls] = useState('');
+
+  // Modal Editar Item
+  const [itemEmEdicao, setItemEmEdicao] = useState<ConteudoItem | null>(null);
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+  const [excluindoItem, setExcluindoItem] = useState(false);
+  const [editStatus, setEditStatus] = useState<StatusConteudo>('planejamento');
+  const [editTipo, setEditTipo] = useState<TipoConteudo>('post');
+  const [editTitulo, setEditTitulo] = useState('');
+  const [editBriefing, setEditBriefing] = useState('');
+  const [editLegenda, setEditLegenda] = useState('');
+  const [editResponsavelId, setEditResponsavelId] = useState('');
+  const [editEditorId, setEditEditorId] = useState('');
+  const [editDataProgramada, setEditDataProgramada] = useState('');
+  const [editPrazoInterno, setEditPrazoInterno] = useState('');
+  const [editUrls, setEditUrls] = useState('');
 
   // Carrega clientes, membros e itens
   async function carregarDados() {
@@ -339,6 +356,85 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
       showToast(err.message || 'Erro ao duplicar mês de conteúdo.', 'error');
     } finally {
       setDuplicando(false);
+    }
+  }
+
+  function handleAbrirModalEditar(item: ConteudoItem) {
+    setItemEmEdicao(item);
+    setEditStatus(item.status);
+    setEditTipo(item.tipo);
+    setEditTitulo(item.titulo || '');
+    setEditBriefing(item.briefing || '');
+    setEditLegenda(item.legenda || '');
+    setEditResponsavelId(item.responsavel_id || '');
+    setEditEditorId(item.editor_id || '');
+    setEditDataProgramada(item.data_programada ? item.data_programada.slice(0, 10) : '');
+    setEditPrazoInterno(item.prazo ? item.prazo.slice(0, 10) : '');
+    setEditUrls((item.arquivos || []).map((a) => a.url).join('\n'));
+  }
+
+  async function handleSalvarEdicao(e: React.FormEvent) {
+    e.preventDefault();
+    if (!itemEmEdicao) return;
+
+    setSalvandoEdicao(true);
+    try {
+      const urlsArray = editUrls
+        .split('\n')
+        .map((u) => u.trim())
+        .filter(Boolean)
+        .map((url, idx) => ({
+          id: crypto.randomUUID(),
+          url,
+          tipo: editTipo === 'reel' ? ('video' as const) : ('imagem' as const),
+          ordem: idx + 1,
+        }));
+
+      const res = await fetch(`/api/conteudo/${itemEmEdicao.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: editTipo,
+          status: editStatus,
+          titulo: editTitulo.trim() || null,
+          briefing: editBriefing.trim() || null,
+          legenda: editLegenda.trim() || null,
+          responsavel_id: editResponsavelId || null,
+          editor_id: editEditorId || null,
+          data_programada: editDataProgramada ? new Date(editDataProgramada).toISOString() : null,
+          prazo: editPrazoInterno ? new Date(editPrazoInterno).toISOString() : null,
+          arquivos: urlsArray,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setItems((prev) => prev.map((i) => (i.id === itemEmEdicao.id ? data.item : i)));
+      setItemEmEdicao(null);
+      showToast('Demanda atualizada com sucesso!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao salvar alterações.', 'error');
+    } finally {
+      setSalvandoEdicao(false);
+    }
+  }
+
+  async function handleExcluirDemanda(itemId: string) {
+    if (!window.confirm('Tem certeza que deseja excluir esta demanda da esteira?')) return;
+
+    setExcluindoItem(true);
+    try {
+      const res = await fetch(`/api/conteudo/${itemId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Erro ao excluir demanda.');
+
+      setItems((prev) => prev.filter((i) => i.id !== itemId));
+      setItemEmEdicao(null);
+      showToast('Demanda excluída da esteira.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao excluir.', 'error');
+    } finally {
+      setExcluindoItem(false);
     }
   }
 
@@ -598,18 +694,21 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                       <Card
                         key={item.id}
                         draggable={true}
+                        onClick={() => handleAbrirModalEditar(item)}
                         onDragStart={(e) => {
                           setDraggingItemId(item.id);
                           e.dataTransfer.setData('text/plain', item.id);
                           e.dataTransfer.effectAllowed = 'move';
                         }}
                         onDragEnd={() => setDraggingItemId(null)}
-                        className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 cursor-grab active:cursor-grabbing ${
-                          isDragging ? 'opacity-40 scale-95' : 'opacity-100'
+                        className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 cursor-pointer ${
+                          isDragging
+                            ? 'opacity-85 ring-2 ring-primary/40 border-dashed shadow-md scale-[1.01] rotate-[1deg]'
+                            : 'opacity-100 hover:border-foreground/30'
                         } ${
                           temAjustes
                             ? 'border-destructive/40 bg-destructive/5'
-                            : 'border-border/80 hover:border-foreground/30'
+                            : 'border-border/80'
                         }`}
                       >
                         {/* Header do Card */}
@@ -631,9 +730,22 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                             </div>
                           </div>
 
-                          <Badge variant={info.variant} className="text-[9px] font-bold">
-                            {info.label}
-                          </Badge>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge variant={info.variant} className="text-[9px] font-bold">
+                              {info.label}
+                            </Badge>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAbrirModalEditar(item);
+                              }}
+                              title="Editar Demanda"
+                              className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-accent/60 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Título */}
@@ -687,26 +799,47 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                           </div>
                         )}
 
-                        {/* Ações Rápidas: Link e Enviar p/ Aprovação */}
+                        {/* Ações Rápidas: Link, Editar e Enviar p/ Aprovação */}
                         <div className="border-t border-border/60 pt-2.5 flex items-center justify-between gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleCopiarLinkAprovacao(item.token_aprovacao)}
-                            title="Copiar link público de aprovação"
-                            className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
-                          >
-                            <Share2 className="w-3 h-3" />
-                            <span>Link</span>
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopiarLinkAprovacao(item.token_aprovacao);
+                              }}
+                              title="Copiar link público de aprovação"
+                              className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
+                            >
+                              <Share2 className="w-3 h-3" />
+                              <span>Link</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAbrirModalEditar(item);
+                              }}
+                              title="Editar Demanda"
+                              className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                              <span>Editar</span>
+                            </button>
+                          </div>
 
                           <button
                             type="button"
-                            onClick={() => handleEnviarParaAprovacao(item)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEnviarParaAprovacao(item);
+                            }}
                             title="Avança para revisão e abre no WhatsApp Web do cliente/grupo"
                             className="text-[11px] font-bold text-foreground bg-lime hover:bg-lime/85 px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-foreground/15 shadow-2xs transition-all cursor-pointer"
                           >
                             <Send className="w-3 h-3" />
-                            <span>Enviar p/ Aprovação</span>
+                            <span>Aprovação</span>
                           </button>
                         </div>
                       </Card>
@@ -734,7 +867,11 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
               </thead>
               <tbody className="divide-y divide-border/40">
                 {itemsFiltrados.map((item) => (
-                  <tr key={item.id} className="hover:bg-accent/30 transition-colors">
+                  <tr
+                    key={item.id}
+                    onClick={() => handleAbrirModalEditar(item)}
+                    className="hover:bg-accent/30 transition-colors cursor-pointer"
+                  >
                     <td className="py-3 px-3 font-semibold text-foreground">
                       <div className="flex items-center gap-2">
                         <ClienteAvatar
@@ -761,7 +898,10 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
-                          onClick={() => handleCopiarLinkAprovacao(item.token_aprovacao)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopiarLinkAprovacao(item.token_aprovacao);
+                          }}
                           title="Copiar Link"
                           className="p-1.5 rounded-lg border border-border hover:bg-accent"
                         >
@@ -769,12 +909,26 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleEnviarParaAprovacao(item)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAbrirModalEditar(item);
+                          }}
+                          title="Editar Demanda"
+                          className="p-1.5 rounded-lg border border-border hover:bg-accent"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEnviarParaAprovacao(item);
+                          }}
                           title="Enviar p/ Aprovação no WhatsApp"
                           className="px-2.5 py-1 rounded-lg bg-lime text-foreground font-bold flex items-center gap-1 shadow-2xs"
                         >
                           <Send className="w-3 h-3" />
-                          <span>Enviar WhatsApp</span>
+                          <span>WhatsApp</span>
                         </button>
                       </div>
                     </td>
@@ -792,20 +946,32 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
         onClose={() => setModalNovoAberto(false)}
         aria-label="Nova Demanda"
       >
-        <form onSubmit={handleSalvarNovo} className="p-6 flex flex-col gap-5 max-w-xl">
-          <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
-              Produção & Esteira
-            </span>
-            <h3 className="text-lg sm:text-xl font-bold font-display text-foreground mt-0.5">
-              Criar Nova Demanda de Conteúdo
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Configure o cliente, formato visual, equipe e prazos para alimentar a esteira de produção.
-            </p>
+        <form onSubmit={handleSalvarNovo} className="flex flex-col max-h-[85vh] sm:max-h-[88vh] max-w-xl w-full">
+          {/* Header Fixo */}
+          <div className="p-5 sm:p-6 border-b border-border shrink-0 flex items-start justify-between gap-4">
+            <div>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
+                Produção & Esteira
+              </span>
+              <h3 className="text-lg sm:text-xl font-bold font-display text-foreground mt-0.5">
+                Criar Nova Demanda de Conteúdo
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Configure o cliente, formato visual, equipe e prazos para alimentar a esteira de produção.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setModalNovoAberto(false)}
+              className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-accent shrink-0 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          {/* 1. SELETOR VISUAL DE CLIENTE */}
+          {/* Body Rolável */}
+          <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5">
+            {/* 1. SELETOR VISUAL DE CLIENTE */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold uppercase tracking-wider text-foreground font-mono">
               1. Cliente da Agência
@@ -1033,8 +1199,10 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
             />
           </div>
 
-          {/* Botões de Ação */}
-          <div className="flex justify-end gap-2 pt-3 border-t border-border mt-2">
+          </div>
+
+          {/* Footer Fixo */}
+          <div className="p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex justify-end gap-2">
             <Button
               type="button"
               variant="ghost"
@@ -1133,6 +1301,259 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
             </Button>
           </div>
         </form>
+      </Sheet>
+
+      {/* 5. Modal: Editar Demanda */}
+      <Sheet
+        open={!!itemEmEdicao}
+        onClose={() => setItemEmEdicao(null)}
+        aria-label="Editar Demanda"
+      >
+        {itemEmEdicao && (
+          <form onSubmit={handleSalvarEdicao} className="flex flex-col max-h-[85vh] sm:max-h-[88vh] max-w-xl w-full">
+            {/* Header Fixo */}
+            <div className="p-5 sm:p-6 border-b border-border shrink-0 flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <ClienteAvatar
+                  nome={itemEmEdicao.cliente?.nome || 'Cliente'}
+                  cor={itemEmEdicao.cliente?.cor}
+                  fotoUrl={itemEmEdicao.cliente?.foto_url}
+                  tamanho="md"
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
+                      Editar Demanda
+                    </span>
+                    <Badge variant={STATUS_LABELS[editStatus]?.variant || 'default'} className="text-[9px]">
+                      {STATUS_LABELS[editStatus]?.label || editStatus}
+                    </Badge>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold font-display text-foreground truncate mt-0.5">
+                    {itemEmEdicao.cliente?.nome} — {editTitulo || 'Sem título'}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setItemEmEdicao(null)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-accent shrink-0 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body Rolável */}
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5">
+              {/* Status e Formato */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground">
+                    Status na Esteira
+                  </label>
+                  <Select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as StatusConteudo)}
+                  >
+                    {COLUNAS_KANBAN.map((st) => (
+                      <option key={st} value={st}>
+                        {STATUS_LABELS[st].label} ({STATUS_LABELS[st].tag})
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground">
+                    Formato de Publicação
+                  </label>
+                  <Select
+                    value={editTipo}
+                    onChange={(e) => setEditTipo(e.target.value as TipoConteudo)}
+                  >
+                    <option value="post">Carrossel / Post (4:5)</option>
+                    <option value="reel">Vídeo Reels (9:16)</option>
+                    <option value="story">Story Interativo (9:16)</option>
+                    <option value="avulso">Avulso / Demanda Extra</option>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Título */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Título / Tema da Publicação
+                </label>
+                <Input
+                  value={editTitulo}
+                  onChange={(e) => setEditTitulo(e.target.value)}
+                  placeholder="Ex.: 5 Segredos para Aumentar Vendas"
+                  required
+                />
+              </div>
+
+              {/* Briefing */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Briefing / Instruções de Criação
+                </label>
+                <Textarea
+                  value={editBriefing}
+                  onChange={(e) => setEditBriefing(e.target.value)}
+                  placeholder="Instruções para o designer e copywriter..."
+                  rows={3}
+                />
+              </div>
+
+              {/* Equipe Responsável */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                    <User className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>Responsável Principal</span>
+                  </label>
+                  <Select
+                    value={editResponsavelId}
+                    onChange={(e) => setEditResponsavelId(e.target.value)}
+                  >
+                    <option value="">Nenhum responsável...</option>
+                    {membros.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nome} ({m.cargo || (m.papel === 'master' ? 'Sócio' : 'Membro')})
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>Designer / Editor</span>
+                  </label>
+                  <Select
+                    value={editEditorId}
+                    onChange={(e) => setEditEditorId(e.target.value)}
+                  >
+                    <option value="">Nenhum editor...</option>
+                    {membros.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nome} ({m.cargo || 'Especialista'})
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+
+              {/* Prazos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>Prazo Interno</span>
+                  </label>
+                  <Input
+                    type="date"
+                    value={editPrazoInterno}
+                    onChange={(e) => setEditPrazoInterno(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>Data Programada (Postagem)</span>
+                  </label>
+                  <Input
+                    type="date"
+                    value={editDataProgramada}
+                    onChange={(e) => setEditDataProgramada(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Mídias / Arquivos */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  URLs das Mídias / Slides (Um link por linha)
+                </label>
+                <Textarea
+                  value={editUrls}
+                  onChange={(e) => setEditUrls(e.target.value)}
+                  placeholder="https://.../slide1.png&#10;https://.../slide2.png"
+                  rows={3}
+                />
+              </div>
+
+              {/* Legenda do Instagram */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">
+                    Legenda do Instagram
+                  </label>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {editLegenda.length} / 2.200
+                  </span>
+                </div>
+                <Textarea
+                  value={editLegenda}
+                  onChange={(e) => setEditLegenda(e.target.value)}
+                  placeholder="Legenda da postagem..."
+                  rows={4}
+                />
+              </div>
+
+              {/* Comentários de Revisão do Cliente (se houver) */}
+              {(itemEmEdicao.comentarios_revisao || []).length > 0 && (
+                <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 space-y-2">
+                  <p className="text-xs font-bold text-destructive flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Ajustes Solicitados pelo Cliente ({itemEmEdicao.comentarios_revisao.length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {itemEmEdicao.comentarios_revisao.map((c) => (
+                      <div key={c.id} className="text-[11px] p-2 rounded-lg bg-card/80 border border-border/60">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-mono">
+                          <span>{c.autor || (c.tipo === 'cliente' ? 'Cliente' : 'Equipe')}</span>
+                          {c.slide_index != null && <span>Slide {c.slide_index + 1}</span>}
+                        </div>
+                        <p className="text-foreground mt-0.5">{c.texto}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Fixo */}
+            <div className="p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex items-center justify-between gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleExcluirDemanda(itemEmEdicao.id)}
+                loading={excluindoItem}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1" />
+                Excluir Demanda
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setItemEmEdicao(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="primary" size="sm" loading={salvandoEdicao}>
+                  Salvar Alterações
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
       </Sheet>
     </div>
   );
