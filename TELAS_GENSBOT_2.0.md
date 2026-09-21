@@ -308,20 +308,27 @@ sequenceDiagram
 
 O token é `gen_random_uuid()`: aleatório e com entropia suficiente para não ser adivinhado. Correto.
 
-**Quatro pontos em aberto, encontrados ao ler o código.** Nenhum é grave, mas todos merecem decisão:
+**Quatro pontos foram encontrados ao ler o código. Dois já estão corrigidos.**
 
-1. **O link nunca expira nem pode ser revogado.** Uma vez enviado ao cliente, vale para sempre. Se um
-   contato sair da empresa dele, o link continua valendo na mão dessa pessoa.
-2. **A rota devolve o item em qualquer status.** Quem tiver o link vê o conteúdo mesmo em
-   `planejamento` ou `copy` — ou seja, trabalho pela metade. Faria sentido só responder quando o
-   item estiver em `revisao_cliente`.
-3. **Aprovar funciona a partir de qualquer status.** Não há checagem de que o item estava em
-   `revisao_cliente`, então um item em `planejamento` pode saltar direto para `agendamento`.
-4. **O nome do autor vem do corpo da requisição**, sem validação. O comentário pode ser assinado com
-   qualquer nome.
+`[EXISTE]` **1. O link só abre a partir da revisão do cliente.** Antes disso a rota responde 404 com
+uma explicação de que a publicação ainda está em produção. O token nasce junto com o item e nunca
+muda, então sem essa checagem um link enviado uma vez deixava o cliente acompanhar arte pela metade e
+cada revisão interna. A regra vive em `clientePodeVer()`, no módulo de domínio, e é testada.
 
-Os pontos 2 e 3 se resolvem com uma linha de condição na rota. O 1 é decisão de produto: validade por
-tempo, por mês, ou revogação manual.
+`[EXISTE]` **2. Aprovar e pedir ajuste só valem quando é a vez do cliente.** A rota recusa com 409
+qualquer ação sobre item fora de `revisao_cliente`. Isso fecha dois casos: um item em planejamento
+saltar direto para agendamento, e o duplo clique em "aprovar" reprocessar o que já aconteceu.
+Regra em `clientePodeAgir()`.
+
+As mensagens de recusa são escritas para o cliente e **não expõem o estágio interno** — ele lê "ainda
+está em produção", não "revisão de arte". Há teste garantindo isso.
+
+`[LACUNA]` **3. O link nunca expira nem pode ser revogado.** Uma vez enviado, vale para sempre. Se um
+contato sair da empresa do cliente, o link continua valendo na mão dessa pessoa. É decisão de
+produto: validade por tempo, por mês, ou revogação manual.
+
+`[LACUNA]` **4. O nome do autor vem do corpo da requisição**, sem validação. O comentário pode ser
+assinado com qualquer nome. Baixo impacto, já que só quem tem o link chega lá.
 
 ### 3.7 A ficha do cliente
 
@@ -606,7 +613,8 @@ Alinhada às ondas do `PROJETO_GENSBOT_2.0.md`, mas na granularidade de tela.
 |---|---|---|---|
 | ~~1~~ | ~~Esteira e demanda~~ | A esteira saiu do papel | **Feito** (`esteira-tab.tsx`) |
 | ~~2~~ | ~~Aprovação pública~~ | A dor mais cara da agência | **Feito** (`/aprovacao/[token]`) |
-| 1 | **Endurecer a aprovação** | Fecha os 4 pontos de §3.6 | Pequeno, e o mais urgente |
+| ~~1~~ | ~~Restringir o link por status~~ | Cliente não vê trabalho pela metade | **Feito** (§3.6, pontos 1 e 2) |
+| 1 | Expiração e revogação do link | Fecha o ponto 3 de §3.6 | Decisão de produto pendente |
 | 2 | Minhas demandas | A equipe passa a trabalhar pelo sistema | Depende de L3 (prazo) |
 | 3 | Calendário do cliente e geral | Enxergar choque de prazos | — |
 | 4 | Equipe e relatório | Medir entrega | L4 |
@@ -614,10 +622,9 @@ Alinhada às ondas do `PROJETO_GENSBOT_2.0.md`, mas na granularidade de tela.
 | 6 | Rotina e recorrências | Cobre o dia a dia | L5, L6 |
 | 7 | Configurações, Drive, notificações | Fecha a operação | L9 |
 
-**Por que endurecer a aprovação vem primeiro.** É a única tela que uma pessoa de fora abre. Hoje o
-link não expira, mostra o item em qualquer status e aceita aprovação a partir de qualquer status
-(§3.6). São correções pequenas, e o custo de deixá-las para depois cresce a cada link enviado a um
-cliente real.
+**Por que a aprovação vem primeiro.** É a única tela que uma pessoa de fora abre. As duas correções
+de exposição já foram feitas; resta decidir a validade do link, e o custo de adiar cresce a cada link
+enviado a um cliente real.
 
 ---
 

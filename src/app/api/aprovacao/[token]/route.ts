@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import type { ComentarioRevisao } from '@/lib/conteudo';
+import {
+  clientePodeAgir,
+  clientePodeVer,
+  motivoBloqueioCliente,
+  type ComentarioRevisao,
+  type StatusConteudo,
+} from '@/lib/conteudo';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -37,6 +43,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     return NextResponse.json({ error: 'Publicação não encontrada ou link expirado.' }, { status: 404 });
   }
 
+  // O token nasce com o item e nunca muda, então o link existe muito antes de a
+  // peça estar pronta. Sem esta checagem, quem tem o link acompanha a produção
+  // inteira: arte pela metade, copy em rascunho, cada revisão interna.
+  if (!clientePodeVer(item.status as StatusConteudo)) {
+    return NextResponse.json(
+      { error: motivoBloqueioCliente(item.status as StatusConteudo) },
+      { status: 404 }
+    );
+  }
+
   return NextResponse.json({ item });
 }
 
@@ -60,6 +76,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
     if (fetchErr || !item) {
       return NextResponse.json({ error: 'Item não encontrado' }, { status: 404 });
+    }
+
+    // Só aceita ação de quem está de fato na vez do cliente. Protege dois casos:
+    // um item ainda em produção saltar direto para agendamento, e o duplo clique
+    // em "aprovar" reprocessar uma aprovação que já aconteceu.
+    if (!clientePodeAgir(item.status as StatusConteudo)) {
+      return NextResponse.json(
+        { error: motivoBloqueioCliente(item.status as StatusConteudo) },
+        { status: 409 }
+      );
     }
 
     const comentarios: ComentarioRevisao[] = Array.isArray(item.comentarios_revisao)

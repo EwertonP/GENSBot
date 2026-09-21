@@ -99,6 +99,47 @@ export const COLUNAS_KANBAN: StatusConteudo[] = [
   'travado',
 ];
 
+/**
+ * Status a partir dos quais o cliente pode abrir o link público.
+ *
+ * Antes de `revisao_cliente` o material ainda está em produção — arte pela
+ * metade, copy em rascunho. Quem tem o link não deve ver isso: o token é fixo e
+ * nasce junto com o item, então sem esta checagem um link enviado uma vez expõe
+ * todo o histórico daquele item para sempre.
+ */
+export const STATUS_VISIVEIS_AO_CLIENTE: StatusConteudo[] = [
+  'revisao_cliente',
+  'agendamento',
+  'revisao_agendamento',
+  'pronto_publicar',
+  'publicado',
+  'travado',
+];
+
+export function clientePodeVer(status: StatusConteudo): boolean {
+  return STATUS_VISIVEIS_AO_CLIENTE.includes(status);
+}
+
+/**
+ * Aprovar ou pedir ajuste só vale quando o item está de fato aguardando o
+ * cliente. Sem isso, um item em planejamento saltaria direto para agendamento,
+ * e um duplo clique em "aprovar" reprocessaria a ação.
+ */
+export function clientePodeAgir(status: StatusConteudo): boolean {
+  return status === 'revisao_cliente';
+}
+
+/** Explica ao cliente, sem jargão interno, por que ele não pode agir agora. */
+export function motivoBloqueioCliente(status: StatusConteudo): string {
+  if (status === 'travado') {
+    return 'Seu pedido de ajuste já foi registrado. A equipe está cuidando disso e você recebe a nova versão em seguida.';
+  }
+  if (clientePodeVer(status)) {
+    return 'Esta publicação já foi aprovada.';
+  }
+  return 'Esta publicação ainda está em produção. Você recebe o link assim que ela estiver pronta para aprovação.';
+}
+
 /** Formata segundos em minutos:segundos (ex: 27 -> "00:27") */
 export function formatarTimecode(segundos: number): string {
   const mins = Math.floor(segundos / 60);

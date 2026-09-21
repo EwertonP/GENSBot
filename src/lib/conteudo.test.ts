@@ -1,10 +1,60 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clientePodeAgir,
+  clientePodeVer,
   formatarTimecode,
   gerarLinkWhatsAppAprovacao,
+  motivoBloqueioCliente,
   STATUS_LABELS,
   COLUNAS_KANBAN,
+  type StatusConteudo,
 } from './conteudo';
+
+describe('acesso do cliente pelo link público', () => {
+  const EM_PRODUCAO: StatusConteudo[] = [
+    'planejamento',
+    'copy',
+    'criacao_arte',
+    'revisao_arte',
+    'em_gravacao',
+    'em_edicao',
+    'revisao_interna',
+  ];
+
+  it('esconde o item enquanto ele está em produção', () => {
+    for (const status of EM_PRODUCAO) {
+      expect(clientePodeVer(status), status).toBe(false);
+    }
+  });
+
+  it('mostra a partir da revisão do cliente, inclusive depois de resolvida', () => {
+    for (const status of ['revisao_cliente', 'agendamento', 'pronto_publicar', 'publicado', 'travado'] as StatusConteudo[]) {
+      expect(clientePodeVer(status), status).toBe(true);
+    }
+  });
+
+  it('só aceita aprovar ou pedir ajuste na vez do cliente', () => {
+    expect(clientePodeAgir('revisao_cliente')).toBe(true);
+    for (const status of [...EM_PRODUCAO, 'agendamento', 'publicado', 'travado'] as StatusConteudo[]) {
+      expect(clientePodeAgir(status), status).toBe(false);
+    }
+  });
+
+  it('um item já aprovado não pode ser aprovado de novo', () => {
+    // Protege o duplo clique: a primeira ação move para agendamento.
+    expect(clientePodeAgir('agendamento')).toBe(false);
+    expect(motivoBloqueioCliente('agendamento')).toBe('Esta publicação já foi aprovada.');
+  });
+
+  it('explica o bloqueio sem expor o estágio interno', () => {
+    const emProducao = motivoBloqueioCliente('criacao_arte');
+    expect(emProducao).toContain('ainda está em produção');
+    for (const rotulo of ['Criação de Arte', 'criacao_arte', 'revisao_interna']) {
+      expect(emProducao).not.toContain(rotulo);
+    }
+    expect(motivoBloqueioCliente('travado')).toContain('ajuste já foi registrado');
+  });
+});
 
 describe('conteudo / esteira & aprovacao', () => {
   it('formata timecodes em MM:SS corretamente', () => {
