@@ -53,12 +53,14 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 }
 
-export async function DELETE(_req: Request, { params }: Params) {
+export async function DELETE(req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
   const { membro } = auth.ctx;
 
   const { id } = await params;
+  const url = new URL(req.url);
+  const isHardDelete = url.searchParams.get('hard') === 'true';
 
   if (membro.papel !== 'master') {
     return respostaErro('Apenas administradores podem desativar ou remover membros.', 403);
@@ -66,6 +68,24 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   if (membro.id === id) {
     return respostaErro('Você não pode remover a si mesmo.', 400);
+  }
+
+  if (isHardDelete) {
+    // Exclusão completa: remove da tabela de membros e do auth
+    const { error } = await serviceSupabase
+      .from('membros')
+      .delete()
+      .eq('id', id)
+      .eq('agencia_id', membro.agencia_id);
+
+    if (error) {
+      return traduzirErroBanco(error, 'DELETE /api/equipe/[id]');
+    }
+
+    // Tenta apagar do Supabase Auth em segundo plano
+    serviceSupabase.auth.admin.deleteUser(id).catch(() => {});
+
+    return NextResponse.json({ ok: true, message: 'Membro excluído permanentemente com sucesso.' });
   }
 
   // Desativa o membro para preservar integridade de dados históricos

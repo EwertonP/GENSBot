@@ -11,6 +11,8 @@ export default function RegisterPage() {
   const supabase = createSupabaseBrowserClient();
 
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [cargo, setCargo] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -37,7 +39,7 @@ export default function RegisterPage() {
       email,
       password,
       options: {
-        data: { full_name: name },
+        data: { full_name: name, username: username.trim().toLowerCase(), cargo: cargo.trim() },
       },
     });
     setLoading(false);
@@ -96,12 +98,39 @@ export default function RegisterPage() {
               <input
                 id="register-name"
                 type="text"
-                placeholder="Seu nome"
+                placeholder="Seu nome completo"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
                 className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="register-username" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nome de Usuário</label>
+                <input
+                  id="register-username"
+                  type="text"
+                  placeholder="ex: joaosilva"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  required
+                  className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="register-cargo" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Cargo / Função</label>
+                <input
+                  id="register-cargo"
+                  type="text"
+                  placeholder="ex: Designer / Copywriter"
+                  value={cargo}
+                  onChange={e => setCargo(e.target.value)}
+                  className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">

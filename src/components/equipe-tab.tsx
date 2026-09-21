@@ -182,6 +182,24 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
     }
   }
 
+  async function handleExcluirMembro(m: MembroEquipe) {
+    if (!confirm(`Deseja realmente excluir permanentemente o membro ${m.nome}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      const res = await fetch(`/api/equipe/${m.id}?hard=true`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Erro ao excluir membro.');
+      setMembros((prev) => prev.filter((item) => item.id !== m.id));
+      showToast(`${m.nome} foi excluído da equipe.`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao excluir membro.', 'error');
+    }
+  }
+
+  function handleCopiarLinkCadastro() {
+    const registerUrl = `${window.location.origin}/register`;
+    navigator.clipboard.writeText(registerUrl);
+    showToast('Link de cadastro da equipe copiado para a área de transferência! 🔗', 'success');
+  }
+
   const pendentes = membros.filter((m) => !m.ativo);
   const ativos = membros.filter((m) => m.ativo);
 
@@ -200,18 +218,30 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             </span>
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Cadastre os sócios e membros da equipe para distribuir as demandas e aprovações de conteúdo.
+            Cadastre a equipe manualmente ou envie o link personalizado para auto-cadastro.
           </p>
         </div>
 
-        <Button
-          onClick={abrirModalCriar}
-          variant="primary"
-          className="rounded-xl shadow-xs self-start sm:self-auto"
-        >
-          <UserPlus className="w-4 h-4 mr-1.5" />
-          Adicionar Sócio / Membro
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={handleCopiarLinkCadastro}
+            variant="outline"
+            className="rounded-xl shadow-xs text-xs"
+            title="Copiar link para enviar a novos membros se cadastrarem"
+          >
+            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-primary" />
+            Copiar Link de Convite
+          </Button>
+
+          <Button
+            onClick={abrirModalCriar}
+            variant="primary"
+            className="rounded-xl shadow-xs text-xs"
+          >
+            <UserPlus className="w-4 h-4 mr-1.5" />
+            Cadastrar Membro
+          </Button>
+        </div>
       </div>
 
       {/* Alerta de Cadastros Pendentes */}
@@ -360,11 +390,20 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                       onClick={() => handleAlternarAtivo(membro)}
                       className={`h-7 px-2 text-xs rounded-lg ${
                         membro.ativo
-                          ? 'text-muted-foreground hover:text-destructive'
+                          ? 'text-muted-foreground hover:text-foreground'
                           : 'text-success border-success/30'
                       }`}
                     >
                       {membro.ativo ? 'Desativar' : 'Ativar'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleExcluirMembro(membro)}
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer shrink-0"
+                      title="Excluir membro permanentemente"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
