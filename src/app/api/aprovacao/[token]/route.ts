@@ -146,11 +146,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
         atualizado_em: new Date().toISOString(),
       })
       .eq('id', item.id)
-      .select()
+      .select('*, notion_page_id')
       .single();
 
     if (updateErr) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    }
+
+    // Se o item estiver vinculado ao Notion e for aprovado, escreve de volta no Notion
+    if (updated.notion_page_id && acao === 'aprovar') {
+      import('@/lib/notion').then(({ updateNotionPageStatus }) => {
+        updateNotionPageStatus(updated.notion_page_id, 'Aprovado').catch(() => {});
+      });
     }
 
     return NextResponse.json({ success: true, item: updated });

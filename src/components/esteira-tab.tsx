@@ -144,6 +144,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
   const [telefoneAprovacaoCustom, setTelefoneAprovacaoCustom] = useState('');
   const [uploadingAprovacao, setUploadingAprovacao] = useState(false);
 
+  // Notion Sync
+  const [sincronizandoNotion, setSincronizandoNotion] = useState(false);
+
   // Carrega clientes, membros e itens
   async function carregarDados() {
     setCarregando(true);
@@ -674,6 +677,34 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               <span className="hidden sm:inline text-[11px]">Feed 3x3</span>
             </button>
           </div>
+
+          {/* Botão Sincronizar Notion */}
+          <Button
+            onClick={async () => {
+              setSincronizandoNotion(true);
+              try {
+                const res = await fetch('/api/cron/notion-sync', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                  showToast(`Notion sincronizado! ${data.totalCreated} criados, ${data.totalUpdated} atualizados.`, 'success');
+                  carregarDados();
+                } else {
+                  throw new Error(data.error || 'Falha ao sincronizar.');
+                }
+              } catch (err: any) {
+                showToast(err.message || 'Erro ao sincronizar com o Notion.', 'error');
+              } finally {
+                setSincronizandoNotion(false);
+              }
+            }}
+            disabled={sincronizandoNotion}
+            variant="outline"
+            size="sm"
+            className="rounded-xl shadow-2xs h-9 text-xs font-semibold bg-card border-border/80 hover:bg-accent cursor-pointer"
+          >
+            <Sparkles className={`w-3.5 h-3.5 mr-1.5 text-primary ${sincronizandoNotion ? 'animate-spin' : ''}`} />
+            {sincronizandoNotion ? 'Sincronizando...' : 'Sincronizar Notion'}
+          </Button>
 
           {/* Botão Duplicar Mês */}
           <Button
