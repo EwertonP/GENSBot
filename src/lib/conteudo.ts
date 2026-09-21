@@ -38,6 +38,17 @@ export interface ComentarioRevisao {
   resolvido?: boolean;
 }
 
+export interface EventoAtividade {
+  id: string;
+  tipo: 'status' | 'comentario';
+  autor_nome: string;
+  autor_id?: string | null;
+  de_status?: StatusConteudo | null;
+  para_status?: StatusConteudo | null;
+  texto: string;
+  criado_em: string;
+}
+
 export interface PrefillAgendamento {
   conteudoId: string;
   clienteNome: string;
@@ -71,6 +82,7 @@ export interface ConteudoItem {
   arquivos: ArquivoConteudo[];
   token_aprovacao: string;
   comentarios_revisao: ComentarioRevisao[];
+  historico_atividades?: EventoAtividade[];
   automacao_config?: import('./publish-automation').PublishAutomationConfig | null;
   criado_em: string;
   atualizado_em: string;

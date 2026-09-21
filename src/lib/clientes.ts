@@ -8,6 +8,25 @@
  * os timestamps nunca são aceitos do corpo da requisição.
  */
 
+export interface EtapaOnboarding {
+  id: string;
+  label: string;
+  concluida: boolean;
+  concluida_em?: string | null;
+}
+
+export const ETAPAS_ONBOARDING_PADRAO: EtapaOnboarding[] = [
+  { id: 'briefing_inicial', label: 'Briefing inicial', concluida: false },
+  { id: 'acessos_coletados', label: 'Acessos das redes coletados', concluida: false },
+  { id: 'paleta_definida', label: 'Paleta de marca definida', concluida: false },
+  { id: 'tom_de_voz', label: 'Tom de voz documentado', concluida: false },
+  { id: 'primeira_reuniao', label: 'Primeira reunião de alinhamento', concluida: false },
+  { id: 'social_seller', label: 'Treinamento Social Seller', concluida: false },
+  { id: 'organizar_destaques', label: 'Organizar destaques', concluida: false },
+  { id: 'organizar_biografia', label: 'Organizar biografia', concluida: false },
+  { id: 'organizar_foto_perfil', label: 'Organizar foto de perfil', concluida: false },
+];
+
 export interface Cliente {
   id: string;
   agencia_id: string;
@@ -38,6 +57,7 @@ export interface Cliente {
   briefing: string | null;
   drive_pasta_id: string | null;
   token_aprovacao_mes?: string | null;
+  onboarding_etapas?: EtapaOnboarding[];
   ativo: boolean;
   criado_em: string;
   atualizado_em: string;
@@ -61,6 +81,8 @@ export interface ContaInstagramResumo {
   instagram_user_id: string;
   instagram_username: string | null;
   profile_picture_url: string | null;
+  cliente_id: string | null;
+  cliente_nome: string | null;
 }
 
 /** Abas do GENSBot que já sabem trabalhar escopadas numa conta do Instagram. */
@@ -80,7 +102,8 @@ type Rule =
   | { kind: 'color' }
   | { kind: 'date' }
   | { kind: 'uuid' }
-  | { kind: 'bool' };
+  | { kind: 'bool' }
+  | { kind: 'json' };
 
 const text = (max: number): TextRule => ({ kind: 'text', max });
 const int = (min: number, max: number): IntRule => ({ kind: 'int', min, max });
@@ -111,6 +134,8 @@ const CLIENTE_FIELDS: Record<string, Rule> = {
   concorrentes: text(2000),
   briefing: text(10000),
   drive_pasta_id: text(200),
+  token_aprovacao_mes: { kind: 'uuid' },
+  onboarding_etapas: { kind: 'json' },
   ativo: { kind: 'bool' },
 };
 
@@ -181,6 +206,9 @@ function parseField(key: string, rule: Rule, raw: unknown): ParseResult<unknown>
       if (n < 0 || n > rule.max) return { ok: false, error: `${key}: valor fora do limite.` };
       // numeric(10,2): arredonda para centavos em vez de deixar o banco recusar.
       return { ok: true, data: Math.round(n * 100) / 100 };
+    }
+    case 'json': {
+      return { ok: true, data: raw };
     }
   }
 }

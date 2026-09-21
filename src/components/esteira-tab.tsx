@@ -25,6 +25,7 @@ import {
   Trash2,
   Copy,
   LayoutGrid,
+  Grid3X3,
   Check,
   X,
   Edit2,
@@ -42,6 +43,8 @@ import { Sheet } from '@/components/ui/sheet';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { Instagram } from '@/components/instagram-icon';
+import { OnboardingBar } from '@/components/onboarding-bar';
+import { FeedPreviewGrid } from '@/components/feed-preview-grid';
 import {
   STATUS_LABELS,
   COLUNAS_KANBAN,
@@ -74,7 +77,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
   const [clienteSelecionado, setClienteSelecionado] = useState<string>(clienteFiltroId || 'all');
   const [responsavelFiltro, setResponsavelFiltro] = useState<string>('all');
   const [busca, setBusca] = useState('');
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'feed'>('kanban');
+  const [mesSelecionado, setMesSelecionado] = useState<string>(() => new Date().toISOString().slice(0, 7));
 
   // Drag and Drop state
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
@@ -129,6 +133,10 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
   const [editArquivos, setEditArquivos] = useState<ArquivoConteudo[]>([]);
   const [editUploading, setEditUploading] = useState(false);
   const [showManualUrlsEdit, setShowManualUrlsEdit] = useState(false);
+
+  // Comentários internos e Histórico da Demanda
+  const [novoComentarioTexto, setNovoComentarioTexto] = useState('');
+  const [enviandoComentario, setEnviandoComentario] = useState(false);
 
   // Modal Envio Inteligente para Aprovação (WhatsApp Web Seguro)
   const [modalAprovacaoAberto, setModalAprovacaoAberto] = useState(false);
@@ -456,6 +464,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
     setEditUrls('');
     setEditArquivos(item.arquivos || []);
     setShowManualUrlsEdit(false);
+    setNovoComentarioTexto('');
   }
 
   async function handleSalvarEdicao(e: React.FormEvent) {
@@ -503,6 +512,35 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
       showToast(err.message || 'Erro ao salvar alterações.', 'error');
     } finally {
       setSalvandoEdicao(false);
+    }
+  }
+
+  async function handleEnviarComentarioEquipe() {
+    if (!itemEmEdicao || !novoComentarioTexto.trim()) return;
+    setEnviandoComentario(true);
+    try {
+      const membro = membros.find((m) => m.id === editResponsavelId || m.id === editEditorId);
+      const autorNome = membro?.nome || 'Equipe';
+      const res = await fetch(`/api/conteudo/${itemEmEdicao.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          novo_comentario_equipe: novoComentarioTexto.trim(),
+          autor_nome: autorNome,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao enviar comentário');
+
+      setItemEmEdicao(data.item);
+      setItems((prev) => prev.map((i) => (i.id === itemEmEdicao.id ? data.item : i)));
+      setNovoComentarioTexto('');
+      showToast('Comentário registrado na demanda!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao registrar comentário.', 'error');
+    } finally {
+      setEnviandoComentario(false);
     }
   }
 
@@ -584,8 +622,19 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Alternador Kanban / Lista */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Seletor de Mês (quando no modo Feed) */}
+          {viewMode === 'feed' && (
+            <input
+              type="month"
+              value={mesSelecionado}
+              onChange={(e) => setMesSelecionado(e.target.value)}
+              className="h-9 text-xs px-2.5 rounded-xl bg-background border border-border text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+              title="Mês de referência do feed"
+            />
+          )}
+
+          {/* Alternador Kanban / Lista / Feed 3x3 */}
           <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border/70">
             <button
               type="button"
@@ -610,6 +659,19 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               title="Visualização em Lista"
             >
               <Layers className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('feed')}
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                viewMode === 'feed'
+                  ? 'bg-card text-primary font-bold shadow-2xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              title="Visualização Preview de Feed 3x3"
+            >
+              <Grid3X3 className="w-4 h-4" />
+              <span className="hidden sm:inline text-[11px]">Feed 3x3</span>
             </button>
           </div>
 
@@ -642,81 +704,127 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
         </div>
       </div>
 
-      {/* Banner de Ações Rápidas do Cliente Ativo (Aprovação de Feed e Status) */}
+      {/* Régua de Etapas de Onboarding & Banner de Ações Rápidas do Cliente Ativo */}
       {clienteAtivo && (
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 p-4 rounded-2xl bg-card border border-border/80 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <ClienteAvatar nome={clienteAtivo.nome} cor={clienteAtivo.cor} fotoUrl={clienteAtivo.foto_url} tamanho="md" />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-foreground">{clienteAtivo.nome}</span>
-                <span className="text-[11px] font-mono text-muted-foreground bg-accent px-2 py-0.5 rounded-md border border-border/60">
-                  {itemsFiltrados.length} {itemsFiltrados.length === 1 ? 'demanda' : 'demandas'}
-                </span>
+        <div className="flex flex-col gap-3.5">
+          <OnboardingBar
+            cliente={clienteAtivo}
+            onAtualizarCliente={(cAtualizado) => {
+              setClientes((prev) => prev.map((cl) => (cl.id === cAtualizado.id ? cAtualizado : cl)));
+            }}
+            showToast={showToast}
+          />
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 p-4 rounded-2xl bg-card border border-border/80 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <ClienteAvatar nome={clienteAtivo.nome} cor={clienteAtivo.cor} fotoUrl={clienteAtivo.foto_url} tamanho="md" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-foreground">{clienteAtivo.nome}</span>
+                  <span className="text-[11px] font-mono text-muted-foreground bg-accent px-2 py-0.5 rounded-md border border-border/60">
+                    {itemsFiltrados.length} {itemsFiltrados.length === 1 ? 'demanda' : 'demandas'}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {clienteAtivo.nicho || 'Cliente da Agência'} · Feed visual do mês para envio e aprovação no WhatsApp.
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {clienteAtivo.nicho || 'Cliente da Agência'} · Feed visual do mês para envio e aprovação no WhatsApp.
-              </p>
             </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
-                window.open(`/aprovacao/feed/${token}`, '_blank');
-              }}
-              className="rounded-xl text-xs h-8.5 font-semibold"
-            >
-              <Smartphone className="w-3.5 h-3.5 mr-1.5 text-primary" />
-              Ver Feed (Grade 3xN)
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant={viewMode === 'feed' ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('feed')}
+                className="rounded-xl text-xs h-8.5 font-semibold"
+              >
+                <Grid3X3 className="w-3.5 h-3.5 mr-1.5" />
+                Ver Grade Feed 3x3
+              </Button>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
-                const url = `${window.location.origin}/aprovacao/feed/${token}`;
-                navigator.clipboard.writeText(url);
-                showToast('Link da grade do feed copiado para o WhatsApp!', 'success');
-              }}
-              className="rounded-xl text-xs h-8.5 font-semibold"
-            >
-              <Share2 className="w-3.5 h-3.5 mr-1.5" />
-              Copiar Link
-            </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
+                  const url = `${window.location.origin}/aprovacao/feed/${token}`;
+                  navigator.clipboard.writeText(url);
+                  showToast('Link da grade do feed copiado para o WhatsApp!', 'success');
+                }}
+                className="rounded-xl text-xs h-8.5 font-semibold"
+              >
+                <Share2 className="w-3.5 h-3.5 mr-1.5" />
+                Copiar Link
+              </Button>
 
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
-                const url = `${window.location.origin}/aprovacao/feed/${token}`;
-                const msg = `Olá ${clienteAtivo.nome}! Segue a prévia visual completa do seu feed deste mês no Instagram para conferência e aprovação:\n\n${url}`;
-                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-              }}
-              className="rounded-xl text-xs h-8.5 font-semibold bg-success hover:bg-success/90 text-white"
-            >
-              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-              Enviar no WhatsApp
-            </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
+                  const url = `${window.location.origin}/aprovacao/feed/${token}`;
+                  const msg = `Olá ${clienteAtivo.nome}! Segue a prévia visual completa do seu feed deste mês no Instagram para conferência e aprovação:\n\n${url}`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                }}
+                className="rounded-xl text-xs h-8.5 font-semibold bg-success hover:bg-success/90 text-white"
+              >
+                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                Enviar no WhatsApp
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* 2. Visualização Kanban com Drag-and-Drop */}
+      {/* 2. Visualização Kanban, Lista ou Feed 3x3 */}
       {carregando ? (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4" aria-busy="true">
           {[0, 1, 2, 3].map((i) => (
             <Card key={i} className="h-64 animate-pulse rounded-2xl" />
           ))}
         </div>
+      ) : viewMode === 'feed' ? (
+        clienteAtivo ? (
+          <FeedPreviewGrid
+            cliente={clienteAtivo}
+            items={items}
+            mesSelecionado={mesSelecionado}
+            onAbrirEdicao={handleAbrirModalEditar}
+            showToast={showToast}
+            onAtualizarCliente={(cAtualizado) => {
+              setClientes((prev) => prev.map((cl) => (cl.id === cAtualizado.id ? cAtualizado : cl)));
+            }}
+          />
+        ) : (
+          <div className="p-10 text-center rounded-2xl border border-dashed border-border bg-card/60 flex flex-col items-center justify-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <Grid3X3 className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-foreground">
+              Selecione um cliente para visualizar o Feed 3x3
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-md">
+              A grade 3x3 simula o perfil oficial do Instagram do cliente no mês selecionado. Escolha um cliente para visualizar e organizar:
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-2 max-w-xl">
+              {clientes.map((c) => (
+                <Button
+                  key={c.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setClienteSelecionado(c.id)}
+                  className="rounded-xl text-xs"
+                >
+                  <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="xs" />
+                  <span className="ml-1.5 font-medium">{c.nome}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )
       ) : itemsFiltrados.length === 0 ? (
         <EmptyState
           icon={Layers}
@@ -1819,6 +1927,105 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   </div>
                 </div>
               )}
+
+              {/* Histórico de Atividades (Audit Trail) & Comentários Internos da Equipe */}
+              <div className="rounded-2xl border border-border/80 bg-accent/20 p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-primary" />
+                    Histórico & Atividades ({itemEmEdicao.historico_atividades?.length || 0})
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-mono">Audit trail automático</span>
+                </div>
+
+                {/* Timeline de Atividades */}
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {(!itemEmEdicao.historico_atividades || itemEmEdicao.historico_atividades.length === 0) ? (
+                    <p className="text-[11px] text-muted-foreground/70 italic py-1">
+                      Nenhuma atividade registrada ainda. As mudanças de status e notas da equipe aparecerão aqui.
+                    </p>
+                  ) : (
+                    itemEmEdicao.historico_atividades.map((ev) => {
+                      const dataFormatada = new Date(ev.criado_em).toLocaleString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+                      const isStatus = ev.tipo === 'status';
+
+                      return (
+                        <div
+                          key={ev.id}
+                          className={`p-2.5 rounded-xl border text-xs ${
+                            isStatus
+                              ? 'bg-card border-border/70'
+                              : 'bg-primary/5 border-primary/20'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                            <span className="font-semibold text-foreground flex items-center gap-1.5">
+                              {isStatus ? (
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary" />
+                              ) : (
+                                <MessageSquare className="w-3 h-3 text-primary" />
+                              )}
+                              {ev.autor_nome || 'Equipe'}
+                            </span>
+                            <span className="font-mono text-[10px]">{dataFormatada}</span>
+                          </div>
+
+                          {isStatus && ev.de_status && ev.para_status ? (
+                            <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-foreground font-medium mt-0.5">
+                              <Badge variant={STATUS_LABELS[ev.de_status]?.variant || 'default'} className="text-[9px] py-0 px-1.5 font-bold">
+                                {STATUS_LABELS[ev.de_status]?.label || ev.de_status}
+                              </Badge>
+                              <span className="text-muted-foreground">➔</span>
+                              <Badge variant={STATUS_LABELS[ev.para_status]?.variant || 'default'} className="text-[9px] py-0 px-1.5 font-bold">
+                                {STATUS_LABELS[ev.para_status]?.label || ev.para_status}
+                              </Badge>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-foreground whitespace-pre-wrap mt-0.5">{ev.texto}</p>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Input de Novo Comentário Interno */}
+                <div className="pt-2 border-t border-border/60 flex flex-col gap-1.5">
+                  <div className="flex gap-2 items-end">
+                    <Textarea
+                      value={novoComentarioTexto}
+                      onChange={(e) => setNovoComentarioTexto(e.target.value)}
+                      placeholder="Adicionar nota interna para a equipe (ex: @design favor conferir arte)..."
+                      rows={2}
+                      className="text-xs resize-none flex-1 bg-background"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                          e.preventDefault();
+                          handleEnviarComentarioEquipe();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      disabled={!novoComentarioTexto.trim() || enviandoComentario}
+                      loading={enviandoComentario}
+                      onClick={handleEnviarComentarioEquipe}
+                      className="rounded-xl h-10 px-3.5 bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
+                      title="Enviar comentário"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Pressione Ctrl+Enter para enviar</span>
+                </div>
+              </div>
             </div>
 
             {/* Footer Fixo */}

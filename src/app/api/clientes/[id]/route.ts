@@ -69,6 +69,18 @@ export async function PATCH(req: Request, { params }: Params) {
     return respostaErro('Corpo da requisição inválido.', 400);
   }
 
+  // Ação de revogação/renovação de link público do feed
+  if (body && typeof body === 'object' && (body as any).renovar_token_mes) {
+    const { data: ren, error: errRen } = await supabase
+      .from('clientes')
+      .update({ token_aprovacao_mes: crypto.randomUUID() })
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+    if (errRen) return traduzirErroBanco(errRen, 'PATCH renovar_token_mes');
+    return NextResponse.json(ren);
+  }
+
   const parsed = parseClienteInput(body, 'editar');
   if (!parsed.ok) return respostaErro(parsed.error, 400);
 
