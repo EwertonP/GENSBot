@@ -322,7 +322,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       {/* --- VISÃO DESKTOP (>= lg) estilo Instagram Web Native Modal (Tema Claro) --- */}
       <main className="hidden lg:flex w-full max-w-5xl h-[660px] rounded-2xl bg-white border border-border/80 shadow-2xl overflow-hidden my-auto">
         {/* Coluna da Esquerda (60%): Estágio Visual de Mídia (Carrossel / Reels / Story) */}
-        <div className="w-7/12 bg-neutral-950 flex items-center justify-center relative overflow-hidden border-r border-border/60 p-4">
+        <div className="w-7/12 bg-neutral-50 flex items-center justify-center relative overflow-hidden border-r border-border/60 p-4">
           {isStory ? (
             <InstagramStoryPreview
               clienteNome={clienteNome}
@@ -410,7 +410,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               />
               <div className="flex flex-col text-xs leading-relaxed space-y-1.5 flex-1">
                 <div>
-                  <span className="font-bold text-foreground mr-2">@{clienteNome.toLowerCase().replace(/\s+/g, '')}</span>
+                  <span className="font-bold text-foreground mr-2">@{clienteNome.replace(/^@/, '').toLowerCase().replace(/\s+/g, '')}</span>
                   {item.titulo && <span className="font-semibold text-foreground block mb-1">{item.titulo}</span>}
                   <span className="text-foreground/90 whitespace-pre-line font-normal">
                     {item.legenda || 'Nenhuma legenda informada para este post.'}
