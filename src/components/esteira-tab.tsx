@@ -161,6 +161,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
   }, [items, clienteSelecionado, responsavelFiltro, busca]);
 
   async function handleMudarStatus(itemId: string, novoStatus: StatusConteudo) {
+    setDraggingItemId(null);
+    setDraggingOverCol(null);
     const itemAnterior = items.find((i) => i.id === itemId);
     if (!itemAnterior || itemAnterior.status === novoStatus) return;
 
@@ -664,6 +666,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                 onDrop={(e) => {
                   e.preventDefault();
                   setDraggingOverCol(null);
+                  setDraggingItemId(null);
                   const itemId = e.dataTransfer.getData('text/plain');
                   if (itemId) handleMudarStatus(itemId, colStatus);
                 }}
@@ -703,14 +706,10 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                         }}
                         onDragEnd={() => setDraggingItemId(null)}
                         className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 cursor-pointer ${
-                          isDragging
-                            ? 'opacity-85 ring-2 ring-primary/40 border-dashed shadow-md scale-[1.01] rotate-[1deg]'
-                            : 'opacity-100 hover:border-foreground/30'
-                        } ${
                           temAjustes
                             ? 'border-destructive/40 bg-destructive/5'
-                            : 'border-border/80'
-                        }`}
+                            : 'border-border/80 hover:border-foreground/30'
+                        } ${isDragging ? 'opacity-70' : 'opacity-100'}`}
                       >
                         {/* Header do Card */}
                         <div className="flex items-start justify-between gap-2">
