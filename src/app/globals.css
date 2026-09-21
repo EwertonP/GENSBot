@@ -2,12 +2,11 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Inter, sans-serif;
+  --font-sans: var(--font-dm-sans), var(--font-sora), system-ui, sans-serif;
+  --font-display: var(--font-sora), system-ui, sans-serif;
   --font-mono: monospace;
   --font-serif: Georgia, serif;
   --radius: 0.5rem;
@@ -16,7 +15,7 @@
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display);
   --tracking-normal: var(--tracking-normal);
   --shadow-2xl: var(--shadow-2xl);
   --shadow-xl: var(--shadow-xl);
@@ -58,6 +57,8 @@
   --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-lime: var(--lime);
+  --color-lime-foreground: var(--lime-foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -78,60 +79,47 @@
 }
 
 :root {
-  /* Paleta clara da agência GENS (IDV oficial, 6 hex confirmados pelo
-     usuário — ver PLANO_REDESIGN_2.0.md Parte 1). Fundo quase-branco com
-     leve matiz lima, verde-oliva médio como único acento de ação.
-     Verde/âmbar/vermelho seguem como tokens semânticos dedicados
-     (--success/--warning/--destructive), não fazem parte da identidade
-     de marca — continuam como indicador pontual. Contraste verificado
-     com WCAG real: --primary-foreground sobre --primary só é seguro pra
-     texto grande/negrito (4.49:1) — o Button primitivo já é font-bold. */
-  --background: oklch(0.989 0.031 118.9); /* #F9FFE8 */
-  --foreground: oklch(0.168 0 89.9); /* #0F0F0F */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.168 0 89.9);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.168 0 89.9);
-  --primary: oklch(0.551 0.154 132.3); /* #4D8300 */
-  --primary-foreground: oklch(0.989 0.031 118.9); /* #F9FFE8 */
-  /* v6 — superfícies secundárias neutralizadas (mesmo ajuste já feito no dark
-     mode): eram lima-tintadas (--accent chegava a chroma 0.106, quase tão
-     saturado quanto o próprio --primary), então todo hover/badge/painel
-     intermediário carregava verde mesmo não sendo ação nenhuma. --primary
-     continua o único ponto de cor saturada; --background/--card não mudam
-     (o calor lima sutil de fundo é intencional, tipo o off-white do Cron/
-     Notion Calendar — só as superfícies EM CIMA do fundo é que precisavam
-     virar neutras). */
-  --secondary: oklch(0.95 0.004 119);
-  --secondary-foreground: oklch(0.168 0 89.9);
-  --muted: oklch(0.96 0.004 119);
-  --muted-foreground: oklch(0.5 0.006 121);
-  --accent: oklch(0.94 0.004 119);
-  --accent-foreground: oklch(0.345 0.086 124); /* #304000 — hover ainda "acende" verde no texto/ícone */
+  --background: #f7f8f2; /* paper */
+  --foreground: #192313; /* ink */
+  --card: #ffffff;
+  --card-foreground: #192313;
+  --popover: #ffffff;
+  --popover-foreground: #192313;
+  --primary: #192313; /* ink — botão primário */
+  --primary-foreground: #f7f8f2; /* paper */
+  --secondary: #edf4d8; /* hero-soft */
+  --secondary-foreground: #192313;
+  --muted: #eef0e7;
+  --muted-foreground: #59614f; /* muted text */
+  --accent: #eef0e7;
+  --accent-foreground: #192313;
+  --lime: #d8ff3c; /* lime — marca GENS */
+  --lime-foreground: #192313;
   --destructive: oklch(0.55 0.14 25);
   --destructive-foreground: oklch(1 0 0);
   --success: oklch(0.56 0.07 145);
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.68 0.11 75);
   --warning-foreground: oklch(0.28 0.04 75);
-  --border: oklch(0.88 0.006 119);
-  --input: oklch(0.9 0.006 119);
-  --ring: oklch(0.551 0.154 132.3);
+  --border: #d9dfce; /* line */
+  --input: #d9dfce;
+  --ring: #192313;
   --chart-1: oklch(0.551 0.154 132.3);
   --chart-2: oklch(0.56 0.07 145);
   --chart-3: oklch(0.68 0.11 75);
   --chart-4: oklch(0.345 0.086 124);
   --chart-5: oklch(0.55 0.14 25);
   --radius: 0.625rem;
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.168 0 89.9);
-  --sidebar-primary: oklch(0.551 0.154 132.3);
-  --sidebar-primary-foreground: oklch(0.989 0.031 118.9);
-  --sidebar-accent: oklch(0.94 0.004 119);
-  --sidebar-accent-foreground: oklch(0.345 0.086 124);
-  --sidebar-border: oklch(0.92 0.006 119);
-  --sidebar-ring: oklch(0.551 0.154 132.3);
-  --font-sans: Inter, sans-serif;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #192313;
+  --sidebar-primary: #192313;
+  --sidebar-primary-foreground: #f7f8f2;
+  --sidebar-accent: #f0f3e6;
+  --sidebar-accent-foreground: #192313;
+  --sidebar-border: #e3e8d8;
+  --sidebar-ring: #192313;
+  --font-sans: var(--font-dm-sans), var(--font-sora), system-ui, sans-serif;
+  --font-display: var(--font-sora), system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: monospace;
   --shadow-color: #0f0f0f;
@@ -143,80 +131,19 @@
   --letter-spacing: -0.01em;
   --spacing: 0.25rem;
   --shadow-2xs: none;
-  --shadow-xs: 0px 1px 2px 0px hsl(28 35% 12% / 0.02);
-  --shadow-sm: 0px 1px 2px 0px hsl(28 35% 12% / 0.03);
-  --shadow: 0px 1px 2px 0px hsl(28 35% 12% / 0.03);
-  --shadow-md: 0px 2px 4px 0px hsl(28 35% 12% / 0.04);
-  --shadow-lg: 0px 4px 8px -2px hsl(28 35% 12% / 0.05);
-  --shadow-xl: 0px 8px 16px -4px hsl(28 35% 12% / 0.06);
-  --shadow-2xl: 0px 12px 24px -8px hsl(28 35% 12% / 0.08);
+  --shadow-xs: 2px 2px 0px 0px #58753515;
+  --shadow-sm: 3px 3px 0px 0px #58753515;
+  --shadow: 4px 5px 0px 0px #58753515;
+  --shadow-md: 5px 5px 0px 0px #58753515;
+  --shadow-lg: 7px 8px 0px 0px #1b2b1820;
+  --shadow-xl: 9px 9px 0px 0px #bdd094;
+  --shadow-2xl: 9px 9px 0px 0px #bdd094;
   --tracking-normal: -0.012em;
-}
-
-.dark {
-  /* Paleta escura da agência GENS, v2 — preto neutro predominante (não mais
-     verde-oliva tingindo toda superfície de destaque), lima (#DBFF69) como
-     ÚNICO ponto de verde saturado no dark mode: CTA, aba ativa, linha de
-     gráfico. Antes, `--accent`/`--secondary`/`--muted`/`--border` eram todos
-     verde-oliva (#304000-ish) — qualquer hover, badge ou superfície
-     intermediária carregava matiz verde, mesmo não sendo ação nenhuma. Esses
-     tokens agora são cinza-neutro (chroma ~0.006, quase zero) sobre o mesmo
-     fundo preto #0F0F0F, no espírito do dark mode do Linear: cor de marca só
-     onde é estado/ação, resto é neutro. */
-  --background: oklch(0.168 0 89.9); /* #0F0F0F */
-  --foreground: oklch(0.989 0.031 118.9); /* #F9FFE8 */
-  --card: oklch(0.205 0.006 121);
-  --card-foreground: oklch(0.989 0.031 118.9);
-  --popover: oklch(0.205 0.006 121);
-  --popover-foreground: oklch(0.989 0.031 118.9);
-  --primary: oklch(0.946 0.179 121.3); /* #DBFF69 */
-  --primary-foreground: oklch(0.168 0 89.9); /* #0F0F0F */
-  --secondary: oklch(0.24 0.006 121);
-  --secondary-foreground: oklch(0.989 0.031 118.9);
-  --muted: oklch(0.225 0.006 121);
-  --muted-foreground: oklch(0.62 0.008 121);
-  --accent: oklch(0.26 0.006 121);
-  --accent-foreground: oklch(0.946 0.179 121.3); /* #DBFF69 — hover ainda "acende" verde no texto/ícone */
-  --destructive: oklch(0.68 0.1 25);
-  --destructive-foreground: oklch(0.18 0.03 25);
-  --success: oklch(0.68 0.06 145);
-  --success-foreground: oklch(0.16 0.03 145);
-  --warning: oklch(0.75 0.09 75);
-  --warning-foreground: oklch(0.18 0.03 75);
-  --border: oklch(0.3 0.006 121);
-  --input: oklch(0.3 0.006 121);
-  --ring: oklch(0.946 0.179 121.3);
-  --chart-1: oklch(0.946 0.179 121.3);
-  --chart-2: oklch(0.68 0.06 145);
-  --chart-3: oklch(0.75 0.09 75);
-  --chart-4: oklch(0.551 0.154 132.3);
-  --chart-5: oklch(0.68 0.1 25);
-  --sidebar: oklch(0.16 0.004 121); /* levemente mais escura que o card — sidebar como "chão", não como painel */
-  --sidebar-foreground: oklch(0.989 0.031 118.9);
-  --sidebar-primary: oklch(0.946 0.179 121.3);
-  --sidebar-primary-foreground: oklch(0.168 0 89.9);
-  --sidebar-accent: oklch(0.24 0.006 121);
-  --sidebar-accent-foreground: oklch(0.946 0.179 121.3);
-  --sidebar-border: oklch(0.28 0.006 121);
-  --sidebar-ring: oklch(0.946 0.179 121.3);
-  --shadow-color: #000000;
-  --shadow-opacity: 0.08;
-  --shadow-2xs: none;
-  --shadow-xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.06);
-  --shadow-sm: 0px 1px 2px 0px hsl(0 0% 0% / 0.08);
-  --shadow: 0px 1px 2px 0px hsl(0 0% 0% / 0.08);
-  --shadow-md: 0px 2px 4px 0px hsl(0 0% 0% / 0.10);
-  --shadow-lg: 0px 4px 8px -2px hsl(0 0% 0% / 0.12);
-  --shadow-xl: 0px 8px 16px -4px hsl(0 0% 0% / 0.14);
-  --shadow-2xl: 0px 12px 24px -8px hsl(0 0% 0% / 0.18);
 }
 
 @layer base {
   body {
-    /* Tracking neutro por padrão — negativo fixo em tudo apertava demais
-       texto pequeno (badges, timestamps). Headings/display usam a classe
-       .text-display (tracking-tight) explicitamente onde fazem sentido. */
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
   * {
     @apply border-border outline-ring/50;
@@ -224,14 +151,26 @@
   html {
     @apply font-sans;
   }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
 }
 
 @layer utilities {
-  /* Tracking negativo é só pra texto grande/heading — texto pequeno fica
-     mais legível com tracking neutro (princípio de tipografia da Apple). */
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-sans {
+    font-family: var(--font-sans);
+  }
   .text-display {
+    font-family: var(--font-display);
     letter-spacing: var(--tracking-tight);
-    line-height: 1.1;
+    line-height: 1.15;
+  }
+  .double-bezel {
+    border: 1px solid var(--border);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
   }
 }
 
@@ -246,6 +185,18 @@
     transform: scaleX(1);
     transform-origin: left;
   }
+}
+
+/* Título de seção em caixa alta com tracking positivo — o "eyebrow" do design
+   system da marca (design.md §2.2). É a polaridade contra o tracking negativo
+   dos títulos que dá o ritmo editorial; usar em rótulos de seção, não em texto
+   corrido. */
+@utility eyebrow {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 /* Anima só quando o SO permite — troca spring/slide por cross-fade curto,
