@@ -319,10 +319,10 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
         </div>
       </main>
 
-      {/* --- VISÃO DESKTOP (>= lg) estilo Instagram Web Native Modal --- */}
-      <main className="hidden lg:flex w-full max-w-5xl h-[660px] rounded-2xl bg-neutral-950 border border-neutral-800 shadow-2xl overflow-hidden my-auto">
+      {/* --- VISÃO DESKTOP (>= lg) estilo Instagram Web Native Modal (Tema Claro) --- */}
+      <main className="hidden lg:flex w-full max-w-5xl h-[660px] rounded-2xl bg-white border border-border/80 shadow-2xl overflow-hidden my-auto">
         {/* Coluna da Esquerda (60%): Estágio Visual de Mídia (Carrossel / Reels / Story) */}
-        <div className="w-7/12 bg-black flex items-center justify-center relative overflow-hidden border-r border-neutral-800/80 p-4">
+        <div className="w-7/12 bg-neutral-950 flex items-center justify-center relative overflow-hidden border-r border-border/60 p-4">
           {isStory ? (
             <InstagramStoryPreview
               clienteNome={clienteNome}
@@ -360,11 +360,11 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           )}
         </div>
 
-        {/* Coluna da Direita (40%): Painel Nativo do Instagram Web */}
-        <div className="w-5/12 bg-neutral-900 flex flex-col justify-between overflow-hidden text-neutral-100">
+        {/* Coluna da Direita (40%): Painel Nativo do Instagram Web (Tema Claro) */}
+        <div className="w-5/12 bg-white flex flex-col justify-between overflow-hidden text-foreground">
           
           {/* Header Superior Nativo */}
-          <div className="px-4 py-3.5 border-b border-neutral-800 flex items-center justify-between shrink-0">
+          <div className="px-4 py-3.5 border-b border-border/60 flex items-center justify-between shrink-0 bg-white">
             <div className="flex items-center gap-3">
               <div className="p-[2px] rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600">
                 <ClienteAvatar
@@ -372,15 +372,15 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                   cor={clienteCor}
                   fotoUrl={clienteFotoUrl}
                   tamanho="md"
-                  className="ring-2 ring-neutral-900"
+                  className="ring-2 ring-white"
                 />
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-white tracking-tight leading-tight">{clienteNome}</span>
+                  <span className="text-sm font-bold text-foreground tracking-tight leading-tight">{clienteNome}</span>
                   <span className="w-4 h-4 bg-sky-500 text-white rounded-full inline-flex items-center justify-center text-[9px] font-bold" title="Perfil Verificado">✓</span>
                 </div>
-                <span className="text-[11px] text-neutral-400 font-medium">Agência GENS • Central de Aprovação</span>
+                <span className="text-[11px] text-muted-foreground font-medium">Agência GENS • Central de Aprovação</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -390,14 +390,14 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               >
                 {sucessoAprovado ? 'Aprovado' : item.status === 'travado' ? 'Ajustes Solicitados' : 'Pendente'}
               </Badge>
-              <button type="button" className="text-neutral-400 hover:text-white transition-colors p-1">
+              <button type="button" className="text-muted-foreground hover:text-foreground transition-colors p-1">
                 <MoreHorizontal className="w-5 h-5" />
               </button>
             </div>
           </div>
 
           {/* Área Scrollável Central: Legenda e Comentários / Ajustes */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-neutral-700">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white scrollbar-thin scrollbar-thumb-neutral-300">
             
             {/* Item Principal: Legenda com Avatar e Username em Negrito */}
             <div className="flex items-start gap-3">
@@ -410,52 +410,52 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               />
               <div className="flex flex-col text-xs leading-relaxed space-y-1.5 flex-1">
                 <div>
-                  <span className="font-bold text-white mr-2">@{clienteNome.toLowerCase().replace(/\s+/g, '')}</span>
-                  {item.titulo && <span className="font-semibold text-neutral-200 block mb-1">{item.titulo}</span>}
-                  <span className="text-neutral-300 whitespace-pre-line font-normal">
+                  <span className="font-bold text-foreground mr-2">@{clienteNome.toLowerCase().replace(/\s+/g, '')}</span>
+                  {item.titulo && <span className="font-semibold text-foreground block mb-1">{item.titulo}</span>}
+                  <span className="text-foreground/90 whitespace-pre-line font-normal">
                     {item.legenda || 'Nenhuma legenda informada para este post.'}
                   </span>
                 </div>
-                <span className="text-[10px] text-neutral-500 font-medium tracking-wide uppercase pt-1">
+                <span className="text-[10px] text-muted-foreground font-medium tracking-wide uppercase pt-1">
                   2 h • {isStory ? 'Story' : isReel ? 'Reels' : isCarrossel ? `Carrossel (${arquivos.length} fotos)` : 'Feed'}
                 </span>
               </div>
             </div>
 
             {/* Separador sutil */}
-            {comentarios.length > 0 && <div className="border-t border-neutral-800/80 my-2" />}
+            {comentarios.length > 0 && <div className="border-t border-border/60 my-2" />}
 
             {/* Seção de Comentários / Histórico de Ajustes */}
             {comentarios.length > 0 && (
               <div className="space-y-3">
-                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
                   Ajustes & Comentários ({comentarios.length})
                 </span>
                 {comentarios.map((c) => (
                   <div key={c.id} className="flex items-start gap-3 group">
-                    <div className="w-7 h-7 rounded-full bg-neutral-800 text-neutral-200 border border-neutral-700 flex items-center justify-center font-bold text-[10px] shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-accent text-accent-foreground border border-border flex items-center justify-center font-bold text-[10px] shrink-0">
                       {c.autor ? c.autor.substring(0, 2).toUpperCase() : 'CL'}
                     </div>
                     <div className="flex flex-col text-xs flex-1">
-                      <div className="bg-neutral-800/60 rounded-xl p-2.5 border border-neutral-800 space-y-1">
+                      <div className="bg-accent/40 rounded-xl p-2.5 border border-border/60 space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-white text-[11px]">{c.autor}</span>
+                          <span className="font-bold text-foreground text-[11px]">{c.autor}</span>
                           {c.slide_index != null && (
-                            <span className="text-[9px] font-mono font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded border border-primary/30">
+                            <span className="text-[9px] font-mono font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
                               Slide {c.slide_index}
                             </span>
                           )}
                           {c.timestamp_seconds != null && (
-                            <span className="text-[9px] font-mono font-bold bg-lime/20 text-lime px-1.5 py-0.5 rounded border border-lime/30">
+                            <span className="text-[9px] font-mono font-bold bg-lime/20 text-foreground px-1.5 py-0.5 rounded border border-foreground/10">
                               ⏱ {formatarTimecode(c.timestamp_seconds)}
                             </span>
                           )}
                         </div>
-                        <p className="text-neutral-300 text-[11px] leading-snug">{c.texto}</p>
+                        <p className="text-muted-foreground text-[11px] leading-snug">{c.texto}</p>
                       </div>
-                      <div className="flex items-center gap-3 text-[10px] text-neutral-500 px-1 mt-1">
+                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground px-1 mt-1">
                         <span>1 h</span>
-                        <button type="button" className="hover:text-neutral-300 font-semibold transition-colors">Responder</button>
+                        <button type="button" className="hover:text-foreground font-semibold transition-colors">Responder</button>
                       </div>
                     </div>
                   </div>
@@ -464,15 +464,15 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             )}
           </div>
 
-          {/* Footer do Painel Nativo do Instagram Web */}
-          <div className="border-t border-neutral-800 bg-neutral-900 shrink-0">
+          {/* Footer do Painel Nativo do Instagram Web (Tema Claro) */}
+          <div className="border-t border-border/60 bg-white shrink-0">
             {/* Barra de Ações Ícones (Curtir, Comentar, Compartilhar, Salvar) */}
-            <div className="px-4 pt-3 pb-2 flex items-center justify-between text-neutral-300">
+            <div className="px-4 pt-3 pb-2 flex items-center justify-between text-foreground">
               <div className="flex items-center gap-4">
                 <button
                   type="button"
                   onClick={() => setCurtido(!curtido)}
-                  className="hover:text-neutral-400 transition-transform active:scale-125"
+                  className="hover:text-muted-foreground transition-transform active:scale-125"
                   title="Curtir"
                 >
                   <Heart className={`w-6 h-6 ${curtido ? 'fill-rose-500 text-rose-500' : ''}`} />
@@ -483,37 +483,37 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                     if (isReel) handleAbrirAjusteVideo(videoTempo);
                     else handleAbrirAjusteSlide(slideAtual + 1);
                   }}
-                  className="hover:text-neutral-400 transition-transform active:scale-110"
+                  className="hover:text-muted-foreground transition-transform active:scale-110"
                   title="Comentar / Sugerir Ajuste"
                 >
                   <MessageCircle className="w-6 h-6" />
                 </button>
-                <button type="button" className="hover:text-neutral-400 transition-transform active:scale-110" title="Compartilhar">
+                <button type="button" className="hover:text-muted-foreground transition-transform active:scale-110" title="Compartilhar">
                   <Send className="w-6 h-6" />
                 </button>
               </div>
               <button
                 type="button"
                 onClick={() => setSalvo(!salvo)}
-                className="hover:text-neutral-400 transition-transform active:scale-110"
+                className="hover:text-muted-foreground transition-transform active:scale-110"
                 title="Salvar"
               >
-                <Bookmark className={`w-6 h-6 ${salvo ? 'fill-white text-white' : ''}`} />
+                <Bookmark className={`w-6 h-6 ${salvo ? 'fill-foreground text-foreground' : ''}`} />
               </button>
             </div>
 
             {/* Contador de Curtidas e Horário */}
             <div className="px-4 pb-3">
-              <p className="text-xs font-semibold text-white">
+              <p className="text-xs font-semibold text-foreground">
                 Curtido por <span className="font-bold">agenciagens</span> e <span className="font-bold">outras pessoas</span>
               </p>
-              <span className="text-[10px] text-neutral-500 uppercase tracking-wide block mt-0.5">HÁ 2 HORAS</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide block mt-0.5">HÁ 2 HORAS</span>
             </div>
 
             {/* Decision Bar para Aprovação ou Solicitação de Ajustes */}
-            <div className="p-3 border-t border-neutral-800 bg-neutral-950/70">
+            <div className="p-3 border-t border-border/60 bg-accent/20">
               {sucessoAprovado ? (
-                <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center gap-2 font-bold text-xs">
+                <div className="p-3 rounded-xl bg-success/15 border border-success/30 text-success flex items-center justify-center gap-2 font-bold text-xs">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Publicação Aprovada! 🎉</span>
                 </div>
@@ -530,7 +530,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                       }
                     }}
                     disabled={enviando}
-                    className="rounded-xl text-xs font-bold h-10 border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white"
+                    className="rounded-xl text-xs font-bold h-10 border-border bg-white text-foreground hover:bg-accent"
                   >
                     <MessageSquarePlus className="w-3.5 h-3.5 mr-1 text-primary" />
                     {isReel
@@ -545,7 +545,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                     variant="lime"
                     onClick={handleAprovar}
                     loading={enviando}
-                    className="rounded-xl text-xs font-bold shadow-md h-10"
+                    className="rounded-xl text-xs font-bold shadow-xs h-10"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                     Aprovar Post
