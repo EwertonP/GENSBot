@@ -34,7 +34,8 @@ marcado como proposta.
 
 | Arquivo | Situação |
 |---|---|
-| `PROJETO_GENSBOT_2.0.md` (este) | Fonte de verdade do projeto unificado |
+| `PROJETO_GENSBOT_2.0.md` (este) | Fonte de verdade do projeto unificado: decisões, módulos, roadmap |
+| `TELAS_GENSBOT_2.0.md` | Companheiro deste. Análise tela a tela a partir do Modo Criador, com a arquitetura por trás (tabelas, rotas, link público de aprovação) e as lacunas do modelo de dados |
 | `PLANO_REDESIGN_2.0.md` | Histórico. Ondas de Publicações, Métricas e Dashboard. A Parte 1 (paleta) foi superada pela §8 |
 | `ZERNFLOW-MELHORIAS.md` | Referência do editor visual de fluxo. A regra de não usar intermediários continua valendo (§1) |
 | `DESIGN.md` (raiz) | **Desatualizado.** Descreve a direção de design anterior. Usar `design/design.md` |
