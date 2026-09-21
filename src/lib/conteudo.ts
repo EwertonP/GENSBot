@@ -205,7 +205,7 @@ export function gerarMensagemAprovacao(params: {
   token: string;
   urlOrigem?: string;
 }): { texto: string; linkAprovacao: string } {
-  const base = params.urlOrigem || (typeof window !== 'undefined' ? window.location.origin : 'https://manychat-caseiro.vercel.app');
+  const base = params.urlOrigem || (typeof window !== 'undefined' ? window.location.origin : 'https://allingens.vercel.app');
   const linkAprovacao = `${base}/aprovacao/${params.token}`;
   const texto =
     `Olá! 👋 Aqui é da Agência GENS.\n\n` +

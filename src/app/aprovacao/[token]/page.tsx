@@ -49,7 +49,7 @@ export async function generateMetadata(
 
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://manychat-caseiro.vercel.app');
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://allingens.vercel.app');
 
   const ogImageUrl = `${baseUrl}/api/aprovacao/${token}/og`;
 

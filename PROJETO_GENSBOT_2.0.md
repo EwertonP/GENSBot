@@ -77,7 +77,7 @@ Pasta `C:\Users\Ewerton Monteiro\Documents\`
 
 | Local | O que é | Situação |
 |---|---|---|
-| `GENSBot/` | **O projeto.** Next 16.3.0-canary, React 19, Tailwind v4, Supabase | Em produção (Vercel, `manychat-caseiro.vercel.app`) |
+| `GENSBot/` | **O projeto.** Next 16.3.0-canary, React 19, Tailwind v4, Supabase | Em produção (Vercel, `allingens.vercel.app`) |
 | `Projeto Agencia GENS/sistema-gens/` | Scaffold que criamos e depois abandonamos | **Abandonado.** O `design/` já foi copiado para o GENSBot (2026-09-20). Sobram as migrations 001–005, que valem só como histórico. Pode ser arquivado |
 | `Projeto Agencia GENS/plataforma-agencia/` | CRM antigo, sem banco desde 2026-09-02 | Superado por este projeto |
 
