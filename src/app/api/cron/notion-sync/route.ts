@@ -34,14 +34,31 @@ export async function handleNotionSync(req: Request) {
       return NextResponse.json({ error: 'NOTION_API_KEY não configurada no servidor' }, { status: 400 });
     }
 
-    // 1. Busca todos os clientes do GENSBot
+    // 1. Busca todos os clientes do GENSBot (colunas base garantidas)
     const { data: clientes, error: clientesErr } = await supabase
       .from('clientes')
-      .select('id, agencia_id, nome, notion_database_id');
+      .select('id, agencia_id, nome');
 
     if (clientesErr) throw clientesErr;
     if (!clientes || clientes.length === 0) {
       return NextResponse.json({ success: true, message: 'Nenhum cliente cadastrado no sistema.' });
+    }
+
+    // Tenta obter notion_database_id de forma resiliente caso a coluna exista no Supabase
+    let clientesComDatabaseIdMap: Record<string, string> = {};
+    try {
+      const { data: clientesFull } = await supabase
+        .from('clientes')
+        .select('id, notion_database_id');
+      if (clientesFull) {
+        for (const c of clientesFull) {
+          if (c.notion_database_id) {
+            clientesComDatabaseIdMap[c.id] = c.notion_database_id;
+          }
+        }
+      }
+    } catch {
+      // Ignora se a coluna opcional notion_database_id ainda não tiver sido criada no Supabase
     }
 
     // 2. Descobre todas as databases do Notion Workspace
@@ -51,11 +68,12 @@ export async function handleNotionSync(req: Request) {
     // Mapeamento Inteligente:
     // A. Clientes com notion_database_id explicitamente configurado
     for (const c of clientes) {
-      if (c.notion_database_id) {
+      const dbId = clientesComDatabaseIdMap[c.id];
+      if (dbId) {
         targetDatabases.push({
           clienteId: c.id,
           agenciaId: c.agencia_id,
-          databaseId: c.notion_database_id,
+          databaseId: dbId,
         });
       }
     }
@@ -106,33 +124,52 @@ export async function handleNotionSync(req: Request) {
           ordem: index,
         }));
 
-        // Verifica se o item já existe por notion_page_id
-        const { data: existing } = await supabase
-          .from('conteudo_items')
-          .select('id')
-          .eq('notion_page_id', demand.notionPageId)
-          .maybeSingle();
-
-        if (existing) {
-          await supabase
+        // Verifica se o item já existe por notion_page_id (ou por título + cliente_id)
+        let existingId: string | null = null;
+        try {
+          const { data: existing } = await supabase
             .from('conteudo_items')
-            .update({
-              titulo: demand.titulo,
-              tipo: demand.tipo,
-              status: demand.status,
-              legenda: demand.legenda,
-              briefing: demand.briefing,
-              arquivos: arquivos.length > 0 ? arquivos : undefined,
-              notion_last_edited: demand.lastEditedTime,
-              atualizado_em: new Date().toISOString(),
-            })
-            .eq('id', existing.id);
+            .select('id')
+            .eq('notion_page_id', demand.notionPageId)
+            .maybeSingle();
+          if (existing) existingId = existing.id;
+        } catch {
+          const { data: existingByTitle } = await supabase
+            .from('conteudo_items')
+            .select('id')
+            .eq('cliente_id', dbInfo.clienteId)
+            .eq('titulo', demand.titulo)
+            .maybeSingle();
+          if (existingByTitle) existingId = existingByTitle.id;
+        }
+
+        const payloadBase: any = {
+          titulo: demand.titulo,
+          tipo: demand.tipo,
+          status: demand.status,
+          legenda: demand.legenda,
+          briefing: demand.briefing,
+          arquivos: arquivos.length > 0 ? arquivos : undefined,
+          atualizado_em: new Date().toISOString(),
+        };
+
+        if (existingId) {
+          try {
+            const { error: updErr } = await supabase
+              .from('conteudo_items')
+              .update({ ...payloadBase, notion_last_edited: demand.lastEditedTime })
+              .eq('id', existingId);
+            if (updErr) {
+              await supabase.from('conteudo_items').update(payloadBase).eq('id', existingId);
+            }
+          } catch {
+            await supabase.from('conteudo_items').update(payloadBase).eq('id', existingId);
+          }
           totalUpdated++;
         } else {
-          await supabase.from('conteudo_items').insert({
+          const insertBase: any = {
             agencia_id: dbInfo.agenciaId,
             cliente_id: dbInfo.clienteId,
-            notion_page_id: demand.notionPageId,
             titulo: demand.titulo,
             tipo: demand.tipo,
             status: demand.status,
@@ -140,8 +177,20 @@ export async function handleNotionSync(req: Request) {
             briefing: demand.briefing,
             mes_referencia: nowMonth,
             arquivos,
-            notion_last_edited: demand.lastEditedTime,
-          });
+          };
+
+          try {
+            const { error: insErr } = await supabase.from('conteudo_items').insert({
+              ...insertBase,
+              notion_page_id: demand.notionPageId,
+              notion_last_edited: demand.lastEditedTime,
+            });
+            if (insErr) {
+              await supabase.from('conteudo_items').insert(insertBase);
+            }
+          } catch {
+            await supabase.from('conteudo_items').insert(insertBase);
+          }
           totalCreated++;
         }
       }
