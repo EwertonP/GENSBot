@@ -1008,7 +1008,6 @@ export default function Dashboard() {
                 { id: 'utm', label: 'Links UTM', icon: Link2 },
               ],
             },
-            { label: 'Sistema', items: [{ id: 'logs', label: 'Logs de Eventos', icon: FileCode }] },
           ].map((group, gi) => (
             <div key={gi} className="flex flex-col gap-0.5">
               {group.label && (
@@ -1336,11 +1335,6 @@ export default function Dashboard() {
             <div className="animate-fade-in">
               <InboxPanel withAccount={withAccount} />
             </div>
-          )}
-
-          {/* TAB 4: LOGS */}
-          {activeTab === 'logs' && (
-            <LogsTab recentEvents={recentEvents} recentQueue={recentQueue} showToast={showToast} />
           )}
           </motion.div>
           </AnimatePresence>
