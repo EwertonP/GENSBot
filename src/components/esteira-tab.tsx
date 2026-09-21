@@ -700,10 +700,11 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
             disabled={sincronizandoNotion}
             variant="outline"
             size="sm"
-            className="rounded-xl shadow-2xs h-9 text-xs font-semibold bg-card border-border/80 hover:bg-accent cursor-pointer"
+            className="rounded-xl shadow-2xs h-9 text-xs font-bold bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-all cursor-pointer"
+            title="Sincronizar demandas ativas diretamente com o Notion"
           >
             <Sparkles className={`w-3.5 h-3.5 mr-1.5 text-primary ${sincronizandoNotion ? 'animate-spin' : ''}`} />
-            {sincronizandoNotion ? 'Sincronizando...' : 'Sincronizar Notion'}
+            {sincronizandoNotion ? 'Sincronizando Notion...' : '⚡ Sincronizar Notion'}
           </Button>
 
           {/* Botão Duplicar Mês */}
