@@ -16,18 +16,23 @@ export async function handleNotionSync(req: Request) {
       return NextResponse.json({ error: 'NOTION_API_KEY não configurada no servidor' }, { status: 400 });
     }
 
-    // 1. Busca todos os clientes cadastrados que têm um notion_database_id vinculado
-    // ou busca databases públicas disponíveis se nenhum banco específico estiver setado.
+    // 1. Busca todos os clientes do GENSBot
     const { data: clientes, error: clientesErr } = await supabase
       .from('clientes')
       .select('id, agencia_id, nome, notion_database_id');
 
     if (clientesErr) throw clientesErr;
+    if (!clientes || clientes.length === 0) {
+      return NextResponse.json({ success: true, message: 'Nenhum cliente cadastrado no sistema.' });
+    }
 
-    // Se nenhum cliente tiver notion_database_id configurado, tenta descobrir a primeira database do Notion
+    // 2. Descobre todas as databases do Notion Workspace
+    const discoveredDbs = await searchNotionDatabases();
     let targetDatabases: Array<{ clienteId: string; agenciaId: string; databaseId: string }> = [];
 
-    for (const c of clientes || []) {
+    // Mapeamento Inteligente:
+    // A. Clientes com notion_database_id explicitamente configurado
+    for (const c of clientes) {
       if (c.notion_database_id) {
         targetDatabases.push({
           clienteId: c.id,
@@ -37,15 +42,28 @@ export async function handleNotionSync(req: Request) {
       }
     }
 
-    // Fallback: Se ainda não tiver database vinculada a nenhum cliente, busca no Notion workspace
-    if (targetDatabases.length === 0 && (clientes || []).length > 0) {
-      const discoveredDbs = await searchNotionDatabases();
-      if (discoveredDbs.length > 0) {
-        const primeiroCliente = clientes![0];
+    // B. Para databases descobertas no Notion, faz o matching com o cliente pelo nome da database ou nome da página pai
+    for (const db of discoveredDbs) {
+      if (targetDatabases.some((t) => t.databaseId === db.id)) continue; // Já incluído acima
+
+      const dbTitleLower = db.title.toLowerCase();
+      // Tenta encontrar um cliente cujo nome bata com o título da database
+      const clienteCorrespondente = clientes.find(
+        (c) => dbTitleLower.includes(c.nome.toLowerCase()) || c.nome.toLowerCase().includes(dbTitleLower.replace('calendário de conteúdo', '').trim())
+      );
+
+      if (clienteCorrespondente) {
         targetDatabases.push({
-          clienteId: primeiroCliente.id,
-          agenciaId: primeiroCliente.agencia_id,
-          databaseId: discoveredDbs[0].id,
+          clienteId: clienteCorrespondente.id,
+          agenciaId: clienteCorrespondente.agencia_id,
+          databaseId: db.id,
+        });
+      } else if (clientes.length === 1) {
+        // Se houver apenas 1 cliente cadastrado no GENSBot, vincula todas as tabelas encontradas a este cliente
+        targetDatabases.push({
+          clienteId: clientes[0].id,
+          agenciaId: clientes[0].agencia_id,
+          databaseId: db.id,
         });
       }
     }

@@ -136,6 +136,8 @@ const CLIENTE_FIELDS: Record<string, Rule> = {
   drive_pasta_id: text(200),
   token_aprovacao_mes: { kind: 'uuid' },
   onboarding_etapas: { kind: 'json' },
+  notion_database_id: text(200),
+  notion_page_id: text(200),
   ativo: { kind: 'bool' },
 };
 
