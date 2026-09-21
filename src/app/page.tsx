@@ -26,6 +26,7 @@ import DashboardHome from '@/components/dashboard-home';
 import AutomationsTab from '@/components/automations-tab';
 import ClientesTab from '@/components/clientes-tab';
 import EsteiraTab from '@/components/esteira-tab';
+import EquipeTab from '@/components/equipe-tab';
 import type { DestinoConta } from '@/lib/clientes';
 import { Instagram } from '@/components/instagram-icon';
 import type { IgMedia, IgStory } from '@/types/instagram-media';
@@ -44,6 +45,7 @@ import {
   Lock,
   Home,
   Users,
+  Users2,
   BarChart3,
   HelpCircle,
   MessageCircle,
@@ -131,11 +133,10 @@ export default function Dashboard() {
   const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'clientes' | 'esteira' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox' | 'logs'>('dashboard');
-  // Sub-abas de "Agendamentos" (Onda 1) — Publicações é a lista/composer que já existia,
-  // Calendário e Kanban são novos, mesma fonte de dado (scheduled_posts).
-  const [publishSubTab, setPublishSubTab] = useState<'publicacoes' | 'calendario' | 'kanban'>('publicacoes');
-  // Submenu de "Agendamentos" na sidebar (Publicações/Calendário/Kanban) — expande/colapsa
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'clientes' | 'esteira' | 'equipe' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox' | 'logs'>('dashboard');
+  // Sub-abas de "Agendamentos" (Publicações e Calendário)
+  const [publishSubTab, setPublishSubTab] = useState<'publicacoes' | 'calendario'>('publicacoes');
+  // Submenu de "Agendamentos" na sidebar (Publicações/Calendário) — expande/colapsa
   // dentro do próprio item de navegação, em vez de abas soltas no topo do conteúdo.
   const [publishNavExpanded, setPublishNavExpanded] = useState(false);
   const [form, setForm] = useState<Automation>({
@@ -973,6 +974,7 @@ export default function Dashboard() {
               items: [
                 { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
                 { id: 'clientes', label: 'Clientes', icon: Briefcase },
+                { id: 'equipe', label: 'Equipe & Sócios', icon: Users2 },
               ],
             },
             {
@@ -1045,7 +1047,6 @@ export default function Dashboard() {
                             {[
                               { id: 'publicacoes' as const, label: 'Publicações', icon: Send },
                               { id: 'calendario' as const, label: 'Calendário', icon: Calendar },
-                              { id: 'kanban' as const, label: 'Kanban', icon: Columns3 },
                             ].map(sub => {
                               const SubIcon = sub.icon;
                               const subActive = active && publishSubTab === sub.id;
@@ -1311,14 +1312,6 @@ export default function Dashboard() {
                   showToast={showToast}
                 />
               )}
-              {publishSubTab === 'kanban' && (
-                <KanbanBoard
-                  accounts={accounts.map((acc) => ({ instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
-                  selectedAccountId={selectedAccountId}
-                  withAccount={withAccount}
-                  showToast={showToast}
-                />
-              )}
             </div>
           )}
 
@@ -1338,6 +1331,11 @@ export default function Dashboard() {
           {/* TAB: ESTEIRA DE DEMANDAS & APROVAÇÃO */}
           {activeTab === 'esteira' && (
             <EsteiraTab showToast={showToast} />
+          )}
+
+          {/* TAB: EQUIPE & SÓCIOS */}
+          {activeTab === 'equipe' && (
+            <EquipeTab showToast={showToast} />
           )}
 
           {/* TAB 3: CONTACTS */}

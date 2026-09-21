@@ -1,6 +1,40 @@
 import { NextResponse } from 'next/server';
 import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
 
+const SELECT_CONTEUDO = `
+  *,
+  responsavel:membros!responsavel_id(
+    id,
+    nome,
+    email,
+    papel,
+    cargo
+  ),
+  editor:membros!editor_id(
+    id,
+    nome,
+    email,
+    papel,
+    cargo
+  ),
+  cliente:clientes(
+    id,
+    nome,
+    cor,
+    nicho,
+    foto_url,
+    instagram_account_id,
+    contatos:cliente_contatos(
+      id,
+      nome,
+      cargo,
+      telefone,
+      email,
+      e_grupo_whatsapp
+    )
+  )
+`;
+
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
@@ -9,17 +43,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const { data, error } = await supabase
     .from('conteudo_items')
-    .select(`
-      *,
-      cliente:clientes(
-        id,
-        nome,
-        cor,
-        nicho,
-        foto_url,
-        instagram_account_id
-      )
-    `)
+    .select(SELECT_CONTEUDO)
     .eq('id', id)
     .single();
 
@@ -46,9 +70,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       'status',
       'titulo',
       'legenda',
+      'briefing',
       'mes_referencia',
       'ordem',
       'data_programada',
+      'prazo',
       'publicado_em',
       'responsavel_id',
       'editor_id',
@@ -67,17 +93,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .from('conteudo_items')
       .update(updates)
       .eq('id', id)
-      .select(`
-        *,
-        cliente:clientes(
-          id,
-          nome,
-          cor,
-          nicho,
-          foto_url,
-          instagram_account_id
-        )
-      `)
+      .select(SELECT_CONTEUDO)
       .single();
 
     if (error) {

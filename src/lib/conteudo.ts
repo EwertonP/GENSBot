@@ -46,9 +46,11 @@ export interface ConteudoItem {
   status: StatusConteudo;
   titulo: string | null;
   legenda: string | null;
+  briefing?: string | null;
   mes_referencia: string; // YYYY-MM-01
   ordem: number;
   data_programada: string | null;
+  prazo?: string | null;
   publicado_em: string | null;
   responsavel_id: string | null;
   editor_id: string | null;
@@ -58,6 +60,20 @@ export interface ConteudoItem {
   comentarios_revisao: ComentarioRevisao[];
   criado_em: string;
   atualizado_em: string;
+  responsavel?: {
+    id: string;
+    nome: string;
+    email: string;
+    papel: string;
+    cargo?: string | null;
+  } | null;
+  editor?: {
+    id: string;
+    nome: string;
+    email: string;
+    papel: string;
+    cargo?: string | null;
+  } | null;
   cliente?: {
     id: string;
     nome: string;
@@ -68,6 +84,14 @@ export interface ConteudoItem {
       instagram_username: string | null;
       profile_picture_url: string | null;
     } | null;
+    contatos?: Array<{
+      id: string;
+      nome: string;
+      cargo?: string | null;
+      telefone?: string | null;
+      email?: string | null;
+      e_grupo_whatsapp: boolean;
+    }>;
   };
 }
 
@@ -147,14 +171,13 @@ export function formatarTimecode(segundos: number): string {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
-/** Gera link do WhatsApp com mensagem pré-formatada para aprovação do cliente */
-export function gerarLinkWhatsAppAprovacao(params: {
-  telefone?: string | null;
+/** Gera a mensagem de aprovação e o magic link */
+export function gerarMensagemAprovacao(params: {
   nomeCliente: string;
   tituloPost: string;
   token: string;
   urlOrigem?: string;
-}): string {
+}): { texto: string; linkAprovacao: string } {
   const base = params.urlOrigem || (typeof window !== 'undefined' ? window.location.origin : 'https://manychat-caseiro.vercel.app');
   const linkAprovacao = `${base}/aprovacao/${params.token}`;
   const texto =
@@ -162,10 +185,29 @@ export function gerarLinkWhatsAppAprovacao(params: {
     `Preparamos a nova publicação *"${params.tituloPost || 'Conteúdo do Mês'}"* para a sua aprovação:\n\n` +
     `👉 *Acesse e aprove com 1 clique:*\n${linkAprovacao}\n\n` +
     `Você pode navegar pelos slides, assistir ao vídeo e sugerir ajustes direto no link! 🚀`;
+  return { texto, linkAprovacao };
+}
 
-  const cleanPhone = (params.telefone || '').replace(/\D/g, '');
-  if (cleanPhone) {
-    return `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(texto)}`;
+/** Gera link do WhatsApp com mensagem pré-formatada para aprovação do cliente */
+export function gerarLinkWhatsAppAprovacao(params: {
+  telefone?: string | null;
+  nomeCliente: string;
+  tituloPost: string;
+  token: string;
+  urlOrigem?: string;
+  preferWeb?: boolean;
+}): string {
+  const { texto } = gerarMensagemAprovacao(params);
+  const clean = (params.telefone || '').replace(/\D/g, '');
+  const phone = clean.length >= 10 && !clean.startsWith('55') ? `55${clean}` : clean;
+
+  if (params.preferWeb) {
+    const paramPhone = phone ? `phone=${phone}&` : '';
+    return `https://web.whatsapp.com/send?${paramPhone}text=${encodeURIComponent(texto)}`;
+  }
+
+  if (phone) {
+    return `https://wa.me/${phone}?text=${encodeURIComponent(texto)}`;
   }
   return `https://wa.me/?text=${encodeURIComponent(texto)}`;
 }

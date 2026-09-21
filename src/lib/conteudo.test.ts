@@ -4,6 +4,7 @@ import {
   clientePodeVer,
   formatarTimecode,
   gerarLinkWhatsAppAprovacao,
+  gerarMensagemAprovacao,
   motivoBloqueioCliente,
   STATUS_LABELS,
   COLUNAS_KANBAN,
@@ -99,5 +100,30 @@ describe('conteudo / esteira & aprovacao', () => {
 
     expect(link).toContain('https://wa.me/5511987654321?text=');
     expect(decodeURIComponent(link)).toContain('https://gens.app/aprovacao/tok-video-999');
+  });
+
+  it('gera link direcionado para WhatsApp Web quando preferWeb é true', () => {
+    const link = gerarLinkWhatsAppAprovacao({
+      telefone: '11987654321',
+      nomeCliente: 'Dr. Paulo',
+      tituloPost: 'Carrossel Dicas',
+      token: 'tok-web-123',
+      preferWeb: true,
+    });
+
+    expect(link).toContain('https://web.whatsapp.com/send?phone=5511987654321&text=');
+  });
+
+  it('separa texto formatado e link de aprovação com gerarMensagemAprovacao', () => {
+    const msg = gerarMensagemAprovacao({
+      nomeCliente: 'Dr. Paulo',
+      tituloPost: 'Post Especial',
+      token: 'tok-msg-456',
+      urlOrigem: 'https://gens.app',
+    });
+
+    expect(msg.linkAprovacao).toBe('https://gens.app/aprovacao/tok-msg-456');
+    expect(msg.texto).toContain('Post Especial');
+    expect(msg.texto).toContain('Agência GENS');
   });
 });

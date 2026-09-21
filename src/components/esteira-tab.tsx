@@ -4,20 +4,25 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Plus,
   Search,
-  Filter,
   Columns3,
-  Calendar,
   Layers,
   Send,
   MessageSquare,
   Clock,
   ExternalLink,
-  ChevronRight,
-  MoreHorizontal,
-  CheckCircle2,
-  AlertCircle,
-  Sparkles,
   Share2,
+  Calendar,
+  CheckCircle2,
+  User,
+  Users,
+  Image as ImageIcon,
+  Video,
+  Sparkles,
+  Smartphone,
+  ChevronRight,
+  AlertCircle,
+  FileText,
+  Trash2,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,13 +36,14 @@ import { ClienteAvatar } from '@/components/cliente-avatar';
 import {
   STATUS_LABELS,
   COLUNAS_KANBAN,
-  formatarTimecode,
   gerarLinkWhatsAppAprovacao,
+  gerarMensagemAprovacao,
   type ConteudoItem,
   type StatusConteudo,
   type TipoConteudo,
 } from '@/lib/conteudo';
 import type { Cliente } from '@/lib/clientes';
+import type { MembroEquipe } from '@/components/equipe-tab';
 
 interface EsteiraTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
@@ -47,37 +53,54 @@ interface EsteiraTabProps {
 export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabProps) {
   const [items, setItems] = useState<ConteudoItem[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [membros, setMembros] = useState<MembroEquipe[]>([]);
   const [carregando, setCarregando] = useState(true);
+
+  // Filtros
   const [clienteSelecionado, setClienteSelecionado] = useState<string>(clienteFiltroId || 'all');
+  const [responsavelFiltro, setResponsavelFiltro] = useState<string>('all');
   const [busca, setBusca] = useState('');
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
 
+  // Drag and Drop state
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [draggingOverCol, setDraggingOverCol] = useState<StatusConteudo | null>(null);
+
   // Modal Novo Item
   const [modalNovoAberto, setModalNovoAberto] = useState(false);
-  const [itemEditando, setItemEditando] = useState<ConteudoItem | null>(null);
-
-  // Form states
-  const [formClienteId, setFormClienteId] = useState('');
-  const [formTipo, setFormTipo] = useState<TipoConteudo>('post');
-  const [formTitulo, setFormTitulo] = useState('');
-  const [formLegenda, setFormLegenda] = useState('');
-  const [formUrls, setFormUrls] = useState('');
   const [salvando, setSalvando] = useState(false);
 
-  // Carrega clientes e itens
+  // Form states elaborados
+  const [buscaClienteForm, setBuscaClienteForm] = useState('');
+  const [formClienteId, setFormClienteId] = useState('');
+  const [formTipo, setFormTipo] = useState<TipoConteudo>('post');
+  const [formStatusInicial, setFormStatusInicial] = useState<StatusConteudo>('planejamento');
+  const [formTitulo, setFormTitulo] = useState('');
+  const [formBriefing, setFormBriefing] = useState('');
+  const [formLegenda, setFormLegenda] = useState('');
+  const [formResponsavelId, setFormResponsavelId] = useState('');
+  const [formEditorId, setFormEditorId] = useState('');
+  const [formDataProgramada, setFormDataProgramada] = useState('');
+  const [formPrazoInterno, setFormPrazoInterno] = useState('');
+  const [formUrls, setFormUrls] = useState('');
+
+  // Carrega clientes, membros e itens
   async function carregarDados() {
     setCarregando(true);
     try {
-      const [resClientes, resConteudo] = await Promise.all([
+      const [resClientes, resConteudo, resEquipe] = await Promise.all([
         fetch('/api/clientes'),
         fetch('/api/conteudo'),
+        fetch('/api/equipe').catch(() => ({ ok: false, json: async () => ({}) })),
       ]);
 
       const dataCli = await resClientes.json();
       const dataCont = await resConteudo.json();
+      const dataEq = resEquipe.ok ? await resEquipe.json() : { membros: [] };
 
       if (resClientes.ok && dataCli.clientes) setClientes(dataCli.clientes);
       if (resConteudo.ok && dataCont.items) setItems(dataCont.items);
+      if (dataEq.membros) setMembros(dataEq.membros);
     } catch {
       showToast('Erro ao carregar esteira de conteúdo.', 'error');
     } finally {
@@ -92,18 +115,28 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
   const itemsFiltrados = useMemo(() => {
     return items.filter((item) => {
       if (clienteSelecionado !== 'all' && item.cliente_id !== clienteSelecionado) return false;
+      if (responsavelFiltro !== 'all' && item.responsavel_id !== responsavelFiltro) return false;
       if (busca.trim()) {
         const termo = busca.toLowerCase();
         const matchTitulo = (item.titulo || '').toLowerCase().includes(termo);
         const matchLegenda = (item.legenda || '').toLowerCase().includes(termo);
         const matchCliente = (item.cliente?.nome || '').toLowerCase().includes(termo);
-        if (!matchTitulo && !matchLegenda && !matchCliente) return false;
+        const matchResp = (item.responsavel?.nome || '').toLowerCase().includes(termo);
+        if (!matchTitulo && !matchLegenda && !matchCliente && !matchResp) return false;
       }
       return true;
     });
-  }, [items, clienteSelecionado, busca]);
+  }, [items, clienteSelecionado, responsavelFiltro, busca]);
 
   async function handleMudarStatus(itemId: string, novoStatus: StatusConteudo) {
+    const itemAnterior = items.find((i) => i.id === itemId);
+    if (!itemAnterior || itemAnterior.status === novoStatus) return;
+
+    // Atualização otimista
+    setItems((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, status: novoStatus } : i))
+    );
+
     try {
       const res = await fetch(`/api/conteudo/${itemId}`, {
         method: 'PATCH',
@@ -111,19 +144,105 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
         body: JSON.stringify({ status: novoStatus }),
       });
       if (!res.ok) throw new Error();
-      setItems((prev) =>
-        prev.map((i) => (i.id === itemId ? { ...i, status: novoStatus } : i))
-      );
-      showToast('Status atualizado.', 'success');
+      showToast(`Movido para ${STATUS_LABELS[novoStatus].label}`, 'success');
     } catch {
+      // Reverte se falhar
+      setItems((prev) =>
+        prev.map((i) => (i.id === itemId ? { ...i, status: itemAnterior.status } : i))
+      );
       showToast('Erro ao atualizar status.', 'error');
     }
   }
 
+  // Envio Inteligente para WhatsApp Web
+  async function handleEnviarParaAprovacao(item: ConteudoItem) {
+    // 1. Se ainda não estiver em revisao_cliente, transiciona automaticamente
+    if (item.status !== 'revisao_cliente') {
+      try {
+        const res = await fetch(`/api/conteudo/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'revisao_cliente' }),
+        });
+        if (res.ok) {
+          setItems((prev) =>
+            prev.map((i) => (i.id === item.id ? { ...i, status: 'revisao_cliente' } : i))
+          );
+        }
+      } catch {
+        // segue com envio
+      }
+    }
+
+    // 2. Localiza contato do cliente (prioriza grupo de whatsapp ou contato com telefone)
+    const contatos = item.cliente?.contatos || [];
+    const grupo = contatos.find((c) => c.e_grupo_whatsapp && c.telefone);
+    const primeiroComTelefone = contatos.find((c) => c.telefone);
+    const telefoneFinal = grupo?.telefone || primeiroComTelefone?.telefone || null;
+
+    // 3. Gera link do WhatsApp Web
+    const linkWa = gerarLinkWhatsAppAprovacao({
+      telefone: telefoneFinal,
+      nomeCliente: item.cliente?.nome || 'Cliente',
+      tituloPost: item.titulo || 'Publicação',
+      token: item.token_aprovacao,
+      preferWeb: true,
+    });
+
+    // 4. Copia o link e o texto para o clipboard como garantia
+    const { texto, linkAprovacao } = gerarMensagemAprovacao({
+      nomeCliente: item.cliente?.nome || 'Cliente',
+      tituloPost: item.titulo || 'Publicação',
+      token: item.token_aprovacao,
+    });
+    try {
+      await navigator.clipboard.writeText(`${texto}\n\nLink direto: ${linkAprovacao}`);
+    } catch {
+      // silencioso
+    }
+
+    // 5. Abre no WhatsApp Web
+    window.open(linkWa, '_blank');
+    showToast(
+      telefoneFinal
+        ? 'Aprovando: WhatsApp Web aberto com a mensagem pronta!'
+        : 'WhatsApp Web aberto! Escolha a conversa ou grupo para colar a mensagem.',
+      'success'
+    );
+  }
+
+  function handleCopiarLinkAprovacao(token: string) {
+    const link = `${window.location.origin}/aprovacao/${token}`;
+    navigator.clipboard.writeText(link);
+    showToast('Link de aprovação copiado!', 'success');
+  }
+
+  // Abre Modal com defaults limpos
+  function handleAbrirModalNovo() {
+    if (clienteSelecionado !== 'all') {
+      setFormClienteId(clienteSelecionado);
+    } else if (clientes.length > 0) {
+      setFormClienteId(clientes[0].id);
+    }
+    setBuscaClienteForm('');
+    setFormTipo('post');
+    setFormStatusInicial('planejamento');
+    setFormTitulo('');
+    setFormBriefing('');
+    setFormLegenda('');
+    setFormResponsavelId(membros[0]?.id || '');
+    setFormEditorId('');
+    setFormDataProgramada('');
+    setFormPrazoInterno('');
+    setFormUrls('');
+    setModalNovoAberto(true);
+  }
+
+  // Criação Elaborada de Nova Demanda
   async function handleSalvarNovo(e: React.FormEvent) {
     e.preventDefault();
     if (!formClienteId) {
-      showToast('Selecione um cliente.', 'error');
+      showToast('Selecione um cliente para a demanda.', 'error');
       return;
     }
     setSalvando(true);
@@ -145,8 +264,14 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
         body: JSON.stringify({
           cliente_id: formClienteId,
           tipo: formTipo,
-          titulo: formTitulo || null,
-          legenda: formLegenda || null,
+          status: formStatusInicial,
+          titulo: formTitulo.trim() || null,
+          briefing: formBriefing.trim() || null,
+          legenda: formLegenda.trim() || null,
+          responsavel_id: formResponsavelId || null,
+          editor_id: formEditorId || null,
+          data_programada: formDataProgramada ? new Date(formDataProgramada).toISOString() : null,
+          prazo: formPrazoInterno ? new Date(formPrazoInterno).toISOString() : null,
           arquivos: urlsArray,
         }),
       });
@@ -156,10 +281,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
 
       setItems((prev) => [data.item, ...prev]);
       setModalNovoAberto(false);
-      setFormTitulo('');
-      setFormLegenda('');
-      setFormUrls('');
-      showToast('Publicação criada na esteira!', 'success');
+      showToast('Nova demanda cadastrada com sucesso na esteira!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Erro ao criar item.', 'error');
     } finally {
@@ -167,27 +289,25 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
     }
   }
 
-  function handleCopiarLinkAprovacao(token: string) {
-    const link = `${window.location.origin}/aprovacao/${token}`;
-    navigator.clipboard.writeText(link);
-    showToast('Link de aprovação copiado!', 'success');
-  }
+  const clientesFormFiltrados = useMemo(() => {
+    if (!buscaClienteForm.trim()) return clientes;
+    const t = buscaClienteForm.toLowerCase();
+    return clientes.filter(
+      (c) =>
+        c.nome.toLowerCase().includes(t) ||
+        (c.nicho && c.nicho.toLowerCase().includes(t))
+    );
+  }, [clientes, buscaClienteForm]);
 
-  function handleDisparoWhatsApp(item: ConteudoItem) {
-    const linkWa = gerarLinkWhatsAppAprovacao({
-      nomeCliente: item.cliente?.nome || 'Cliente',
-      tituloPost: item.titulo || 'Publicação',
-      token: item.token_aprovacao,
-    });
-    window.open(linkWa, '_blank');
-  }
+  const clienteSelecionadoObj = clientes.find((c) => c.id === formClienteId);
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
+    <div className="flex flex-col gap-6 animate-fade-in pb-12">
       {/* 1. Header de Ações & Filtros */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="relative w-64">
+          {/* Busca */}
+          <div className="relative w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Buscar demandas..."
@@ -197,10 +317,11 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
             />
           </div>
 
+          {/* Filtro Cliente */}
           <Select
             value={clienteSelecionado}
             onChange={(e) => setClienteSelecionado(e.target.value)}
-            className="h-9 text-xs w-48"
+            className="h-9 text-xs w-44"
           >
             <option value="all">Todos os clientes</option>
             {clientes.map((c) => (
@@ -209,46 +330,67 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
               </option>
             ))}
           </Select>
+
+          {/* Filtro Responsável */}
+          {membros.length > 0 && (
+            <Select
+              value={responsavelFiltro}
+              onChange={(e) => setResponsavelFiltro(e.target.value)}
+              className="h-9 text-xs w-40"
+            >
+              <option value="all">Toda a equipe</option>
+              {membros.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nome}
+                </option>
+              ))}
+            </Select>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Alternador Kanban / Lista */}
           <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border/70">
             <button
               type="button"
               onClick={() => setViewMode('kanban')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'kanban' ? 'bg-card text-foreground shadow-2xs' : 'text-muted-foreground'
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'kanban'
+                  ? 'bg-card text-foreground shadow-2xs'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
+              title="Visualização em Kanban"
             >
               <Columns3 className="w-4 h-4" />
             </button>
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'list' ? 'bg-card text-foreground shadow-2xs' : 'text-muted-foreground'
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'list'
+                  ? 'bg-card text-foreground shadow-2xs'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
+              title="Visualização em Lista"
             >
               <Layers className="w-4 h-4" />
             </button>
           </div>
 
+          {/* Botão Nova Demanda */}
           <Button
-            onClick={() => {
-              if (clienteSelecionado !== 'all') setFormClienteId(clienteSelecionado);
-              setModalNovoAberto(true);
-            }}
+            onClick={handleAbrirModalNovo}
             variant="primary"
             size="sm"
             className="rounded-xl shadow-xs"
           >
-            <Plus className="w-4 h-4 mr-1" />
+            <Plus className="w-4 h-4 mr-1.5" />
             Nova Demanda
           </Button>
         </div>
       </div>
 
-      {/* 2. Visualização Kanban (13 Etapas / Slothban Style) */}
+      {/* 2. Visualização Kanban com Drag-and-Drop */}
       {carregando ? (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4" aria-busy="true">
           {[0, 1, 2, 3].map((i) => (
@@ -258,24 +400,43 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
       ) : itemsFiltrados.length === 0 ? (
         <EmptyState
           icon={Layers}
-          title="Nenhuma demanda na esteira"
-          description="Crie o primeiro post, reels ou carrossel para acompanhar o fluxo de produção e aprovação."
+          title="Nenhuma demanda encontrada"
+          description="Crie um novo carrossel, reels ou post para acompanhar na esteira de produção e aprovação."
           action={{
             label: 'Criar Demanda',
             icon: Plus,
-            onClick: () => setModalNovoAberto(true),
+            onClick: handleAbrirModalNovo,
           }}
         />
       ) : viewMode === 'kanban' ? (
-        <div className="flex gap-4 overflow-x-auto pb-6 pt-1">
+        <div className="flex gap-4 overflow-x-auto pb-6 pt-1 select-none">
           {COLUNAS_KANBAN.map((colStatus) => {
             const itensDaColuna = itemsFiltrados.filter((it) => it.status === colStatus);
             const info = STATUS_LABELS[colStatus];
+            const isOver = draggingOverCol === colStatus;
 
             return (
               <div
                 key={colStatus}
-                className="w-72 shrink-0 flex flex-col gap-3 p-3 rounded-2xl bg-accent/25 border border-border/60 min-h-[500px]"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  if (draggingOverCol !== colStatus) setDraggingOverCol(colStatus);
+                }}
+                onDragLeave={() => {
+                  if (draggingOverCol === colStatus) setDraggingOverCol(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDraggingOverCol(null);
+                  const itemId = e.dataTransfer.getData('text/plain');
+                  if (itemId) handleMudarStatus(itemId, colStatus);
+                }}
+                className={`w-72 shrink-0 flex flex-col gap-3 p-3 rounded-2xl border transition-all duration-200 min-h-[520px] ${
+                  isOver
+                    ? 'bg-lime/10 border-primary ring-2 ring-primary/20 shadow-md'
+                    : 'bg-accent/25 border-border/60'
+                }`}
               >
                 {/* Cabeçalho da Coluna */}
                 <div className="flex items-center justify-between px-1">
@@ -293,14 +454,27 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                   {itensDaColuna.map((item) => {
                     const temComentarios = (item.comentarios_revisao || []).length > 0;
                     const temAjustes = item.status === 'travado';
+                    const isDragging = draggingItemId === item.id;
 
                     return (
                       <Card
                         key={item.id}
-                        className={`group p-4 rounded-2xl border border-border/80 hover:border-foreground/30 bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 ${
-                          temAjustes ? 'border-destructive/40 bg-destructive/5' : ''
+                        draggable={true}
+                        onDragStart={(e) => {
+                          setDraggingItemId(item.id);
+                          e.dataTransfer.setData('text/plain', item.id);
+                          e.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragEnd={() => setDraggingItemId(null)}
+                        className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 cursor-grab active:cursor-grabbing ${
+                          isDragging ? 'opacity-40 scale-95' : 'opacity-100'
+                        } ${
+                          temAjustes
+                            ? 'border-destructive/40 bg-destructive/5'
+                            : 'border-border/80 hover:border-foreground/30'
                         }`}
                       >
+                        {/* Header do Card */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <ClienteAvatar
@@ -310,8 +484,10 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                               tamanho="sm"
                             />
                             <div className="min-w-0">
-                              <p className="text-xs font-bold text-foreground truncate">{item.cliente?.nome}</p>
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                              <p className="text-xs font-bold text-foreground truncate">
+                                {item.cliente?.nome}
+                              </p>
+                              <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">
                                 {item.tipo}
                               </span>
                             </div>
@@ -322,13 +498,14 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                           </Badge>
                         </div>
 
+                        {/* Título */}
                         {item.titulo && (
                           <h4 className="text-xs font-semibold text-foreground leading-snug line-clamp-2">
                             {item.titulo}
                           </h4>
                         )}
 
-                        {/* Badges de Slides ou Timecode */}
+                        {/* Badges de Slides, Prazo e Responsável */}
                         <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
                           {item.arquivos?.length > 0 && (
                             <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono font-medium border border-border/50">
@@ -336,25 +513,49 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                             </span>
                           )}
 
+                          {item.prazo && (
+                            <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono flex items-center gap-1 border border-border/50">
+                              <Clock className="w-2.5 h-2.5" />
+                              <span>
+                                {new Date(item.prazo).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                })}
+                              </span>
+                            </span>
+                          )}
+
                           {temComentarios && (
-                            <span className={`px-2 py-0.5 rounded-md font-mono font-bold flex items-center gap-1 border ${
-                              temAjustes 
-                                ? 'bg-destructive/15 text-destructive border-destructive/20' 
-                                : 'bg-lime/40 text-foreground border-foreground/10'
-                            }`}>
+                            <span
+                              className={`px-2 py-0.5 rounded-md font-mono font-bold flex items-center gap-1 border ${
+                                temAjustes
+                                  ? 'bg-destructive/15 text-destructive border-destructive/20'
+                                  : 'bg-lime/40 text-foreground border-foreground/10'
+                              }`}
+                            >
                               <MessageSquare className="w-3 h-3" />
                               {item.comentarios_revisao.length} ajustes
                             </span>
                           )}
                         </div>
 
-                        {/* Botões de Ação de Aprovação WhatsApp */}
-                        <div className="border-t border-border/60 pt-2.5 flex items-center justify-between">
+                        {/* Responsável */}
+                        {item.responsavel && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium pt-1 border-t border-border/40">
+                            <div className="w-4 h-4 rounded-full bg-accent flex items-center justify-center text-[8px] font-bold text-foreground">
+                              {item.responsavel.nome[0].toUpperCase()}
+                            </div>
+                            <span className="truncate">{item.responsavel.nome}</span>
+                          </div>
+                        )}
+
+                        {/* Ações Rápidas: Link e Enviar p/ Aprovação */}
+                        <div className="border-t border-border/60 pt-2.5 flex items-center justify-between gap-1">
                           <button
                             type="button"
                             onClick={() => handleCopiarLinkAprovacao(item.token_aprovacao)}
-                            title="Copiar link de aprovação"
-                            className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer"
+                            title="Copiar link público de aprovação"
+                            className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
                           >
                             <Share2 className="w-3 h-3" />
                             <span>Link</span>
@@ -362,12 +563,12 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
 
                           <button
                             type="button"
-                            onClick={() => handleDisparoWhatsApp(item)}
-                            title="Enviar para o WhatsApp do cliente"
-                            className="text-[11px] font-bold text-foreground bg-lime/60 hover:bg-lime px-2 py-1 rounded-lg flex items-center gap-1 border border-foreground/10 transition-colors cursor-pointer"
+                            onClick={() => handleEnviarParaAprovacao(item)}
+                            title="Avança para revisão e abre no WhatsApp Web do cliente/grupo"
+                            className="text-[11px] font-bold text-foreground bg-lime hover:bg-lime/85 px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-foreground/15 shadow-2xs transition-all cursor-pointer"
                           >
                             <Send className="w-3 h-3" />
-                            <span>WhatsApp</span>
+                            <span>Enviar p/ Aprovação</span>
                           </button>
                         </div>
                       </Card>
@@ -386,10 +587,10 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
               <thead className="uppercase text-[10px] font-bold border-b border-border/60">
                 <tr>
                   <th className="py-2.5 px-3">Cliente</th>
-                  <th className="py-2.5 px-3">Título / Tipo</th>
+                  <th className="py-2.5 px-3">Título / Formato</th>
                   <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3">Responsável</th>
                   <th className="py-2.5 px-3">Mídia</th>
-                  <th className="py-2.5 px-3">Ajustes</th>
                   <th className="py-2.5 px-3 text-right">Ações</th>
                 </tr>
               </thead>
@@ -398,7 +599,11 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                   <tr key={item.id} className="hover:bg-accent/30 transition-colors">
                     <td className="py-3 px-3 font-semibold text-foreground">
                       <div className="flex items-center gap-2">
-                        <ClienteAvatar nome={item.cliente?.nome || 'Cliente'} cor={item.cliente?.cor} tamanho="sm" />
+                        <ClienteAvatar
+                          nome={item.cliente?.nome || 'Cliente'}
+                          cor={item.cliente?.cor}
+                          tamanho="sm"
+                        />
                         <span>{item.cliente?.nome}</span>
                       </div>
                     </td>
@@ -410,16 +615,30 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
                         {STATUS_LABELS[item.status].label}
                       </Badge>
                     </td>
+                    <td className="py-3 px-3">
+                      {item.responsavel?.nome || <span className="text-muted-foreground/60">—</span>}
+                    </td>
                     <td className="py-3 px-3 font-mono">{item.arquivos?.length || 0} arquivos</td>
-                    <td className="py-3 px-3 font-mono">{item.comentarios_revisao?.length || 0}</td>
                     <td className="py-3 px-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDisparoWhatsApp(item)}
-                        className="p-1.5 rounded-lg bg-lime text-foreground hover:bg-lime/80 font-bold"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleCopiarLinkAprovacao(item.token_aprovacao)}
+                          title="Copiar Link"
+                          className="p-1.5 rounded-lg border border-border hover:bg-accent"
+                        >
+                          <Share2 className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleEnviarParaAprovacao(item)}
+                          title="Enviar p/ Aprovação no WhatsApp"
+                          className="px-2.5 py-1 rounded-lg bg-lime text-foreground font-bold flex items-center gap-1 shadow-2xs"
+                        >
+                          <Send className="w-3 h-3" />
+                          <span>Enviar WhatsApp</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -429,70 +648,265 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
         </Card>
       )}
 
-      {/* Modal / Sheet para Criar Nova Demanda */}
-      <Sheet open={modalNovoAberto} onClose={() => setModalNovoAberto(false)} aria-label="Nova Demanda">
-        <form onSubmit={handleSalvarNovo} className="p-6 flex flex-col gap-4">
+      {/* 3. Modal Redesenhado: Nova Demanda de Alto Nível */}
+      <Sheet
+        open={modalNovoAberto}
+        onClose={() => setModalNovoAberto(false)}
+        aria-label="Nova Demanda"
+      >
+        <form onSubmit={handleSalvarNovo} className="p-6 flex flex-col gap-5 max-w-xl">
           <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Esteira de Produção</span>
-            <h3 className="text-lg font-bold font-display text-foreground mt-0.5">Nova Publicação / Conteúdo</h3>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
+              Produção & Esteira
+            </span>
+            <h3 className="text-lg sm:text-xl font-bold font-display text-foreground mt-0.5">
+              Criar Nova Demanda de Conteúdo
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Configure o cliente, formato visual, equipe e prazos para alimentar a esteira de produção.
+            </p>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground">Cliente</label>
-            <Select value={formClienteId} onChange={(e) => setFormClienteId(e.target.value)} required>
-              <option value="">Selecione o cliente...</option>
-              {clientes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
-                </option>
-              ))}
-            </Select>
+          {/* 1. SELETOR VISUAL DE CLIENTE */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-foreground font-mono">
+              1. Cliente da Agência
+            </label>
+
+            {/* Input de busca rápida de cliente */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Filtrar clientes por nome ou nicho..."
+                value={buscaClienteForm}
+                onChange={(e) => setBuscaClienteForm(e.target.value)}
+                className="pl-9 h-8 text-xs"
+              />
+            </div>
+
+            {/* Grid de clientes com seleção visual */}
+            <div className="max-h-40 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 p-1 border border-border/80 rounded-xl bg-accent/20">
+              {clientesFormFiltrados.map((c) => {
+                const isSelected = formClienteId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setFormClienteId(c.id)}
+                    className={`flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-card border-foreground/30 shadow-2xs ring-1 ring-foreground/20'
+                        : 'border-transparent hover:bg-accent/60'
+                    }`}
+                  >
+                    <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{c.nicho || 'Geral'}</p>
+                    </div>
+                    {isSelected && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground">Formato</label>
-            <Select value={formTipo} onChange={(e) => setFormTipo(e.target.value as TipoConteudo)}>
-              <option value="post">Carrossel / Post Feed</option>
-              <option value="reel">Vídeo Reels</option>
-              <option value="story">Story</option>
-            </Select>
+          {/* 2. SELETOR VISUAL DE FORMATO */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-foreground font-mono">
+              2. Formato de Publicação
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                {
+                  id: 'post' as const,
+                  label: 'Carrossel / Post',
+                  desc: '4:5 Vertical',
+                  icon: ImageIcon,
+                },
+                {
+                  id: 'reel' as const,
+                  label: 'Vídeo Reels',
+                  desc: '9:16 Vertical',
+                  icon: Video,
+                },
+                {
+                  id: 'story' as const,
+                  label: 'Story',
+                  desc: 'Interativo 9:16',
+                  icon: Smartphone,
+                },
+                {
+                  id: 'avulso' as const,
+                  label: 'Avulso / Extra',
+                  desc: 'Demanda Pontual',
+                  icon: Sparkles,
+                },
+              ].map((fmt) => {
+                const isSelected = formTipo === fmt.id;
+                const Icon = fmt.icon;
+                return (
+                  <button
+                    key={fmt.id}
+                    type="button"
+                    onClick={() => setFormTipo(fmt.id)}
+                    className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center gap-1.5 transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-card border-foreground/30 shadow-2xs ring-1 ring-foreground/20'
+                        : 'border-border/80 hover:bg-accent/40'
+                    }`}
+                  >
+                    <Icon
+                      className={`w-5 h-5 ${
+                        isSelected ? 'text-primary' : 'text-muted-foreground'
+                      }`}
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">{fmt.label}</p>
+                      <p className="text-[9px] text-muted-foreground font-mono">{fmt.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
+          {/* 3. TÍTULO E BRIEFING */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-foreground">
+                Título / Tema da Publicação
+              </label>
+              <Input
+                placeholder="Ex.: 5 Segredos para Aumentar Vendas no Instagram"
+                value={formTitulo}
+                onChange={(e) => setFormTitulo(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-foreground">
+                Briefing / Objetivo da Peça (Para o Designer e Copywriter)
+              </label>
+              <Textarea
+                placeholder="Ex.: Focar na dor do cliente, usar elementos da identidade visual do Dr. Paulo e chamada para o direct..."
+                value={formBriefing}
+                onChange={(e) => setFormBriefing(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+
+          {/* 4. ATRIBUIÇÃO DE EQUIPE (Sócios / Responsáveis) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <User className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Responsável Principal</span>
+              </label>
+              <Select
+                value={formResponsavelId}
+                onChange={(e) => setFormResponsavelId(e.target.value)}
+              >
+                <option value="">Selecione o responsável...</option>
+                {membros.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome} ({m.cargo || (m.papel === 'master' ? 'Sócio' : 'Membro')})
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Designer / Editor (Opcional)</span>
+              </label>
+              <Select
+                value={formEditorId}
+                onChange={(e) => setFormEditorId(e.target.value)}
+              >
+                <option value="">Selecione o editor/designer...</option>
+                {membros.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome} ({m.cargo || 'Especialista'})
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          {/* 5. PRAZOS E DATAS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Prazo Interno da Equipe</span>
+              </label>
+              <Input
+                type="date"
+                value={formPrazoInterno}
+                onChange={(e) => setFormPrazoInterno(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Data Programada (Postagem)</span>
+              </label>
+              <Input
+                type="date"
+                value={formDataProgramada}
+                onChange={(e) => setFormDataProgramada(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* 6. MÍDIAS E ARQUIVOS INICIAIS */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground">Título de Referência</label>
-            <Input
-              placeholder="Ex.: 5 Dicas para Clientes / Vídeo Apresentação"
-              value={formTitulo}
-              onChange={(e) => setFormTitulo(e.target.value)}
+            <label className="text-xs font-semibold text-foreground">
+              Links das Mídias / Slides (Um por linha)
+            </label>
+            <Textarea
+              placeholder="https://.../slide-01.png&#10;https://.../slide-02.png"
+              value={formUrls}
+              onChange={(e) => setFormUrls(e.target.value)}
+              rows={2}
             />
           </div>
 
+          {/* 7. COPY / LEGENDA */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground">URLs das Mídias (Uma por linha)</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground">
+                Legenda do Post (Instagram)
+              </label>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {formLegenda.length} / 2.200
+              </span>
+            </div>
             <Textarea
-              placeholder="https://.../slide1.png&#10;https://.../slide2.png"
-              value={formUrls}
-              onChange={(e) => setFormUrls(e.target.value)}
+              placeholder="Escreva a legenda que irá acompanhar o post no Instagram..."
+              value={formLegenda}
+              onChange={(e) => setFormLegenda(e.target.value)}
               rows={3}
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground">Legenda do Post</label>
-            <Textarea
-              placeholder="Digite a copy/legenda do post..."
-              value={formLegenda}
-              onChange={(e) => setFormLegenda(e.target.value)}
-              rows={4}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" size="sm" onClick={() => setModalNovoAberto(false)}>
+          {/* Botões de Ação */}
+          <div className="flex justify-end gap-2 pt-3 border-t border-border mt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setModalNovoAberto(false)}
+            >
               Cancelar
             </Button>
             <Button type="submit" variant="primary" size="sm" loading={salvando}>
-              Criar na Esteira
+              Cadastrar Demanda
             </Button>
           </div>
         </form>

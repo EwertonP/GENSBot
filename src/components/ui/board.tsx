@@ -44,15 +44,37 @@ function DraggableCard({ id, children }: { id: string; children: React.ReactNode
   );
 }
 
-function DroppableColumn<TStatus extends string>({ column, count, children }: { column: BoardColumn<TStatus>; count: number; children: React.ReactNode }) {
-  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+function DroppableColumn<TStatus extends string>({
+  column,
+  count,
+  children,
+}: {
+  column: BoardColumn<TStatus>;
+  count: number;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: column.id,
+    data: { status: column.id },
+  });
   return (
-    <div ref={setNodeRef} className={`flex-shrink-0 w-64 rounded-2xl transition-colors ${isOver ? 'bg-primary/5' : ''}`}>
-      <div className="flex items-center justify-between px-2 pb-2">
-        <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">{column.label}</h4>
-        <Badge variant="muted">{count}</Badge>
+    <div
+      ref={setNodeRef}
+      className={`flex-shrink-0 w-72 rounded-2xl p-3 border transition-all duration-200 min-h-[480px] flex flex-col gap-3 ${
+        isOver
+          ? 'bg-lime/15 border-primary ring-2 ring-primary/20 shadow-md scale-[1.01]'
+          : 'bg-accent/25 border-border/60'
+      }`}
+    >
+      <div className="flex items-center justify-between px-1 pb-1">
+        <h4 className="text-xs font-bold text-foreground font-display uppercase tracking-wide">
+          {column.label}
+        </h4>
+        <Badge variant="muted" className="font-mono text-[10px] font-bold">
+          {count}
+        </Badge>
       </div>
-      <div className="flex flex-col gap-2 min-h-[80px]">{children}</div>
+      <div className="flex flex-col gap-2.5 flex-1">{children}</div>
     </div>
   );
 }
@@ -89,8 +111,10 @@ export function Board<TItem, TStatus extends string>({
     setActiveId(null);
     const { active, over } = event;
     if (!over) return;
-    const newStatus = over.id as TStatus;
-    onMove(String(active.id), newStatus);
+    const newStatus = (over.data?.current?.status || over.id) as TStatus;
+    if (newStatus && typeof newStatus === 'string') {
+      onMove(String(active.id), newStatus);
+    }
   };
 
   return (
