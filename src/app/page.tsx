@@ -784,7 +784,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex font-sans antialiased overflow-x-hidden">
+    <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased">
       {/* Toast Alert */}
       <AnimatePresence>
         {toast && (
@@ -823,8 +823,8 @@ export default function Dashboard() {
         />
       )}
 
-      {/* 1. Left Sidebar Navigation (Off-canvas no mobile) */}
-      <aside className={`fixed md:sticky md:top-0 inset-y-0 left-0 z-50 w-72 h-screen bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      {/* 1. Left Sidebar Navigation — 100% fixa em tela inteira */}
+      <aside className={`fixed md:relative inset-y-0 left-0 z-50 w-72 h-full bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
 
         {/* Brand & Workspace Header */}
         <div className="p-4 pb-3 flex flex-col gap-2">
@@ -1125,8 +1125,8 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen bg-background w-full relative">
+      {/* Main Content Area — Scroll independente */}
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-y-auto relative">
 
         {/* Mobile Top Bar */}
         <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-card/90 backdrop-blur-xl border-b border-border">
@@ -1374,20 +1374,20 @@ export default function Dashboard() {
           </AnimatePresence>
 
         </main>
+        
+        {/* Footer integrado no final da página */}
+        <footer className="py-4 bg-card/60 border-t border-border px-8 text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2 select-none mt-auto">
+          <p>© 2026 GENSBot · Agência GENS. Todos os direitos reservados.</p>
+          <div className="flex items-center gap-4">
+            <a href="/privacidade" target="_blank" className="hover:text-foreground transition-colors">
+              Política de Privacidade
+            </a>
+            <a href="/exclusao-de-dados" target="_blank" className="hover:text-foreground transition-colors">
+              Exclusão de Dados
+            </a>
+          </div>
+        </footer>
       </div>
-
-      {/* Footer */}
-      <footer className="fixed bottom-0 left-0 md:left-72 right-0 py-3 bg-card border-t border-border px-6 text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-1 select-none z-30">
-        <p>© 2026 GENSBot. Todos os direitos reservados.</p>
-        <div className="flex items-center gap-4">
-          <a href="/privacidade" target="_blank" className="hover:text-foreground transition-colors">
-            Política de Privacidade
-          </a>
-          <a href="/exclusao-de-dados" target="_blank" className="hover:text-foreground transition-colors">
-            Exclusão de Dados
-          </a>
-        </div>
-      </footer>
     </div>
   );
 }
