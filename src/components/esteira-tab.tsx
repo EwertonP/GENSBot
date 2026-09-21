@@ -2173,7 +2173,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3.5 rounded-2xl bg-accent/30 border border-border/70 space-y-2.5">
+                  <div className="p-3.5 rounded-2xl bg-accent/30 border border-border/70 space-y-3">
+                    {/* Miniaturas das Mídias */}
                     <div className="flex items-center gap-2 overflow-x-auto pb-1">
                       {itemParaAprovacao.arquivos.map((arq, idx) => (
                         <div
@@ -2191,10 +2192,72 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                         </div>
                       ))}
                     </div>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      Mídias prontas e formatadas para exibição no link de aprovação.
-                    </p>
+
+                    {/* Card de Simulação de Prévia Visual do Link no WhatsApp */}
+                    <div className="p-2.5 rounded-xl bg-card border border-border/80 flex items-center justify-between gap-3 shadow-2xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-11 h-14 rounded-lg overflow-hidden bg-black shrink-0 border border-border/60">
+                          {itemParaAprovacao.arquivos[0]?.tipo === 'video' ? (
+                            <video src={itemParaAprovacao.arquivos[0]?.url} className="w-full h-full object-cover" muted />
+                          ) : (
+                            <img src={itemParaAprovacao.arquivos[0]?.url} alt="" className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-foreground truncate">
+                              {itemParaAprovacao.titulo || 'Publicação'}
+                            </span>
+                            <span className="text-[9px] font-mono font-bold bg-lime text-foreground px-1.5 py-0.5 rounded">
+                              {itemParaAprovacao.tipo === 'reel'
+                                ? '9:16 Reels'
+                                : itemParaAprovacao.tipo === 'story'
+                                ? '9:16 Story'
+                                : itemParaAprovacao.arquivos.length > 1
+                                ? `4:5 Carrossel (${itemParaAprovacao.arquivos.length})`
+                                : '4:5 Feed'}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                            Prévia renderizada sem barras pretas no link do cliente.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {itemParaAprovacao.arquivos[0]?.url && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const a = document.createElement('a');
+                              a.href = itemParaAprovacao.arquivos[0].url;
+                              a.download = `previa-${itemParaAprovacao.titulo || 'post'}.jpg`;
+                              a.target = '_blank';
+                              a.click();
+                              showToast('Download da imagem iniciado!', 'success');
+                            }}
+                            className="text-[11px] h-7 px-2"
+                            title="Baixar capa para anexar direto no WhatsApp se desejar"
+                          >
+                            Baixar Capa
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            window.open(`/aprovacao/${itemParaAprovacao.token_aprovacao}`, '_blank');
+                          }}
+                          className="text-[11px] h-7 px-2 text-primary"
+                          title="Abrir como o cliente visualiza"
+                        >
+                          Ver no Link
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2276,13 +2339,13 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    const { texto, linkAprovacao } = gerarMensagemAprovacao({
+                    const { texto } = gerarMensagemAprovacao({
                       nomeCliente: itemParaAprovacao.cliente?.nome || 'Cliente',
                       tituloPost: itemParaAprovacao.titulo || 'Publicação',
                       token: itemParaAprovacao.token_aprovacao,
                     });
-                    navigator.clipboard.writeText(`${texto}\n\nLink direto: ${linkAprovacao}`);
-                    showToast('Mensagem completa copiada para o clipboard!', 'success');
+                    navigator.clipboard.writeText(texto);
+                    showToast('Mensagem formatada copiada para o WhatsApp!', 'success');
                   }}
                   className="text-xs flex-1 sm:flex-none"
                 >
