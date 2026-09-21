@@ -138,7 +138,7 @@ export default function Dashboard() {
   const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'rotina' | 'clientes' | 'esteira' | 'calendario_geral' | 'equipe' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'rotina' | 'clientes' | 'esteira' | 'calendario_geral' | 'equipe' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -1106,7 +1106,6 @@ export default function Dashboard() {
                 {activeTab === 'sequences' && 'Sequências'}
                 {activeTab === 'crm' && 'CRM'}
                 {activeTab === 'inbox' && 'Inbox'}
-                {activeTab === 'logs' && 'Logs de Eventos'}
               </h2>
             </div>
             <p className="text-xs text-muted-foreground font-medium">
@@ -1124,7 +1123,6 @@ export default function Dashboard() {
               {activeTab === 'sequences' && 'Sequências e fluxos programados de mensagens.'}
               {activeTab === 'crm' && 'Pipeline de prospecção B2B da agência.'}
               {activeTab === 'inbox' && 'Central de mensagens diretas e atendimento.'}
-              {activeTab === 'logs' && 'Auditoria de webhooks e histórico da fila de disparos.'}
             </p>
           </div>
 
@@ -1183,7 +1181,6 @@ export default function Dashboard() {
               automationRanking={automationRanking}
               selectedAccountId={selectedAccountId}
               withAccount={withAccount}
-              onViewLogs={() => setActiveTab('logs')}
               onNavigateTab={(tab) => {
                 setActiveTab(tab as any);
                 setIsEditing(false);

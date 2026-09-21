@@ -67,7 +67,6 @@ interface DashboardHomeProps {
   automationRanking: { id: string; name: string; comments: number; welcomeDms: number; clicks: number; leads: number }[];
   selectedAccountId: string | null;
   withAccount: (url: string, accountIdOverride?: string | null) => string;
-  onViewLogs: () => void;
   onNavigateTab?: (tab: string) => void;
 }
 
@@ -287,7 +286,6 @@ export default function DashboardHome({
   automationRanking,
   selectedAccountId,
   withAccount,
-  onViewLogs,
   onNavigateTab,
 }: DashboardHomeProps) {
   // Modo de visualização da Home: Operacional ("Minhas Demandas") vs Métricas ("Painel Profissional")
@@ -1212,9 +1210,6 @@ export default function DashboardHome({
               <h4 className="font-bold font-display text-foreground text-base tracking-tight">Envios Recentes na Fila</h4>
               <p className="text-xs text-muted-foreground mt-0.5">Disparos de mensagens em tempo real</p>
             </div>
-            <Button variant="ghost" size="sm" onClick={onViewLogs} className="text-xs font-bold text-primary hover:text-primary/80">
-              Ver todos os logs →
-            </Button>
           </div>
 
           <div className="overflow-x-auto">
