@@ -25,6 +25,12 @@ import {
   Calendar as CalendarIcon,
   AlertCircle,
   X,
+  Zap,
+  Bot,
+  Link2,
+  CornerDownRight,
+  Check,
+  MessageSquare,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +40,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { CalendarPicker } from '@/components/ui/calendar-picker';
 import type { PostingTimeSuggestion } from '@/lib/best-posting-time';
 import type { PrefillAgendamento } from '@/lib/conteudo';
+import { detectarGatilhosDaLegenda, type PublishAutomationConfig } from '@/lib/publish-automation';
 import { upload } from '@vercel/blob/client';
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
@@ -56,6 +63,8 @@ interface ScheduledPost {
   ig_media_id: string | null;
   error_message: string | null;
   published_at: string | null;
+  automation_config?: PublishAutomationConfig | null;
+  created_automation_id?: string | null;
 }
 
 interface PublishPanelProps {
@@ -130,6 +139,7 @@ function InstagramPhoneMockup({
   isVideo,
   isCarousel,
   caption,
+  automationKeyword,
 }: {
   kind: PostKind;
   username: string;
@@ -137,6 +147,7 @@ function InstagramPhoneMockup({
   isVideo: boolean;
   isCarousel: boolean;
   caption: string;
+  automationKeyword?: string | null;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -189,6 +200,17 @@ function InstagramPhoneMockup({
           <video src={activeUrl || ''} className="w-full h-full object-cover" controls muted />
         ) : (
           <img src={activeUrl || ''} alt="" className="w-full h-full object-cover" />
+        )}
+
+        {/* Banner de Comentários / Automação no mockup */}
+        {automationKeyword && (
+          <div className="absolute bottom-2 left-2 right-2 bg-black/85 backdrop-blur-md border border-primary/50 rounded-xl px-2.5 py-1.5 flex items-center justify-between shadow-lg animate-in fade-in duration-200">
+            <div className="flex items-center gap-1.5 text-[10px] text-white">
+              <Zap className="w-3 h-3 text-primary shrink-0" />
+              <span>Comente <strong className="text-primary font-mono font-bold">"{automationKeyword}"</strong></span>
+            </div>
+            <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold font-mono">⚡ DM Ativa</span>
+          </div>
         )}
 
         {/* Controles de Slide do Carrossel */}
@@ -275,6 +297,34 @@ export default function PublishPanel({
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<PostingTimeSuggestion[]>([]);
 
+  // Automação de Comentários (Direct Automático)
+  const [autoEnabled, setAutoEnabled] = useState(false);
+  const [autoKeywords, setAutoKeywords] = useState('QUERO');
+  const [autoMatchType, setAutoMatchType] = useState<'contains' | 'exact' | 'any'>('contains');
+  const [autoWelcomeDm, setAutoWelcomeDm] = useState('');
+  const [autoLinkUrl, setAutoLinkUrl] = useState('');
+  const [autoLinkButtonLabel, setAutoLinkButtonLabel] = useState('');
+  const [autoPublicReply, setAutoPublicReply] = useState('');
+  const [autoDetectedPrompt, setAutoDetectedPrompt] = useState<{ keyword: string; dm: string; publicReply: string } | null>(null);
+
+  // Monitora a legenda para sugerir ativação inteligente de CTA (ex: "Comente QUERO")
+  useEffect(() => {
+    if (!caption) {
+      setAutoDetectedPrompt(null);
+      return;
+    }
+    const det = detectarGatilhosDaLegenda(caption);
+    if (det.detected && det.keyword && !autoEnabled) {
+      setAutoDetectedPrompt({
+        keyword: det.keyword,
+        dm: det.suggestedDm,
+        publicReply: det.suggestedPublicReply,
+      });
+    } else {
+      setAutoDetectedPrompt(null);
+    }
+  }, [caption, autoEnabled]);
+
   // Carrega dados da demanda aprovada quando prefillData estiver presente
   useEffect(() => {
     if (!prefillData) return;
@@ -296,6 +346,15 @@ export default function PublishPanel({
     if (prefillData.instagramUserId) {
       const conta = accounts.find((a) => a.instagram_user_id === prefillData.instagramUserId);
       if (conta) setTargetAccount(conta.instagram_user_id);
+    }
+    if (prefillData.automationConfig) {
+      setAutoEnabled(prefillData.automationConfig.enabled);
+      setAutoKeywords(prefillData.automationConfig.keywords?.join(', ') || 'QUERO');
+      setAutoMatchType(prefillData.automationConfig.match_type || 'contains');
+      setAutoWelcomeDm(prefillData.automationConfig.welcome_dm || '');
+      setAutoLinkUrl(prefillData.automationConfig.link_url || '');
+      setAutoLinkButtonLabel(prefillData.automationConfig.link_button_label || '');
+      setAutoPublicReply(prefillData.automationConfig.public_replies?.[0] || '');
     }
   }, [prefillData, accounts]);
 
@@ -402,6 +461,18 @@ export default function PublishPanel({
       const collaborators = kind !== 'story' ? parseNameList(collaboratorsInput, 3) : [];
       const userTags = kind === 'story' ? parseNameList(userTagsInput).map((username) => ({ username })) : [];
 
+      const automationPayload = autoEnabled
+        ? {
+            enabled: true,
+            keywords: parseNameList(autoKeywords).length > 0 ? parseNameList(autoKeywords) : ['QUERO'],
+            match_type: autoMatchType,
+            welcome_dm: autoWelcomeDm.trim() || 'Olá! Vi que você comentou no nosso post. Aqui está o acesso exclusivo ao que prometemos:',
+            link_button_label: autoLinkButtonLabel.trim() || null,
+            link_url: autoLinkUrl.trim() || null,
+            public_replies: autoPublicReply.trim() ? [autoPublicReply.trim()] : [],
+          }
+        : undefined;
+
       const publishRes = await fetch('/api/instagram/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -415,6 +486,7 @@ export default function PublishPanel({
           user_tags: userTags.length > 0 ? userTags : undefined,
           scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
           conteudo_item_id: prefillData?.conteudoId || undefined,
+          automation_config: automationPayload,
         }),
       });
 
@@ -429,6 +501,12 @@ export default function PublishPanel({
       setUserTagsInput('');
       setScheduleEnabled(false);
       setScheduledAt(null);
+      setAutoEnabled(false);
+      setAutoKeywords('QUERO');
+      setAutoWelcomeDm('');
+      setAutoLinkUrl('');
+      setAutoLinkButtonLabel('');
+      setAutoPublicReply('');
       onClearPrefill?.();
       loadPosts();
     } catch (err: any) {
@@ -658,6 +736,241 @@ export default function PublishPanel({
             </div>
           )}
 
+          {/* Seção: Automação de Comentários (Direct Automático) */}
+          {kind !== 'story' && (
+            <div
+              className={`p-4 rounded-2xl border transition-all ${
+                autoEnabled
+                  ? 'bg-accent/40 border-primary/40 shadow-xs'
+                  : 'bg-card border-border/80 hover:border-foreground/20'
+              }`}
+            >
+              {/* Header com Toggle Switch */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                      autoEnabled ? 'bg-primary text-black' : 'bg-accent text-muted-foreground'
+                    }`}
+                  >
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-foreground">
+                        Automação de Comentários
+                      </span>
+                      <Badge variant={autoEnabled ? 'info' : 'muted'} className="text-[10px] px-1.5 py-0 font-bold">
+                        {autoEnabled ? 'Ativada' : 'Opcional'}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Envie uma DM instantânea com link ou material quando alguém comentar no post
+                    </p>
+                  </div>
+                </div>
+
+                {/* Toggle Switch */}
+                <button
+                  type="button"
+                  onClick={() => setAutoEnabled(!autoEnabled)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    autoEnabled ? 'bg-primary' : 'bg-muted'
+                  }`}
+                  aria-label="Ativar automação de comentários"
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-black shadow ring-0 transition duration-200 ease-in-out ${
+                      autoEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Sugestão Inteligente (quando o usuário não ativou mas escreveu 'Comente QUERO' na legenda) */}
+              {!autoEnabled && autoDetectedPrompt && (
+                <div className="mt-3 p-3 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 text-xs">
+                    <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="text-foreground">
+                      Detectamos o gatilho <strong className="text-primary font-mono font-bold">"{autoDetectedPrompt.keyword}"</strong> na legenda!
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAutoEnabled(true);
+                      setAutoKeywords(autoDetectedPrompt.keyword);
+                      setAutoWelcomeDm(autoDetectedPrompt.dm);
+                      setAutoPublicReply(autoDetectedPrompt.publicReply);
+                    }}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-primary text-black hover:opacity-90 transition-opacity cursor-pointer shrink-0"
+                  >
+                    ⚡ Ativar em 1 Clique
+                  </button>
+                </div>
+              )}
+
+              {/* Campos da Automação (quando ativado) */}
+              {autoEnabled && (
+                <div className="mt-4 pt-4 border-t border-border/60 flex flex-col gap-3.5 animate-in fade-in zoom-in-95 duration-150">
+                  {/* Palavras-chave / Gatilhos */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <span>Palavras-chave do Comentário</span>
+                        <span className="text-[10px] text-muted-foreground font-normal">(separadas por vírgula)</span>
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setAutoMatchType('contains')}
+                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                            autoMatchType === 'contains'
+                              ? 'bg-foreground text-background'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Contém
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAutoMatchType('exact')}
+                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                            autoMatchType === 'exact'
+                              ? 'bg-foreground text-background'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Exata
+                        </button>
+                      </div>
+                    </div>
+                    <input
+                      type="text"
+                      value={autoKeywords}
+                      onChange={(e) => setAutoKeywords(e.target.value)}
+                      placeholder="QUERO, LINK, EU QUERO, VALOR"
+                      className="h-9 px-3 rounded-xl bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-primary/60 font-mono"
+                    />
+                    {/* Chips rápidos */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      <span className="text-[10px] text-muted-foreground">Adicionar rápido:</span>
+                      {['QUERO', 'LINK', 'EU QUERO', 'PREÇO', 'AULA', 'CHECKLIST'].map((chip) => {
+                        const currentList = autoKeywords.split(',').map((k) => k.trim().toUpperCase());
+                        const isSelected = currentList.includes(chip);
+                        return (
+                          <button
+                            key={chip}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                const filtered = currentList.filter((k) => k !== chip);
+                                setAutoKeywords(filtered.join(', '));
+                              } else {
+                                const updated = currentList.filter(Boolean);
+                                updated.push(chip);
+                                setAutoKeywords(updated.join(', '));
+                              }
+                            }}
+                            className={`text-[10px] font-mono px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-primary/20 border-primary text-primary font-bold'
+                                : 'bg-card border-border/70 text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            +{chip}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Mensagem no Direct (DM Privada) */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                      <span>Mensagem no Direct (DM Automática)</span>
+                    </label>
+                    <Textarea
+                      rows={3}
+                      value={autoWelcomeDm}
+                      onChange={(e) => setAutoWelcomeDm(e.target.value)}
+                      placeholder="Olá! Vi que você comentou no nosso post. Aqui está o acesso exclusivo ao que prometemos:"
+                      className="rounded-xl text-xs bg-card"
+                    />
+                  </div>
+
+                  {/* Botão com Link (Opcional) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                        <Link2 className="w-3 h-3" />
+                        <span>URL do Botão (Link)</span>
+                      </label>
+                      <input
+                        type="url"
+                        value={autoLinkUrl}
+                        onChange={(e) => setAutoLinkUrl(e.target.value)}
+                        placeholder="https://seusite.com/conteudo"
+                        className="h-8 px-2.5 rounded-xl bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-primary/60 font-mono"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-semibold text-muted-foreground">
+                        Texto do Botão
+                      </label>
+                      <input
+                        type="text"
+                        value={autoLinkButtonLabel}
+                        onChange={(e) => setAutoLinkButtonLabel(e.target.value)}
+                        placeholder="Acessar Conteúdo 🚀"
+                        className="h-8 px-2.5 rounded-xl bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-primary/60"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Resposta Pública no Comentário (Opcional) */}
+                  <div className="flex flex-col gap-1 pt-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                      <CornerDownRight className="w-3 h-3 text-muted-foreground" />
+                      <span>Resposta Pública no Comentário (Opcional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={autoPublicReply}
+                      onChange={(e) => setAutoPublicReply(e.target.value)}
+                      placeholder="ex: Acabei de te enviar no Direct! 🚀 Confere lá."
+                      className="h-8 px-2.5 rounded-xl bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-primary/60"
+                    />
+                  </div>
+
+                  {/* Prévia do Funil */}
+                  <div className="p-3 rounded-xl bg-accent/20 border border-border/50 text-[11px] text-muted-foreground flex flex-col gap-1.5">
+                    <span className="font-bold text-foreground flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3 text-primary" />
+                      Como vai funcionar:
+                    </span>
+                    <div className="flex items-center gap-2 pl-2">
+                      <span className="text-foreground">1. Seguidor comenta:</span>
+                      <code className="text-primary font-bold">"{autoKeywords || 'QUERO'}"</code>
+                    </div>
+                    {autoPublicReply && (
+                      <div className="flex items-center gap-2 pl-2">
+                        <span className="text-foreground">2. Resposta pública no post:</span>
+                        <span className="italic text-foreground/80">"{autoPublicReply}"</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 pl-2">
+                      <span className="text-foreground">3. Direct na hora:</span>
+                      <span className="text-foreground/80 truncate max-w-xs">{autoWelcomeDm || 'Mensagem enviada com sucesso!'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Modo de Publicação: Imediato vs. Agendado */}
           <div className="flex flex-col gap-3 pt-2 border-t border-border/60">
             <div className="flex items-center gap-2">
@@ -733,6 +1046,7 @@ export default function PublishPanel({
             isVideo={isVideo}
             isCarousel={isCarousel}
             caption={caption}
+            automationKeyword={autoEnabled ? (autoKeywords.split(',')[0]?.trim() || 'QUERO') : null}
           />
         </div>
       </div>
@@ -817,6 +1131,23 @@ export default function PublishPanel({
                         </p>
                         {post.status === 'failed' && post.error_message && (
                           <p className="text-[11px] text-destructive mt-0.5 font-medium">{post.error_message}</p>
+                        )}
+                        {post.automation_config?.enabled && (
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            <Badge variant="info" className="text-[10px] px-2 py-0 font-bold flex items-center gap-1">
+                              <Zap className="w-2.5 h-2.5" />
+                              <span>Gatilho: {(post.automation_config.keywords || ['QUERO']).join(', ')}</span>
+                            </Badge>
+                            {post.created_automation_id ? (
+                              <span className="text-[10px] text-primary font-bold flex items-center gap-0.5">
+                                <Check className="w-3 h-3" /> Direct Ativo
+                              </span>
+                            ) : post.status === 'scheduled' ? (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                <Clock className="w-3 h-3" /> Ativa ao publicar
+                              </span>
+                            ) : null}
+                          </div>
                         )}
                       </div>
                     </div>

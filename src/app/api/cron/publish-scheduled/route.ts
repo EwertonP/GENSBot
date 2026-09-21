@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { publishPost, PublishMediaType } from '@/lib/instagram-publish';
+import { createAutomationForPublishedPost } from '@/lib/publish-automation';
 
 // Cada publicação pode esperar o processamento de vídeo pela Meta (waitForContainerReady) —
 // mesmo teto de src/app/api/instagram/publish/route.ts, teto do plano Hobby.
@@ -81,10 +82,39 @@ async function handlePublishScheduled(req: Request) {
           userTags: post.user_tags,
         });
 
+        let createdAutomationId: string | null = null;
+        if (post.automation_config?.enabled && igMediaId) {
+          const autoResult = await createAutomationForPublishedPost(supabase, {
+            userId: post.user_id,
+            instagramUserId: post.instagram_user_id,
+            igMediaId,
+            postTitleOrCaption: post.caption,
+            config: post.automation_config,
+          });
+          createdAutomationId = autoResult?.id || null;
+        }
+
+        const publishedAt = new Date().toISOString();
+
         await supabase
           .from('scheduled_posts')
-          .update({ status: 'published', ig_media_id: igMediaId, published_at: new Date().toISOString() })
+          .update({
+            status: 'published',
+            ig_media_id: igMediaId,
+            created_automation_id: createdAutomationId,
+            published_at: publishedAt,
+          })
           .eq('id', post.id);
+
+        // Atualizar esteira de conteúdo caso esse agendamento tenha vindo de uma demanda
+        await supabase
+          .from('conteudo_items')
+          .update({
+            status: 'publicado',
+            publicado_em: publishedAt,
+            atualizado_em: publishedAt,
+          })
+          .eq('scheduled_post_id', post.id);
 
         results.push({ id: post.id, status: 'published' });
       } catch (publishErr: any) {

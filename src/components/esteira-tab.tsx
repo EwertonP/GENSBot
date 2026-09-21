@@ -53,6 +53,7 @@ import {
   type ArquivoConteudo,
   type PrefillAgendamento,
 } from '@/lib/conteudo';
+import { detectarGatilhosDaLegenda } from '@/lib/publish-automation';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
 import { upload } from '@vercel/blob/client';
@@ -260,6 +261,21 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
     }
     const mediaUrls = (item.arquivos || []).map((a) => a.url);
     const clienteConta = item.cliente?.instagram_accounts?.instagram_username || null;
+
+    let autoConfig = item.automacao_config || null;
+    if (!autoConfig && item.legenda) {
+      const det = detectarGatilhosDaLegenda(item.legenda);
+      if (det.detected && det.keyword) {
+        autoConfig = {
+          enabled: true,
+          keywords: [det.keyword],
+          match_type: 'contains',
+          welcome_dm: det.suggestedDm,
+          public_replies: [det.suggestedPublicReply],
+        };
+      }
+    }
+
     const prefill: PrefillAgendamento = {
       conteudoId: item.id,
       clienteNome: item.cliente?.nome || 'Cliente',
@@ -270,6 +286,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
       caption: item.legenda || '',
       scheduledAt: item.data_programada || null,
       titulo: item.titulo || 'Publicação',
+      automationConfig: autoConfig,
     };
     onIrParaAgendamento(prefill);
     showToast(`Demanda "${item.titulo}" enviada para Agendamentos!`, 'success');

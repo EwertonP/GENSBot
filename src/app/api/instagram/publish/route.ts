@@ -3,6 +3,7 @@ import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
 import { getInstagramAccountByInstagramUserId, listInstagramAccountsForUser } from '@/lib/instagram-account';
 import { publishPost, PublishMediaType } from '@/lib/instagram-publish';
 import { supabase } from '@/lib/supabase';
+import { createAutomationForPublishedPost, PublishAutomationConfig } from '@/lib/publish-automation';
 
 // Publicação imediata espera o processamento do vídeo pela Meta (polling em
 // waitForContainerReady) dentro da própria requisição — em vídeo grande isso
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
       collaborators,
       user_tags,
       conteudo_item_id,
+      automation_config,
     } = body as {
       instagram_user_id: string;
       media_type: PublishMediaType;
@@ -38,6 +40,7 @@ export async function POST(req: Request) {
       collaborators?: string[];
       user_tags?: { username: string }[];
       conteudo_item_id?: string;
+      automation_config?: PublishAutomationConfig;
     };
 
     if (!instagram_user_id || !media_type || !media_url) {
@@ -63,6 +66,7 @@ export async function POST(req: Request) {
       caption: caption || null,
       collaborators: collaborators || null,
       user_tags: user_tags || null,
+      automation_config: automation_config?.enabled ? automation_config : null,
     };
 
     if (isFuture) {
@@ -80,6 +84,7 @@ export async function POST(req: Request) {
           .update({
             scheduled_post_id: data.id,
             status: 'agendamento',
+            automacao_config: automation_config?.enabled ? automation_config : null,
             atualizado_em: new Date().toISOString(),
           })
           .eq('id', conteudo_item_id);
@@ -101,6 +106,18 @@ export async function POST(req: Request) {
         userTags: user_tags,
       });
 
+      let createdAutomationId: string | null = null;
+      if (automation_config?.enabled && igMediaId) {
+        const autoResult = await createAutomationForPublishedPost(supabase, {
+          userId: user.id,
+          instagramUserId: instagram_user_id,
+          igMediaId,
+          postTitleOrCaption: caption,
+          config: automation_config,
+        });
+        createdAutomationId = autoResult?.id || null;
+      }
+
       const { data, error } = await supabase
         .from('scheduled_posts')
         .insert({
@@ -109,6 +126,7 @@ export async function POST(req: Request) {
           status: 'published',
           approval_status: 'publicado',
           ig_media_id: igMediaId,
+          created_automation_id: createdAutomationId,
           published_at: new Date().toISOString(),
         })
         .select()
@@ -122,6 +140,7 @@ export async function POST(req: Request) {
           .update({
             scheduled_post_id: data.id,
             status: 'publicado',
+            automacao_config: automation_config?.enabled ? automation_config : null,
             publicado_em: data.published_at || new Date().toISOString(),
             atualizado_em: new Date().toISOString(),
           })

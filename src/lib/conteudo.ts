@@ -48,6 +48,7 @@ export interface PrefillAgendamento {
   caption: string;
   scheduledAt?: string | null;
   titulo: string;
+  automationConfig?: import('./publish-automation').PublishAutomationConfig | null;
 }
 
 export interface ConteudoItem {
@@ -70,6 +71,7 @@ export interface ConteudoItem {
   arquivos: ArquivoConteudo[];
   token_aprovacao: string;
   comentarios_revisao: ComentarioRevisao[];
+  automacao_config?: import('./publish-automation').PublishAutomationConfig | null;
   criado_em: string;
   atualizado_em: string;
   responsavel?: {
