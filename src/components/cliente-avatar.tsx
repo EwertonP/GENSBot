@@ -1,6 +1,7 @@
 import { corPadraoDoCliente, iniciais, textoSobre } from '@/lib/clientes';
 
 const TAMANHOS = {
+  xs: 'size-6 text-[10px]',
   sm: 'size-8 text-[11px]',
   md: 'size-11 text-sm',
   lg: 'size-16 text-xl',

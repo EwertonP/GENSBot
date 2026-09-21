@@ -37,6 +37,7 @@ export interface Cliente {
   concorrentes: string | null;
   briefing: string | null;
   drive_pasta_id: string | null;
+  token_aprovacao_mes?: string | null;
   ativo: boolean;
   criado_em: string;
   atualizado_em: string;

@@ -17,12 +17,27 @@ import {
   Sparkles,
   Compass,
   CheckCircle2,
+  CheckSquare,
+  Square,
+  Plus,
+  BarChart3,
+  Layers,
+  ArrowRight,
+  Video,
+  Image as ImageIcon,
+  Flame,
+  Check,
+  User,
   Zap,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DashboardContentPanel from '@/components/dashboard-content-panel';
+import { ClienteAvatar } from '@/components/cliente-avatar';
+import { STATUS_LABELS, type ConteudoItem, type StatusConteudo } from '@/lib/conteudo';
+import type { MembroEquipe } from '@/components/equipe-tab';
+import type { TarefaRotina } from '@/app/api/rotina/route';
 
 interface DailyInsight {
   date: string;
@@ -53,6 +68,7 @@ interface DashboardHomeProps {
   selectedAccountId: string | null;
   withAccount: (url: string, accountIdOverride?: string | null) => string;
   onViewLogs: () => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 /** Gráfico de Área Suave Estilo Instagram / Linear */
@@ -228,7 +244,35 @@ function SmoothAreaChart({
   );
 }
 
-/** Dashboard Home Reformulado: Padrão Painel Profissional do Instagram */
+function getDiasDaSemanaAtual() {
+  const hoje = new Date();
+  const diaSemana = hoje.getDay(); // 0 = Domingo, 1 = Segunda, ...
+  const diffSegunda = hoje.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1);
+  const segunda = new Date(hoje);
+  segunda.setDate(diffSegunda);
+
+  const dias = [];
+  const NOMES_DIAS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+  const NOMES_CURTOS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(segunda);
+    d.setDate(segunda.getDate() + i);
+    const isoData = d.toISOString().slice(0, 10);
+    const eHoje = isoData === hoje.toISOString().slice(0, 10);
+    dias.push({
+      dataIso: isoData,
+      nome: NOMES_DIAS[i],
+      nomeCurto: NOMES_CURTOS[i],
+      diaMes: d.getDate(),
+      mes: d.getMonth() + 1,
+      eHoje,
+    });
+  }
+  return dias;
+}
+
+/** Dashboard Home Reformulado: Visão Operacional (Minhas Demandas) + Painel Profissional do Instagram */
 export default function DashboardHome({
   alerts,
   stats,
@@ -244,7 +288,84 @@ export default function DashboardHome({
   selectedAccountId,
   withAccount,
   onViewLogs,
+  onNavigateTab,
 }: DashboardHomeProps) {
+  // Modo de visualização da Home: Operacional ("Minhas Demandas") vs Métricas ("Painel Profissional")
+  const [homeMode, setHomeMode] = useState<'demandas' | 'metricas'>('demandas');
+
+  // Dados operacionais (Equipe, Demandas da Esteira, Rotina da Agência)
+  const [membros, setMembros] = useState<MembroEquipe[]>([]);
+  const [verComo, setVerComo] = useState<string>('all');
+  const [demandas, setDemandas] = useState<ConteudoItem[]>([]);
+  const [tarefasRotina, setTarefasRotina] = useState<TarefaRotina[]>([]);
+  const [carregandoOperacional, setCarregandoOperacional] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+    setCarregandoOperacional(true);
+
+    Promise.all([
+      fetch('/api/equipe').then((r) => (r.ok ? r.json() : { membros: [] })).catch(() => ({ membros: [] })),
+      fetch('/api/conteudo').then((r) => (r.ok ? r.json() : { items: [] })).catch(() => ({ items: [] })),
+      fetch('/api/rotina?status=pendente').then((r) => (r.ok ? r.json() : { tarefas: [] })).catch(() => ({ tarefas: [] })),
+    ])
+      .then(([eqRes, contRes, rotRes]) => {
+        if (!ativo) return;
+        if (eqRes.membros) setMembros(eqRes.membros);
+        if (contRes.items) setDemandas(contRes.items);
+        if (rotRes.tarefas) setTarefasRotina(rotRes.tarefas);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (ativo) setCarregandoOperacional(false);
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  async function handleToggleTarefaHome(tarefa: TarefaRotina) {
+    const novoStatus = tarefa.status === 'pendente' ? 'concluido' : 'pendente';
+    setTarefasRotina((prev) => prev.filter((t) => t.id !== tarefa.id));
+
+    try {
+      await fetch(`/api/rotina/${tarefa.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: novoStatus }),
+      });
+    } catch {
+      setTarefasRotina((prev) => [...prev, tarefa]);
+    }
+  }
+
+  // Demandas filtradas pelo membro selecionado em "Ver como:"
+  const demandasFiltradas = demandas.filter((item) => {
+    if (verComo === 'all') return true;
+    return item.responsavel_id === verComo || item.editor_id === verComo;
+  });
+
+  const tarefasFiltradas = tarefasRotina.filter((t) => {
+    if (verComo === 'all') return true;
+    return t.responsavel_id === verComo;
+  });
+
+  const demandasAtivas = demandasFiltradas.filter((d) => d.status !== 'publicado');
+  const demandasConcluidasMes = demandasFiltradas.filter((d) => d.status === 'publicado');
+
+  // Dias da semana corrente (Seg a Dom)
+  const diasSemana = getDiasDaSemanaAtual();
+  const inicioSemanaIso = diasSemana[0].dataIso;
+  const fimSemanaIso = diasSemana[6].dataIso;
+
+  const entregasSemana = demandasFiltradas.filter((d) => {
+    const dataRef = (d.data_programada || d.prazo || '').slice(0, 10);
+    return dataRef >= inicioSemanaIso && dataRef <= fimSemanaIso;
+  });
+
+  const membroSelecionado = membros.find((m) => m.id === verComo);
+  const saudacaoNome = membroSelecionado ? membroSelecionado.nome.split(' ')[0] : 'Time';
   const [periodDays, setPeriodDays] = useState<7 | 14 | 30 | 90>(30);
   const [insightsData, setInsightsData] = useState<any>(null);
   const [audienceHours, setAudienceHours] = useState<AudienceHour[]>([]);
@@ -326,22 +447,451 @@ export default function DashboardHome({
         </section>
       )}
 
-      {/* 1. Header do Painel Profissional do Instagram */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-accent px-2 py-0.5 rounded-md border border-border/60">
-              Painel Profissional
-            </span>
-            <span className="text-xs text-muted-foreground font-mono">✳</span>
-          </div>
-          <h3 className="text-2xl font-bold font-display text-foreground tracking-tight mt-1">
-            Visão Geral da Conta
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Métricas oficiais de alcance, interações, visitas e conversões comparadas aos últimos {periodDays} dias.
-          </p>
+      {/* 0. Seletor de Modo da Home (Operacional vs Métricas) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-2.5 rounded-2xl border border-border/80 shadow-2xs">
+        <div className="flex items-center gap-1.5 p-1 bg-accent/60 rounded-xl border border-border/70">
+          <button
+            type="button"
+            onClick={() => setHomeMode('demandas')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              homeMode === 'demandas'
+                ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <CheckCircle2 className={`w-3.5 h-3.5 ${homeMode === 'demandas' ? 'text-primary' : ''}`} />
+            <span>Minhas Demandas & Semana</span>
+            {demandasAtivas.length > 0 && (
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-primary/10 text-primary font-bold">
+                {demandasAtivas.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setHomeMode('metricas')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              homeMode === 'metricas'
+                ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <TrendingUp className={`w-3.5 h-3.5 ${homeMode === 'metricas' ? 'text-primary' : ''}`} />
+            <span>Painel Profissional do Instagram</span>
+          </button>
         </div>
+
+        {homeMode === 'demandas' && (
+          <div className="flex items-center gap-2 px-2">
+            <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Ver como:</span>
+            <select
+              value={verComo}
+              onChange={(e) => setVerComo(e.target.value)}
+              className="h-8 text-xs font-semibold bg-accent/50 border border-border rounded-xl px-2.5 py-1 text-foreground focus:outline-none cursor-pointer"
+            >
+              <option value="all">Toda a equipe ({demandas.length} demandas)</option>
+              {membros.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nome} ({m.cargo || (m.papel === 'master' ? 'Sócio' : 'Membro')})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {homeMode === 'demandas' ? (
+        <div className="flex flex-col gap-6 animate-fade-in">
+          {/* Saudação & Ações Rápidas Operacionais */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-card border border-border/80 shadow-2xs">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono bg-accent px-2 py-0.5 rounded-md border border-border/60">
+                  Centro Operacional
+                </span>
+                <span className="text-xs text-muted-foreground font-mono">✳</span>
+              </div>
+              <h3 className="text-2xl font-bold font-display text-foreground tracking-tight mt-1">
+                Olá, {saudacaoNome}! 👋
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Você tem {demandasAtivas.length} {demandasAtivas.length === 1 ? 'demanda em andamento' : 'demandas em andamento'} e {tarefasFiltradas.length} {tarefasFiltradas.length === 1 ? 'afazer pendente' : 'afazeres pendentes'} na rotina interna.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigateTab?.('rotina')}
+                className="rounded-xl text-xs h-9 font-semibold"
+              >
+                <CheckSquare className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                Rotina da Agência
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigateTab?.('esteira')}
+                className="rounded-xl text-xs h-9 font-semibold"
+              >
+                <Layers className="w-3.5 h-3.5 mr-1.5" />
+                Esteira Completa
+              </Button>
+
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => onNavigateTab?.('esteira')}
+                className="rounded-xl text-xs h-9 font-semibold"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                Nova Demanda
+              </Button>
+            </div>
+          </div>
+
+          {/* 4 Bento KPIs Operacionais */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-5 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Demandas Ativas</span>
+                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <Layers className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3 flex flex-col">
+                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+                  {demandasAtivas.length}
+                </span>
+                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                  em produção ou aprovação
+                </span>
+              </div>
+            </Card>
+
+            <Card className="p-5 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Entregas da Semana</span>
+                <div className="w-8 h-8 rounded-xl bg-lime/40 border border-foreground/10 flex items-center justify-center text-foreground">
+                  <Calendar className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3 flex flex-col">
+                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+                  {entregasSemana.length}
+                </span>
+                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                  agendadas de Seg a Dom
+                </span>
+              </div>
+            </Card>
+
+            <Card className="p-5 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Rotina Pendente</span>
+                <div className="w-8 h-8 rounded-xl bg-secondary/60 border border-border flex items-center justify-center text-foreground">
+                  <CheckSquare className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3 flex flex-col">
+                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+                  {tarefasFiltradas.length}
+                </span>
+                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                  afazeres internos da equipe
+                </span>
+              </div>
+            </Card>
+
+            <Card className="p-5 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Finalizadas no Mês</span>
+                <div className="w-8 h-8 rounded-xl bg-success/15 border border-success/30 flex items-center justify-center text-success">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3 flex flex-col">
+                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+                  {demandasConcluidasMes.length}
+                </span>
+                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                  conteúdos publicados
+                </span>
+              </div>
+            </Card>
+          </section>
+
+          {/* Seção Minha Semana (Grade 7 Dias Seg a Dom) */}
+          <div className="p-5 rounded-3xl bg-card border border-border/80 shadow-2xs flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+              <div>
+                <h4 className="text-base font-bold font-display text-foreground tracking-tight flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <span>Minha Semana</span>
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Cronograma de publicações e prazos dos 7 dias da semana atual.
+                </p>
+              </div>
+              <span className="text-[11px] font-mono text-muted-foreground bg-accent px-2.5 py-1 rounded-xl border border-border/60 self-start sm:self-auto">
+                {inicioSemanaIso.slice(8, 10)}/{inicioSemanaIso.slice(5, 7)} — {fimSemanaIso.slice(8, 10)}/{fimSemanaIso.slice(5, 7)}
+              </span>
+            </div>
+
+            {/* 7 Colunas de Dias */}
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
+              {diasSemana.map((dia) => {
+                const itensDoDia = demandasFiltradas.filter((d) => {
+                  const dIso = (d.data_programada || d.prazo || '').slice(0, 10);
+                  return dIso === dia.dataIso;
+                });
+
+                return (
+                  <div
+                    key={dia.dataIso}
+                    className={`flex flex-col gap-2 p-3 rounded-2xl border transition-all ${
+                      dia.eHoje
+                        ? 'bg-accent/40 border-primary/40 shadow-xs ring-1 ring-primary/20'
+                        : 'bg-background/60 border-border/60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
+                      <div>
+                        <p className={`text-[11px] font-bold ${dia.eHoje ? 'text-primary' : 'text-foreground'}`}>
+                          {dia.nomeCurto}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-mono">
+                          {String(dia.diaMes).padStart(2, '0')}/{String(dia.mes).padStart(2, '0')}
+                        </p>
+                      </div>
+                      {dia.eHoje && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-1.5 py-0.2 rounded font-mono">
+                          Hoje
+                        </span>
+                      )}
+                    </div>
+
+                    {itensDoDia.length === 0 ? (
+                      <div className="h-16 flex items-center justify-center text-[10px] text-muted-foreground/60 border border-dashed border-border/50 rounded-xl">
+                        Sem entregas
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1.5">
+                        {itensDoDia.map((item) => {
+                          const statusInfo = STATUS_LABELS[item.status as StatusConteudo] || {
+                            label: item.status,
+                            variant: 'muted',
+                          };
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => onNavigateTab?.('esteira')}
+                              className="p-2 rounded-xl bg-card border border-border/80 hover:border-foreground/30 transition-all cursor-pointer shadow-2xs flex flex-col gap-1.5"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                {item.tipo === 'reel' ? (
+                                  <Video className="w-3 h-3 text-purple-500 shrink-0" />
+                                ) : item.arquivos && item.arquivos.length > 1 ? (
+                                  <Layers className="w-3 h-3 text-blue-500 shrink-0" />
+                                ) : (
+                                  <ImageIcon className="w-3 h-3 text-emerald-500 shrink-0" />
+                                )}
+                                <span className="text-[11px] font-bold text-foreground truncate">
+                                  {item.cliente?.nome || 'Cliente'}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground line-clamp-2 leading-tight">
+                                {item.titulo || 'Sem título'}
+                              </p>
+                              <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[9px]">
+                                <span className="font-semibold text-muted-foreground truncate">
+                                  {statusInfo.label}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2 Colunas Operacionais: Demandas Prioritárias vs Rotina de Hoje */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Coluna 1: Demandas Prioritárias na Esteira */}
+            <div className="p-5 rounded-3xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3.5">
+              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <div>
+                  <h4 className="text-base font-bold font-display text-foreground tracking-tight flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-primary" />
+                    <span>Demandas em Andamento ({demandasAtivas.length})</span>
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Fila de produção e aprovações pendentes atribuídas.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onNavigateTab?.('esteira')}
+                  className="text-xs text-primary hover:text-primary font-semibold"
+                >
+                  Ver esteira →
+                </Button>
+              </div>
+
+              {demandasAtivas.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border/80">
+                  Tudo em dia! Nenhuma demanda em andamento atribuída.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {demandasAtivas.slice(0, 5).map((item) => {
+                    const statusInfo = STATUS_LABELS[item.status as StatusConteudo] || {
+                      label: item.status,
+                      variant: 'muted',
+                    };
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => onNavigateTab?.('esteira')}
+                        className="p-3 rounded-2xl bg-accent/30 border border-border/60 hover:border-foreground/30 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <ClienteAvatar
+                            nome={item.cliente?.nome || 'Cliente'}
+                            cor={item.cliente?.cor}
+                            fotoUrl={item.cliente?.foto_url}
+                            tamanho="sm"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">
+                              {item.titulo || 'Demanda sem título'}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {item.cliente?.nome} · {item.tipo.toUpperCase()}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {item.prazo && (
+                            <span className="text-[10px] font-mono text-muted-foreground bg-card px-2 py-0.5 rounded-lg border border-border/60 flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-muted-foreground" />
+                              {item.prazo.slice(8, 10)}/{item.prazo.slice(5, 7)}
+                            </span>
+                          )}
+                          <Badge variant={statusInfo.variant} className="text-[10px] py-0.5 px-2">
+                            {statusInfo.label}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Coluna 2: Afazeres de Rotina da Agência */}
+            <div className="p-5 rounded-3xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3.5">
+              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <div>
+                  <h4 className="text-base font-bold font-display text-foreground tracking-tight flex items-center gap-2">
+                    <CheckSquare className="w-4 h-4 text-primary" />
+                    <span>Rotina da Agência ({tarefasFiltradas.length})</span>
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Tarefas operacionais internas. Marque para concluir.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onNavigateTab?.('rotina')}
+                  className="text-xs text-primary hover:text-primary font-semibold"
+                >
+                  Ver rotina →
+                </Button>
+              </div>
+
+              {tarefasFiltradas.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border/80">
+                  Nenhum afazer pendente na rotina da agência! 🎉
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {tarefasFiltradas.slice(0, 5).map((tarefa) => (
+                    <div
+                      key={tarefa.id}
+                      className="p-3 rounded-2xl bg-accent/30 border border-border/60 hover:border-foreground/30 transition-all flex items-center justify-between gap-3 shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTarefaHome(tarefa)}
+                          className="w-5 h-5 rounded-lg border border-border bg-card flex items-center justify-center hover:border-primary text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
+                          title="Marcar como concluída"
+                        >
+                          <Check className="w-3 h-3 opacity-0 hover:opacity-100" />
+                        </button>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            {tarefa.titulo}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {tarefa.cliente?.nome ? `Cliente: ${tarefa.cliente.nome}` : 'Tarefa Geral'}
+                            {tarefa.prazo ? ` · Até ${tarefa.prazo.slice(8, 10)}/${tarefa.prazo.slice(5, 7)}` : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border shrink-0 ${
+                          tarefa.prioridade === 'urgente'
+                            ? 'bg-destructive/15 text-destructive border-destructive/30'
+                            : tarefa.prioridade === 'alta'
+                            ? 'bg-warning/20 text-warning-foreground border-warning/30'
+                            : 'bg-card text-muted-foreground border-border/60'
+                        }`}
+                      >
+                        {tarefa.prioridade}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* 1. Header do Painel Profissional do Instagram */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-accent px-2 py-0.5 rounded-md border border-border/60">
+                  Painel Profissional
+                </span>
+                <span className="text-xs text-muted-foreground font-mono">✳</span>
+              </div>
+              <h3 className="text-2xl font-bold font-display text-foreground tracking-tight mt-1">
+                Visão Geral da Conta
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Métricas oficiais de alcance, interações, visitas e conversões comparadas aos últimos {periodDays} dias.
+              </p>
+            </div>
 
         {/* Switcher de Período em Pílulas (Padrão Instagram / Linear) */}
         <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border/80 self-start sm:self-auto shadow-2xs">
@@ -756,6 +1306,8 @@ export default function DashboardHome({
           )}
         </Card>
       </div>
+        </>
+      )}
     </div>
   );
 }

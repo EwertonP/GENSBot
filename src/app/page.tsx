@@ -27,6 +27,8 @@ import AutomationsTab from '@/components/automations-tab';
 import ClientesTab from '@/components/clientes-tab';
 import EsteiraTab from '@/components/esteira-tab';
 import EquipeTab from '@/components/equipe-tab';
+import RotinaTab from '@/components/rotina-tab';
+import CalendarioGeral from '@/components/calendario-geral';
 import type { DestinoConta } from '@/lib/clientes';
 import { Instagram } from '@/components/instagram-icon';
 import type { IgMedia, IgStory } from '@/types/instagram-media';
@@ -37,6 +39,8 @@ import {
   Edit2,
   RefreshCw,
   CheckCircle,
+  CheckSquare,
+  CalendarDays,
   AlertCircle,
   LogOut,
   Send,
@@ -133,7 +137,7 @@ export default function Dashboard() {
   const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'clientes' | 'esteira' | 'equipe' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'rotina' | 'clientes' | 'esteira' | 'calendario_geral' | 'equipe' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox' | 'logs'>('dashboard');
   // Sub-abas de "Agendamentos" (Publicações e Calendário)
   const [publishSubTab, setPublishSubTab] = useState<'publicacoes' | 'calendario'>('publicacoes');
   // Submenu de "Agendamentos" na sidebar (Publicações/Calendário) — expande/colapsa
@@ -973,6 +977,7 @@ export default function Dashboard() {
               label: 'Geral',
               items: [
                 { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+                { id: 'rotina', label: 'Rotina & Afazeres', icon: CheckSquare },
                 { id: 'clientes', label: 'Clientes', icon: Briefcase },
                 { id: 'equipe', label: 'Equipe & Sócios', icon: Users2 },
               ],
@@ -981,6 +986,7 @@ export default function Dashboard() {
               label: 'Conteúdo',
               items: [
                 { id: 'esteira', label: 'Demandas & Aprovação', icon: Layers },
+                { id: 'calendario_geral', label: 'Calendário Geral', icon: CalendarDays },
                 { id: 'publish', label: 'Agendamentos', icon: Send },
                 { id: 'metrics', label: 'Métricas', icon: TrendingUp },
               ],
@@ -1152,8 +1158,11 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold font-display text-foreground tracking-tight">
                 {activeTab === 'dashboard' && 'Dashboard'}
+                {activeTab === 'rotina' && 'Rotina & Afazeres da Agência'}
                 {activeTab === 'clientes' && 'Clientes'}
                 {activeTab === 'esteira' && 'Demandas & Aprovação'}
+                {activeTab === 'calendario_geral' && 'Calendário Geral de Postagens'}
+                {activeTab === 'equipe' && 'Equipe & Sócios'}
                 {activeTab === 'automations' && 'Automações'}
                 {activeTab === 'utm' && 'Links UTM'}
                 {activeTab === 'metrics' && 'Métricas'}
@@ -1167,8 +1176,11 @@ export default function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground font-medium">
               {activeTab === 'dashboard' && 'Visão unificada das métricas, fila e performance das automações.'}
+              {activeTab === 'rotina' && 'Afazeres internos, tarefas operacionais e pendências do dia a dia da agência.'}
               {activeTab === 'clientes' && 'Dossiê, contratos e contatos organizados por cliente.'}
               {activeTab === 'esteira' && 'Esteira de produção de posts e reels com link de aprovação direta pelo WhatsApp.'}
+              {activeTab === 'calendario_geral' && 'Visão macro unificada de todos os posts com detecção de conflitos.'}
+              {activeTab === 'equipe' && 'Gestão de membros, sócios, papéis e permissões da agência.'}
               {activeTab === 'automations' && 'Fluxos e funis de resposta automática no Instagram.'}
               {activeTab === 'utm' && 'Links rastreáveis conectados a campanhas e automações.'}
               {activeTab === 'metrics' && 'Performance e crescimento das contas conectadas.'}
@@ -1223,6 +1235,10 @@ export default function Dashboard() {
               selectedAccountId={selectedAccountId}
               withAccount={withAccount}
               onViewLogs={() => setActiveTab('logs')}
+              onNavigateTab={(tab) => {
+                setActiveTab(tab as any);
+                setIsEditing(false);
+              }}
             />
           )}
           {/* TAB 2: AUTOMATIONS */}
@@ -1315,6 +1331,11 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* TAB: ROTINA & AFAZERES DA AGÊNCIA */}
+          {activeTab === 'rotina' && (
+            <RotinaTab showToast={showToast} />
+          )}
+
           {/* TAB: CLIENTES — a espinha do sistema unificado */}
           {activeTab === 'clientes' && (
             <ClientesTab
@@ -1331,6 +1352,11 @@ export default function Dashboard() {
           {/* TAB: ESTEIRA DE DEMANDAS & APROVAÇÃO */}
           {activeTab === 'esteira' && (
             <EsteiraTab showToast={showToast} />
+          )}
+
+          {/* TAB: CALENDÁRIO GERAL DA AGÊNCIA */}
+          {activeTab === 'calendario_geral' && (
+            <CalendarioGeral showToast={showToast} />
           )}
 
           {/* TAB: EQUIPE & SÓCIOS */}

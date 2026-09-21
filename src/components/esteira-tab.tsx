@@ -23,6 +23,9 @@ import {
   AlertCircle,
   FileText,
   Trash2,
+  Copy,
+  LayoutGrid,
+  Check,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,6 +72,17 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
   // Modal Novo Item
   const [modalNovoAberto, setModalNovoAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
+
+  // Modal Duplicar Mês
+  const [modalDuplicarAberto, setModalDuplicarAberto] = useState(false);
+  const [duplicarClienteId, setDuplicarClienteId] = useState('');
+  const [duplicarMesOrigem, setDuplicarMesOrigem] = useState(() => new Date().toISOString().slice(0, 7));
+  const [duplicarMesDestino, setDuplicarMesDestino] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return d.toISOString().slice(0, 7);
+  });
+  const [duplicando, setDuplicando] = useState(false);
 
   // Form states elaborados
   const [buscaClienteForm, setBuscaClienteForm] = useState('');
@@ -289,6 +303,45 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
     }
   }
 
+  async function handleDuplicarMes(e: React.FormEvent) {
+    e.preventDefault();
+    if (!duplicarClienteId) {
+      showToast('Selecione o cliente para duplicar o mês.', 'error');
+      return;
+    }
+    if (!duplicarMesOrigem || !duplicarMesDestino) {
+      showToast('Informe os meses de origem e destino.', 'error');
+      return;
+    }
+    if (duplicarMesOrigem === duplicarMesDestino) {
+      showToast('O mês de destino deve ser diferente do mês de origem.', 'error');
+      return;
+    }
+
+    setDuplicando(true);
+    try {
+      const res = await fetch('/api/conteudo/duplicar-mes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cliente_id: duplicarClienteId,
+          mes_origem: duplicarMesOrigem,
+          mes_destino: duplicarMesDestino,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      showToast(`${data.duplicados} demandas duplicadas com sucesso para ${duplicarMesDestino}!`, 'success');
+      setModalDuplicarAberto(false);
+      await carregarDados();
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao duplicar mês de conteúdo.', 'error');
+    } finally {
+      setDuplicando(false);
+    }
+  }
+
   const clientesFormFiltrados = useMemo(() => {
     if (!buscaClienteForm.trim()) return clientes;
     const t = buscaClienteForm.toLowerCase();
@@ -300,6 +353,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
   }, [clientes, buscaClienteForm]);
 
   const clienteSelecionadoObj = clientes.find((c) => c.id === formClienteId);
+  const clienteAtivo = clientes.find((c) => c.id === clienteSelecionado);
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
@@ -377,18 +431,102 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
             </button>
           </div>
 
+          {/* Botão Duplicar Mês */}
+          <Button
+            onClick={() => {
+              if (clienteSelecionado !== 'all') {
+                setDuplicarClienteId(clienteSelecionado);
+              }
+              setModalDuplicarAberto(true);
+            }}
+            variant="outline"
+            size="sm"
+            className="rounded-xl shadow-2xs h-9 text-xs font-semibold"
+          >
+            <Copy className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+            Duplicar Mês
+          </Button>
+
           {/* Botão Nova Demanda */}
           <Button
             onClick={handleAbrirModalNovo}
             variant="primary"
             size="sm"
-            className="rounded-xl shadow-xs"
+            className="rounded-xl shadow-xs h-9 text-xs"
           >
             <Plus className="w-4 h-4 mr-1.5" />
             Nova Demanda
           </Button>
         </div>
       </div>
+
+      {/* Banner de Ações Rápidas do Cliente Ativo (Aprovação de Feed e Status) */}
+      {clienteAtivo && (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 p-4 rounded-2xl bg-card border border-border/80 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <ClienteAvatar nome={clienteAtivo.nome} cor={clienteAtivo.cor} fotoUrl={clienteAtivo.foto_url} tamanho="md" />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-foreground">{clienteAtivo.nome}</span>
+                <span className="text-[11px] font-mono text-muted-foreground bg-accent px-2 py-0.5 rounded-md border border-border/60">
+                  {itemsFiltrados.length} {itemsFiltrados.length === 1 ? 'demanda' : 'demandas'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {clienteAtivo.nicho || 'Cliente da Agência'} · Feed visual do mês para envio e aprovação no WhatsApp.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
+                window.open(`/aprovacao/feed/${token}`, '_blank');
+              }}
+              className="rounded-xl text-xs h-8.5 font-semibold"
+            >
+              <Smartphone className="w-3.5 h-3.5 mr-1.5 text-primary" />
+              Ver Feed (Grade 3xN)
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
+                const url = `${window.location.origin}/aprovacao/feed/${token}`;
+                navigator.clipboard.writeText(url);
+                showToast('Link da grade do feed copiado para o WhatsApp!', 'success');
+              }}
+              className="rounded-xl text-xs h-8.5 font-semibold"
+            >
+              <Share2 className="w-3.5 h-3.5 mr-1.5" />
+              Copiar Link
+            </Button>
+
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
+                const url = `${window.location.origin}/aprovacao/feed/${token}`;
+                const msg = `Olá ${clienteAtivo.nome}! Segue a prévia visual completa do seu feed deste mês no Instagram para conferência e aprovação:\n\n${url}`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+              }}
+              className="rounded-xl text-xs h-8.5 font-semibold bg-success hover:bg-success/90 text-white"
+            >
+              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+              Enviar no WhatsApp
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Visualização Kanban com Drag-and-Drop */}
       {carregando ? (
@@ -907,6 +1045,91 @@ export default function EsteiraTab({ showToast, clienteFiltroId }: EsteiraTabPro
             </Button>
             <Button type="submit" variant="primary" size="sm" loading={salvando}>
               Cadastrar Demanda
+            </Button>
+          </div>
+        </form>
+      </Sheet>
+
+      {/* 4. Modal Duplicar Mês de Conteúdo */}
+      <Sheet
+        open={modalDuplicarAberto}
+        onClose={() => setModalDuplicarAberto(false)}
+        aria-label="Duplicar Mês"
+      >
+        <form onSubmit={handleDuplicarMes} className="p-6 flex flex-col gap-5 max-w-md">
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
+              Agilidade & Escala
+            </span>
+            <h3 className="text-lg sm:text-xl font-bold font-display text-foreground mt-0.5">
+              Duplicar Mês de Conteúdo
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Clona todas as demandas do mês de origem para o novo período com status reiniciado em Planejamento.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-foreground">
+              Cliente
+            </label>
+            <Select
+              value={duplicarClienteId}
+              onChange={(e) => setDuplicarClienteId(e.target.value)}
+              required
+            >
+              <option value="">Selecione o cliente...</option>
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-foreground">
+                Mês de Origem
+              </label>
+              <Input
+                type="month"
+                value={duplicarMesOrigem}
+                onChange={(e) => setDuplicarMesOrigem(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-foreground">
+                Mês de Destino
+              </label>
+              <Input
+                type="month"
+                value={duplicarMesDestino}
+                onChange={(e) => setDuplicarMesDestino(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-accent/40 border border-border/80 text-xs text-muted-foreground flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            <p>
+              As cópias são criadas como demandas novas independentes. Briefings, legendas e carrosséis são preservados, e o status é resetado para o início da esteira.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-border mt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setModalDuplicarAberto(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary" size="sm" loading={duplicando}>
+              Duplicar Demandas Agora
             </Button>
           </div>
         </form>
