@@ -39,6 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Instagram as InstagramIcon } from '@/components/instagram-icon';
+import { gerarLinkCompletoRelatorio } from '@/lib/relatorio-token';
 
 // --- Interfaces de Tipagem ---
 interface DailyPoint {
@@ -954,8 +955,33 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
 
   const [contentFilter, setContentFilter] = useState<'all' | 'reels' | 'posts'>('all');
   const [showReportModal, setShowReportModal] = useState(false);
+  const [linkCopiado, setLinkCopiado] = useState(false);
 
   const isSingleAccount = selectedAccountId && selectedAccountId !== 'all';
+
+  const handleCopiarLinkRelatorio = () => {
+    const clienteNome = activeAccount?.username ? `@${activeAccount.username}` : 'Cliente';
+    const link = gerarLinkCompletoRelatorio({
+      accountId: selectedAccountId || 'all',
+      mainMonth,
+      compMonth,
+      clienteNome,
+    });
+    navigator.clipboard.writeText(link);
+    setLinkCopiado(true);
+    setTimeout(() => setLinkCopiado(false), 2500);
+  };
+
+  const handleAbrirRelatorioInterativo = () => {
+    const clienteNome = activeAccount?.username ? `@${activeAccount.username}` : 'Cliente';
+    const link = gerarLinkCompletoRelatorio({
+      accountId: selectedAccountId || 'all',
+      mainMonth,
+      compMonth,
+      clienteNome,
+    });
+    window.open(link, '_blank');
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -1109,16 +1135,44 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </div>
           )}
 
-          {/* Botão Exportar Relatório */}
-          <Button
-            onClick={() => setShowReportModal(true)}
-            variant="primary"
-            size="sm"
-            className="rounded-2xl shadow-xs h-9 text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20"
-          >
-            <Printer className="w-3.5 h-3.5 mr-1.5 text-[#192313]" />
-            Gerar Relatório (PDF)
-          </Button>
+          {/* Botões de Ação do Relatório do Cliente */}
+          <div className="flex items-center gap-1.5">
+            <Button
+              onClick={handleCopiarLinkRelatorio}
+              variant="outline"
+              size="sm"
+              className="rounded-2xl shadow-2xs h-9 text-xs font-semibold bg-card hover:bg-accent border border-border"
+              title="Copiar link interativo para enviar ao cliente no WhatsApp"
+            >
+              {linkCopiado ? (
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+              ) : (
+                <Share2 className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+              )}
+              {linkCopiado ? 'Link Copiado!' : 'Copiar Link para Cliente'}
+            </Button>
+
+            <Button
+              onClick={handleAbrirRelatorioInterativo}
+              variant="outline"
+              size="sm"
+              className="rounded-2xl shadow-2xs h-9 text-xs font-bold text-foreground bg-card hover:bg-accent border border-border/80"
+              title="Abrir página pública do relatório do cliente em nova aba"
+            >
+              <Eye className="w-3.5 h-3.5 mr-1.5 text-primary" />
+              Ver Relatório
+            </Button>
+
+            <Button
+              onClick={() => setShowReportModal(true)}
+              variant="primary"
+              size="sm"
+              className="rounded-2xl shadow-xs h-9 text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20"
+            >
+              <Printer className="w-3.5 h-3.5 mr-1.5 text-[#192313]" />
+              Gerar PDF
+            </Button>
+          </div>
         </div>
       </div>
 
