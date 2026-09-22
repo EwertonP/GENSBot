@@ -727,21 +727,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
             {sincronizandoNotion ? 'Sincronizando...' : '⚡ Sincronizar Notion'}
           </Button>
 
-          {/* Botão Duplicar Mês */}
-          <Button
-            onClick={() => {
-              if (clienteSelecionado !== 'all') {
-                setDuplicarClienteId(clienteSelecionado);
-              }
-              setModalDuplicarAberto(true);
-            }}
-            variant="outline"
-            size="sm"
-            className="rounded-xl shadow-2xs h-9 text-xs font-semibold"
-          >
-            <Copy className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-            Duplicar Mês
-          </Button>
+
 
           {/* Botão Nova Demanda */}
           <Button

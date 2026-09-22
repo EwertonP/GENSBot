@@ -60,6 +60,8 @@ import {
   ChevronDown,
   Calendar,
   Columns3,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 interface InstagramAccountSummary {
@@ -138,6 +140,22 @@ export default function Dashboard() {
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rotina' | 'clientes' | 'esteira' | 'calendario_geral' | 'equipe' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'inbox'>('dashboard');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('gensbot_sidebar_collapsed') === 'true';
+    }
+    return false;
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('gensbot_sidebar_collapsed', String(next));
+      }
+      return next;
+    });
+  };
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -848,30 +866,42 @@ export default function Dashboard() {
       )}
 
       {/* 1. Left Sidebar Navigation — 100% fixa em tela inteira */}
-      <aside className={`fixed md:relative inset-y-0 left-0 z-50 w-72 h-full bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:relative inset-y-0 left-0 z-50 ${isSidebarCollapsed ? 'w-20' : 'w-72'} h-full bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
 
         {/* Brand & Workspace Header */}
-        <div className="p-4 pb-3 flex flex-col gap-2">
-          <div className="flex items-center justify-between px-2 pt-1">
+        <div className={`p-4 pb-3 flex flex-col gap-2 ${isSidebarCollapsed ? 'items-center px-2' : ''}`}>
+          <div className={`flex items-center ${isSidebarCollapsed ? 'flex-col gap-3 justify-center' : 'justify-between px-2'} pt-1`}>
             <div className="flex items-center gap-2">
               <Logo className="h-6 w-auto" />
-              <span className="text-[10px] font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded border border-border">
-                2.0
-              </span>
+              {!isSidebarCollapsed && (
+                <span className="text-[10px] font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded border border-border">
+                  2.0
+                </span>
+              )}
             </div>
-            <span className="text-xs text-muted-foreground font-mono font-bold" title="Agência GENS">
-              ✳
-            </span>
+            
+            <button
+              onClick={toggleSidebar}
+              title={isSidebarCollapsed ? 'Expandir menu (Ctrl+B)' : 'Recuar menu (Ctrl+B)'}
+              className="p-1.5 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              {isSidebarCollapsed ? (
+                <PanelLeftOpen className="w-4 h-4" />
+              ) : (
+                <PanelLeftClose className="w-4 h-4" />
+              )}
+            </button>
           </div>
 
           {/* Seletor de Conta do Instagram (perfil ativo) */}
           {accounts.length > 0 ? (
-            <div className="relative mt-2">
+            <div className="relative mt-2 w-full">
               <button
                 onClick={() => setAccountMenuOpen(o => !o)}
                 aria-haspopup="listbox"
                 aria-expanded={accountMenuOpen}
-                className="w-full flex items-center gap-2.5 p-2 rounded-xl bg-accent/60 hover:bg-accent border border-border/70 hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group"
+                title={selectedAccountId === 'all' ? 'Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 p-2'} rounded-xl bg-accent/60 hover:bg-accent border border-border/70 hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group`}
               >
                 {selectedAccountId === 'all' ? (
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 border border-primary/40">
@@ -888,15 +918,20 @@ export default function Dashboard() {
                     <Instagram className="w-4 h-4 text-primary" />
                   </div>
                 )}
-                <div className="flex-1 min-w-0 leading-tight">
-                  <p className="text-xs font-bold text-foreground truncate">
-                    {selectedAccountId === 'all' ? '🌐 Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {selectedAccountId === 'all' ? `Consolidado (${accounts.length} clientes)` : accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conta ativa'}
-                  </p>
-                </div>
-                <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} />
+
+                {!isSidebarCollapsed && (
+                  <>
+                    <div className="flex-1 min-w-0 leading-tight">
+                      <p className="text-xs font-bold text-foreground truncate">
+                        {selectedAccountId === 'all' ? '🌐 Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {selectedAccountId === 'all' ? `Consolidado (${accounts.length} clientes)` : accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conta ativa'}
+                      </p>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} />
+                  </>
+                )}
               </button>
 
               {accountMenuOpen && (
@@ -905,7 +940,7 @@ export default function Dashboard() {
                     className="fixed inset-0 z-40"
                     onClick={() => setAccountMenuOpen(false)}
                   />
-                  <div className="absolute left-0 top-full mt-1.5 w-full bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                  <div className={`absolute ${isSidebarCollapsed ? 'left-full top-0 ml-2 w-64' : 'left-0 top-full mt-1.5 w-full'} bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}>
                     <div className="max-h-64 overflow-y-auto py-1">
                       {accounts.length > 1 && (
                         <button
@@ -985,18 +1020,19 @@ export default function Dashboard() {
           ) : (
             <button
               onClick={handleConnectInstagram}
-              className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-all shadow-xs cursor-pointer"
+              title="Conectar Instagram"
+              className={`mt-2 w-full flex items-center justify-center ${isSidebarCollapsed ? 'p-2.5' : 'gap-2 px-3 py-2.5'} rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-all shadow-xs cursor-pointer`}
             >
-              <Instagram className="w-3.5 h-3.5" />
-              Conectar Instagram
+              <Instagram className="w-3.5 h-3.5 flex-shrink-0" />
+              {!isSidebarCollapsed && <span>Conectar Instagram</span>}
             </button>
           )}
         </div>
 
-        <div className="border-t border-sidebar-border mx-4" />
+        <div className="border-t border-sidebar-border mx-3" />
 
         {/* Navigation Links — Linear-inspired grouping */}
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-5 overflow-y-auto">
+        <nav className={`flex-1 ${isSidebarCollapsed ? 'px-2 py-4' : 'px-3 py-4'} flex flex-col gap-4 overflow-y-auto`}>
           {[
             {
               label: 'Geral',
@@ -1031,9 +1067,15 @@ export default function Dashboard() {
               ],
             },
           ].map((group, gi) => (
-            <div key={gi} className="flex flex-col gap-0.5">
-              {group.label && (
-                <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-widest px-3 mb-1">{group.label}</span>
+            <div key={gi} className="flex flex-col gap-1">
+              {!isSidebarCollapsed ? (
+                group.label && (
+                  <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-widest px-3 mb-0.5">
+                    {group.label}
+                  </span>
+                )
+              ) : (
+                gi > 0 && <div className="border-t border-sidebar-border/60 my-1 mx-2" />
               )}
               {group.items.map(item => {
                 const Icon = item.icon;
@@ -1042,18 +1084,19 @@ export default function Dashboard() {
                 return (
                   <button
                     key={item.id}
+                    title={item.label}
                     onClick={() => {
                       setActiveTab(item.id as any);
                       setIsEditing(false);
                     }}
-                    className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
+                    className={`relative w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2'} rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
                       active 
                         ? 'text-[#192313] bg-[#edf4d8] font-bold shadow-2xs border border-[#d8ff3c]/60' 
                         : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                     }`}
                   >
-                    <Icon className={`relative w-4 h-4 ${active ? 'text-[#192313]' : 'text-muted-foreground'}`} />
-                    <span className="relative">{item.label}</span>
+                    <Icon className={`relative w-4 h-4 flex-shrink-0 ${active ? 'text-[#192313]' : 'text-muted-foreground'}`} />
+                    {!isSidebarCollapsed && <span className="relative truncate">{item.label}</span>}
                   </button>
                 );
               })}
@@ -1062,7 +1105,7 @@ export default function Dashboard() {
         </nav>
 
         {/* Sidebar Footer: Perfil Único do Usuário Master na Sidebar */}
-        <div className="p-3 border-t border-sidebar-border">
+        <div className={`p-3 border-t border-sidebar-border ${isSidebarCollapsed ? 'flex justify-center p-2' : ''}`}>
           {currentUser && (
             <UserProfilePopover
               userName={currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Agência GENS'}

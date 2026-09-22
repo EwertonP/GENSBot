@@ -201,15 +201,23 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                         
                         <div className="flex flex-wrap items-center gap-4 flex-shrink-0 w-full md:w-auto">
                           {/* Active toggle */}
-                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none p-1.5 px-3 rounded-2xl bg-accent/40 border border-border/80 hover:border-foreground/30 transition-all">
                             <input
                               type="checkbox"
                               checked={form.active}
                               onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
                               className="sr-only peer"
                             />
-                            <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-foreground after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-foreground after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary relative"></div>
-                            <span className="text-xs font-bold text-muted-foreground">{form.active ? 'Ativo' : 'Pausado'}</span>
+                            <div className={`w-10 h-5 rounded-full transition-colors relative flex items-center p-0.5 cursor-pointer ${
+                              form.active ? 'bg-[#d8ff3c] border border-[#192313]/30' : 'bg-muted border border-border'
+                            }`}>
+                              <div className={`w-4 h-4 rounded-full shadow-md transition-transform duration-200 ${
+                                form.active ? 'translate-x-5 bg-[#192313]' : 'translate-x-0 bg-background border border-border'
+                              }`} />
+                            </div>
+                            <span className={`text-xs font-bold font-mono ${form.active ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {form.active ? '🟢 Ativa' : '⚪ Pausada'}
+                            </span>
                           </label>
 
                           <button
