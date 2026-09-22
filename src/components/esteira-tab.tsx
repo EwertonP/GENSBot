@@ -580,11 +580,11 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
-      {/* 1. Header de Ações & Filtros */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
+      {/* 1. Header de Ações & Filtros em Linha Única */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border/80 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Busca */}
-          <div className="relative w-56">
+          <div className="relative w-48 sm:w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Buscar demandas..."
@@ -598,7 +598,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
           <Select
             value={clienteSelecionado}
             onChange={(e) => setClienteSelecionado(e.target.value)}
-            className="h-9 text-xs w-44"
+            className="h-9 text-xs w-40 sm:w-44"
           >
             <option value="all">Todos os clientes</option>
             {clientes.map((c) => (
@@ -613,7 +613,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
             <Select
               value={responsavelFiltro}
               onChange={(e) => setResponsavelFiltro(e.target.value)}
-              className="h-9 text-xs w-40"
+              className="h-9 text-xs w-36 sm:w-40"
             >
               <option value="all">Toda a equipe</option>
               {membros.map((m) => (
@@ -625,7 +625,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Linha Única de Botões de Ação */}
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           {/* Seletor de Mês (quando no modo Feed) */}
           {viewMode === 'feed' && (
             <input
@@ -711,7 +712,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
             title="Sincronizar demandas ativas diretamente com o Notion"
           >
             <Sparkles className={`w-3.5 h-3.5 mr-1.5 text-primary ${sincronizandoNotion ? 'animate-spin' : ''}`} />
-            {sincronizandoNotion ? 'Sincronizando Notion...' : '⚡ Sincronizar Notion'}
+            {sincronizandoNotion ? 'Sincronizando...' : '⚡ Sincronizar Notion'}
           </Button>
 
           {/* Botão Duplicar Mês */}
@@ -735,9 +736,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
             onClick={handleAbrirModalNovo}
             variant="primary"
             size="sm"
-            className="rounded-xl shadow-xs h-9 text-xs"
+            className="rounded-xl shadow-xs h-9 text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20 shrink-0"
           >
-            <Plus className="w-4 h-4 mr-1.5" />
+            <Plus className="w-4 h-4 mr-1.5 text-[#192313]" />
             Nova Demanda
           </Button>
         </div>
