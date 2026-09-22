@@ -1271,360 +1271,436 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
         </Card>
       )}
 
-      {/* 3. Modal Redesenhado: Nova Demanda de Alto Nível */}
+      {/* 3. Modal Trello-Style Redesenhado: Nova Demanda (2 Colunas) */}
       <Sheet
         open={modalNovoAberto}
         onClose={() => setModalNovoAberto(false)}
         aria-label="Nova Demanda"
+        className="w-full max-w-4xl lg:max-w-5xl p-0 overflow-hidden"
       >
-        <form onSubmit={handleSalvarNovo} className="flex flex-col max-h-[85vh] sm:max-h-[88vh] max-w-xl w-full">
-          {/* Header Fixo */}
-          <div className="p-5 sm:p-6 border-b border-border shrink-0 flex items-start justify-between gap-4">
-            <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
-                Produção & Esteira
-              </span>
-              <h3 className="text-lg sm:text-xl font-bold font-display text-foreground mt-0.5">
-                Criar Nova Demanda de Conteúdo
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Configure o cliente, formato visual, equipe e prazos para alimentar a esteira de produção.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setModalNovoAberto(false)}
-              className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-accent shrink-0 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Body Rolável */}
-          <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5">
-            {/* 1. SELETOR VISUAL DE CLIENTE */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-foreground font-mono">
-              1. Cliente da Agência
-            </label>
-
-            {/* Input de busca rápida de cliente */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Filtrar clientes por nome ou nicho..."
-                value={buscaClienteForm}
-                onChange={(e) => setBuscaClienteForm(e.target.value)}
-                className="pl-9 h-8 text-xs"
-              />
-            </div>
-
-            {/* Grid de clientes com seleção visual */}
-            <div className="max-h-40 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 p-1 border border-border/80 rounded-xl bg-accent/20">
-              {clientesFormFiltrados.map((c) => {
-                const isSelected = formClienteId === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setFormClienteId(c.id)}
-                    className={`flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-card border-foreground/30 shadow-2xs ring-1 ring-foreground/20'
-                        : 'border-transparent hover:bg-accent/60'
-                    }`}
-                  >
-                    <div className="relative shrink-0">
-                      <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
-                      {c.foto_url && (
-                        <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center p-0.5 border border-card shadow-2xs">
-                          <Instagram className="w-2 h-2 text-white" />
-                        </span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {(c as any).instagram_username ? `@${(c as any).instagram_username}` : c.nicho || 'Geral'}
-                      </p>
-                    </div>
-                    {isSelected && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 2. SELETOR VISUAL DE FORMATO */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-foreground font-mono">
-              2. Formato de Publicação
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
-                {
-                  id: 'post' as const,
-                  label: 'Carrossel / Post',
-                  desc: '4:5 Vertical',
-                  icon: ImageIcon,
-                },
-                {
-                  id: 'reel' as const,
-                  label: 'Vídeo Reels',
-                  desc: '9:16 Vertical',
-                  icon: Video,
-                },
-                {
-                  id: 'story' as const,
-                  label: 'Story',
-                  desc: 'Interativo 9:16',
-                  icon: Smartphone,
-                },
-                {
-                  id: 'avulso' as const,
-                  label: 'Avulso / Extra',
-                  desc: 'Demanda Pontual',
-                  icon: Sparkles,
-                },
-              ].map((fmt) => {
-                const isSelected = formTipo === fmt.id;
-                const Icon = fmt.icon;
-                return (
-                  <button
-                    key={fmt.id}
-                    type="button"
-                    onClick={() => setFormTipo(fmt.id)}
-                    className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center gap-1.5 transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-card border-foreground/30 shadow-2xs ring-1 ring-foreground/20'
-                        : 'border-border/80 hover:bg-accent/40'
-                    }`}
-                  >
-                    <Icon
-                      className={`w-5 h-5 ${
-                        isSelected ? 'text-primary' : 'text-muted-foreground'
-                      }`}
-                    />
-                    <div>
-                      <p className="text-xs font-bold text-foreground">{fmt.label}</p>
-                      <p className="text-[9px] text-muted-foreground font-mono">{fmt.desc}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 3. TÍTULO E BRIEFING */}
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-foreground">
-                Título / Tema da Publicação
-              </label>
-              <Input
-                placeholder="Ex.: 5 Segredos para Aumentar Vendas no Instagram"
-                value={formTitulo}
-                onChange={(e) => setFormTitulo(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-foreground">
-                Briefing / Objetivo da Peça (Para o Designer e Copywriter)
-              </label>
-              <Textarea
-                placeholder="Ex.: Focar na dor do cliente, usar elementos da identidade visual do Dr. Paulo e chamada para o direct..."
-                value={formBriefing}
-                onChange={(e) => setFormBriefing(e.target.value)}
-                rows={2}
-              />
-            </div>
-          </div>
-
-          {/* 4. ATRIBUIÇÃO DE EQUIPE (Sócios / Responsáveis) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Responsável Principal</span>
-              </label>
-              <Select
-                value={formResponsavelId}
-                onChange={(e) => setFormResponsavelId(e.target.value)}
-              >
-                <option value="">Selecione o responsável...</option>
-                {membros.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome} ({m.cargo || (m.papel === 'master' ? 'Sócio' : 'Membro')})
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Designer / Editor (Opcional)</span>
-              </label>
-              <Select
-                value={formEditorId}
-                onChange={(e) => setFormEditorId(e.target.value)}
-              >
-                <option value="">Selecione o editor/designer...</option>
-                {membros.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome} ({m.cargo || 'Especialista'})
-                  </option>
-                ))}
-              </Select>
-            </div>
-          </div>
-
-          {/* 5. PRAZOS E DATAS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Prazo Interno da Equipe</span>
-              </label>
-              <Input
-                type="date"
-                value={formPrazoInterno}
-                onChange={(e) => setFormPrazoInterno(e.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Data Programada (Postagem)</span>
-              </label>
-              <Input
-                type="date"
-                value={formDataProgramada}
-                onChange={(e) => setFormDataProgramada(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* 6. MÍDIAS E ARQUIVOS DA POSTAGEM */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-primary" />
-                <span>Mídias da Demanda ({formArquivos.length} anexadas)</span>
-              </label>
-              {formUploading && (
-                <span className="text-[11px] text-primary flex items-center gap-1 animate-pulse font-medium">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Carregando...
-                </span>
-              )}
-            </div>
-
-            {/* Dropzone com input de arquivo */}
-            <div className="relative border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl p-4 transition-all text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5">
-              <input
-                type="file"
-                multiple={formTipo !== 'reel'}
-                accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
-                onChange={handleFormFilesChange}
-                disabled={formUploading}
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
-              />
-              <div className="w-8 h-8 rounded-xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
-                <UploadCloud className="w-4 h-4 text-primary" />
+        <form onSubmit={handleSalvarNovo} className="flex flex-col max-h-[90vh] w-full bg-card select-none">
+          {/* 1. Header Fixo com Título e Badges */}
+          <div className="p-5 sm:p-6 border-b border-border/70 flex flex-col gap-3 bg-card shrink-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                    Produção & Esteira
+                  </span>
+                  <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 uppercase tracking-wider">
+                    + Nova Demanda
+                  </span>
+                  <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                    formTipo === 'reel' ? 'bg-rose-500/15 text-rose-600 border-rose-500/30' :
+                    formTipo === 'story' ? 'bg-blue-500/15 text-blue-600 border-blue-500/30' :
+                    formTipo === 'post' ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30' :
+                    'bg-amber-500/15 text-amber-600 border-amber-500/30'
+                  }`}>
+                    {formTipo === 'reel' ? '🎬 Reels' : formTipo === 'story' ? '⚡ Story' : formTipo === 'post' ? '🖼️ Carrossel' : '📌 Post'}
+                  </span>
+                </div>
+                <Input
+                  value={formTitulo}
+                  onChange={(e) => setFormTitulo(e.target.value)}
+                  placeholder="Título ou Tema da Publicação..."
+                  className="w-full text-lg sm:text-2xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 mt-1.5 h-auto"
+                  required
+                />
               </div>
-              <div className="flex flex-col">
-                <p className="text-xs font-bold text-foreground">
-                  Clique ou arraste as fotos/vídeo desta postagem
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {formTipo === 'reel' ? 'Vídeo MP4 ou MOV em 9:16' : 'JPG, PNG ou WEBP em 4:5. Selecione várias para Carrossel.'}
-                </p>
-              </div>
-            </div>
-
-            {/* Miniaturas das mídias anexadas */}
-            {formArquivos.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {formArquivos.map((arq, idx) => (
-                  <div
-                    key={arq.id || idx}
-                    className="relative w-16 h-20 rounded-xl overflow-hidden border border-border/80 bg-accent/50 group shadow-2xs"
-                  >
-                    {arq.tipo === 'video' ? (
-                      <video src={arq.url} className="w-full h-full object-cover" muted />
-                    ) : (
-                      <img src={arq.url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
-                    )}
-                    <span className="absolute bottom-1 left-1 text-[8px] font-mono font-bold bg-black/75 text-white px-1 rounded">
-                      #{idx + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setFormArquivos((prev) => prev.filter((_, i) => i !== idx))}
-                      className="absolute top-1 right-1 p-0.5 rounded-full bg-destructive text-white hover:scale-110 transition-transform cursor-pointer"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Opção secundária: Inserir Link Manual (URL) */}
-            <div className="mt-0.5">
               <button
                 type="button"
-                onClick={() => setShowManualUrlsForm((v) => !v)}
-                className="text-[11px] text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
+                onClick={() => setModalNovoAberto(false)}
+                className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer"
               >
-                <span>{showManualUrlsForm ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
+                <X className="w-5 h-5" />
               </button>
-              {showManualUrlsForm && (
+            </div>
+
+            {/* Quick Format Selector */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t border-border/40">
+              <span className="text-[10px] font-bold uppercase font-mono mr-1 text-muted-foreground/80">Formato Rápido:</span>
+              {[
+                { id: 'post' as const, label: 'Carrossel', icon: ImageIcon },
+                { id: 'reel' as const, label: 'Reels', icon: Video },
+                { id: 'story' as const, label: 'Story', icon: Smartphone },
+                { id: 'avulso' as const, label: 'Avulso', icon: Sparkles },
+              ].map((fmt) => (
+                <button
+                  key={fmt.id}
+                  type="button"
+                  onClick={() => setFormTipo(fmt.id)}
+                  className={`px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs ${
+                    formTipo === fmt.id
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-accent/60 hover:bg-accent border-border/60 text-foreground'
+                  }`}
+                >
+                  <fmt.icon className="w-3.5 h-3.5" />
+                  {fmt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Body Rolável Dividido em 2 Colunas */}
+          <div className="p-5 sm:p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* COLUNA DA ESQUERDA (7 Cols): Título, Formato, Legenda Formatada, Briefing & Anexos */}
+            <div className="lg:col-span-7 flex flex-col gap-6">
+              {/* Legenda do Instagram com Rich Formatting Toolbar */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
+                    <FileText className="w-4 h-4 text-primary" />
+                    <span>Descrição / Legenda da Postagem</span>
+                  </label>
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    {formLegenda.length} / 2.200
+                  </span>
+                </div>
+
+                {/* Formatting Toolbar */}
+                <div className="flex items-center gap-1 p-1.5 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => setFormLegenda((prev) => `${prev} **texto em destaque**`)}
+                    className="px-2 py-0.5 rounded hover:bg-card font-bold text-foreground cursor-pointer text-xs"
+                    title="Negrito"
+                  >
+                    B
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormLegenda((prev) => `${prev} *texto itálico*`)}
+                    className="px-2 py-0.5 rounded hover:bg-card italic text-foreground cursor-pointer text-xs"
+                    title="Itálico"
+                  >
+                    I
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormLegenda((prev) => `${prev}\n• `)}
+                    className="px-2 py-0.5 rounded hover:bg-card font-mono text-foreground cursor-pointer text-xs"
+                    title="Lista com tópicos"
+                  >
+                    := Lista
+                  </button>
+                  <span className="w-px h-3 bg-border mx-1" />
+                  {['🚀', '👉', '💡', '🔥', '✅', '💪'].map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setFormLegenda((prev) => `${prev} ${emoji}`)}
+                      className="p-1 rounded hover:bg-card cursor-pointer text-xs"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+
                 <Textarea
-                  placeholder="https://.../slide-01.png&#10;https://.../slide-02.png"
-                  value={formUrls}
-                  onChange={(e) => setFormUrls(e.target.value)}
-                  rows={2}
-                  className="mt-1.5 text-xs font-mono"
+                  value={formLegenda}
+                  onChange={(e) => setFormLegenda(e.target.value)}
+                  placeholder="Escreva a copy da postagem com hashtags, tópicos e formatação..."
+                  rows={6}
+                  className="rounded-t-none rounded-b-xl text-xs font-sans leading-relaxed bg-card"
                 />
-              )}
+              </div>
+
+              {/* Briefing / Instruções de Criação */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <span>Briefing & Instruções da Peça</span>
+                </label>
+                <Textarea
+                  value={formBriefing}
+                  onChange={(e) => setFormBriefing(e.target.value)}
+                  placeholder="Instruções para o designer, editor ou copywriter (ex.: dor do cliente, tom de voz, CTA)..."
+                  rows={3}
+                  className="rounded-xl text-xs bg-card"
+                />
+              </div>
+
+              {/* Listagem de Anexos & Arquivos da Demanda */}
+              <div className="flex flex-col gap-3 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
+                    <Paperclip className="w-4 h-4 text-primary" />
+                    <span>Anexos & Materiais ({formArquivos.length})</span>
+                  </label>
+                  {formUploading && (
+                    <span className="text-[11px] text-primary flex items-center gap-1 animate-pulse font-medium">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Carregando...
+                    </span>
+                  )}
+                </div>
+
+                {/* Lista de Arquivos Anexados */}
+                {formArquivos.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {formArquivos.map((arq, idx) => (
+                      <div
+                        key={arq.id || idx}
+                        className="p-2.5 rounded-2xl bg-accent/30 border border-border/70 flex items-center justify-between gap-3 group hover:border-foreground/30 transition-all"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-12 h-12 rounded-xl bg-black overflow-hidden shrink-0 border border-border/80 relative">
+                            {arq.tipo === 'video' ? (
+                              <video src={arq.url} className="w-full h-full object-cover" muted />
+                            ) : (
+                              <img src={arq.url} alt="" className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-foreground truncate">
+                                {arq.nome || `Arquivo_${idx + 1}.${arq.tipo === 'video' ? 'mp4' : 'png'}`}
+                              </span>
+                              {idx === 0 && (
+                                <span className="text-[9px] font-bold font-mono px-1.5 py-0.2 rounded bg-[#192313] text-[#d8ff3c]">
+                                  ⭐ Capa
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                              #{idx + 1} · {arq.tipo === 'video' ? 'Vídeo MP4' : 'Imagem 4:5'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => window.open(arq.url, '_blank')}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                            title="Abrir anexo em nova aba"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormArquivos((prev) => prev.filter((_, i) => i !== idx))}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                            title="Remover anexo"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Dropzone para Upload de Anexos */}
+                <div className="relative border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl p-4 text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5">
+                  <input
+                    type="file"
+                    multiple={formTipo !== 'reel'}
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                    onChange={handleFormFilesChange}
+                    disabled={formUploading}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
+                  />
+                  <div className="w-8 h-8 rounded-xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
+                    <UploadCloud className="w-4 h-4 text-primary" />
+                  </div>
+                  <p className="text-xs font-bold text-foreground">
+                    Clique ou arraste fotos/vídeos para anexar
+                  </p>
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    {formTipo === 'reel' ? 'Vídeo MP4 em 9:16' : 'Selecione várias para Carrossel em 4:5'}
+                  </p>
+                </div>
+
+                {/* Inserir Link Manual */}
+                <div className="mt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowManualUrlsForm((v) => !v)}
+                    className="text-[11px] text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>{showManualUrlsForm ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
+                  </button>
+                  {showManualUrlsForm && (
+                    <Textarea
+                      placeholder="https://.../slide-01.png&#10;https://.../slide-02.png"
+                      value={formUrls}
+                      onChange={(e) => setFormUrls(e.target.value)}
+                      rows={2}
+                      className="mt-1.5 text-xs font-mono"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* COLUNA DA DIREITA (5 Cols): Cliente, Tags/Status, Equipe, Prazos */}
+            <div className="lg:col-span-5 flex flex-col gap-5">
+              {/* Seletor Visual de Cliente */}
+              <div className="p-4 rounded-2xl bg-accent/25 border border-border/70 flex flex-col gap-2.5">
+                <label className="text-[11px] font-bold uppercase font-mono text-muted-foreground flex items-center justify-between">
+                  <span>1. Cliente da Agência *</span>
+                  {formClienteId && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+                </label>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar cliente por nome..."
+                    value={buscaClienteForm}
+                    onChange={(e) => setBuscaClienteForm(e.target.value)}
+                    className="pl-9 h-8 text-xs bg-card"
+                  />
+                </div>
+
+                <div className="max-h-44 overflow-y-auto flex flex-col gap-1.5 p-1 border border-border/70 rounded-xl bg-card">
+                  {clientesFormFiltrados.map((c) => {
+                    const isSelected = formClienteId === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setFormClienteId(c.id)}
+                        className={`flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-accent/80 border-foreground/30 shadow-2xs ring-1 ring-foreground/20'
+                            : 'border-transparent hover:bg-accent/40'
+                        }`}
+                      >
+                        <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {(c as any).instagram_username ? `@${(c as any).instagram_username}` : c.nicho || 'Geral'}
+                          </p>
+                        </div>
+                        {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Tags & Status na Esteira */}
+              <div className="p-4 rounded-2xl bg-accent/25 border border-border/70 flex flex-col gap-3">
+                <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">Tags & Status</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">Etapa Inicial na Esteira</label>
+                    <Select
+                      value={formStatusInicial}
+                      onChange={(e) => setFormStatusInicial(e.target.value as StatusConteudo)}
+                    >
+                      {COLUNAS_KANBAN.map((st) => (
+                        <option key={st} value={st}>
+                          {STATUS_LABELS[st].label} ({STATUS_LABELS[st].tag})
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">Formato de Publicação</label>
+                    <Select
+                      value={formTipo}
+                      onChange={(e) => setFormTipo(e.target.value as TipoConteudo)}
+                    >
+                      <option value="post">Carrossel / Post Feed (4:5)</option>
+                      <option value="reel">Vídeo Reels (9:16)</option>
+                      <option value="story">Story Interativo (9:16)</option>
+                      <option value="avulso">Avulso / Demanda Extra</option>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Atribuição de Equipe */}
+              <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
+                <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">Atribuição de Equipe</span>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                    <User className="w-3 h-3 text-muted-foreground" />
+                    Responsável Principal
+                  </label>
+                  <Select
+                    value={formResponsavelId}
+                    onChange={(e) => setFormResponsavelId(e.target.value)}
+                  >
+                    <option value="">Selecione o responsável...</option>
+                    {membros.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nome} ({m.cargo || (m.papel === 'master' ? 'Sócio' : 'Membro')})
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                    <Users className="w-3 h-3 text-muted-foreground" />
+                    Designer / Editor (Opcional)
+                  </label>
+                  <Select
+                    value={formEditorId}
+                    onChange={(e) => setFormEditorId(e.target.value)}
+                  >
+                    <option value="">Selecione o editor/designer...</option>
+                    {membros.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nome} ({m.cargo || 'Especialista'})
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+
+              {/* Prazos & Agenda */}
+              <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
+                <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">Prazos e Agendamento</span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Prazo Interno</label>
+                    <Input
+                      type="date"
+                      value={formPrazoInterno}
+                      onChange={(e) => setFormPrazoInterno(e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Data Programada</label>
+                    <Input
+                      type="date"
+                      value={formDataProgramada}
+                      onChange={(e) => setFormDataProgramada(e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* 7. COPY / LEGENDA */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-foreground">
-                Legenda do Post (Instagram)
-              </label>
-              <span className="text-[10px] text-muted-foreground font-mono">
-                {formLegenda.length} / 2.200
-              </span>
-            </div>
-            <Textarea
-              placeholder="Escreva a legenda que irá acompanhar o post no Instagram..."
-              value={formLegenda}
-              onChange={(e) => setFormLegenda(e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          </div>
-
-          {/* Footer Fixo */}
-          <div className="p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex justify-end gap-2">
+          {/* 3. Footer Fixo */}
+          <div className="p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex items-center justify-end gap-2 z-20">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setModalNovoAberto(false)}
+              className="rounded-xl text-xs font-semibold"
             >
               Cancelar
             </Button>
-            <Button type="submit" variant="primary" size="sm" loading={salvando}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              loading={salvando}
+              className="rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-2xs px-4"
+            >
               Cadastrar Demanda
             </Button>
           </div>
