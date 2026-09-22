@@ -184,31 +184,48 @@ export default function KanbanBoard({ accounts, selectedAccountId, withAccount, 
         getItemStatus={(post) => post.approval_status}
         onMove={moveCard}
         renderCard={(post) => (
-          <Card
-            padding="sm"
+          <div
             onClick={() => openEditor(post)}
-            interactive
-            className="rounded-xl"
+            className="p-3.5 rounded-2xl bg-white border border-border/80 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-2.5 group"
           >
-            <div className="flex gap-2">
-              <div className="w-12 h-12 rounded-lg bg-accent shrink-0 overflow-hidden flex items-center justify-center">
+            {/* Topo: Tag de Formato & Username */}
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/40 uppercase tracking-wide">
+                {post.media_type}
+              </span>
+              <span className="text-[10px] font-bold text-[#59614f] truncate">
+                @{usernameFor(post.instagram_user_id)}
+              </span>
+            </div>
+
+            {/* Mídia & Legenda */}
+            <div className="flex gap-2.5 items-center">
+              <div className="w-11 h-11 rounded-xl bg-accent shrink-0 overflow-hidden flex items-center justify-center border border-border/60">
                 {post.media_type === 'VIDEO' || post.media_type === 'REELS' ? (
                   <Video className="w-4 h-4 text-muted-foreground" />
                 ) : (
-                  // eslint-disable-next-line @next/next/no-img-element -- thumbnail de card, não precisa de otimização do Next
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={post.media_url} alt="" className="w-full h-full object-cover" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-semibold text-foreground truncate">@{usernameFor(post.instagram_user_id)}</p>
-                <p className="text-[10px] text-muted-foreground line-clamp-2">{post.caption || 'Sem legenda'}</p>
+                <p className="text-xs font-bold text-foreground line-clamp-2 leading-snug group-hover:text-primary">
+                  {post.caption || 'Publicação sem legenda...'}
+                </p>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              {new Date(post.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-            </p>
-          </Card>
+
+            {/* Rodapé: Data & Horário */}
+            <div className="pt-1.5 border-t border-border/60 flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+              <span className="flex items-center gap-1 font-semibold text-foreground">
+                <Calendar className="w-3 h-3 text-muted-foreground" />
+                {new Date(post.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span className="text-[9px] text-[#59614f] font-bold bg-[#edf4d8] px-1.5 py-0.2 rounded-md">
+                Verificar
+              </span>
+            </div>
+          </div>
         )}
       />
 
