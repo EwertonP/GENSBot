@@ -118,17 +118,72 @@ export async function searchNotionDatabases(): Promise<Array<{ id: string; title
 }
 
 /**
- * Extrai texto simples de um campo RichText do Notion.
+ * Extrai texto simples de um campo RichText do Notion desfazendo sequências literais \\n.
  */
 export function extractRichText(prop: any): string {
   if (!prop) return '';
+  let rawText = '';
   if (Array.isArray(prop.rich_text)) {
-    return prop.rich_text.map((t: any) => t.plain_text || '').join('');
+    rawText = prop.rich_text.map((t: any) => t.plain_text || '').join('');
+  } else if (Array.isArray(prop.title)) {
+    rawText = prop.title.map((t: any) => t.plain_text || '').join('');
   }
-  if (Array.isArray(prop.title)) {
-    return prop.title.map((t: any) => t.plain_text || '').join('');
+  if (!rawText) return '';
+  return rawText.replace(/\\n/g, '\n').replace(/\\r/g, '').trim();
+}
+
+/**
+ * Busca o conteúdo dos blocos (body) de uma página no Notion caso as propriedades da database estejam vazias.
+ */
+export async function fetchNotionPageContent(pageId: string): Promise<string> {
+  const cleanId = pageId.replace(/-/g, '');
+  try {
+    const res = await fetch(`https://api.notion.com/v1/blocks/${cleanId}/children?page_size=100`, {
+      method: 'GET',
+      headers: getHeaders(),
+      next: { revalidate: 0 },
+    });
+
+    if (!res.ok) return '';
+    const data = await res.json();
+    const blocks = data.results || [];
+    const lines: string[] = [];
+
+    for (const b of blocks) {
+      const type = b.type;
+      const contentObj = b[type];
+      if (!contentObj) continue;
+
+      let text = '';
+      if (Array.isArray(contentObj.rich_text)) {
+        text = contentObj.rich_text.map((t: any) => t.plain_text || '').join('').replace(/\\n/g, '\n').trim();
+      }
+
+      if (!text) continue;
+
+      if (type.startsWith('heading_1')) {
+        lines.push(`# ${text}`);
+      } else if (type.startsWith('heading_2')) {
+        lines.push(`## ${text}`);
+      } else if (type.startsWith('heading_3')) {
+        lines.push(`### ${text}`);
+      } else if (type === 'bulleted_list_item' || type === 'numbered_list_item') {
+        lines.push(`• ${text}`);
+      } else if (type === 'to_do') {
+        lines.push(`[${contentObj.checked ? 'X' : ' '}] ${text}`);
+      } else if (type === 'quote' || type === 'callout') {
+        lines.push(`> ${text}`);
+      } else if (type === 'toggle') {
+        lines.push(`▼ ${text}`);
+      } else {
+        lines.push(text);
+      }
+    }
+
+    return lines.join('\n');
+  } catch {
+    return '';
   }
-  return '';
 }
 
 /**
@@ -138,12 +193,12 @@ export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand 
   const props = page.properties || {};
 
   // 1. Título do Post (Nome do projeto / Tema do Post / Title)
-  const titleProp = props['Nome do projeto'] || props['Tema do Post'] || props['Título'] || props['Name'] || props['Conteúdo'] || Object.values(props).find((p: any) => p.type === 'title');
+  const titleProp = props['Nome do projeto'] || props['Tema do Post'] || props['Título'] || props['Titulo'] || props['Name'] || props['Conteúdo'] || Object.values(props).find((p: any) => p.type === 'title');
   const titulo = extractRichText(titleProp) || 'Demanda Sem Título (Notion)';
 
   // 2. Formato (Seleção / Formato / Tipo)
   let tipo: 'post' | 'reel' | 'story' | 'avulso' = 'post';
-  const selProp = props['Seleção'] || props['Formato'] || props['Tipo'];
+  const selProp = props['Seleção'] || props['Formato'] || props['Tipo'] || props['Tipo de Conteúdo'] || props['Formato do Post'];
   const selText = (
     selProp?.multi_select?.[0]?.name ||
     selProp?.select?.name ||
@@ -154,17 +209,59 @@ export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand 
     tipo = 'reel';
   } else if (selText.includes('story') || selText.includes('stories')) {
     tipo = 'story';
-  } else if (selText.includes('carrossel') || selText.includes('feed') || selText.includes('post') || selText.includes('imagem')) {
+  } else if (selText.includes('carrossel') || selText.includes('feed') || selText.includes('post') || selText.includes('imagem') || selText.includes('estático') || selText.includes('estatico')) {
     tipo = 'post';
   }
 
   // 3. Legenda
-  const legendaProp = props['Legenda'] || props['Legenda Completa'];
-  const legenda = extractRichText(legendaProp);
+  const legendaProp = props['Legenda'] || props['Legenda Completa'] || props['Caption'];
+  let legenda = extractRichText(legendaProp);
 
-  // 4. Roteiro / Briefing / Texto da Arte
-  const roteiroProp = props['Roteiro'] || props['Texto da arte'] || props['Briefing'] || props['Copy'];
-  const briefing = extractRichText(roteiroProp);
+  // 4. Extração Completa de Roteiro / Texto da Arte / Briefing / Copy / Descrição
+  const roteiroText = extractRichText(props['Roteiro']);
+  const textoArteText = extractRichText(props['Texto da arte'] || props['Texto da Arte'] || props['Texto Arte']);
+  const briefingPropText = extractRichText(props['Briefing']);
+  const copyText = extractRichText(props['Copy']);
+  const descricaoText = extractRichText(props['Descrição'] || props['Descricao']);
+  const conteudoText = extractRichText(props['Conteúdo'] || props['Conteudo']);
+
+  // Se a legenda estiver vazia, verifica se há copy ou descrição para usar como legenda
+  if (!legenda) {
+    if (copyText) {
+      legenda = copyText;
+    } else if (descricaoText) {
+      legenda = descricaoText;
+    }
+  }
+
+  // Combina todas as fontes de briefing/roteiro/texto de slides disponíveis
+  const sections: string[] = [];
+
+  if (roteiroText) {
+    sections.push(textoArteText || briefingPropText ? `--- ROTEIRO ---\n${roteiroText}` : roteiroText);
+  }
+
+  if (textoArteText && textoArteText !== roteiroText) {
+    sections.push(roteiroText || briefingPropText ? `--- TEXTO DA ARTE / SLIDES ---\n${textoArteText}` : textoArteText);
+  }
+
+  if (briefingPropText && briefingPropText !== roteiroText && briefingPropText !== textoArteText) {
+    sections.push(`--- BRIEFING ---\n${briefingPropText}`);
+  }
+
+  if (copyText && copyText !== legenda && copyText !== roteiroText && copyText !== textoArteText) {
+    sections.push(`--- COPY ---\n${copyText}`);
+  }
+
+  if (descricaoText && descricaoText !== legenda && descricaoText !== roteiroText && descricaoText !== textoArteText) {
+    sections.push(`--- DESCRIÇÃO ---\n${descricaoText}`);
+  }
+
+  if (conteudoText && conteudoText !== titulo && conteudoText !== legenda && conteudoText !== roteiroText && conteudoText !== textoArteText) {
+    sections.push(`--- CONTEÚDO ---\n${conteudoText}`);
+  }
+
+  const briefing = sections.join('\n\n');
 
   // 5. Arquivos e Mídias
   const filesProp = props['Anexar arquivo'] || props['Imagens'] || props['Arquivos'] || props['Criativos'];

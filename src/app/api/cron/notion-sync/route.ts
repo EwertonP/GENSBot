@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { queryNotionDatabase, searchNotionDatabases, mapNotionPageToDemand, correspondeClienteEnotionDb } from '@/lib/notion';
+import { queryNotionDatabase, searchNotionDatabases, mapNotionPageToDemand, correspondeClienteEnotionDb, fetchNotionPageContent } from '@/lib/notion';
 import { getContextoAgencia } from '@/lib/clientes-server';
 
 export async function handleNotionSync(req: Request) {
@@ -105,6 +105,14 @@ export async function handleNotionSync(req: Request) {
       for (const page of pages) {
         totalSynced++;
         const demand = mapNotionPageToDemand(page);
+
+        // Se o briefing estiver vazio, busca blocos do corpo da página no Notion
+        if (!demand.briefing || demand.briefing.trim().length === 0) {
+          const bodyContent = await fetchNotionPageContent(page.id);
+          if (bodyContent) {
+            demand.briefing = bodyContent;
+          }
+        }
 
         // Prepara objeto dos arquivos no formato ArquivoConteudo[]
         const arquivos = demand.arquivosUrls.map((url, index) => ({
