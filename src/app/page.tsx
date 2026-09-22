@@ -331,6 +331,21 @@ export default function Dashboard() {
     }
   };
 
+  const handleUpdateUserProfile = async (name: string, avatarUrl: string) => {
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        data: { full_name: name, avatar_url: avatarUrl }
+      });
+      if (error) throw error;
+      if (data.user) {
+        setCurrentUser(data.user);
+        showToast('Perfil atualizado com sucesso!', 'success');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao atualizar perfil.', 'error');
+    }
+  };
+
   const handleSelectAccount = (accountId: string) => {
     setAccountMenuOpen(false);
     if (accountId === selectedAccountId) return;
@@ -1036,30 +1051,22 @@ export default function Dashboard() {
           ))}
         </nav>
 
-        {/* Sidebar Footer: Usuário logado */}
-        <div className="p-3 border-t border-sidebar-border flex flex-col gap-2">
+        {/* Sidebar Footer: Perfil Único do Usuário Master na Sidebar */}
+        <div className="p-3 border-t border-sidebar-border">
           {currentUser && (
-            <div className="flex items-center gap-2.5 rounded-xl bg-accent/40 border border-border/60 p-2">
-              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs flex-shrink-0">
-                {(currentUser.user_metadata?.full_name || currentUser.email || '?')[0].toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0 leading-tight">
-                <p className="text-xs text-foreground font-semibold truncate">
-                  {currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0]}
-                </p>
-                <p className="text-[10px] text-muted-foreground truncate">
-                  {currentUser.email}
-                </p>
-              </div>
-              <button
-                id="app-logout-button"
-                onClick={handleAppLogout}
-                title="Sair da conta"
-                className="p-1 rounded-lg hover:bg-accent text-muted-foreground hover:text-destructive transition-colors cursor-pointer flex-shrink-0"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <UserProfilePopover
+              userName={currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Agência GENS'}
+              userEmail={currentUser?.email || 'contato@agenciagens.com'}
+              userRole="Diretor de Conteúdo"
+              avatarUrl={currentUser?.user_metadata?.avatar_url}
+              onNavigate={(tab) => {
+                setActiveTab(tab as any);
+                setIsEditing(false);
+              }}
+              onLogout={handleAppLogout}
+              onUpdateProfile={handleUpdateUserProfile}
+              direction="up"
+            />
           )}
         </div>
       </aside>
@@ -1084,11 +1091,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Top Header Bar */}
-        <header className="hidden md:flex sticky top-0 z-30 h-16 px-8 items-center justify-between flex-shrink-0 bg-background/85 backdrop-blur-md border-b border-border/60">
+        {/* Top Header Bar — Com Respiro Padronizado */}
+        <header className="hidden md:flex sticky top-0 z-30 min-h-[76px] py-4 px-8 items-center justify-between flex-shrink-0 bg-background/90 backdrop-blur-md border-b border-border/70 shadow-2xs">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold font-display text-foreground tracking-tight">
+              <h2 className="text-xl font-bold font-display text-foreground tracking-tight">
                 {activeTab === 'dashboard' && 'Dashboard'}
                 {activeTab === 'rotina' && 'Rotina & Afazeres da Agência'}
                 {activeTab === 'clientes' && 'Clientes'}
@@ -1103,7 +1110,7 @@ export default function Dashboard() {
                 {activeTab === 'inbox' && 'Inbox'}
               </h2>
             </div>
-            <p className="text-xs text-muted-foreground font-medium">
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               {activeTab === 'dashboard' && 'Visão unificada das métricas, fila e performance das automações.'}
               {activeTab === 'rotina' && 'Afazeres internos, tarefas operacionais e pendências do dia a dia da agência.'}
               {activeTab === 'clientes' && 'Dossiê, contratos e contatos organizados por cliente.'}
@@ -1134,28 +1141,11 @@ export default function Dashboard() {
                 </button>
               </div>
             )}
-            <button
-              onClick={handleManualDrain}
-              title="Processar fila agora"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card hover:bg-accent border border-border text-xs font-semibold shadow-2xs transition-all cursor-pointer text-foreground"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
-              <span>Sincronizar</span>
-            </button>
-
-            <div className="pl-2 border-l border-border/60">
-              <UserProfilePopover
-                userName={currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Agência GENS'}
-                userEmail={currentUser?.email || 'contato@agenciagens.com'}
-                userRole="Diretor de Conteúdo"
-                onLogout={handleAppLogout}
-              />
-            </div>
           </div>
         </header>
 
-        {/* 3. Tab-based Content Area */}
-        <main className="flex-1 p-6 md:p-8 bg-background max-w-7xl w-full mx-auto">
+        {/* 3. Tab-based Content Area — Respiro Visual Harmonioso */}
+        <main className="flex-1 p-6 md:p-8 md:pt-8 bg-background max-w-7xl w-full mx-auto space-y-6">
           <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

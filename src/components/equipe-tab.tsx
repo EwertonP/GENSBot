@@ -11,10 +11,10 @@ import {
   Layers,
   CheckCircle2,
   Clock,
-  MoreHorizontal,
-  Key,
   Trash2,
   Sparkles,
+  UploadCloud,
+  Camera,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,8 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Sheet } from '@/components/ui/sheet';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ClienteAvatar } from '@/components/cliente-avatar';
+import { upload } from '@vercel/blob/client';
 
 export interface MembroEquipe {
   id: string;
@@ -54,9 +56,11 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
   const [formNome, setFormNome] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formCargo, setFormCargo] = useState('');
+  const [formFotoUrl, setFormFotoUrl] = useState('');
   const [formPapel, setFormPapel] = useState<'master' | 'membro'>('master');
   const [formPassword, setFormPassword] = useState('');
   const [senhaGeradaMsg, setSenhaGeradaMsg] = useState<string | null>(null);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
 
   async function carregarMembros() {
     setCarregando(true);
@@ -84,6 +88,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
     setFormNome('');
     setFormEmail('');
     setFormCargo('Sócio / Designer');
+    setFormFotoUrl('');
     setFormPapel('master');
     setFormPassword('');
     setSenhaGeradaMsg(null);
@@ -95,10 +100,30 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
     setFormNome(m.nome);
     setFormEmail(m.email);
     setFormCargo(m.cargo || '');
+    setFormFotoUrl(m.foto_url || '');
     setFormPapel(m.papel);
     setFormPassword('');
     setSenhaGeradaMsg(null);
     setModalAberto(true);
+  }
+
+  async function handleFotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files?.length) return;
+    const file = e.target.files[0];
+    setUploadingFoto(true);
+    try {
+      const blob = await upload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: '/api/instagram/upload-media',
+      });
+      setFormFotoUrl(blob.url);
+      showToast('Foto de perfil enviada com sucesso!', 'success');
+    } catch {
+      const localUrl = URL.createObjectURL(file);
+      setFormFotoUrl(localUrl);
+    } finally {
+      setUploadingFoto(false);
+    }
   }
 
   async function handleSalvar(e: React.FormEvent) {
@@ -121,6 +146,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             nome: formNome.trim(),
             cargo: formCargo.trim() || null,
             papel: formPapel,
+            foto_url: formFotoUrl.trim() || null,
           }),
         });
         const data = await res.json();
@@ -142,6 +168,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             cargo: formCargo.trim() || null,
             papel: formPapel,
             password: formPassword.trim() || undefined,
+            foto_url: formFotoUrl.trim() || null,
           }),
         });
         const data = await res.json();
@@ -206,19 +233,19 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
   return (
     <div className="flex flex-col gap-6 animate-fade-in max-w-6xl mx-auto pb-12">
       {/* Header com Ação de Criar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/70 pb-5">
         <div>
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">
             Administração · Multi-membros
           </span>
           <h2 className="text-xl sm:text-2xl font-black font-display text-foreground tracking-tight flex items-center gap-2.5 mt-0.5">
             <span>Equipe & Sócios da Agência</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-foreground font-mono font-bold">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#edf4d8] text-[#192313] border border-[#d8ff3c] font-mono font-bold">
               {ativos.length} ativos
             </span>
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Cadastre a equipe manualmente ou envie o link personalizado para auto-cadastro.
+            Cadastre membros da equipe, altere fotos de perfil e gerencie níveis de acesso.
           </p>
         </div>
 
@@ -236,7 +263,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
           <Button
             onClick={abrirModalCriar}
             variant="primary"
-            className="rounded-xl shadow-xs text-xs"
+            className="rounded-xl shadow-xs text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20"
           >
             <UserPlus className="w-4 h-4 mr-1.5" />
             Cadastrar Membro
@@ -280,7 +307,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
         </Card>
       )}
 
-      {/* Grid de Membros */}
+      {/* Grid de Membros com Avatar */}
       {carregando ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-busy="true">
           {[0, 1, 2].map((i) => (
@@ -302,12 +329,6 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {membros.map((membro) => {
             const isMaster = membro.papel === 'master';
-            const iniciais = membro.nome
-              .split(' ')
-              .map((n) => n[0])
-              .slice(0, 2)
-              .join('')
-              .toUpperCase();
 
             return (
               <Card
@@ -316,26 +337,24 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                   !membro.ativo
                     ? 'opacity-70 border-dashed border-border'
                     : isMaster
-                    ? 'border-foreground/15'
+                    ? 'border-[#d8ff3c] bg-card'
                     : 'border-border'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center font-display font-black text-sm flex-shrink-0 shadow-2xs ${
-                        isMaster
-                          ? 'bg-lime text-foreground border border-foreground/15'
-                          : 'bg-accent text-muted-foreground border border-border'
-                      }`}
-                    >
-                      {iniciais}
-                    </div>
+                    <ClienteAvatar
+                      nome={membro.nome}
+                      fotoUrl={membro.foto_url}
+                      cor="#192313"
+                      tamanho="md"
+                      className="shrink-0 ring-2 ring-[#d8ff3c]"
+                    />
 
                     <div className="min-w-0 leading-tight">
                       <h4 className="text-sm font-bold text-foreground truncate flex items-center gap-1.5">
                         <span>{membro.nome}</span>
-                        {isMaster && <Sparkles className="w-3 h-3 text-primary shrink-0" />}
+                        {isMaster && <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />}
                       </h4>
                       <p className="text-[11px] text-muted-foreground truncate mt-0.5">{membro.email}</p>
                     </div>
@@ -343,7 +362,9 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
 
                   <Badge
                     variant={isMaster ? 'info' : 'muted'}
-                    className="text-[9px] font-bold uppercase tracking-wider flex-shrink-0"
+                    className={`text-[9px] font-bold uppercase tracking-wider flex-shrink-0 ${
+                      isMaster ? 'bg-[#edf4d8] text-[#192313] border-[#d8ff3c]' : ''
+                    }`}
                   >
                     {isMaster ? 'Sócio Master' : 'Colaborador'}
                   </Badge>
@@ -429,8 +450,8 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
               {membroEditando
-                ? 'Atualize o cargo e papel deste membro na agência.'
-                : 'Defina os dados de acesso para o novo sócio ou colaborador.'}
+                ? 'Atualize o cargo, foto de perfil e papel deste membro na agência.'
+                : 'Defina os dados de acesso e foto para o novo sócio ou colaborador.'}
             </p>
           </div>
 
@@ -453,10 +474,40 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
 
           {!senhaGeradaMsg && (
             <>
+              {/* Upload de Foto de Perfil */}
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-accent/30 border border-border/60">
+                <ClienteAvatar
+                  nome={formNome || 'Usuário'}
+                  fotoUrl={formFotoUrl}
+                  cor="#192313"
+                  tamanho="md"
+                  className="shrink-0 ring-2 ring-primary"
+                />
+                <div className="flex flex-col gap-1 flex-1">
+                  <label htmlFor="membro-foto-input" className="text-xs font-bold text-primary cursor-pointer hover:underline flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5" />
+                    {uploadingFoto ? 'Enviando imagem...' : 'Adicionar / Alterar Foto de Perfil'}
+                  </label>
+                  <input
+                    id="membro-foto-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFotoUpload}
+                    className="hidden"
+                  />
+                  <Input
+                    placeholder="URL direta da foto (ex: https://...)"
+                    value={formFotoUrl}
+                    onChange={(e) => setFormFotoUrl(e.target.value)}
+                    className="h-8 text-[11px]"
+                  />
+                </div>
+              </div>
+
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-foreground">Nome Completo</label>
                 <Input
-                  placeholder="Ex.: Francisco Raphaell / Sócio Designer"
+                  placeholder="Ex.: Francisco Raphaell"
                   value={formNome}
                   onChange={(e) => setFormNome(e.target.value)}
                   required
@@ -514,7 +565,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                 <Button type="button" variant="ghost" size="sm" onClick={() => setModalAberto(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" variant="primary" size="sm" loading={salvando}>
+                <Button type="submit" variant="primary" size="sm" loading={salvando} className="bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] font-bold">
                   {membroEditando ? 'Salvar Alterações' : 'Criar e Ativar Sócio'}
                 </Button>
               </div>
