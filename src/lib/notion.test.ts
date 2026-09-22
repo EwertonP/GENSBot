@@ -68,6 +68,38 @@ describe('mapNotionPageToDemand', () => {
     expect(mapped.briefing).toBe('Slide 1: Capa\nSlide 2: Conteúdo');
     expect(mapped.status).toBe('criacao_arte');
   });
+
+  it('desfaz quebras de linha literais \\n e combina Roteiro e Texto da arte quando ambos existirem', () => {
+    const mockPage: any = {
+      id: '39e75451-38cc-812d-8140-f04b35d706cb',
+      created_time: '2026-07-15T18:24:00.000Z',
+      last_edited_time: '2026-07-15T18:24:00.000Z',
+      url: 'https://notion.so/test-carrossel-duplo',
+      properties: {
+        'Nome do projeto': {
+          title: [{ plain_text: 'Post Carrossel Duplo' }],
+        },
+        'Seleção': {
+          multi_select: [{ name: 'Carrossel' }],
+        },
+        'Legenda Completa': {
+          rich_text: [{ plain_text: 'Legenda com \\nquebra de linha' }],
+        },
+        'Roteiro': {
+          rich_text: [{ plain_text: 'Cena 1 (0-3s): Introdução \\nCena 2: Explicação' }],
+        },
+        'Texto da arte': {
+          rich_text: [{ plain_text: 'Slide 1: Capa \\nSlide 2: Detalhes' }],
+        },
+      },
+    };
+
+    const mapped = mapNotionPageToDemand(mockPage);
+
+    expect(mapped.legenda).toBe('Legenda com \nquebra de linha');
+    expect(mapped.briefing).toContain('--- ROTEIRO ---\nCena 1 (0-3s): Introdução \nCena 2: Explicação');
+    expect(mapped.briefing).toContain('--- TEXTO DA ARTE / SLIDES ---\nSlide 1: Capa \nSlide 2: Detalhes');
+  });
 });
 
 describe('correspondeClienteEnotionDb', () => {
