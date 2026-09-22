@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
 import ContactsTab from '@/components/contacts-tab';
 import InboxPanel from '@/components/inbox-panel';
+import UserProfilePopover from '@/components/user-profile-popover';
 import LogsTab from '@/components/logs-tab';
 import DashboardHome from '@/components/dashboard-home';
 import AutomationsTab from '@/components/automations-tab';
@@ -1022,11 +1023,11 @@ export default function Dashboard() {
                     }}
                     className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
                       active 
-                        ? 'text-foreground bg-sidebar-accent font-bold shadow-2xs border border-border/50' 
+                        ? 'text-[#192313] bg-[#edf4d8] font-bold shadow-2xs border border-[#d8ff3c]/60' 
                         : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                     }`}
                   >
-                    <Icon className={`relative w-4 h-4 ${active ? 'text-foreground' : 'text-muted-foreground'}`} />
+                    <Icon className={`relative w-4 h-4 ${active ? 'text-[#192313]' : 'text-muted-foreground'}`} />
                     <span className="relative">{item.label}</span>
                   </button>
                 );
@@ -1141,6 +1142,24 @@ export default function Dashboard() {
               <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
               <span>Sincronizar</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('publish')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#d8ff3c] hover:bg-[#cbf72b] text-[#192313] font-bold text-xs shadow-2xs transition-all cursor-pointer border border-[#192313]/10"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#192313]" />
+              <span>Novo Agendamento</span>
+            </button>
+
+            <div className="pl-2 border-l border-border/60">
+              <UserProfilePopover
+                userName={currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Agência GENS'}
+                userEmail={currentUser?.email || 'contato@agenciagens.com'}
+                userRole="Diretor de Conteúdo"
+                onNavigate={(tab) => setActiveTab(tab as any)}
+                onLogout={handleAppLogout}
+              />
+            </div>
           </div>
         </header>
 

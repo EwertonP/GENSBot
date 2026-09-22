@@ -637,14 +637,14 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
             />
           )}
 
-          {/* Alternador Kanban / Lista / Feed 3x3 */}
+          {/* Alternador Kanban / Lista / Feed 3x3 (Pill Tab em Verde GENS) */}
           <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border/70">
             <button
               type="button"
               onClick={() => setViewMode('kanban')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'kanban'
-                  ? 'bg-card text-foreground shadow-2xs'
+                  ? 'bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/60 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
               title="Visualização em Kanban"
@@ -656,7 +656,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               onClick={() => setViewMode('list')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'list'
-                  ? 'bg-card text-foreground shadow-2xs'
+                  ? 'bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/60 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
               title="Visualização em Lista"
@@ -668,7 +668,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               onClick={() => setViewMode('feed')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'feed'
-                  ? 'bg-card text-primary font-bold shadow-2xs'
+                  ? 'bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/60 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
               title="Visualização Preview de Feed 3x3"
