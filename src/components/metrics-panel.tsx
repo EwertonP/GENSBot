@@ -1205,97 +1205,49 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </div>
           )}
 
-          {/* Seleção de Mês Principal vs Mês Comparativo */}
+          {/* Seleção de Mês Principal vs Mês Comparativo & Copiar Link */}
           {filterMode === 'month_comparison' && (
-            <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border/80 shadow-2xs text-xs">
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase">Mês:</span>
-                <input
-                  type="month"
-                  value={mainMonth}
-                  onChange={(e) => setMainMonth(e.target.value)}
-                  className="h-8 text-xs px-2 rounded-xl bg-background border border-border font-mono font-bold text-foreground"
-                />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border/80 shadow-2xs text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Mês:</span>
+                  <input
+                    type="month"
+                    value={mainMonth}
+                    onChange={(e) => setMainMonth(e.target.value)}
+                    className="h-8 text-xs px-2 rounded-xl bg-background border border-border font-mono font-bold text-foreground"
+                  />
+                </div>
+
+                <span className="text-muted-foreground font-bold">vs</span>
+
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Base:</span>
+                  <input
+                    type="month"
+                    value={compMonth}
+                    onChange={(e) => setCompMonth(e.target.value)}
+                    className="h-8 text-xs px-2 rounded-xl bg-background border border-border font-mono text-muted-foreground"
+                  />
+                </div>
               </div>
 
-              <span className="text-muted-foreground font-bold">vs</span>
-
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase">Base:</span>
-                <input
-                  type="month"
-                  value={compMonth}
-                  onChange={(e) => setCompMonth(e.target.value)}
-                  className="h-8 text-xs px-2 rounded-xl bg-background border border-border font-mono text-muted-foreground"
-                />
-              </div>
+              <Button
+                onClick={handleCopiarLinkRelatorio}
+                variant="outline"
+                size="sm"
+                className="rounded-2xl shadow-2xs h-9 text-xs font-bold bg-[#edf4d8] text-[#192313] hover:bg-[#d8ff3c] border border-[#d8ff3c] cursor-pointer transition-all"
+                title="Copiar link interativo do relatório para enviar ao cliente"
+              >
+                {linkCopiado ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-[#192313]" />
+                ) : (
+                  <Share2 className="w-3.5 h-3.5 mr-1.5 text-[#192313]" />
+                )}
+                {linkCopiado ? 'Link Copiado!' : 'Copiar link do relatório'}
+              </Button>
             </div>
           )}
-
-          {/* Botões de Ação do Relatório do Cliente */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Button
-              onClick={() => handleEnviarWhatsapp()}
-              variant="outline"
-              size="sm"
-              className="rounded-2xl shadow-2xs h-9 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-500/30 cursor-pointer"
-              title="Abrir WhatsApp Web com mensagem formatada e link do relatório"
-            >
-              <Send className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-              Enviar no WhatsApp
-            </Button>
-
-            <Button
-              onClick={() => handleCopiarMensagemWhatsapp()}
-              variant="outline"
-              size="sm"
-              className="rounded-2xl shadow-2xs h-9 text-xs font-semibold bg-card hover:bg-accent border border-border cursor-pointer"
-              title="Copiar mensagem personalizada do WhatsApp com link"
-            >
-              {msgWhatsCopiada ? (
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-              ) : (
-                <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-              )}
-              {msgWhatsCopiada ? 'Msg Copiada!' : 'Copiar Texto Whats'}
-            </Button>
-
-            <Button
-              onClick={handleCopiarLinkRelatorio}
-              variant="outline"
-              size="sm"
-              className="rounded-2xl shadow-2xs h-9 text-xs font-semibold bg-card hover:bg-accent border border-border cursor-pointer"
-              title="Copiar link interativo público"
-            >
-              {linkCopiado ? (
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-              ) : (
-                <Share2 className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-              )}
-              {linkCopiado ? 'Link Copiado!' : 'Copiar Link Bruto'}
-            </Button>
-
-            <Button
-              onClick={handleAbrirRelatorioInterativo}
-              variant="outline"
-              size="sm"
-              className="rounded-2xl shadow-2xs h-9 text-xs font-bold text-foreground bg-card hover:bg-accent border border-border/80 cursor-pointer"
-              title="Abrir página pública do relatório do cliente em nova aba"
-            >
-              <ExternalLink className="w-3.5 h-3.5 mr-1.5 text-primary" />
-              Ver Relatório
-            </Button>
-
-            <Button
-              onClick={() => setShowReportModal(true)}
-              variant="primary"
-              size="sm"
-              className="rounded-2xl shadow-xs h-9 text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20 cursor-pointer"
-            >
-              <Printer className="w-3.5 h-3.5 mr-1.5 text-[#192313]" />
-              Gerar PDF
-            </Button>
-          </div>
         </div>
 
         {/* Alternador de Visão: Métricas Globais x Histórico de Relatórios Salvos */}
