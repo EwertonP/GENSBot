@@ -60,21 +60,24 @@ function DroppableColumn<TStatus extends string>({
   return (
     <div
       ref={setNodeRef}
-      className={`flex-shrink-0 w-72 rounded-2xl p-3 border transition-all duration-200 min-h-[480px] flex flex-col gap-3 ${
+      className={`flex-shrink-0 w-80 rounded-3xl p-3.5 border transition-all duration-200 min-h-[500px] flex flex-col gap-3 ${
         isOver
-          ? 'bg-lime/15 border-primary ring-2 ring-primary/20 shadow-md scale-[1.01]'
-          : 'bg-accent/25 border-border/60'
+          ? 'bg-[#d8ff3c]/25 border-primary ring-2 ring-primary/30 shadow-md scale-[1.01]'
+          : 'bg-[#edf4d8]/35 border border-[#d8ff3c]/40 shadow-2xs'
       }`}
     >
-      <div className="flex items-center justify-between px-1 pb-1">
-        <h4 className="text-xs font-bold text-foreground font-display uppercase tracking-wide">
-          {column.label}
-        </h4>
-        <Badge variant="muted" className="font-mono text-[10px] font-bold">
+      <div className="flex items-center justify-between px-1.5 pb-2.5 border-b border-border/60">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#192313]" />
+          <h4 className="text-xs font-bold text-[#192313] font-display uppercase tracking-wider">
+            {column.label}
+          </h4>
+        </div>
+        <Badge variant="muted" className="font-mono text-[10px] font-bold bg-white text-[#192313] border border-border/70 shadow-2xs">
           {count}
         </Badge>
       </div>
-      <div className="flex flex-col gap-2.5 flex-1">{children}</div>
+      <div className="flex flex-col gap-3 flex-1">{children}</div>
     </div>
   );
 }
