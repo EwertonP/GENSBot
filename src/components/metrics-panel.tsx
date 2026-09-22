@@ -32,6 +32,11 @@ import {
   Layers,
   CheckCircle2,
   X,
+  ExternalLink,
+  Trash2,
+  History,
+  Send,
+  MessageSquare,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +45,15 @@ import { Sheet } from '@/components/ui/sheet';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Instagram as InstagramIcon } from '@/components/instagram-icon';
 import { gerarLinkCompletoRelatorio } from '@/lib/relatorio-token';
+
+export interface RelatorioSalvoItem {
+  id: string;
+  clienteNome: string;
+  mainMonth: string;
+  compMonth: string;
+  link: string;
+  criadoEm: string;
+}
 
 // --- Interfaces de Tipagem ---
 interface DailyPoint {
@@ -956,8 +970,87 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
   const [contentFilter, setContentFilter] = useState<'all' | 'reels' | 'posts'>('all');
   const [showReportModal, setShowReportModal] = useState(false);
   const [linkCopiado, setLinkCopiado] = useState(false);
+  const [msgWhatsCopiada, setMsgWhatsCopiada] = useState(false);
+
+  // Aba principal de visão: Métricas x Histórico de Relatórios Enviados
+  const [abaSub, setAbaSub] = useState<'metricas' | 'historico_relatorios'>('metricas');
+  const [relatoriosSalvos, setRelatoriosSalvos] = useState<RelatorioSalvoItem[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('gens_relatorios_salvos');
+      if (saved) {
+        try {
+          setRelatoriosSalvos(JSON.parse(saved));
+        } catch {}
+      }
+    }
+  }, []);
+
+  const salvarRelatorioNoHistorico = (cNome: string, mMain: string, mComp: string, urlLink: string) => {
+    setRelatoriosSalvos((prev) => {
+      const jaExiste = prev.some((r) => r.link === urlLink);
+      if (jaExiste) return prev;
+      const novo: RelatorioSalvoItem = {
+        id: `rel_${Date.now()}`,
+        clienteNome: cNome,
+        mainMonth: mMain,
+        compMonth: mComp,
+        link: urlLink,
+        criadoEm: new Date().toISOString(),
+      };
+      const updated = [novo, ...prev];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('gens_relatorios_salvos', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
+  const handleExcluirRelatorio = (id: string) => {
+    setRelatoriosSalvos((prev) => {
+      const updated = prev.filter((r) => r.id !== id);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('gens_relatorios_salvos', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
 
   const isSingleAccount = selectedAccountId && selectedAccountId !== 'all';
+
+  const gerarMensagemWhatsapp = (cNome: string, mMain: string, mComp: string, urlLink: string) => {
+    const mainLabel = formatMonthLabel(mMain);
+    const compLabel = formatMonthLabel(mComp);
+    return `Olá! 👋 Aqui é da Agência GENS.\n\nSeu Relatório Executivo de Performance no Instagram do período de *${mainLabel} vs ${compLabel}* (${cNome}) está disponível!\n\n📊 *Acesse o relatório interativo completo no link below:*\n${urlLink}\n\nQualquer dúvida, estamos à disposição! 🚀`;
+  };
+
+  const handleCopiarMensagemWhatsapp = (relItem?: RelatorioSalvoItem) => {
+    const cNome = relItem ? relItem.clienteNome : (activeAccount?.username ? `@${activeAccount.username}` : 'Cliente');
+    const mM = relItem ? relItem.mainMonth : mainMonth;
+    const cM = relItem ? relItem.compMonth : compMonth;
+    const url = relItem ? relItem.link : gerarLinkCompletoRelatorio({ accountId: selectedAccountId || 'all', mainMonth: mM, compMonth: cM, clienteNome: cNome });
+
+    const msg = gerarMensagemWhatsapp(cNome, mM, cM, url);
+    navigator.clipboard.writeText(msg);
+    setMsgWhatsCopiada(true);
+    setTimeout(() => setMsgWhatsCopiada(false), 2500);
+
+    salvarRelatorioNoHistorico(cNome, mM, cM, url);
+  };
+
+  const handleEnviarWhatsapp = (relItem?: RelatorioSalvoItem) => {
+    const cNome = relItem ? relItem.clienteNome : (activeAccount?.username ? `@${activeAccount.username}` : 'Cliente');
+    const mM = relItem ? relItem.mainMonth : mainMonth;
+    const cM = relItem ? relItem.compMonth : compMonth;
+    const url = relItem ? relItem.link : gerarLinkCompletoRelatorio({ accountId: selectedAccountId || 'all', mainMonth: mM, compMonth: cM, clienteNome: cNome });
+
+    const msg = gerarMensagemWhatsapp(cNome, mM, cM, url);
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(whatsappUrl, '_blank');
+
+    salvarRelatorioNoHistorico(cNome, mM, cM, url);
+  };
 
   const handleCopiarLinkRelatorio = () => {
     const clienteNome = activeAccount?.username ? `@${activeAccount.username}` : 'Cliente';
@@ -970,6 +1063,8 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
     navigator.clipboard.writeText(link);
     setLinkCopiado(true);
     setTimeout(() => setLinkCopiado(false), 2500);
+
+    salvarRelatorioNoHistorico(clienteNome, mainMonth, compMonth, link);
   };
 
   const handleAbrirRelatorioInterativo = () => {
@@ -981,6 +1076,8 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
       clienteNome,
     });
     window.open(link, '_blank');
+
+    salvarRelatorioNoHistorico(clienteNome, mainMonth, compMonth, link);
   };
 
   useEffect(() => {
@@ -1136,30 +1233,56 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           )}
 
           {/* Botões de Ação do Relatório do Cliente */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button
+              onClick={() => handleEnviarWhatsapp()}
+              variant="outline"
+              size="sm"
+              className="rounded-2xl shadow-2xs h-9 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-500/30 cursor-pointer"
+              title="Abrir WhatsApp Web com mensagem formatada e link do relatório"
+            >
+              <Send className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+              Enviar no WhatsApp
+            </Button>
+
+            <Button
+              onClick={() => handleCopiarMensagemWhatsapp()}
+              variant="outline"
+              size="sm"
+              className="rounded-2xl shadow-2xs h-9 text-xs font-semibold bg-card hover:bg-accent border border-border cursor-pointer"
+              title="Copiar mensagem personalizada do WhatsApp com link"
+            >
+              {msgWhatsCopiada ? (
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+              ) : (
+                <MessageSquare className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+              )}
+              {msgWhatsCopiada ? 'Msg Copiada!' : 'Copiar Texto Whats'}
+            </Button>
+
             <Button
               onClick={handleCopiarLinkRelatorio}
               variant="outline"
               size="sm"
-              className="rounded-2xl shadow-2xs h-9 text-xs font-semibold bg-card hover:bg-accent border border-border"
-              title="Copiar link interativo para enviar ao cliente no WhatsApp"
+              className="rounded-2xl shadow-2xs h-9 text-xs font-semibold bg-card hover:bg-accent border border-border cursor-pointer"
+              title="Copiar link interativo público"
             >
               {linkCopiado ? (
                 <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
               ) : (
                 <Share2 className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
               )}
-              {linkCopiado ? 'Link Copiado!' : 'Copiar Link para Cliente'}
+              {linkCopiado ? 'Link Copiado!' : 'Copiar Link Bruto'}
             </Button>
 
             <Button
               onClick={handleAbrirRelatorioInterativo}
               variant="outline"
               size="sm"
-              className="rounded-2xl shadow-2xs h-9 text-xs font-bold text-foreground bg-card hover:bg-accent border border-border/80"
+              className="rounded-2xl shadow-2xs h-9 text-xs font-bold text-foreground bg-card hover:bg-accent border border-border/80 cursor-pointer"
               title="Abrir página pública do relatório do cliente em nova aba"
             >
-              <Eye className="w-3.5 h-3.5 mr-1.5 text-primary" />
+              <ExternalLink className="w-3.5 h-3.5 mr-1.5 text-primary" />
               Ver Relatório
             </Button>
 
@@ -1167,16 +1290,144 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
               onClick={() => setShowReportModal(true)}
               variant="primary"
               size="sm"
-              className="rounded-2xl shadow-xs h-9 text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20"
+              className="rounded-2xl shadow-xs h-9 text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5 mr-1.5 text-[#192313]" />
               Gerar PDF
             </Button>
           </div>
         </div>
+
+        {/* Alternador de Visão: Métricas Globais x Histórico de Relatórios Salvos */}
+        <div className="flex items-center gap-2 border-b border-border/60 pb-2 pt-1">
+          <button
+            type="button"
+            onClick={() => setAbaSub('metricas')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              abaSub === 'metricas'
+                ? 'bg-primary text-primary-foreground shadow-2xs font-display'
+                : 'bg-accent/40 text-muted-foreground hover:text-foreground hover:bg-accent'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Painel de Métricas & Desempenho
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaSub('historico_relatorios')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              abaSub === 'historico_relatorios'
+                ? 'bg-primary text-primary-foreground shadow-2xs font-display'
+                : 'bg-accent/40 text-muted-foreground hover:text-foreground hover:bg-accent'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            Histórico de Relatórios Gerados
+            <span className="px-1.5 py-0.2 rounded-full bg-card/80 text-foreground text-[10px] font-mono border">
+              {relatoriosSalvos.length}
+            </span>
+          </button>
+        </div>
       </div>
 
-      {loading ? (
+      {abaSub === 'historico_relatorios' ? (
+        <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-primary" />
+                <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
+                  Histórico de Relatórios Gerados & Enviados
+                </h3>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Todos os links públicos gerados ficam salvos com acesso perpétuo (sem expiração) para enviar aos clientes.
+              </p>
+            </div>
+            <Badge variant="info" className="bg-[#edf4d8] text-[#192313] border-[#d8ff3c] font-bold text-xs self-start sm:self-auto">
+              Links Perpétuos & Sem Limite de Acesso ♾️
+            </Badge>
+          </div>
+
+          {relatoriosSalvos.length === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="Nenhum relatório gerado ainda"
+              description="Ao clicar em 'Copiar Link', 'Ver Relatório' ou 'Enviar no WhatsApp', os relatórios gerados aparecerão salvos nesta lista para consulta a qualquer momento."
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-border/60 text-muted-foreground font-mono text-[10px] uppercase">
+                    <th className="py-2.5 px-3">Cliente / Perfil</th>
+                    <th className="py-2.5 px-3">Período Comparado</th>
+                    <th className="py-2.5 px-3">Data de Geração</th>
+                    <th className="py-2.5 px-3">Status de Validade</th>
+                    <th className="py-2.5 px-3 text-right">Ações Rápidas</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40 font-sans">
+                  {relatoriosSalvos.map((rel) => (
+                    <tr key={rel.id} className="hover:bg-accent/30 transition-colors">
+                      <td className="py-3 px-3 font-bold text-foreground">
+                        {rel.clienteNome}
+                      </td>
+                      <td className="py-3 px-3 text-muted-foreground capitalize">
+                        {formatMonthLabel(rel.mainMonth)} <span className="text-[10px] font-mono text-muted-foreground">vs</span> {formatMonthLabel(rel.compMonth)}
+                      </td>
+                      <td className="py-3 px-3 text-muted-foreground font-mono text-[11px]">
+                        {new Date(rel.criadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
+                          <CheckCircle2 className="w-3 h-3" /> Ativo (Sem Expiração)
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => window.open(rel.link, '_blank')}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors"
+                            title="Abrir Relatório público"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopiarMensagemWhatsapp(rel)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 cursor-pointer transition-colors"
+                            title="Copiar mensagem para WhatsApp"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleEnviarWhatsapp(rel)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 cursor-pointer transition-colors"
+                            title="Enviar diretamente no WhatsApp Web"
+                          >
+                            <Send className="w-4 h-4 text-emerald-600" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleExcluirRelatorio(rel.id)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
+                            title="Excluir do histórico"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      ) : loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4" aria-busy="true">
           {[0, 1, 2, 3].map((i) => (
             <Card key={i} className="h-32 rounded-3xl animate-pulse bg-accent/30" />
