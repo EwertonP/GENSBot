@@ -31,6 +31,9 @@ import {
   CornerDownRight,
   Check,
   MessageSquare,
+  AlertTriangle,
+  ArrowLeft,
+  User,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,6 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CalendarPicker } from '@/components/ui/calendar-picker';
+import { Sheet } from '@/components/ui/sheet';
 import type { PostingTimeSuggestion } from '@/lib/best-posting-time';
 import type { PrefillAgendamento } from '@/lib/conteudo';
 import { detectarGatilhosDaLegenda, type PublishAutomationConfig } from '@/lib/publish-automation';
@@ -294,9 +298,23 @@ export default function PublishPanel({
   const [userTagsInput, setUserTagsInput] = useState('');
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<PostingTimeSuggestion[]>([]);
+
+  const handleOpenConfirmation = () => {
+    if ((files.length === 0 && prefillRemoteUrls.length === 0) || !targetAccount) {
+      setError('Selecione uma conta e adicione pelo menos uma imagem ou vídeo.');
+      return;
+    }
+    if (scheduleEnabled && !scheduledAt) {
+      setError('Selecione a data e o horário para o agendamento.');
+      return;
+    }
+    setError(null);
+    setShowConfirmModal(true);
+  };
 
   // Automação de Comentários (Direct Automático)
   const [autoEnabled, setAutoEnabled] = useState(false);
@@ -571,6 +589,7 @@ export default function PublishPanel({
       setAutoLinkButtonLabel('');
       setAutoPublicReply('');
       onClearPrefill?.();
+      setShowConfirmModal(false);
       loadPosts();
     } catch (err: any) {
       setError(err.message);
@@ -1121,15 +1140,171 @@ export default function PublishPanel({
           <Button
             type="button"
             variant="lime"
-            onClick={handleSubmit}
+            onClick={handleOpenConfirmation}
             loading={submitting}
-            disabled={files.length === 0 || (scheduleEnabled && !scheduledAt)}
-            className="w-full py-3.5 rounded-2xl text-xs font-bold shadow-xs text-foreground"
+            disabled={(files.length === 0 && prefillRemoteUrls.length === 0) || (scheduleEnabled && !scheduledAt)}
+            className="w-full py-3.5 rounded-2xl text-xs font-bold shadow-xs text-foreground cursor-pointer"
           >
             {!submitting && <Send className="w-4 h-4 mr-1.5" />}
             {scheduleEnabled ? 'Agendar Publicação Oficial' : 'Publicar Agora no Instagram'}
           </Button>
         </Card>
+
+        {/* Modal / Dialog de Confirmação Obrigatória Antes de Enviar ao Instagram */}
+        <Sheet
+          open={showConfirmModal}
+          onClose={() => !submitting && setShowConfirmModal(false)}
+          aria-label="Confirmar envio de postagem"
+          className="w-full max-w-lg p-0 overflow-hidden"
+        >
+          <div className="p-6 flex flex-col gap-5">
+            {/* Header com Alerta de Segurança */}
+            <div className="flex items-start gap-3.5 border-b border-border/60 pb-4">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col">
+                <h4 className="text-base font-bold font-display text-foreground">
+                  Confirmação de Publicação
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Verifique a conta de destino e as informações antes de postar para evitar envios no perfil incorreto.
+                </p>
+              </div>
+            </div>
+
+            {/* Resumo da Publicação */}
+            <div className="flex flex-col gap-3">
+              {/* 1. Conta Selecionada (Destaque Principal) */}
+              <div className="p-4 rounded-2xl bg-primary/10 border-2 border-primary/40 flex items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#d8ff3c] via-[#55703a] to-[#192313] p-0.5 shrink-0">
+                    <div className="w-full h-full rounded-full bg-card flex items-center justify-center font-bold text-xs text-foreground uppercase">
+                      {(accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || 'G')[0]}
+                    </div>
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Conta do Cliente (Destino)
+                    </span>
+                    <span className="text-sm font-extrabold text-foreground truncate">
+                      @{accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || targetAccount}
+                    </span>
+                  </div>
+                </div>
+                <Badge variant="warning" className="text-[10px] px-2 py-0.5 font-bold shrink-0">
+                  ⚠️ Confirmar Perfil
+                </Badge>
+              </div>
+
+              {/* 2. Grid Formato + Data */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-2xl bg-accent/30 border border-border/70 flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Tipo de Conteúdo
+                  </span>
+                  <span className="text-xs font-bold text-foreground">
+                    {kind === 'story'
+                      ? 'Story (24h)'
+                      : kind === 'reels'
+                      ? 'Reels (Vídeo 9:16)'
+                      : isCarousel
+                      ? `Carrossel (${previewUrls.length} mídias)`
+                      : isVideo
+                      ? 'Vídeo Feed 4:5'
+                      : 'Imagem Única Feed'}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-accent/30 border border-border/70 flex flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Data da Postagem
+                  </span>
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    {scheduleEnabled ? (
+                      <>
+                        <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <span className="truncate">
+                          {scheduledAt
+                            ? new Intl.DateTimeFormat('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              }).format(scheduledAt)
+                            : 'Horário agendado'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span>Imediato (Agora)</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. Prévia da Mídia & Legenda */}
+              <div className="p-3.5 rounded-2xl bg-accent/20 border border-border/60 flex items-start gap-3">
+                {previewUrls[0] && (
+                  <div className="w-12 h-14 rounded-xl overflow-hidden bg-black shrink-0 border border-border/80">
+                    {isVideo ? (
+                      <video src={previewUrls[0]} className="w-full h-full object-cover" muted />
+                    ) : (
+                      <img src={previewUrls[0]} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Legenda
+                  </span>
+                  <p className="text-xs text-foreground/90 line-clamp-2 mt-0.5">
+                    {caption ? caption : <span className="italic text-muted-foreground">(Sem legenda)</span>}
+                  </p>
+                  {autoEnabled && (
+                    <span className="text-[10px] text-primary font-bold mt-1 flex items-center gap-1">
+                      <Zap className="w-3 h-3" /> Direct Automático Ativo ({autoKeywords})
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Botões de Ação */}
+            <div className="flex items-center gap-3 pt-2 border-t border-border/60">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={submitting}
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 text-xs font-bold text-muted-foreground hover:text-foreground h-11 cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+                Voltar e Alterar
+              </Button>
+              <Button
+                type="button"
+                variant="lime"
+                loading={submitting}
+                onClick={handleSubmit}
+                className="flex-1 text-xs font-bold text-foreground h-11 shadow-md cursor-pointer"
+              >
+                {!submitting && <Check className="w-4 h-4 mr-1.5" />}
+                {scheduleEnabled ? 'Confirmar e Agendar' : 'Confirmar e Publicar'}
+              </Button>
+            </div>
+          </div>
+        </Sheet>
 
         {/* Lado Direito: Mockup de Celular Fiel ao Instagram (lg:col-span-5) */}
         <div className="lg:col-span-5 flex flex-col items-center gap-3 sticky top-20">
