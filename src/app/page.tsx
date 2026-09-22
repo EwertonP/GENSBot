@@ -17,8 +17,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
 import ContactsTab from '@/components/contacts-tab';
-import SequenceManager from '@/components/sequence-manager';
-import CrmBoard from '@/components/crm-board';
 import InboxPanel from '@/components/inbox-panel';
 import LogsTab from '@/components/logs-tab';
 import DashboardHome from '@/components/dashboard-home';
@@ -138,7 +136,7 @@ export default function Dashboard() {
   const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'rotina' | 'clientes' | 'esteira' | 'calendario_geral' | 'equipe' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'sequences' | 'crm' | 'inbox'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'rotina' | 'clientes' | 'esteira' | 'calendario_geral' | 'equipe' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'inbox'>('dashboard');
   const [form, setForm] = useState<Automation>({
     name: '',
     active: true,
@@ -998,13 +996,11 @@ export default function Dashboard() {
                 { id: 'automations', label: 'Automações', icon: Settings },
                 { id: 'contacts', label: 'Contatos & Leads', icon: Users },
                 { id: 'inbox', label: 'Inbox', icon: MessageCircle },
-                { id: 'sequences', label: 'Sequências', icon: Layers },
               ],
             },
             {
-              label: 'Prospecção',
+              label: 'Ferramentas',
               items: [
-                { id: 'crm', label: 'CRM da Agência', icon: Building2 },
                 { id: 'utm', label: 'Links UTM', icon: Link2 },
               ],
             },
@@ -1103,8 +1099,6 @@ export default function Dashboard() {
                 {activeTab === 'metrics' && 'Métricas'}
                 {activeTab === 'publish' && 'Agendamentos'}
                 {activeTab === 'contacts' && 'Leads & Público'}
-                {activeTab === 'sequences' && 'Sequências'}
-                {activeTab === 'crm' && 'CRM'}
                 {activeTab === 'inbox' && 'Inbox'}
               </h2>
             </div>
@@ -1120,8 +1114,6 @@ export default function Dashboard() {
               {activeTab === 'metrics' && 'Performance e crescimento das contas conectadas.'}
               {activeTab === 'publish' && 'Calendário, esteira e agendamento de posts, reels e stories.'}
               {activeTab === 'contacts' && 'Pessoas captadas e qualificadas pelas automações.'}
-              {activeTab === 'sequences' && 'Sequências e fluxos programados de mensagens.'}
-              {activeTab === 'crm' && 'Pipeline de prospecção B2B da agência.'}
               {activeTab === 'inbox' && 'Central de mensagens diretas e atendimento.'}
             </p>
           </div>
@@ -1311,20 +1303,6 @@ export default function Dashboard() {
           {/* TAB 3: CONTACTS */}
           {activeTab === 'contacts' && (
             <ContactsTab withAccount={withAccount} showToast={showToast} accountKey={selectedAccountId || 'none'} />
-          )}
-
-          {/* TAB: SEQUENCES */}
-          {activeTab === 'sequences' && (
-            <div className="animate-fade-in max-w-4xl mx-auto">
-              <SequenceManager />
-            </div>
-          )}
-
-          {/* TAB: CRM (Onda 4) */}
-          {activeTab === 'crm' && (
-            <div className="animate-fade-in">
-              <CrmBoard />
-            </div>
           )}
 
           {/* TAB: INBOX (Onda 5) */}
