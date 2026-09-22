@@ -23,6 +23,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
       status,
       titulo,
       legenda,
+      briefing,
       mes_referencia,
       data_programada,
       arquivos,

@@ -422,6 +422,16 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               </div>
             </div>
 
+            {/* Roteiro / texto de cada slide — separado da legenda, que é só a legenda do Instagram */}
+            {item.briefing && (
+              <div className="rounded-lg border border-dashed border-border/70 bg-muted/30 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5">
+                  📝 Roteiro / Texto dos Slides
+                </p>
+                <p className="text-xs leading-relaxed text-foreground/90 whitespace-pre-line">{item.briefing}</p>
+              </div>
+            )}
+
             {/* Separador sutil */}
             {comentarios.length > 0 && <div className="border-t border-border/60 my-2" />}
 

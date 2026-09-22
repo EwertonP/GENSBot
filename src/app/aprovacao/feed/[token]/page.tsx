@@ -24,6 +24,7 @@ interface PostFeed {
   status: string;
   titulo: string | null;
   legenda: string | null;
+  briefing: string | null;
   arquivos: Array<{ id: string; url: string; tipo: 'imagem' | 'video'; ordem: number }>;
   token_aprovacao: string;
 }
@@ -369,6 +370,16 @@ export default function FeedAprovacaoPage() {
                   <p className="font-bold">{postSelecionado.titulo}</p>
                   <p className="whitespace-pre-wrap">{postSelecionado.legenda || 'Sem legenda cadastrada.'}</p>
                 </div>
+
+                {/* Roteiro / texto de cada slide — separado da legenda, que é só a legenda do Instagram */}
+                {postSelecionado.briefing && (
+                  <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500 mb-1.5">
+                      📝 Roteiro / Texto dos Slides
+                    </p>
+                    <p className="text-xs leading-relaxed text-neutral-800 whitespace-pre-wrap">{postSelecionado.briefing}</p>
+                  </div>
+                )}
               </div>
 
               {/* Ação de Aprovação Individual */}
