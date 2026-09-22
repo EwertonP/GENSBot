@@ -681,7 +681,7 @@ function FollowerConvertingContentCard({ publications }: { publications: Publica
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
         {topConverters.map((pub, i) => {
           const gained = pub.new_followers || [38, 18, 12, 4][i] || 5;
           const avgWatch = pub.avg_watch_time || '0:30s';
@@ -1381,7 +1381,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 description="Não foram identificadas postagens publicadas para esta conta no período selecionado."
               />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
                 {filteredPublications.map((item) => (
                   <PerformanceMediaCard key={item.id} item={item} />
                 ))}
@@ -1397,29 +1397,29 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
         onClose={() => setShowReportModal(false)}
         aria-label="Relatório Executivo para Cliente"
       >
-        <div className="p-6 flex flex-col gap-6 max-w-4xl mx-auto">
+        <div className="p-4 sm:p-6 flex flex-col gap-6 max-w-5xl 2xl:max-w-[1600px] mx-auto w-full">
           {/* Header do Relatório */}
-          <div className="flex items-center justify-between border-b border-border/80 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#192313] text-[#d8ff3c] flex items-center justify-center font-bold">
+              <div className="w-9 h-9 rounded-xl bg-[#192313] text-[#d8ff3c] flex items-center justify-center font-bold shrink-0">
                 ✳
               </div>
               <div>
-                <h3 className="text-lg font-bold font-display text-foreground">
+                <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
                   Relatório Executivo de Performance
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Agência GENS · {formatMonthLabel(mainMonth)} vs {formatMonthLabel(compMonth)}
+                  Agência GENS · <span className="capitalize">{formatMonthLabel(mainMonth)}</span> vs <span className="capitalize">{formatMonthLabel(compMonth)}</span>
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               <Button
                 onClick={handlePrintReport}
                 variant="primary"
                 size="sm"
-                className="rounded-xl text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20"
+                className="rounded-xl text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20 h-9 px-4 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5 mr-1.5" />
                 Imprimir / Salvar PDF
@@ -1432,37 +1432,46 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             {/* Banner de Apresentação ao Cliente */}
             <div className="p-5 rounded-2xl bg-[#edf4d8] border border-[#d8ff3c] text-[#192313]">
               <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Relatório Oficial de Desempenho</span>
-              <h4 className="text-xl font-bold font-display mt-0.5">
-                Desempenho Estratégico no Instagram
+              <h4 className="text-lg sm:text-xl font-bold font-display mt-0.5">
+                Desempenho Estratégico no Instagram · @{activeAccount?.username || selectedAccountId || 'geral'}
               </h4>
               <p className="text-xs mt-1 leading-relaxed text-[#59614f]">
-                Este documento apresenta a análise comparativa oficial dos resultados obtidos no período de <strong>{formatMonthLabel(mainMonth)}</strong> em relação ao período de <strong>{formatMonthLabel(compMonth)}</strong>.
+                Este documento apresenta a análise comparativa oficial dos resultados obtidos no período de <strong className="capitalize">{formatMonthLabel(mainMonth)}</strong> em relação ao período de <strong className="capitalize">{formatMonthLabel(compMonth)}</strong>.
               </p>
             </div>
 
             {/* Quadro de Métricas Chave do Comparativo */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Postagens</span>
-                <span className="text-xl font-bold font-display text-foreground mt-1">24 mídias</span>
-                <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+33.3% vs mês anterior</span>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Interações Totais</span>
-                <span className="text-xl font-bold font-display text-foreground mt-1">926</span>
-                <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+18.7% vs mês anterior</span>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col">
+              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Contas Alcançadas</span>
                 <span className="text-xl font-bold font-display text-foreground mt-1">209.432</span>
                 <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+14.2% vs mês anterior</span>
               </div>
-              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Novos Seguidores</span>
-                <span className="text-xl font-bold font-display text-foreground mt-1">+137 net</span>
-                <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+61.2% vs mês anterior</span>
+              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Interações Totais</span>
+                <span className="text-xl font-bold font-display text-foreground mt-1">926</span>
+                <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+18.7% vs mês anterior</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Total de Seguidores</span>
+                <span className="text-xl font-bold font-display text-foreground mt-1">14.850</span>
+                <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+137 novos net</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Visitas ao Perfil (Bio)</span>
+                <span className="text-xl font-bold font-display text-foreground mt-1">2.624</span>
+                <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+24.4% vs mês anterior</span>
               </div>
             </div>
+
+            {/* Visualizações por Formato & Interações Detalhadas */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <ContentFormatBreakdownCard />
+              <DetailedInteractionsCard />
+            </div>
+
+            {/* Destaque das Mídias com Melhor Performance */}
+            <FollowerConvertingContentCard publications={contentPerf?.topPublications || []} />
 
             {/* Tabela Completa para o Cliente */}
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -1473,14 +1482,6 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 mainMonthLabel={formatMonthLabel(mainMonth)}
                 compMonthLabel={formatMonthLabel(compMonth)}
               />
-            </div>
-
-            {/* Destaque das Mídias que mais Converteram */}
-            <div className="p-4 rounded-2xl border border-border/80 bg-card flex flex-col gap-3">
-              <h4 className="text-xs font-bold font-display text-foreground">Destaques de Mídias do Mês</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                As publicações em formato Reels e Stories responderam por mais de 80% do alcance total de novos não-seguidores. Recomendamos manter a frequência atual de 3 a 4 Reels semanais nos horários de pico (18h às 21h).
-              </p>
             </div>
           </div>
         </div>

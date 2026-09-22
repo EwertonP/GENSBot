@@ -1155,7 +1155,7 @@ export default function Dashboard() {
         </header>
 
         {/* 3. Tab-based Content Area — Respiro Visual Harmonioso */}
-        <main className="flex-1 p-6 md:p-8 md:pt-8 bg-background max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 bg-background max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] w-full mx-auto space-y-6">
           <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
