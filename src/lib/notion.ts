@@ -50,6 +50,8 @@ export interface MappedNotionDemand {
   briefing: string;
   arquivosUrls: string[];
   lastEditedTime: string;
+  /** Valor da propriedade 'Cliente' (select), usado na base única "🗂️ Pipeline + Calendário Editorial" do Hub pra identificar o dono da página. */
+  clienteLabel: string;
 }
 
 const NOTION_API_VERSION = '2022-06-28';
@@ -66,12 +68,43 @@ function getHeaders() {
   };
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Wrapper de fetch com espera + nova tentativa automática quando a API do Notion responde 429
+ * (rate limit). A base única do Hub tem dezenas de páginas e o sync busca o corpo de cada uma —
+ * sem isso, uma sincronização grande estoura o limite de requisições do Notion.
+ */
+async function fetchNotionComRetry(url: string, options: RequestInit, tentativas = 3): Promise<Response> {
+  for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
+    const res = await fetch(url, options);
+    if (res.status !== 429) return res;
+
+    let retryAfterSegundos = 1;
+    try {
+      const body = await res.clone().json();
+      const raw = body?.additional_data?.retry_after ?? res.headers.get('Retry-After');
+      const parsed = Number(raw);
+      if (!Number.isNaN(parsed) && parsed > 0) retryAfterSegundos = parsed;
+    } catch {
+      // Mantém o padrão de 1s se não conseguir ler o corpo/cabeçalho.
+    }
+
+    if (tentativa === tentativas) return res; // Esgotou as tentativas, devolve a resposta 429 pra quem chamou tratar.
+    await sleep((retryAfterSegundos + 0.5) * 1000);
+  }
+  // Inatingível — o loop sempre retorna dentro do for.
+  return fetch(url, options);
+}
+
 /**
  * Busca páginas de uma base de dados no Notion.
  */
 export async function queryNotionDatabase(databaseId: string): Promise<NotionPageItem[]> {
   const cleanId = databaseId.replace(/-/g, '');
-  const res = await fetch(`https://api.notion.com/v1/databases/${cleanId}/query`, {
+  const res = await fetchNotionComRetry(`https://api.notion.com/v1/databases/${cleanId}/query`, {
     method: 'POST',
     headers: getHeaders(),
     body: JSON.stringify({
@@ -79,7 +112,7 @@ export async function queryNotionDatabase(databaseId: string): Promise<NotionPag
       sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
     }),
     next: { revalidate: 0 },
-  });
+  } as RequestInit);
 
   if (!res.ok) {
     const errText = await res.text();
@@ -138,11 +171,11 @@ export function extractRichText(prop: any): string {
 export async function fetchNotionPageContent(pageId: string): Promise<string> {
   const cleanId = pageId.replace(/-/g, '');
   try {
-    const res = await fetch(`https://api.notion.com/v1/blocks/${cleanId}/children?page_size=100`, {
+    const res = await fetchNotionComRetry(`https://api.notion.com/v1/blocks/${cleanId}/children?page_size=100`, {
       method: 'GET',
       headers: getHeaders(),
       next: { revalidate: 0 },
-    });
+    } as RequestInit);
 
     if (!res.ok) return '';
     const data = await res.json();
@@ -187,6 +220,46 @@ export async function fetchNotionPageContent(pageId: string): Promise<string> {
 }
 
 /**
+ * Divide o texto do corpo da página (já convertido em markdown simplificado por fetchNotionPageContent)
+ * em duas partes, seguindo o padrão de headings definido para a agência (set/2026):
+ * - "## Cena N" / "## Cena N (Capa)" → estrutura de produção (o que vai em cada slide/cena)
+ * - "## Legenda (pronta pra postar)" → legenda final, pronta pra copiar e colar
+ * Anotações internas de QA/humanizer (callouts citando "Looping de QA" ou "Humanização") são descartadas,
+ * pois não fazem parte do briefing de produção.
+ */
+export function splitEstruturaELegenda(bodyText: string): { estrutura: string; legendaPronta: string } {
+  if (!bodyText) return { estrutura: '', legendaPronta: '' };
+
+  const isHeading = (line: string) => /^#{1,3}\s+/.test(line);
+  const isLegendaHeading = (line: string) => isHeading(line) && /legenda/i.test(line);
+  const isInternalNote = (line: string) => /^>\s*\**\s*(looping de qa|humaniza)/i.test(line.trim());
+
+  const estruturaLines: string[] = [];
+  const legendaLines: string[] = [];
+  let mode: 'estrutura' | 'legenda' = 'estrutura';
+
+  for (const line of bodyText.split('\n')) {
+    if (isLegendaHeading(line)) {
+      mode = 'legenda';
+      continue; // não repete o próprio título "Legenda (pronta pra postar)"
+    }
+    if (isHeading(line) && mode === 'legenda') {
+      mode = 'estrutura'; // uma seção nova (ex.: "Notas de produção") encerra a legenda
+    }
+    if (isInternalNote(line)) continue;
+
+    (mode === 'legenda' ? legendaLines : estruturaLines).push(
+      mode === 'legenda' ? line.replace(/^>\s?/, '') : line
+    );
+  }
+
+  return {
+    estrutura: estruturaLines.join('\n').trim(),
+    legendaPronta: legendaLines.join('\n').trim(),
+  };
+}
+
+/**
  * Converte propriedades da página do Notion para a estrutura de demanda do GENSBot.
  */
 export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand {
@@ -218,12 +291,16 @@ export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand 
   let legenda = extractRichText(legendaProp);
 
   // 4. Extração Completa de Roteiro / Texto da Arte / Briefing / Copy / Descrição
+  // 'Texto da Arte / Roteiro' é o nome padronizado (set/2026) da coluna nas bases "📋 Conteúdos — [cliente]".
   const roteiroText = extractRichText(props['Roteiro']);
-  const textoArteText = extractRichText(props['Texto da arte'] || props['Texto da Arte'] || props['Texto Arte']);
+  const textoArteText = extractRichText(
+    props['Texto da Arte / Roteiro'] || props['Texto da arte'] || props['Texto da Arte'] || props['Texto Arte']
+  );
   const briefingPropText = extractRichText(props['Briefing']);
   const copyText = extractRichText(props['Copy']);
   const descricaoText = extractRichText(props['Descrição'] || props['Descricao']);
   const conteudoText = extractRichText(props['Conteúdo'] || props['Conteudo']);
+  const tituloCapaText = extractRichText(props['Título da Capa'] || props['Titulo da Capa']);
 
   // Se a legenda estiver vazia, verifica se há copy ou descrição para usar como legenda
   if (!legenda) {
@@ -236,6 +313,10 @@ export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand 
 
   // Combina todas as fontes de briefing/roteiro/texto de slides disponíveis
   const sections: string[] = [];
+
+  if (tituloCapaText) {
+    sections.push(`--- TÍTULO DA CAPA ---\n${tituloCapaText}`);
+  }
 
   if (roteiroText) {
     sections.push(textoArteText || briefingPropText ? `--- ROTEIRO ---\n${roteiroText}` : roteiroText);
@@ -264,7 +345,8 @@ export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand 
   const briefing = sections.join('\n\n');
 
   // 5. Arquivos e Mídias
-  const filesProp = props['Anexar arquivo'] || props['Imagens'] || props['Arquivos'] || props['Criativos'];
+  // 'Mídias' é o nome padronizado (set/2026) da coluna de arquivos nas bases "📋 Conteúdos — [cliente]".
+  const filesProp = props['Mídias'] || props['Anexar arquivo'] || props['Imagens'] || props['Arquivos'] || props['Criativos'];
   const arquivosUrls: string[] = [];
   if (filesProp && Array.isArray(filesProp.files)) {
     for (const f of filesProp.files) {
@@ -274,21 +356,26 @@ export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand 
   }
 
   // 6. Mapeamento de Status Notion -> GENSBot
-  const statusProp = props['Status'];
+  // 'Etapa' é o nome da coluna de status na base única "🗂️ Pipeline + Calendário Editorial" do Hub.
+  const statusProp = props['Etapa'] || props['Status'];
   const statusName = (statusProp?.status?.name || statusProp?.select?.name || '').toLowerCase();
   let status: MappedNotionDemand['status'] = 'planejamento';
 
   if (statusName.includes('publicado') || statusName.includes('postado')) {
     status = 'publicado';
-  } else if (statusName.includes('aprovado') || statusName.includes('agendado') || statusName.includes('pronto')) {
+  } else if (statusName.includes('aprovado') || statusName.includes('agendado') || statusName.includes('pronto') || statusName.includes('concluíd') || statusName.includes('conclui')) {
     status = 'pronto_publicar';
   } else if (statusName.includes('revisão') || statusName.includes('revisao') || statusName.includes('cliente')) {
     status = 'revisao_cliente';
-  } else if (statusName.includes('progresso') || statusName.includes('design') || statusName.includes('arte') || statusName.includes('edição')) {
+  } else if (statusName.includes('progresso') || statusName.includes('design') || statusName.includes('arte') || statusName.includes('edição') || statusName.includes('criação') || statusName.includes('criacao') || statusName.includes('andamento')) {
     status = 'criacao_arte';
   } else if (statusName.includes('copy') || statusName.includes('roteiro')) {
     status = 'copy';
   }
+
+  // 7. Cliente (select) — usado na base única do Hub pra saber de quem é a página.
+  const clienteProp = props['Cliente'];
+  const clienteLabel = clienteProp?.select?.name || '';
 
   return {
     notionPageId: page.id,
@@ -299,6 +386,7 @@ export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand 
     briefing,
     arquivosUrls,
     lastEditedTime: page.last_edited_time,
+    clienteLabel,
   };
 }
 
@@ -307,35 +395,25 @@ export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand 
  */
 export async function updateNotionPageStatus(pageId: string, newStatusName: string): Promise<boolean> {
   const cleanId = pageId.replace(/-/g, '');
-  const res = await fetch(`https://api.notion.com/v1/pages/${cleanId}`, {
-    method: 'PATCH',
-    headers: getHeaders(),
-    body: JSON.stringify({
-      properties: {
-        Status: {
-          status: { name: newStatusName },
-        },
-      },
-    }),
-  });
 
-  if (!res.ok) {
-    // Tenta fallback com select caso a propriedade Status seja select e não status
-    const fallbackRes = await fetch(`https://api.notion.com/v1/pages/${cleanId}`, {
+  // Ordem de tentativas: 'Etapa' (coluna de status na base única do Hub, tipo select) primeiro,
+  // depois 'Status' como status ou select (bases antigas/individuais).
+  const tentativasDeProperty = [
+    { Etapa: { select: { name: newStatusName } } },
+    { Status: { status: { name: newStatusName } } },
+    { Status: { select: { name: newStatusName } } },
+  ];
+
+  for (const properties of tentativasDeProperty) {
+    const res = await fetchNotionComRetry(`https://api.notion.com/v1/pages/${cleanId}`, {
       method: 'PATCH',
       headers: getHeaders(),
-      body: JSON.stringify({
-        properties: {
-          Status: {
-            select: { name: newStatusName },
-          },
-        },
-      }),
-    });
-    return fallbackRes.ok;
+      body: JSON.stringify({ properties }),
+    } as RequestInit);
+    if (res.ok) return true;
   }
 
-  return true;
+  return false;
 }
 
 /** Normaliza strings para comparação imune a emojis, acentos e prefixos da agência */
