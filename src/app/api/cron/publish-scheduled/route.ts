@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { publishPost, PublishMediaType } from '@/lib/instagram-publish';
 import { createAutomationForPublishedPost } from '@/lib/publish-automation';
+import { getContextoAgencia } from '@/lib/clientes-server';
 
 // Cada publicação pode esperar o processamento de vídeo pela Meta (waitForContainerReady) —
 // mesmo teto de src/app/api/instagram/publish/route.ts, teto do plano Hobby.
@@ -11,10 +12,26 @@ const DAILY_LIMIT_PER_ACCOUNT = 100;
 
 async function handlePublishScheduled(req: Request) {
   const authHeader = req.headers.get('Authorization');
-  const cronSecret = process.env.CRON_SECRET || 'local_secret';
+  const cronSecret = process.env.CRON_SECRET;
 
-  if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${cronSecret}`) {
-    return new Response('Não autorizado', { status: 401 });
+  // 1. Vercel Cron com Bearer Token
+  const isVercelCron = Boolean(cronSecret && authHeader === `Bearer ${cronSecret}`);
+
+  // 2. Chamada manual pela interface (Usuário autenticado na sessão do Supabase)
+  let isUserAuth = false;
+  if (!isVercelCron) {
+    try {
+      const auth = await getContextoAgencia();
+      if (auth.ok) {
+        isUserAuth = true;
+      }
+    } catch {
+      // Ignora e faz fallback
+    }
+  }
+
+  if (process.env.NODE_ENV === 'production' && !isVercelCron && !isUserAuth) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
   try {
