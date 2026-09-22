@@ -176,6 +176,16 @@ export default function Dashboard() {
   // Layout states
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Garante que qualquer troca de tela, aba ou conta inicie sempre no topo da página
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.querySelectorAll('main, body, html, [data-scroll-container]').forEach((el) => {
+        el.scrollTop = 0;
+      });
+    }
+  }, [activeTab, isEditing, flowBuilderAutomation?.id, selectedAccountId]);
+
   // Anexa ?account=<instagram_user_id> na URL, para as rotas de API saberem
   // qual conta conectada operar (o seletor de contas no header troca esse valor).
   const withAccount = (url: string, accountIdOverride?: string | null) => {

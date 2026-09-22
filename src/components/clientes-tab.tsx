@@ -100,6 +100,16 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
     };
   }, [aplicarCarga]);
 
+  // Rola para o topo quando o usuário abre ou fecha a ficha de um cliente
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.querySelectorAll('main, body, html, [data-scroll-container]').forEach((el) => {
+        el.scrollTop = 0;
+      });
+    }
+  }, [selecionadoId]);
+
   // Cada abertura ganha uma key nova: o formulário nasce zerado, sem efeito de reset.
   function abrirNovo() {
     setChaveNovo((k) => k + 1);

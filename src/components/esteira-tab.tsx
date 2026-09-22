@@ -118,6 +118,16 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
   // Modal Editar Item
   const [itemEmEdicao, setItemEmEdicao] = useState<ConteudoItem | null>(null);
+
+  // Rola a página para o topo ao trocar o modo de visualização (Kanban/Lista/Feed) ou ao alternar cliente/item
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.querySelectorAll('main, body, html, [data-scroll-container]').forEach((el) => {
+        el.scrollTop = 0;
+      });
+    }
+  }, [viewMode, clienteSelecionado, itemEmEdicao?.id]);
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
   const [excluindoItem, setExcluindoItem] = useState(false);
   const [editStatus, setEditStatus] = useState<StatusConteudo>('planejamento');
