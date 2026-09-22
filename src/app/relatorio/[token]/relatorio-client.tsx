@@ -28,6 +28,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Zap,
+  Smartphone,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -70,57 +71,20 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
     }
   }
 
-  // Top posts de destaque para o relatório
-  const topDestaques = [
-    {
-      id: '1',
-      tipo: 'Reels',
-      tipoIcon: Video,
-      caption: '3 erros fatais que estão matando o engajamento do seu perfil no Instagram...',
-      reach: 48200,
-      interactions: 3120,
-      followersGained: 42,
-      watchTime: '0:48s',
-      engRate: '6.5%',
-      url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      id: '2',
-      tipo: 'Carrossel',
-      tipoIcon: ImageIcon,
-      caption: 'Guia definitivo de posicionamento estratégico de marca para 2026 🚀',
-      reach: 24500,
-      interactions: 1890,
-      followersGained: 28,
-      watchTime: '1:12s',
-      engRate: '7.7%',
-      url: 'https://images.unsplash.com/photo-1611162616071-c3a2ad7e6a71?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      id: '3',
-      tipo: 'Reels',
-      tipoIcon: Video,
-      caption: 'Bastidores de produção de um conteúdo viral na Agência GENS 🔥',
-      reach: 19800,
-      interactions: 1420,
-      followersGained: 19,
-      watchTime: '0:35s',
-      engRate: '7.1%',
-      url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      id: '4',
-      tipo: 'Post Feed',
-      tipoIcon: Sparkles,
-      caption: 'Estudo de caso: Como escalamos os resultados em 140% em 90 dias.',
-      reach: 14200,
-      interactions: 980,
-      followersGained: 14,
-      watchTime: 'N/A',
-      engRate: '6.9%',
-      url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=600&auto=format&fit=crop',
-    },
-  ];
+  const [postsDestaque, setPostsDestaque] = useState<any[]>([]);
+  const [carregandoPosts, setCarregandoPosts] = useState(true);
+
+  React.useEffect(() => {
+    fetch(`/api/relatorio/posts?token=${token}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.success && Array.isArray(data.posts)) {
+          setPostsDestaque(data.posts);
+        }
+      })
+      .catch((err) => console.error('Erro ao carregar mídias do relatório:', err))
+      .finally(() => setCarregandoPosts(false));
+  }, [token]);
 
   return (
     <div className="min-h-screen bg-[#f7f8f2] text-foreground font-sans antialiased pb-16">
@@ -450,56 +414,77 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-4 gap-4">
-            {topDestaques.map((pub, idx) => {
-              const IconKind = pub.tipoIcon;
-              return (
-                <div
-                  key={pub.id}
-                  className="rounded-2xl border border-border/70 bg-card overflow-hidden flex flex-col hover:border-foreground/30 transition-all shadow-2xs"
-                >
-                  <div className="relative aspect-video sm:aspect-square w-full bg-accent overflow-hidden">
-                    <img src={pub.url} alt="" className="w-full h-full object-cover" />
+          {carregandoPosts ? (
+            <div className="py-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary animate-spin" /> Carregando mídias do cliente...
+            </div>
+          ) : postsDestaque.length === 0 ? (
+            <div className="py-8 px-4 text-center rounded-2xl bg-accent/30 border border-border/60 flex flex-col items-center justify-center gap-1.5">
+              <Award className="w-6 h-6 text-muted-foreground" />
+              <p className="text-xs font-bold text-foreground">Nenhum conteúdo publicado ou agendado no período</p>
+              <p className="text-[11px] text-muted-foreground">Os conteúdos postados pelo cliente aparecerão automaticamente neste ranking.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-4 gap-4">
+              {postsDestaque.map((pub, idx) => {
+                const isReels = pub.tipo === 'Reels';
+                const isStory = pub.tipo === 'Story';
+                const IconKind = isReels ? Video : isStory ? Smartphone : ImageIcon;
 
-                    <div className="absolute top-2 left-2">
-                      <span className="px-2.5 py-1 rounded-lg bg-[#192313] text-[#d8ff3c] text-xs font-bold font-mono shadow-md flex items-center gap-1 border border-[#d8ff3c]/40">
-                        <UserPlus className="w-3 h-3" /> +{pub.followersGained} seg
-                      </span>
+                return (
+                  <div
+                    key={pub.id || idx}
+                    className="rounded-2xl border border-border/70 bg-card overflow-hidden flex flex-col hover:border-foreground/30 transition-all shadow-2xs"
+                  >
+                    <div className="relative aspect-video sm:aspect-square w-full bg-accent overflow-hidden">
+                      {pub.url ? (
+                        <img src={pub.url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-accent/60 flex items-center justify-center text-muted-foreground text-xs font-mono">
+                          Mídia da Demanda
+                        </div>
+                      )}
+
+                      <div className="absolute top-2 left-2">
+                        <span className="px-2.5 py-1 rounded-lg bg-[#192313] text-[#d8ff3c] text-xs font-bold font-mono shadow-md flex items-center gap-1 border border-[#d8ff3c]/40">
+                          <UserPlus className="w-3 h-3" /> +{pub.followersGained} seg
+                        </span>
+                      </div>
+
+                      <div className="absolute top-2 right-2">
+                        <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-[9px] font-bold font-mono">
+                          #{idx + 1}
+                        </span>
+                      </div>
+
+                      <div className="absolute bottom-2 left-2">
+                        <span className="px-2 py-0.5 rounded-md bg-black/75 text-white text-[9px] font-mono font-bold flex items-center gap-1">
+                          <IconKind className="w-2.5 h-2.5" /> {pub.tipo}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="absolute top-2 right-2">
-                      <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-[9px] font-bold font-mono">
-                        #{idx + 1}
-                      </span>
-                    </div>
+                    <div className="p-3.5 flex flex-col justify-between gap-3 flex-1 text-xs">
+                      <p className="font-semibold text-foreground line-clamp-2 leading-snug">
+                        {pub.caption}
+                      </p>
 
-                    <div className="absolute bottom-2 left-2">
-                      <span className="px-2 py-0.5 rounded-md bg-black/75 text-white text-[9px] font-mono font-bold flex items-center gap-1">
-                        <IconKind className="w-2.5 h-2.5" /> {pub.tipo}
-                      </span>
+                      <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border/50 text-[10px] font-mono text-muted-foreground">
+                        <div>
+                          <span>Alcance:</span>
+                          <p className="font-bold text-foreground text-xs">{pub.reach.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div>
+                          <span>Taxa Engaj.:</span>
+                          <p className="font-bold text-emerald-600 text-xs">{pub.engRate}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="p-3.5 flex flex-col justify-between gap-3 flex-1 text-xs">
-                    <p className="font-semibold text-foreground line-clamp-2 leading-snug">
-                      {pub.caption}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border/50 text-[10px] font-mono text-muted-foreground">
-                      <div>
-                        <span>Alcance:</span>
-                        <p className="font-bold text-foreground text-xs">{pub.reach.toLocaleString('pt-BR')}</p>
-                      </div>
-                      <div>
-                        <span>Taxa Engaj.:</span>
-                        <p className="font-bold text-emerald-600 text-xs">{pub.engRate}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* 4. Tabela Completa do Comparativo Mês a Mês (com scroll horizontal seguro no mobile) */}
