@@ -119,7 +119,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
         resolvido: true,
       });
     } else if (acao === 'ajuste') {
-      novoStatus = 'travado';
+      novoStatus = 'revisao_interna';
       if (!texto?.trim()) {
         return NextResponse.json({ error: 'Por favor, descreva o ajuste solicitado.' }, { status: 400 });
       }

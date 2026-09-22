@@ -48,6 +48,7 @@ import { FeedPreviewGrid } from '@/components/feed-preview-grid';
 import {
   STATUS_LABELS,
   COLUNAS_KANBAN,
+  mapearStatusParaColunaKanban,
   gerarLinkWhatsAppAprovacao,
   gerarMensagemAprovacao,
   type ConteudoItem,
@@ -889,7 +890,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
       ) : viewMode === 'kanban' ? (
         <div className="flex gap-4 overflow-x-auto pb-6 pt-1 select-none">
           {COLUNAS_KANBAN.map((colStatus) => {
-            const itensDaColuna = itemsFiltrados.filter((it) => it.status === colStatus);
+            const itensDaColuna = itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === colStatus);
             const info = STATUS_LABELS[colStatus];
             const isOver = draggingOverCol === colStatus;
 
@@ -932,7 +933,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                 <div className="flex flex-col gap-3">
                   {itensDaColuna.map((item) => {
                     const temComentarios = (item.comentarios_revisao || []).length > 0;
-                    const temAjustes = item.status === 'travado';
+                    const temAjustes = item.status === 'travado' || (item.status === 'revisao_interna' && temComentarios);
                     const isDragging = draggingItemId === item.id;
 
                     return (

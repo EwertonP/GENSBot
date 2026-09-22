@@ -19,7 +19,6 @@ describe('acesso do cliente pelo link público', () => {
     'revisao_arte',
     'em_gravacao',
     'em_edicao',
-    'revisao_interna',
   ];
 
   it('esconde o item enquanto ele está em produção', () => {
@@ -29,14 +28,14 @@ describe('acesso do cliente pelo link público', () => {
   });
 
   it('mostra a partir da revisão do cliente, inclusive depois de resolvida', () => {
-    for (const status of ['revisao_cliente', 'agendamento', 'pronto_publicar', 'publicado', 'travado'] as StatusConteudo[]) {
+    for (const status of ['revisao_cliente', 'revisao_interna', 'agendamento', 'pronto_publicar', 'publicado', 'travado'] as StatusConteudo[]) {
       expect(clientePodeVer(status), status).toBe(true);
     }
   });
 
   it('só aceita aprovar ou pedir ajuste na vez do cliente', () => {
     expect(clientePodeAgir('revisao_cliente')).toBe(true);
-    for (const status of [...EM_PRODUCAO, 'agendamento', 'publicado', 'travado'] as StatusConteudo[]) {
+    for (const status of [...EM_PRODUCAO, 'revisao_interna', 'agendamento', 'publicado', 'travado'] as StatusConteudo[]) {
       expect(clientePodeAgir(status), status).toBe(false);
     }
   });
@@ -44,7 +43,7 @@ describe('acesso do cliente pelo link público', () => {
   it('um item já aprovado não pode ser aprovado de novo', () => {
     // Protege o duplo clique: a primeira ação move para agendamento.
     expect(clientePodeAgir('agendamento')).toBe(false);
-    expect(motivoBloqueioCliente('agendamento')).toBe('Esta publicação já foi aprovada.');
+    expect(motivoBloqueioCliente('agendamento')).toBe('Esta publicação já foi aprovada e está agendada/publicada.');
   });
 
   it('explica o bloqueio sem expor o estágio interno', () => {
@@ -67,12 +66,24 @@ describe('conteudo / esteira & aprovacao', () => {
     expect(formatarTimecode(3600)).toBe('60:00');
   });
 
-  it('possui labels e tags para todos os 13 status', () => {
+  it('possui labels padronizados e exatamente 6 colunas oficiais no Kanban', () => {
+    expect(COLUNAS_KANBAN).toHaveLength(6);
+    expect(COLUNAS_KANBAN).toEqual(['planejamento', 'criacao_arte', 'revisao_interna', 'revisao_cliente', 'agendamento', 'publicado']);
     expect(STATUS_LABELS.planejamento.label).toBe('Planejamento');
-    expect(STATUS_LABELS.copy.label).toBe('Redação / Copy');
-    expect(STATUS_LABELS.revisao_cliente.label).toBe('Aprovação Cliente');
-    expect(STATUS_LABELS.travado.variant).toBe('destructive');
-    expect(STATUS_LABELS.publicado.variant).toBe('success');
+    expect(STATUS_LABELS.criacao_arte.label).toBe('Criação');
+    expect(STATUS_LABELS.revisao_interna.label).toBe('Revisão');
+    expect(STATUS_LABELS.revisao_cliente.label).toBe('Aprovação');
+    expect(STATUS_LABELS.agendamento.label).toBe('Agendado');
+    expect(STATUS_LABELS.publicado.label).toBe('Publicado');
+  });
+
+  it('mapeia status legados para as 6 colunas oficiais do Kanban', async () => {
+    const { mapearStatusParaColunaKanban } = await import('./conteudo');
+    expect(mapearStatusParaColunaKanban('copy')).toBe('criacao_arte');
+    expect(mapearStatusParaColunaKanban('em_edicao')).toBe('criacao_arte');
+    expect(mapearStatusParaColunaKanban('revisao_arte')).toBe('revisao_interna');
+    expect(mapearStatusParaColunaKanban('travado')).toBe('revisao_interna');
+    expect(mapearStatusParaColunaKanban('pronto_publicar')).toBe('agendamento');
   });
 
   it('gera link de aprovação no WhatsApp com mensagem formatada', () => {
