@@ -92,49 +92,20 @@ export default function UserProfilePopover({
               </span>
             </div>
 
-            {/* Grupo 1: Navegação Principal */}
+            {/* Grupo 1: Preferências e Conta do Usuário */}
             <div className="flex flex-col gap-0.5">
               <button
                 type="button"
                 onClick={() => {
-                  onNavigate?.('equipe');
+                  alert('Configurações de Conta do Usuário');
                   setOpen(false);
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-accent transition-colors"
               >
                 <div className="flex items-center gap-2.5">
                   <User className="w-4 h-4 text-muted-foreground" />
-                  <span>Perfil & Sócios</span>
+                  <span>Minha Conta / Preferências</span>
                 </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onNavigate?.('clientes');
-                  setOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-accent transition-colors"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Briefcase className="w-4 h-4 text-muted-foreground" />
-                  <span>Clientes & Dossiê</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onNavigate?.('automations');
-                  setOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-accent transition-colors"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Settings className="w-4 h-4 text-muted-foreground" />
-                  <span>Configurações do Bot</span>
-                </div>
-                <span className="text-[9px] font-bold bg-[#d8ff3c] text-[#192313] px-1.5 py-0.5 rounded-md">⚡ PRO</span>
               </button>
             </div>
 
