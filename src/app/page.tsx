@@ -1143,20 +1143,11 @@ export default function Dashboard() {
               <span>Sincronizar</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('publish')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#d8ff3c] hover:bg-[#cbf72b] text-[#192313] font-bold text-xs shadow-2xs transition-all cursor-pointer border border-[#192313]/10"
-            >
-              <Plus className="w-3.5 h-3.5 text-[#192313]" />
-              <span>Novo Agendamento</span>
-            </button>
-
             <div className="pl-2 border-l border-border/60">
               <UserProfilePopover
                 userName={currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Agência GENS'}
                 userEmail={currentUser?.email || 'contato@agenciagens.com'}
                 userRole="Diretor de Conteúdo"
-                onNavigate={(tab) => setActiveTab(tab as any)}
                 onLogout={handleAppLogout}
               />
             </div>
