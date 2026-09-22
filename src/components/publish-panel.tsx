@@ -686,15 +686,15 @@ export default function PublishPanel({
                     }}
                     className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
                       active
-                        ? 'bg-foreground text-background border-foreground shadow-xs font-bold'
+                        ? 'bg-[#edf4d8] text-[#192313] border-[#d8ff3c] shadow-xs font-bold'
                         : 'bg-accent/40 text-foreground border-border/70 hover:bg-accent/80'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Icon className="w-3.5 h-3.5" />
+                      <Icon className="w-3.5 h-3.5 text-[#192313]" />
                       <span className="text-xs font-bold">{opt.label}</span>
                     </div>
-                    <span className={`text-[10px] ${active ? 'text-background/80' : 'text-muted-foreground'}`}>
+                    <span className={`text-[10px] ${active ? 'text-[#59614f]' : 'text-muted-foreground'}`}>
                       {opt.desc}
                     </span>
                   </button>

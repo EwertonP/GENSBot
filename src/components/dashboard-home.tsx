@@ -554,72 +554,72 @@ export default function DashboardHome({
             </div>
           </div>
 
-          {/* 4 Bento KPIs Operacionais */}
+          {/* 4 Bento KPIs Operacionais (Niond Style em Verde GENS) */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-5 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+            <Card className="p-5 rounded-3xl border border-[#d8ff3c]/60 bg-[#edf4d8] shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Demandas Ativas</span>
-                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <span className="text-xs font-bold text-[#59614f] uppercase tracking-wider">Demandas Ativas</span>
+                <div className="w-8 h-8 rounded-xl bg-[#d8ff3c] border border-[#192313]/10 flex items-center justify-center text-[#192313] shadow-2xs">
                   <Layers className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+                <span className="text-3xl font-bold font-display text-[#192313] tracking-tight tabular-nums">
                   {demandasAtivas.length}
                 </span>
-                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                <span className="text-[#59614f] text-[11px] font-medium mt-1">
                   em produção ou aprovação
                 </span>
               </div>
             </Card>
 
-            <Card className="p-5 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+            <Card className="p-5 rounded-3xl border border-[#d8ff3c]/80 bg-[#d8ff3c]/25 shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Entregas da Semana</span>
-                <div className="w-8 h-8 rounded-xl bg-lime/40 border border-foreground/10 flex items-center justify-center text-foreground">
+                <span className="text-xs font-bold text-[#59614f] uppercase tracking-wider">Entregas da Semana</span>
+                <div className="w-8 h-8 rounded-xl bg-[#192313] text-[#d8ff3c] flex items-center justify-center">
                   <Calendar className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+                <span className="text-3xl font-bold font-display text-[#192313] tracking-tight tabular-nums">
                   {entregasSemana.length}
                 </span>
-                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                <span className="text-[#59614f] text-[11px] font-medium mt-1">
                   agendadas de Seg a Dom
                 </span>
               </div>
             </Card>
 
-            <Card className="p-5 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+            <Card className="p-5 rounded-3xl border border-emerald-200 bg-emerald-100/80 shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Rotina Pendente</span>
-                <div className="w-8 h-8 rounded-xl bg-secondary/60 border border-border flex items-center justify-center text-foreground">
+                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Rotina Pendente</span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-200/80 border border-emerald-300 flex items-center justify-center text-emerald-950">
                   <CheckSquare className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+                <span className="text-3xl font-bold font-display text-emerald-950 tracking-tight tabular-nums">
                   {tarefasFiltradas.length}
                 </span>
-                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                <span className="text-emerald-800 text-[11px] font-medium mt-1">
                   afazeres internos da equipe
                 </span>
               </div>
             </Card>
 
-            <Card className="p-5 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+            <Card className="p-5 rounded-3xl border border-[#192313] bg-[#192313] text-white shadow-md flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Finalizadas no Mês</span>
-                <div className="w-8 h-8 rounded-xl bg-success/15 border border-success/30 flex items-center justify-center text-success">
+                <span className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Finalizadas no Mês</span>
+                <div className="w-8 h-8 rounded-xl bg-[#d8ff3c] text-[#192313] flex items-center justify-center font-bold">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
+                <span className="text-3xl font-bold font-display text-white tracking-tight tabular-nums">
                   {demandasConcluidasMes.length}
                 </span>
-                <span className="text-muted-foreground text-[11px] font-medium mt-1">
-                  conteúdos publicados
+                <span className="text-neutral-400 text-[11px] font-medium mt-1">
+                  conteúdos entregues e publicados
                 </span>
               </div>
             </Card>
