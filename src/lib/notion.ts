@@ -430,6 +430,21 @@ export function normalizarNomeComparacao(str: string): string {
     .trim();
 }
 
+/**
+ * Compara o valor da coluna "Cliente" de uma página com o `notion_cliente_label` configurado
+ * pro cliente no GENSBot. Um cliente pode responder por mais de um rótulo no Notion (ex.: um médico
+ * que é dono de duas marcas/contas diferentes) — nesse caso `notion_cliente_label` guarda os rótulos
+ * separados por "|" (ex.: "DIAGNO Radiologia|Dr. Renan"), e todas as demandas de qualquer um deles
+ * caem no mesmo cliente do GENSBot.
+ */
+export function clienteLabelBate(notionClienteLabelDoCliente: string | null | undefined, labelDaPagina: string): boolean {
+  if (!notionClienteLabelDoCliente || !labelDaPagina) return false;
+  return notionClienteLabelDoCliente
+    .split('|')
+    .map((s) => s.trim())
+    .includes(labelDaPagina);
+}
+
 /** Verifica se o título da database no Notion pertence ao cliente da agência */
 export function correspondeClienteEnotionDb(nomeCliente: string, tituloNotionDb: string): boolean {
   const normCliente = normalizarNomeComparacao(nomeCliente);

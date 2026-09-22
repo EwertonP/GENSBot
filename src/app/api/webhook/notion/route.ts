@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { mapNotionPageToDemand, fetchNotionPageContent, splitEstruturaELegenda, correspondeClienteEnotionDb } from '@/lib/notion';
+import { mapNotionPageToDemand, fetchNotionPageContent, splitEstruturaELegenda, correspondeClienteEnotionDb, clienteLabelBate } from '@/lib/notion';
 
 export async function POST(req: Request) {
   try {
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
         .select('id, agencia_id, nome, notion_cliente_label');
 
       const match =
-        (clientesCandidatos || []).find((c: any) => c.notion_cliente_label && c.notion_cliente_label === demand.clienteLabel) ||
+        (clientesCandidatos || []).find((c: any) => clienteLabelBate(c.notion_cliente_label, demand.clienteLabel)) ||
         (clientesCandidatos || []).find((c: any) => correspondeClienteEnotionDb(c.nome, demand.clienteLabel));
 
       if (match) {

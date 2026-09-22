@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { queryNotionDatabase, mapNotionPageToDemand, correspondeClienteEnotionDb, fetchNotionPageContent, splitEstruturaELegenda } from '@/lib/notion';
+import { queryNotionDatabase, mapNotionPageToDemand, correspondeClienteEnotionDb, clienteLabelBate, fetchNotionPageContent, splitEstruturaELegenda } from '@/lib/notion';
 import { getContextoAgencia } from '@/lib/clientes-server';
 
 // Plano Hobby da Vercel: teto de execução de função serverless. Igual aos outros crons do projeto
@@ -97,7 +97,7 @@ export async function handleNotionSync(req: Request) {
         // Resolve o cliente dono da página pela coluna "Cliente" (match exato com notion_cliente_label,
         // com fallback pro matching por nome só pra manter compatibilidade com configurações antigas).
         const clienteMatch =
-          clientes.find((c) => c.notion_cliente_label && c.notion_cliente_label === demand.clienteLabel) ||
+          clientes.find((c) => clienteLabelBate(c.notion_cliente_label, demand.clienteLabel)) ||
           (demand.clienteLabel ? clientes.find((c) => correspondeClienteEnotionDb(c.nome, demand.clienteLabel)) : undefined);
 
         if (!clienteMatch) {
