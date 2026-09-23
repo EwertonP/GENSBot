@@ -4,6 +4,46 @@
 
 export type TipoConteudo = 'post' | 'reel' | 'story' | 'avulso';
 
+export type PrioridadeConteudo = 'baixa' | 'media' | 'alta' | 'urgente';
+
+export const PRIORIDADE_CONFIG: Record<
+  PrioridadeConteudo,
+  { label: string; flag: string; color: string; bg: string; border: string; text: string }
+> = {
+  urgente: {
+    label: 'Urgente',
+    flag: '🔴',
+    color: '#e11d48',
+    bg: 'bg-rose-500/10 dark:bg-rose-500/20',
+    border: 'border-rose-500/30',
+    text: 'text-rose-600 dark:text-rose-400',
+  },
+  alta: {
+    label: 'Alta',
+    flag: '🟠',
+    color: '#f59e0b',
+    bg: 'bg-amber-500/10 dark:bg-amber-500/20',
+    border: 'border-amber-500/30',
+    text: 'text-amber-600 dark:text-amber-400',
+  },
+  media: {
+    label: 'Média',
+    flag: '🔵',
+    color: '#3b82f6',
+    bg: 'bg-blue-500/10 dark:bg-blue-500/20',
+    border: 'border-blue-500/30',
+    text: 'text-blue-600 dark:text-blue-400',
+  },
+  baixa: {
+    label: 'Baixa',
+    flag: '🟢',
+    color: '#10b981',
+    bg: 'bg-emerald-500/10 dark:bg-emerald-500/20',
+    border: 'border-emerald-500/30',
+    text: 'text-emerald-600 dark:text-emerald-400',
+  },
+};
+
 export type StatusConteudo =
   | 'planejamento'
   | 'copy'
@@ -68,6 +108,7 @@ export interface ConteudoItem {
   cliente_id: string;
   tipo: TipoConteudo;
   status: StatusConteudo;
+  prioridade?: PrioridadeConteudo;
   titulo: string | null;
   legenda: string | null;
   briefing?: string | null;

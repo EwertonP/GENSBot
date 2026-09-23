@@ -35,6 +35,7 @@ import {
   Paperclip,
   ArrowUpToLine,
   ArrowUp,
+  Flag,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,8 @@ import {
   mapearStatusParaColunaKanban,
   gerarLinkWhatsAppAprovacao,
   gerarMensagemAprovacao,
+  PRIORIDADE_CONFIG,
+  type PrioridadeConteudo,
   type ConteudoItem,
   type StatusConteudo,
   type TipoConteudo,
@@ -64,6 +67,52 @@ import { detectarGatilhosDaLegenda } from '@/lib/publish-automation';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
 import { upload } from '@vercel/blob/client';
+
+export const ETAPAS_PIPELINE: { status: StatusConteudo; label: string; short: string; step: number }[] = [
+  { status: 'planejamento', label: 'Briefing & Ideia', short: 'Briefing', step: 1 },
+  { status: 'criacao_arte', label: 'Criação Visual', short: 'Criação', step: 2 },
+  { status: 'revisao_interna', label: 'Revisão Interna', short: 'Revisão', step: 3 },
+  { status: 'revisao_cliente', label: 'Aprovação Cliente', short: 'Aprovação', step: 4 },
+  { status: 'agendamento', label: 'Agendado', short: 'Agendado', step: 5 },
+  { status: 'publicado', label: 'Publicado', short: 'Publicado', step: 6 },
+];
+
+export function getEtapaIndex(status: StatusConteudo): number {
+  switch (status) {
+    case 'planejamento':
+      return 1;
+    case 'copy':
+    case 'criacao_arte':
+    case 'em_gravacao':
+    case 'em_edicao':
+      return 2;
+    case 'revisao_arte':
+    case 'revisao_interna':
+    case 'travado':
+      return 3;
+    case 'revisao_cliente':
+      return 4;
+    case 'agendamento':
+    case 'revisao_agendamento':
+    case 'pronto_publicar':
+      return 5;
+    case 'publicado':
+      return 6;
+    default:
+      return 1;
+  }
+}
+
+export function formatarDataCurta(dataStr?: string | null): string {
+  if (!dataStr) return '';
+  try {
+    const d = new Date(dataStr.includes('T') ? dataStr : `${dataStr}T12:00:00`);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  } catch {
+    return '';
+  }
+}
 
 interface EsteiraTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
@@ -109,6 +158,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
   const [formClienteId, setFormClienteId] = useState('');
   const [formTipo, setFormTipo] = useState<TipoConteudo>('post');
   const [formStatusInicial, setFormStatusInicial] = useState<StatusConteudo>('planejamento');
+  const [formPrioridade, setFormPrioridade] = useState<PrioridadeConteudo>('media');
   const [formTitulo, setFormTitulo] = useState('');
   const [formBriefing, setFormBriefing] = useState('');
   const [formLegenda, setFormLegenda] = useState('');
@@ -120,6 +170,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
   const [formArquivos, setFormArquivos] = useState<ArquivoConteudo[]>([]);
   const [formUploading, setFormUploading] = useState(false);
   const [showManualUrlsForm, setShowManualUrlsForm] = useState(false);
+  const [trocarClienteAbertoNovo, setTrocarClienteAbertoNovo] = useState(false);
 
   // Modal Editar Item
   const [itemEmEdicao, setItemEmEdicao] = useState<ConteudoItem | null>(null);
@@ -137,6 +188,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
   const [excluindoItem, setExcluindoItem] = useState(false);
   const [editStatus, setEditStatus] = useState<StatusConteudo>('planejamento');
   const [editTipo, setEditTipo] = useState<TipoConteudo>('post');
+  const [editPrioridade, setEditPrioridade] = useState<PrioridadeConteudo>('media');
   const [editTitulo, setEditTitulo] = useState('');
   const [editBriefing, setEditBriefing] = useState('');
   const [editLegenda, setEditLegenda] = useState('');
@@ -148,6 +200,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
   const [editArquivos, setEditArquivos] = useState<ArquivoConteudo[]>([]);
   const [editUploading, setEditUploading] = useState(false);
   const [showManualUrlsEdit, setShowManualUrlsEdit] = useState(false);
+  const [trocarClienteAbertoEdit, setTrocarClienteAbertoEdit] = useState(false);
+  const [editClienteId, setEditClienteId] = useState('');
+  const [buscaClienteEdit, setBuscaClienteEdit] = useState('');
 
   // Comentários internos e Histórico da Demanda
   const [novoComentarioTexto, setNovoComentarioTexto] = useState('');
@@ -409,6 +464,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
     setBuscaClienteForm('');
     setFormTipo('post');
     setFormStatusInicial('planejamento');
+    setFormPrioridade('media');
     setFormTitulo('');
     setFormBriefing('');
     setFormLegenda('');
@@ -419,6 +475,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
     setFormUrls('');
     setFormArquivos([]);
     setShowManualUrlsForm(false);
+    setTrocarClienteAbertoNovo(false);
     setModalNovoAberto(true);
   }
 
@@ -450,6 +507,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
           cliente_id: formClienteId,
           tipo: formTipo,
           status: formStatusInicial,
+          prioridade: formPrioridade,
           titulo: formTitulo.trim() || null,
           briefing: formBriefing.trim() || null,
           legenda: formLegenda.trim() || null,
@@ -517,6 +575,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
     setItemEmEdicao(item);
     setEditStatus(item.status);
     setEditTipo(item.tipo);
+    setEditPrioridade(item.prioridade || 'media');
     setEditTitulo(item.titulo || '');
     setEditBriefing(item.briefing || '');
     setEditLegenda(item.legenda || '');
@@ -528,6 +587,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
     setEditArquivos(item.arquivos || []);
     setShowManualUrlsEdit(false);
     setNovoComentarioTexto('');
+    setEditClienteId(item.cliente_id);
+    setBuscaClienteEdit('');
+    setTrocarClienteAbertoEdit(false);
   }
 
   async function handleSalvarEdicao(e: React.FormEvent) {
@@ -553,7 +615,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: editTipo,
+          cliente_id: editClienteId || itemEmEdicao.cliente_id,
           status: editStatus,
+          prioridade: editPrioridade,
           titulo: editTitulo.trim() || null,
           briefing: editBriefing.trim() || null,
           legenda: editLegenda.trim() || null,
@@ -635,8 +699,26 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
     );
   }, [clientes, buscaClienteForm]);
 
+  const clientesEditFiltrados = useMemo(() => {
+    if (!buscaClienteEdit.trim()) return clientes;
+    const t = buscaClienteEdit.toLowerCase();
+    return clientes.filter(
+      (c) =>
+        c.nome.toLowerCase().includes(t) ||
+        (c.nicho && c.nicho.toLowerCase().includes(t))
+    );
+  }, [clientes, buscaClienteEdit]);
+
   const clienteSelecionadoObj = clientes.find((c) => c.id === formClienteId);
   const clienteAtivo = clientes.find((c) => c.id === clienteSelecionado);
+  const editClienteObj =
+    clientes.find((c) => c.id === editClienteId) ||
+    itemEmEdicao?.cliente ||
+    clientes.find((c) => c.id === itemEmEdicao?.cliente_id);
+  const formResponsavel = membros.find((m) => m.id === formResponsavelId);
+  const formEditor = membros.find((m) => m.id === formEditorId);
+  const editResponsavel = membros.find((m) => m.id === editResponsavelId);
+  const editEditor = membros.find((m) => m.id === editEditorId);
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
@@ -1066,6 +1148,19 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
+                            {item.prioridade && item.prioridade !== 'media' && PRIORIDADE_CONFIG[item.prioridade] && (
+                              <span
+                                className={`px-1.5 py-0.5 rounded-md font-mono text-[9px] font-bold border flex items-center gap-0.5 ${
+                                  PRIORIDADE_CONFIG[item.prioridade].bg
+                                } ${PRIORIDADE_CONFIG[item.prioridade].text} ${
+                                  PRIORIDADE_CONFIG[item.prioridade].border
+                                }`}
+                                title={`Prioridade ${PRIORIDADE_CONFIG[item.prioridade].label}`}
+                              >
+                                <span>{PRIORIDADE_CONFIG[item.prioridade].flag}</span>
+                                <span>{PRIORIDADE_CONFIG[item.prioridade].label}</span>
+                              </span>
+                            )}
                             <Badge variant={info.variant} className="text-[9px] font-bold">
                               {info.label}
                             </Badge>
@@ -1335,83 +1430,217 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
         </Card>
       )}
 
-      {/* 3. Modal Trello-Style Redesenhado: Nova Demanda (2 Colunas) */}
+      {/* 3. Modal Trello-Style Redesenhado: Nova Demanda (Pipeline Stepper, Micro-pills, Matriz de Prioridade) */}
       <Sheet
         open={modalNovoAberto}
         onClose={() => setModalNovoAberto(false)}
         aria-label="Nova Demanda"
         className="w-full max-w-4xl lg:max-w-5xl p-0 overflow-hidden"
       >
-        <form onSubmit={handleSalvarNovo} className="flex flex-col max-h-[90vh] w-full bg-card select-none">
-          {/* 1. Header Fixo com Título e Badges */}
-          <div className="p-5 sm:p-6 border-b border-border/70 flex flex-col gap-3 bg-card shrink-0">
+        <form onSubmit={handleSalvarNovo} className="flex flex-col max-h-[92vh] w-full bg-card select-none">
+          {/* 1. Header Fixo com Título, Stepper e Micro-pills */}
+          <div className="p-4 sm:p-5 border-b border-border/70 flex flex-col gap-3.5 bg-card shrink-0">
+            {/* Top Bar: Breadcrumb, Badges & Fechar */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
                     Produção & Esteira
                   </span>
                   <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 uppercase tracking-wider">
                     + Nova Demanda
                   </span>
-                  <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border uppercase tracking-wider ${
-                    formTipo === 'reel' ? 'bg-rose-500/15 text-rose-600 border-rose-500/30' :
-                    formTipo === 'story' ? 'bg-blue-500/15 text-blue-600 border-blue-500/30' :
-                    formTipo === 'post' ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30' :
-                    'bg-amber-500/15 text-amber-600 border-amber-500/30'
-                  }`}>
-                    {formTipo === 'reel' ? '🎬 Reels' : formTipo === 'story' ? '⚡ Story' : formTipo === 'post' ? '🖼️ Carrossel' : '📌 Post'}
+                  <span
+                    className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                      PRIORIDADE_CONFIG[formPrioridade]?.bg || 'bg-accent'
+                    } ${PRIORIDADE_CONFIG[formPrioridade]?.text || 'text-foreground'} ${
+                      PRIORIDADE_CONFIG[formPrioridade]?.border || 'border-border'
+                    }`}
+                  >
+                    {PRIORIDADE_CONFIG[formPrioridade]?.flag} {PRIORIDADE_CONFIG[formPrioridade]?.label}
                   </span>
                 </div>
                 <Input
                   value={formTitulo}
                   onChange={(e) => setFormTitulo(e.target.value)}
                   placeholder="Título ou Tema da Publicação..."
-                  className="w-full text-lg sm:text-2xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 mt-1.5 h-auto"
+                  className="w-full text-lg sm:text-2xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60"
                   required
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setModalNovoAberto(false)}
-                className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer"
+                className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
+                title="Fechar"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Quick Format Selector */}
-            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t border-border/40">
-              <span className="text-[10px] font-bold uppercase font-mono mr-1 text-muted-foreground/80">Formato Rápido:</span>
-              {[
-                { id: 'post' as const, label: 'Carrossel', icon: ImageIcon },
-                { id: 'reel' as const, label: 'Reels', icon: Video },
-                { id: 'story' as const, label: 'Story', icon: Smartphone },
-                { id: 'avulso' as const, label: 'Avulso', icon: Sparkles },
-              ].map((fmt) => (
-                <button
-                  key={fmt.id}
-                  type="button"
-                  onClick={() => setFormTipo(fmt.id)}
-                  className={`px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs ${
-                    formTipo === fmt.id
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-accent/60 hover:bg-accent border-border/60 text-foreground'
-                  }`}
-                >
-                  <fmt.icon className="w-3.5 h-3.5" />
-                  {fmt.label}
-                </button>
-              ))}
+            {/* Stepper Pipeline Interativo (Referência 1) */}
+            <div className="w-full bg-accent/20 rounded-xl p-2 border border-border/50 overflow-x-auto">
+              <div className="flex items-center justify-between min-w-[520px] gap-2">
+                {ETAPAS_PIPELINE.map((etapa, idx) => {
+                  const currentStep = getEtapaIndex(formStatusInicial);
+                  const isDone = etapa.step < currentStep;
+                  const isCurrent = etapa.step === currentStep;
+
+                  return (
+                    <React.Fragment key={etapa.status}>
+                      <button
+                        type="button"
+                        onClick={() => setFormStatusInicial(etapa.status)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          isCurrent
+                            ? 'bg-primary text-primary-foreground shadow-xs font-bold ring-2 ring-primary/30'
+                            : isDone
+                            ? 'bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                        }`}
+                        title={`Definir etapa inicial como: ${etapa.label}`}
+                      >
+                        <span
+                          className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 font-mono ${
+                            isCurrent
+                              ? 'bg-primary-foreground text-primary font-bold'
+                              : isDone
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted-foreground/20 text-muted-foreground'
+                          }`}
+                        >
+                          {isDone ? <Check className="w-2.5 h-2.5" /> : etapa.step}
+                        </span>
+                        <span className="truncate">{etapa.short}</span>
+                      </button>
+                      {idx < ETAPAS_PIPELINE.length - 1 && (
+                        <div
+                          className={`flex-1 h-0.5 min-w-3 rounded transition-colors ${
+                            idx + 1 < currentStep ? 'bg-primary' : 'bg-border'
+                          }`}
+                        />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Micro-pills Bar (Referência 4) */}
+            <div className="flex items-center gap-2 flex-wrap pt-0.5 text-xs">
+              {/* Pill 1: Prazo */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px]">
+                <Clock className="w-3 h-3 text-muted-foreground" />
+                <span>
+                  {formPrazoInterno ? `Prazo: ${formatarDataCurta(formPrazoInterno)}` : 'Sem prazo'}
+                </span>
+              </div>
+
+              {/* Pill 2: Programado */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px]">
+                <Calendar className="w-3 h-3 text-muted-foreground" />
+                <span>
+                  {formDataProgramada ? `Para: ${formatarDataCurta(formDataProgramada)}` : 'Não agendado'}
+                </span>
+              </div>
+
+              {/* Pill 3: Formato */}
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
+                  formTipo === 'reel'
+                    ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                    : formTipo === 'story'
+                    ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                    : formTipo === 'post'
+                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                }`}
+              >
+                {formTipo === 'reel' && <Video className="w-3 h-3" />}
+                {formTipo === 'story' && <Smartphone className="w-3 h-3" />}
+                {formTipo === 'post' && <ImageIcon className="w-3 h-3" />}
+                {formTipo === 'avulso' && <Sparkles className="w-3 h-3" />}
+                <span>
+                  {formTipo === 'reel'
+                    ? 'Reels'
+                    : formTipo === 'story'
+                    ? 'Story'
+                    : formTipo === 'post'
+                    ? 'Carrossel'
+                    : 'Avulso'}
+                </span>
+              </div>
+
+              {/* Pill 4: Prioridade */}
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
+                  PRIORIDADE_CONFIG[formPrioridade]?.bg
+                } ${PRIORIDADE_CONFIG[formPrioridade]?.text} ${
+                  PRIORIDADE_CONFIG[formPrioridade]?.border
+                }`}
+              >
+                <Flag className="w-3 h-3" />
+                <span>{PRIORIDADE_CONFIG[formPrioridade]?.label}</span>
+              </div>
+
+              {/* Pill 5: Equipe Stack */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px] ml-auto">
+                <Users className="w-3 h-3 text-muted-foreground" />
+                {formResponsavel ? (
+                  <span className="truncate max-w-[120px]">{formResponsavel.nome.split(' ')[0]}</span>
+                ) : (
+                  <span className="text-muted-foreground">Sem responsável</span>
+                )}
+                {formEditor && (
+                  <span className="text-muted-foreground text-[10px]">+ {formEditor.nome.split(' ')[0]}</span>
+                )}
+              </div>
             </div>
           </div>
 
           {/* 2. Body Rolável Dividido em 2 Colunas */}
-          <div className="p-5 sm:p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* COLUNA DA ESQUERDA (7 Cols): Título, Formato, Legenda Formatada, Briefing & Anexos */}
-            <div className="lg:col-span-7 flex flex-col gap-6">
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Legenda Formatada, Briefing & Anexos */}
+            <div className="lg:col-span-7 flex flex-col gap-5">
+              {/* Formato Rápido da Peça */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
+                  <Layers className="w-4 h-4 text-primary" />
+                  <span>Formato de Conteúdo</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: 'post' as const, label: 'Carrossel', sub: 'Feed 4:5', icon: ImageIcon },
+                    { id: 'reel' as const, label: 'Reels', sub: 'Vídeo 9:16', icon: Video },
+                    { id: 'story' as const, label: 'Story', sub: 'Interativo', icon: Smartphone },
+                    { id: 'avulso' as const, label: 'Avulso', sub: 'Extra / Banner', icon: Sparkles },
+                  ].map((fmt) => (
+                    <button
+                      key={fmt.id}
+                      type="button"
+                      onClick={() => setFormTipo(fmt.id)}
+                      className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all ${
+                        formTipo === fmt.id
+                          ? 'bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary'
+                          : 'bg-accent/40 hover:bg-accent border-border/70 text-foreground'
+                      }`}
+                    >
+                      <fmt.icon className="w-4 h-4" />
+                      <span className="text-xs font-bold leading-none">{fmt.label}</span>
+                      <span
+                        className={`text-[9px] font-mono leading-none ${
+                          formTipo === fmt.id ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                        }`}
+                      >
+                        {fmt.sub}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Legenda do Instagram com Rich Formatting Toolbar */}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
                     <FileText className="w-4 h-4 text-primary" />
@@ -1423,7 +1652,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                 </div>
 
                 {/* Formatting Toolbar */}
-                <div className="flex items-center gap-1 p-1.5 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 p-1.5 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground flex-wrap">
                   <button
                     type="button"
                     onClick={() => setFormLegenda((prev) => `${prev} **texto em destaque**`)}
@@ -1449,7 +1678,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     := Lista
                   </button>
                   <span className="w-px h-3 bg-border mx-1" />
-                  {['🚀', '👉', '💡', '🔥', '✅', '💪'].map((emoji) => (
+                  {['🚀', '👉', '💡', '🔥', '✅', '💪', '🎯', '📲'].map((emoji) => (
                     <button
                       key={emoji}
                       type="button"
@@ -1465,7 +1694,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   value={formLegenda}
                   onChange={(e) => setFormLegenda(e.target.value)}
                   placeholder="Escreva a copy da postagem com hashtags, tópicos e formatação..."
-                  rows={6}
+                  rows={5}
                   className="rounded-t-none rounded-b-xl text-xs font-sans leading-relaxed bg-card"
                 />
               </div>
@@ -1486,7 +1715,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               </div>
 
               {/* Listagem de Anexos & Arquivos da Demanda */}
-              <div className="flex flex-col gap-3 pt-1">
+              <div className="flex flex-col gap-2.5 pt-1">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
                     <Paperclip className="w-4 h-4 text-primary" />
@@ -1598,134 +1827,229 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               </div>
             </div>
 
-            {/* COLUNA DA DIREITA (5 Cols): Cliente, Tags/Status, Equipe, Prazos */}
-            <div className="lg:col-span-5 flex flex-col gap-5">
-              {/* Seletor Visual de Cliente */}
-              <div className="p-4 rounded-2xl bg-accent/25 border border-border/70 flex flex-col gap-2.5">
-                <label className="text-[11px] font-bold uppercase font-mono text-muted-foreground flex items-center justify-between">
-                  <span>1. Cliente da Agência *</span>
-                  {formClienteId && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
-                </label>
-
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar cliente por nome..."
-                    value={buscaClienteForm}
-                    onChange={(e) => setBuscaClienteForm(e.target.value)}
-                    className="pl-9 h-8 text-xs bg-card"
-                  />
+            {/* COLUNA DA DIREITA (5 Cols): Cliente Compacto, Matriz Prioridade, Equipe Colaborativa, Prazos */}
+            <div className="lg:col-span-5 flex flex-col gap-4">
+              {/* 1. Cliente da Agência (Compacto com Busca Popover) */}
+              <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold uppercase font-mono text-muted-foreground flex items-center gap-1.5">
+                    <span>1. Cliente da Agência *</span>
+                  </label>
+                  {clienteSelecionadoObj && (
+                    <button
+                      type="button"
+                      onClick={() => setTrocarClienteAbertoNovo((prev) => !prev)}
+                      className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                    >
+                      {trocarClienteAbertoNovo ? 'Fechar busca' : 'Trocar cliente'}
+                    </button>
+                  )}
                 </div>
 
-                <div className="max-h-44 overflow-y-auto flex flex-col gap-1.5 p-1 border border-border/70 rounded-xl bg-card">
-                  {clientesFormFiltrados.map((c) => {
-                    const isSelected = formClienteId === c.id;
+                {/* Card do Cliente Selecionado */}
+                {clienteSelecionadoObj && !trocarClienteAbertoNovo ? (
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-accent/30 border border-border/70 group hover:border-foreground/30 transition-all">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <ClienteAvatar
+                        nome={clienteSelecionadoObj.nome}
+                        cor={clienteSelecionadoObj.cor}
+                        fotoUrl={clienteSelecionadoObj.foto_url}
+                        tamanho="md"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-foreground truncate">
+                          {clienteSelecionadoObj.nome}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {(clienteSelecionadoObj as any).instagram_username
+                            ? `@${(clienteSelecionadoObj as any).instagram_username}`
+                            : clienteSelecionadoObj.nicho || 'Geral'}
+                        </p>
+                      </div>
+                    </div>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  </div>
+                ) : (
+                  /* Busca e Seleção de Cliente */
+                  <div className="flex flex-col gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar cliente por nome ou nicho..."
+                        value={buscaClienteForm}
+                        onChange={(e) => setBuscaClienteForm(e.target.value)}
+                        className="pl-9 h-8 text-xs bg-card"
+                        autoFocus={trocarClienteAbertoNovo}
+                      />
+                    </div>
+                    <div className="max-h-40 overflow-y-auto flex flex-col gap-1 p-1 border border-border/70 rounded-xl bg-card">
+                      {clientesFormFiltrados.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground p-2 text-center">
+                          Nenhum cliente encontrado.
+                        </p>
+                      ) : (
+                        clientesFormFiltrados.map((c) => {
+                          const isSelected = formClienteId === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                setFormClienteId(c.id);
+                                setTrocarClienteAbertoNovo(false);
+                              }}
+                              className={`flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-accent/80 border-foreground/30 shadow-2xs ring-1 ring-foreground/20'
+                                  : 'border-transparent hover:bg-accent/40'
+                              }`}
+                            >
+                              <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                  {(c as any).instagram_username ? `@${(c as any).instagram_username}` : c.nicho || 'Geral'}
+                                </p>
+                              </div>
+                              {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Matriz de Prioridade (Referência 3) */}
+              <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
+                <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground flex items-center justify-between">
+                  <span>2. Prioridade da Demanda</span>
+                  <span className="text-[10px] font-bold text-foreground">
+                    {PRIORIDADE_CONFIG[formPrioridade]?.label}
+                  </span>
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { id: 'urgente', label: 'Urgente', flag: '🔴', desc: 'Imediato' },
+                      { id: 'alta', label: 'Alta', flag: '🟠', desc: 'Prioritário' },
+                      { id: 'media', label: 'Média', flag: '🔵', desc: 'Padrão' },
+                      { id: 'baixa', label: 'Baixa', flag: '🟢', desc: 'Sem pressa' },
+                    ] as const
+                  ).map((p) => {
+                    const isSelected = formPrioridade === p.id;
+                    const conf = PRIORIDADE_CONFIG[p.id];
                     return (
                       <button
-                        key={c.id}
+                        key={p.id}
                         type="button"
-                        onClick={() => setFormClienteId(c.id)}
-                        className={`flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                        onClick={() => setFormPrioridade(p.id)}
+                        className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
                           isSelected
-                            ? 'bg-accent/80 border-foreground/30 shadow-2xs ring-1 ring-foreground/20'
-                            : 'border-transparent hover:bg-accent/40'
+                            ? `${conf.bg} ${conf.border} ring-2 ring-foreground/20 shadow-2xs font-bold`
+                            : 'bg-accent/20 hover:bg-accent/50 border-border/60 text-muted-foreground'
                         }`}
                       >
-                        <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">
-                            {(c as any).instagram_username ? `@${(c as any).instagram_username}` : c.nicho || 'Geral'}
-                          </p>
+                        <span className="text-sm shrink-0">{p.flag}</span>
+                        <div className="flex flex-col text-left min-w-0">
+                          <span
+                            className={`text-xs leading-none font-bold ${
+                              isSelected ? conf.text : 'text-foreground'
+                            }`}
+                          >
+                            {p.label}
+                          </span>
+                          <span className="text-[9px] font-mono text-muted-foreground mt-0.5 leading-none">
+                            {p.desc}
+                          </span>
                         </div>
-                        {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Tags & Status na Esteira */}
-              <div className="p-4 rounded-2xl bg-accent/25 border border-border/70 flex flex-col gap-3">
-                <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">Tags & Status</span>
-                <div className="flex flex-col gap-2">
+              {/* 3. Equipe Colaborativa (Referências 2 & 3) */}
+              <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">
+                    3. Equipe Colaborativa
+                  </span>
+                  {/* Stack de Avatares Overlapping */}
+                  {(formResponsavel || formEditor) && (
+                    <div className="flex items-center -space-x-2">
+                      {formResponsavel && (
+                        <div
+                          className="w-6 h-6 rounded-full bg-primary text-primary-foreground font-bold text-[10px] flex items-center justify-center border-2 border-card shadow-xs"
+                          title={`Responsável: ${formResponsavel.nome}`}
+                        >
+                          {formResponsavel.nome.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      {formEditor && (
+                        <div
+                          className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground font-bold text-[10px] flex items-center justify-center border-2 border-card shadow-xs"
+                          title={`Designer/Editor: ${formEditor.nome}`}
+                        >
+                          {formEditor.nome.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2.5">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-muted-foreground">Etapa Inicial na Esteira</label>
+                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                      <User className="w-3 h-3 text-muted-foreground" />
+                      <span>Responsável Principal</span>
+                    </label>
                     <Select
-                      value={formStatusInicial}
-                      onChange={(e) => setFormStatusInicial(e.target.value as StatusConteudo)}
+                      value={formResponsavelId}
+                      onChange={(e) => setFormResponsavelId(e.target.value)}
                     >
-                      {COLUNAS_KANBAN.map((st) => (
-                        <option key={st} value={st}>
-                          {STATUS_LABELS[st].label} ({STATUS_LABELS[st].tag})
+                      <option value="">Selecione o responsável...</option>
+                      {membros.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nome} ({m.cargo || (m.papel === 'master' ? 'Sócio' : 'Membro')})
                         </option>
                       ))}
                     </Select>
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-muted-foreground">Formato de Publicação</label>
+                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                      <Users className="w-3 h-3 text-muted-foreground" />
+                      <span>Designer / Editor (Opcional)</span>
+                    </label>
                     <Select
-                      value={formTipo}
-                      onChange={(e) => setFormTipo(e.target.value as TipoConteudo)}
+                      value={formEditorId}
+                      onChange={(e) => setFormEditorId(e.target.value)}
                     >
-                      <option value="post">Carrossel / Post Feed (4:5)</option>
-                      <option value="reel">Vídeo Reels (9:16)</option>
-                      <option value="story">Story Interativo (9:16)</option>
-                      <option value="avulso">Avulso / Demanda Extra</option>
+                      <option value="">Selecione o editor/designer...</option>
+                      {membros.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nome} ({m.cargo || 'Especialista'})
+                        </option>
+                      ))}
                     </Select>
                   </div>
                 </div>
               </div>
 
-              {/* Atribuição de Equipe */}
-              <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
-                <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">Atribuição de Equipe</span>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                    <User className="w-3 h-3 text-muted-foreground" />
-                    Responsável Principal
-                  </label>
-                  <Select
-                    value={formResponsavelId}
-                    onChange={(e) => setFormResponsavelId(e.target.value)}
-                  >
-                    <option value="">Selecione o responsável...</option>
-                    {membros.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.nome} ({m.cargo || (m.papel === 'master' ? 'Sócio' : 'Membro')})
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                    <Users className="w-3 h-3 text-muted-foreground" />
-                    Designer / Editor (Opcional)
-                  </label>
-                  <Select
-                    value={formEditorId}
-                    onChange={(e) => setFormEditorId(e.target.value)}
-                  >
-                    <option value="">Selecione o editor/designer...</option>
-                    {membros.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.nome} ({m.cargo || 'Especialista'})
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              </div>
-
-              {/* Prazos & Agenda */}
-              <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
-                <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">Prazos e Agendamento</span>
+              {/* 4. Prazos e Cronograma */}
+              <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
+                <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">
+                  4. Prazos & Cronograma
+                </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Prazo Interno</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span>Prazo Interno</span>
+                    </label>
                     <Input
                       type="date"
                       value={formPrazoInterno}
@@ -1734,7 +2058,10 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">Data Programada</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                      <span>Data Programada</span>
+                    </label>
                     <Input
                       type="date"
                       value={formDataProgramada}
@@ -1857,6 +2184,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
       </Sheet>
 
       {/* 5. Modal Trello-Style Redesenhado: Editar & Detalhes da Demanda (2 Colunas) */}
+      {/* 5. Modal Trello-Style Redesenhado: Editar & Detalhes da Demanda (Pipeline Stepper, Micro-pills, Matriz de Prioridade) */}
       <Sheet
         open={!!itemEmEdicao}
         onClose={() => setItemEmEdicao(null)}
@@ -1864,7 +2192,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
         className="w-full max-w-4xl lg:max-w-5xl p-0 overflow-hidden"
       >
         {itemEmEdicao && (
-          <form onSubmit={handleSalvarEdicao} className="flex flex-col max-h-[90vh] w-full bg-card select-none">
+          <form onSubmit={handleSalvarEdicao} className="flex flex-col max-h-[92vh] w-full bg-card select-none">
             {/* 1. Header Banner de Capa (se houver mídia anexada) */}
             {editArquivos[0]?.url && (
               <div className="relative w-full h-44 sm:h-52 bg-slate-950 overflow-hidden flex items-center justify-center border-b border-border/80 shrink-0">
@@ -1885,6 +2213,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     type="button"
                     onClick={() => setItemEmEdicao(null)}
                     className="p-1.5 rounded-full bg-black/60 text-white hover:bg-black/90 transition-colors cursor-pointer"
+                    title="Fechar"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -1892,29 +2221,32 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               </div>
             )}
 
-            {/* 2. Top Bar com Título e Toolbar de Ações Rápidas */}
-            <div className="p-5 sm:p-6 border-b border-border/70 flex flex-col gap-3 bg-card shrink-0">
+            {/* 2. Top Bar Fixo com Título, Stepper e Micro-pills */}
+            <div className="p-4 sm:p-5 border-b border-border/70 flex flex-col gap-3.5 bg-card shrink-0">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono tracking-wider">Demanda</span>
-                    <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border uppercase tracking-wider ${
-                      editTipo === 'reel' ? 'bg-rose-500/15 text-rose-600 border-rose-500/30' :
-                      editTipo === 'story' ? 'bg-blue-500/15 text-blue-600 border-blue-500/30' :
-                      editTipo === 'post' ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30' :
-                      'bg-amber-500/15 text-amber-600 border-amber-500/30'
-                    }`}>
-                      {editTipo === 'reel' ? '🎬 Reels' : editTipo === 'story' ? '⚡ Story' : editTipo === 'post' ? '🖼️ Carrossel' : '📌 Post'}
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                      Demanda · #{itemEmEdicao.id.slice(0, 8)}
                     </span>
                     <Badge variant={STATUS_LABELS[editStatus]?.variant || 'default'} className="text-[9px] font-bold">
                       {STATUS_LABELS[editStatus]?.label || editStatus}
                     </Badge>
+                    <span
+                      className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                        PRIORIDADE_CONFIG[editPrioridade]?.bg || 'bg-accent'
+                      } ${PRIORIDADE_CONFIG[editPrioridade]?.text || 'text-foreground'} ${
+                        PRIORIDADE_CONFIG[editPrioridade]?.border || 'border-border'
+                      }`}
+                    >
+                      {PRIORIDADE_CONFIG[editPrioridade]?.flag} {PRIORIDADE_CONFIG[editPrioridade]?.label}
+                    </span>
                   </div>
                   <Input
                     value={editTitulo}
                     onChange={(e) => setEditTitulo(e.target.value)}
                     placeholder="Título da Demanda..."
-                    className="w-full text-lg sm:text-2xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 mt-1.5 h-auto"
+                    className="w-full text-lg sm:text-2xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60"
                     required
                   />
                 </div>
@@ -1922,46 +2254,205 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   <button
                     type="button"
                     onClick={() => setItemEmEdicao(null)}
-                    className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer"
+                    className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
+                    title="Fechar"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 )}
               </div>
 
-              {/* Quick Actions Toolbar Estilo Trello */}
+              {/* Stepper Pipeline Interativo (Referência 1) */}
+              <div className="w-full bg-accent/20 rounded-xl p-2 border border-border/50 overflow-x-auto">
+                <div className="flex items-center justify-between min-w-[520px] gap-2">
+                  {ETAPAS_PIPELINE.map((etapa, idx) => {
+                    const currentStep = getEtapaIndex(editStatus);
+                    const isDone = etapa.step < currentStep;
+                    const isCurrent = etapa.step === currentStep;
+
+                    return (
+                      <React.Fragment key={etapa.status}>
+                        <button
+                          type="button"
+                          onClick={() => setEditStatus(etapa.status)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            isCurrent
+                              ? 'bg-primary text-primary-foreground shadow-xs font-bold ring-2 ring-primary/30'
+                              : isDone
+                              ? 'bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                          }`}
+                          title={`Mover para: ${etapa.label}`}
+                        >
+                          <span
+                            className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 font-mono ${
+                              isCurrent
+                                ? 'bg-primary-foreground text-primary font-bold'
+                                : isDone
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted-foreground/20 text-muted-foreground'
+                            }`}
+                          >
+                            {isDone ? <Check className="w-2.5 h-2.5" /> : etapa.step}
+                          </span>
+                          <span className="truncate">{etapa.short}</span>
+                        </button>
+                        {idx < ETAPAS_PIPELINE.length - 1 && (
+                          <div
+                            className={`flex-1 h-0.5 min-w-3 rounded transition-colors ${
+                              idx + 1 < currentStep ? 'bg-primary' : 'bg-border'
+                            }`}
+                          />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Micro-pills Bar (Referência 4) */}
+              <div className="flex items-center gap-2 flex-wrap pt-0.5 text-xs">
+                {/* Pill 1: Prazo */}
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px]">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span>
+                    {editPrazoInterno ? `Prazo: ${formatarDataCurta(editPrazoInterno)}` : 'Sem prazo'}
+                  </span>
+                </div>
+
+                {/* Pill 2: Programado */}
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px]">
+                  <Calendar className="w-3 h-3 text-muted-foreground" />
+                  <span>
+                    {editDataProgramada ? `Para: ${formatarDataCurta(editDataProgramada)}` : 'Não agendado'}
+                  </span>
+                </div>
+
+                {/* Pill 3: Formato */}
+                <div
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
+                    editTipo === 'reel'
+                      ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                      : editTipo === 'story'
+                      ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                      : editTipo === 'post'
+                      ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                  }`}
+                >
+                  {editTipo === 'reel' && <Video className="w-3 h-3" />}
+                  {editTipo === 'story' && <Smartphone className="w-3 h-3" />}
+                  {editTipo === 'post' && <ImageIcon className="w-3 h-3" />}
+                  {editTipo === 'avulso' && <Sparkles className="w-3 h-3" />}
+                  <span>
+                    {editTipo === 'reel'
+                      ? 'Reels'
+                      : editTipo === 'story'
+                      ? 'Story'
+                      : editTipo === 'post'
+                      ? 'Carrossel'
+                      : 'Avulso'}
+                  </span>
+                </div>
+
+                {/* Pill 4: Prioridade */}
+                <div
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
+                    PRIORIDADE_CONFIG[editPrioridade]?.bg
+                  } ${PRIORIDADE_CONFIG[editPrioridade]?.text} ${
+                    PRIORIDADE_CONFIG[editPrioridade]?.border
+                  }`}
+                >
+                  <Flag className="w-3 h-3" />
+                  <span>{PRIORIDADE_CONFIG[editPrioridade]?.label}</span>
+                </div>
+
+                {/* Pill 5: Equipe Stack */}
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px] ml-auto">
+                  <Users className="w-3 h-3 text-muted-foreground" />
+                  {editResponsavel ? (
+                    <span className="truncate max-w-[120px]">{editResponsavel.nome.split(' ')[0]}</span>
+                  ) : (
+                    <span className="text-muted-foreground">Sem responsável</span>
+                  )}
+                  {editEditor && (
+                    <span className="text-muted-foreground text-[10px]">+ {editEditor.nome.split(' ')[0]}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Actions Toolbar */}
               <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t border-border/40">
                 <span className="text-[10px] font-bold uppercase font-mono mr-1 text-muted-foreground/80">Ações Rápidas:</span>
                 <button
                   type="button"
-                  onClick={() => setEditTipo(editTipo === 'reel' ? 'post' : editTipo === 'post' ? 'story' : 'reel')}
-                  className="px-2.5 py-1 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Layers className="w-3.5 h-3.5 text-primary" /> Formato
-                </button>
-                <button
-                  type="button"
                   onClick={() => setShowManualUrlsEdit((v) => !v)}
-                  className="px-2.5 py-1 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                  className="px-2.5 py-1 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs"
                 >
                   <Paperclip className="w-3.5 h-3.5 text-primary" /> Anexo
                 </button>
                 <button
                   type="button"
                   onClick={() => handleCopiarLinkAprovacao(itemEmEdicao.token_aprovacao)}
-                  className="px-2.5 py-1 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                  className="px-2.5 py-1 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs"
                 >
-                  <Share2 className="w-3.5 h-3.5 text-primary" /> Link Aprovação
+                  <Share2 className="w-3.5 h-3.5 text-primary" /> Copiar Link Aprovação
                 </button>
+                {editStatus === 'agendamento' && onIrParaAgendamento && (
+                  <button
+                    type="button"
+                    onClick={() => handleLevarParaAgendamento(itemEmEdicao)}
+                    className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Levar p/ Agendamento
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* 3. Body Rolável Dividido em 2 Colunas (Trello Layout) */}
-            <div className="p-5 sm:p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* COLUNA DA ESQUERDA (7 Cols): Conteúdo, Legenda Formatada & Anexos */}
-              <div className="lg:col-span-7 flex flex-col gap-6">
+            {/* 3. Body Rolável Dividido em 2 Colunas */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Legenda Formatada, Briefing & Anexos */}
+              <div className="lg:col-span-7 flex flex-col gap-5">
+                {/* Formato Rápido da Peça */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
+                    <Layers className="w-4 h-4 text-primary" />
+                    <span>Formato de Conteúdo</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: 'post' as const, label: 'Carrossel', sub: 'Feed 4:5', icon: ImageIcon },
+                      { id: 'reel' as const, label: 'Reels', sub: 'Vídeo 9:16', icon: Video },
+                      { id: 'story' as const, label: 'Story', sub: 'Interativo', icon: Smartphone },
+                      { id: 'avulso' as const, label: 'Avulso', sub: 'Extra / Banner', icon: Sparkles },
+                    ].map((fmt) => (
+                      <button
+                        key={fmt.id}
+                        type="button"
+                        onClick={() => setEditTipo(fmt.id)}
+                        className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all ${
+                          editTipo === fmt.id
+                            ? 'bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary'
+                            : 'bg-accent/40 hover:bg-accent border-border/70 text-foreground'
+                        }`}
+                      >
+                        <fmt.icon className="w-4 h-4" />
+                        <span className="text-xs font-bold leading-none">{fmt.label}</span>
+                        <span
+                          className={`text-[9px] font-mono leading-none ${
+                            editTipo === fmt.id ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                          }`}
+                        >
+                          {fmt.sub}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Legenda do Instagram com Rich Formatting Toolbar */}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
                       <FileText className="w-4 h-4 text-primary" />
@@ -1973,11 +2464,11 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   </div>
 
                   {/* Formatting Toolbar */}
-                  <div className="flex items-center gap-1 p-1.5 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1 p-1.5 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground flex-wrap">
                     <button
                       type="button"
                       onClick={() => setEditLegenda((prev) => `${prev} **texto em destaque**`)}
-                      className="px-2 py-0.5 rounded hover:bg-card font-bold text-foreground cursor-pointer"
+                      className="px-2 py-0.5 rounded hover:bg-card font-bold text-foreground cursor-pointer text-xs"
                       title="Negrito"
                     >
                       B
@@ -1985,21 +2476,21 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     <button
                       type="button"
                       onClick={() => setEditLegenda((prev) => `${prev} *texto itálico*`)}
-                      className="px-2 py-0.5 rounded hover:bg-card italic text-foreground cursor-pointer"
+                      className="px-2 py-0.5 rounded hover:bg-card italic text-foreground cursor-pointer text-xs"
                       title="Itálico"
                     >
                       I
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEditLegenda((prev) => `${prev}\n• Tópico 1\n• Tópico 2`)}
-                      className="px-2 py-0.5 rounded hover:bg-card font-mono text-foreground cursor-pointer"
+                      onClick={() => setEditLegenda((prev) => `${prev}\n• `)}
+                      className="px-2 py-0.5 rounded hover:bg-card font-mono text-foreground cursor-pointer text-xs"
                       title="Lista com tópicos"
                     >
-                      :=
+                      := Lista
                     </button>
                     <span className="w-px h-3 bg-border mx-1" />
-                    {['🚀', '👉', '💡', '🔥', '✅', '💪'].map((emoji) => (
+                    {['🚀', '👉', '💡', '🔥', '✅', '💪', '🎯', '📲'].map((emoji) => (
                       <button
                         key={emoji}
                         type="button"
@@ -2015,7 +2506,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     value={editLegenda}
                     onChange={(e) => setEditLegenda(e.target.value)}
                     placeholder="Escreva a copy da postagem com hashtags, tópicos e formatação..."
-                    rows={7}
+                    rows={6}
                     className="rounded-t-none rounded-b-xl text-xs font-sans leading-relaxed bg-card"
                   />
                 </div>
@@ -2035,8 +2526,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   />
                 </div>
 
-                {/* Listagem de Anexos & Arquivos da Demanda (Trello-Style) */}
-                <div className="flex flex-col gap-3 pt-2">
+                {/* Listagem de Anexos & Arquivos da Demanda */}
+                <div className="flex flex-col gap-2.5 pt-1">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
                       <Paperclip className="w-4 h-4 text-primary" />
@@ -2049,7 +2540,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     )}
                   </div>
 
-                  {/* Lista Trello de Arquivos */}
+                  {/* Lista de Arquivos */}
                   {editArquivos.length > 0 && (
                     <div className="flex flex-col gap-2">
                       {editArquivos.map((arq, idx) => (
@@ -2121,16 +2612,19 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     <p className="text-xs font-bold text-foreground">
                       Clique ou arraste novos arquivos para anexar
                     </p>
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      {editTipo === 'reel' ? 'Vídeo MP4 em 9:16' : 'Selecione várias para Carrossel em 4:5'}
+                    </p>
                   </div>
 
-                  {/* Opção secundária: Link Manual */}
+                  {/* Inserir Link Manual */}
                   <div className="mt-0.5">
                     <button
                       type="button"
                       onClick={() => setShowManualUrlsEdit((v) => !v)}
                       className="text-[11px] text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
                     >
-                      <span>{showManualUrlsEdit ? '- Ocultar links manuais' : '+ Inserir links de mídias manuais (Google Drive / CDN)'}</span>
+                      <span>{showManualUrlsEdit ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
                     </button>
                     {showManualUrlsEdit && (
                       <Textarea
@@ -2145,55 +2639,173 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                 </div>
               </div>
 
-              {/* COLUNA DA DIREITA (5 Cols): Tags, Metadados & Comentários/Atividades */}
-              <div className="lg:col-span-5 flex flex-col gap-5">
-                {/* 1. Tags e Labels Visuais */}
-                <div className="p-4 rounded-2xl bg-accent/25 border border-border/70 flex flex-col gap-3">
-                  <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">Tags & Status</span>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[11px] font-semibold text-muted-foreground">Etapa da Esteira</label>
-                      <Select
-                        value={editStatus}
-                        onChange={(e) => setEditStatus(e.target.value as StatusConteudo)}
-                      >
-                        {COLUNAS_KANBAN.map((st) => (
-                          <option key={st} value={st}>
-                            {STATUS_LABELS[st].label} ({STATUS_LABELS[st].tag})
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
+              {/* COLUNA DA DIREITA (5 Cols): Cliente, Prioridade, Equipe, Prazos & Atividades */}
+              <div className="lg:col-span-5 flex flex-col gap-4">
+                {/* 1. Cliente da Demanda */}
+                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold uppercase font-mono text-muted-foreground">
+                      1. Cliente da Agência
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setTrocarClienteAbertoEdit((prev) => !prev)}
+                      className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                    >
+                      {trocarClienteAbertoEdit ? 'Fechar busca' : 'Trocar cliente'}
+                    </button>
+                  </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[11px] font-semibold text-muted-foreground">Formato de Publicação</label>
-                      <Select
-                        value={editTipo}
-                        onChange={(e) => setEditTipo(e.target.value as TipoConteudo)}
-                      >
-                        <option value="post">Carrossel / Post Feed (4:5)</option>
-                        <option value="reel">Vídeo Reels (9:16)</option>
-                        <option value="story">Story Interativo (9:16)</option>
-                        <option value="avulso">Avulso / Demanda Extra</option>
-                      </Select>
+                  {editClienteObj && !trocarClienteAbertoEdit ? (
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-accent/30 border border-border/70 group hover:border-foreground/30 transition-all">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <ClienteAvatar
+                          nome={editClienteObj.nome}
+                          cor={editClienteObj.cor}
+                          fotoUrl={editClienteObj.foto_url}
+                          tamanho="md"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-foreground truncate">
+                            {editClienteObj.nome}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {(editClienteObj as any).instagram_username
+                              ? `@${(editClienteObj as any).instagram_username}`
+                              : editClienteObj.nicho || 'Geral'}
+                          </p>
+                        </div>
+                      </div>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                     </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar cliente por nome..."
+                          value={buscaClienteEdit}
+                          onChange={(e) => setBuscaClienteEdit(e.target.value)}
+                          className="pl-9 h-8 text-xs bg-card"
+                          autoFocus={trocarClienteAbertoEdit}
+                        />
+                      </div>
+                      <div className="max-h-40 overflow-y-auto flex flex-col gap-1 p-1 border border-border/70 rounded-xl bg-card">
+                        {clientesEditFiltrados.length === 0 ? (
+                          <p className="text-[11px] text-muted-foreground p-2 text-center">
+                            Nenhum cliente encontrado.
+                          </p>
+                        ) : (
+                          clientesEditFiltrados.map((c) => {
+                            const isSelected = (editClienteId || itemEmEdicao.cliente_id) === c.id;
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => {
+                                  setEditClienteId(c.id);
+                                  setTrocarClienteAbertoEdit(false);
+                                }}
+                                className={`flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-accent/80 border-foreground/30 shadow-2xs ring-1 ring-foreground/20'
+                                    : 'border-transparent hover:bg-accent/40'
+                                }`}
+                              >
+                                <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">
+                                    {(c as any).instagram_username ? `@${(c as any).instagram_username}` : c.nicho || 'Geral'}
+                                  </p>
+                                </div>
+                                {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Matriz de Prioridade (Referência 3) */}
+                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
+                  <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground flex items-center justify-between">
+                    <span>2. Prioridade da Demanda</span>
+                    <span className="text-[10px] font-bold text-foreground">
+                      {PRIORIDADE_CONFIG[editPrioridade]?.label}
+                    </span>
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        { id: 'urgente', label: 'Urgente', flag: '🔴', desc: 'Imediato' },
+                        { id: 'alta', label: 'Alta', flag: '🟠', desc: 'Prioritário' },
+                        { id: 'media', label: 'Média', flag: '🔵', desc: 'Padrão' },
+                        { id: 'baixa', label: 'Baixa', flag: '🟢', desc: 'Sem pressa' },
+                      ] as const
+                    ).map((p) => {
+                      const isSelected = editPrioridade === p.id;
+                      const conf = PRIORIDADE_CONFIG[p.id];
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setEditPrioridade(p.id)}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                            isSelected
+                              ? `${conf.bg} ${conf.border} ring-2 ring-foreground/20 shadow-2xs font-bold`
+                              : 'bg-accent/20 hover:bg-accent/50 border-border/60 text-muted-foreground'
+                          }`}
+                        >
+                          <span className="text-sm shrink-0">{p.flag}</span>
+                          <div className="flex flex-col text-left min-w-0">
+                            <span
+                              className={`text-xs leading-none font-bold ${
+                                isSelected ? conf.text : 'text-foreground'
+                              }`}
+                            >
+                              {p.label}
+                            </span>
+                            <span className="text-[9px] font-mono text-muted-foreground mt-0.5 leading-none">
+                              {p.desc}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* 2. Informações Gerais (Cliente, Membros, Prazos) */}
-                <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
-                  <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">Informações da Demanda</span>
-
-                  {/* Cliente */}
-                  <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-accent/30 border border-border/60">
-                    <ClienteAvatar nome={itemEmEdicao.cliente?.nome || 'Cliente'} cor={itemEmEdicao.cliente?.cor} fotoUrl={itemEmEdicao.cliente?.foto_url} tamanho="sm" />
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] text-muted-foreground uppercase font-mono font-bold block">Cliente:</span>
-                      <span className="text-xs font-bold text-foreground truncate block">{itemEmEdicao.cliente?.nome}</span>
-                    </div>
+                {/* 3. Equipe Colaborativa (Referências 2 & 3) */}
+                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">
+                      3. Equipe Colaborativa
+                    </span>
+                    {(editResponsavel || editEditor) && (
+                      <div className="flex items-center -space-x-2">
+                        {editResponsavel && (
+                          <div
+                            className="w-6 h-6 rounded-full bg-primary text-primary-foreground font-bold text-[10px] flex items-center justify-center border-2 border-card shadow-xs"
+                            title={`Responsável: ${editResponsavel.nome}`}
+                          >
+                            {editResponsavel.nome.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        {editEditor && (
+                          <div
+                            className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground font-bold text-[10px] flex items-center justify-center border-2 border-card shadow-xs"
+                            title={`Designer/Editor: ${editEditor.nome}`}
+                          >
+                            {editEditor.nome.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Membros Responsáveis */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] font-semibold text-muted-foreground">Responsável Principal</label>
@@ -2215,22 +2827,43 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       </Select>
                     </div>
                   </div>
+                </div>
 
-                  {/* Prazos */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-border/50">
+                {/* 4. Prazos & Cronograma */}
+                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
+                  <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">
+                    4. Prazos & Cronograma
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground">Prazo Interno</label>
-                      <Input type="date" value={editPrazoInterno} onChange={(e) => setEditPrazoInterno(e.target.value)} className="h-8 text-xs" />
+                      <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-muted-foreground" />
+                        <span>Prazo Interno</span>
+                      </label>
+                      <Input
+                        type="date"
+                        value={editPrazoInterno}
+                        onChange={(e) => setEditPrazoInterno(e.target.value)}
+                        className="h-8 text-xs"
+                      />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground">Data Programada</label>
-                      <Input type="date" value={editDataProgramada} onChange={(e) => setEditDataProgramada(e.target.value)} className="h-8 text-xs" />
+                      <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        <span>Data Programada</span>
+                      </label>
+                      <Input
+                        type="date"
+                        value={editDataProgramada}
+                        onChange={(e) => setEditDataProgramada(e.target.value)}
+                        className="h-8 text-xs"
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* 3. Área de Comentários & Atividades (Trello Activity Feed) */}
-                <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3 flex-1">
+                {/* 5. Área de Comentários & Atividades (Trello Activity Feed) */}
+                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3 flex-1">
                   <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
                     <span className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display">
                       <MessageSquare className="w-3.5 h-3.5 text-primary" />
@@ -2255,7 +2888,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   )}
 
                   {/* Timeline de Comentários Internos */}
-                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                     {(!itemEmEdicao.historico_atividades || itemEmEdicao.historico_atividades.length === 0) ? (
                       <p className="text-[11px] text-muted-foreground italic py-2">
                         Nenhuma atividade registrada ainda.
@@ -2278,7 +2911,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     <Textarea
                       value={novoComentarioTexto}
                       onChange={(e) => setNovoComentarioTexto(e.target.value)}
-                      placeholder="Escreva um comentário..."
+                      placeholder="Escreva um comentário interno..."
                       rows={2}
                       className="text-xs flex-1 bg-accent/20 resize-none"
                       onKeyDown={(e) => {

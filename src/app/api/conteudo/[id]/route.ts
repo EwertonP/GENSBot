@@ -67,7 +67,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // Whitelist de campos permitidos para atualização
     const permitidos = [
       'tipo',
+      'cliente_id',
       'status',
+      'prioridade',
       'titulo',
       'legenda',
       'briefing',
