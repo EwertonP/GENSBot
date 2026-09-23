@@ -33,6 +33,8 @@ import {
   Loader2,
   Phone,
   Paperclip,
+  ArrowUpToLine,
+  ArrowUp,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -85,6 +87,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
   // Drag and Drop state
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
   const [draggingOverCol, setDraggingOverCol] = useState<StatusConteudo | null>(null);
+  const [draggingOverItemId, setDraggingOverItemId] = useState<string | null>(null);
 
   // Modal Novo Item
   const [modalNovoAberto, setModalNovoAberto] = useState(false);
@@ -203,31 +206,76 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
     });
   }, [items, clienteSelecionado, responsavelFiltro, busca]);
 
-  async function handleMudarStatus(itemId: string, novoStatus: StatusConteudo) {
+  async function handleMudarStatus(
+    itemId: string,
+    novoStatus: StatusConteudo,
+    targetItemId?: string | null,
+    moverParaTopo?: boolean
+  ) {
     setDraggingItemId(null);
     setDraggingOverCol(null);
-    const itemAnterior = items.find((i) => i.id === itemId);
-    if (!itemAnterior || itemAnterior.status === novoStatus) return;
+    setDraggingOverItemId(null);
 
-    // Atualização otimista
-    setItems((prev) =>
-      prev.map((i) => (i.id === itemId ? { ...i, status: novoStatus } : i))
-    );
+    const itemDragged = items.find((i) => i.id === itemId);
+    if (!itemDragged) return;
+
+    // Se é a mesma coluna e sem reordenação específica, não altera
+    if (!targetItemId && !moverParaTopo && itemDragged.status === novoStatus) return;
+
+    const outrosItens = items.filter((i) => i.id !== itemId);
+    const itemAtualizado = { ...itemDragged, status: novoStatus };
+
+    let novosItems: ConteudoItem[] = [];
+
+    if (targetItemId) {
+      // Inserir exatamente ANTES do targetItemId no array
+      const indexTarget = outrosItens.findIndex((i) => i.id === targetItemId);
+      if (indexTarget !== -1) {
+        novosItems = [
+          ...outrosItens.slice(0, indexTarget),
+          itemAtualizado,
+          ...outrosItens.slice(indexTarget),
+        ];
+      } else {
+        novosItems = [itemAtualizado, ...outrosItens];
+      }
+    } else {
+      // Padrão (ou moverParaTopo / troca de coluna): insere no TOPO da coluna de destino
+      const primeiroDaColunaIndex = outrosItens.findIndex(
+        (it) => mapearStatusParaColunaKanban(it.status) === novoStatus
+      );
+      if (primeiroDaColunaIndex !== -1) {
+        novosItems = [
+          ...outrosItens.slice(0, primeiroDaColunaIndex),
+          itemAtualizado,
+          ...outrosItens.slice(primeiroDaColunaIndex),
+        ];
+      } else {
+        novosItems = [itemAtualizado, ...outrosItens];
+      }
+    }
+
+    novosItems = novosItems.map((it, idx) => ({ ...it, ordem: idx + 1 }));
+    setItems(novosItems);
+
+    const novaOrdem = novosItems.find((i) => i.id === itemId)?.ordem || 1;
 
     try {
       const res = await fetch(`/api/conteudo/${itemId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: novoStatus }),
+        body: JSON.stringify({ status: novoStatus, ordem: novaOrdem }),
       });
       if (!res.ok) throw new Error();
-      showToast(`Movido para ${STATUS_LABELS[novoStatus].label}`, 'success');
-    } catch {
-      // Reverte se falhar
-      setItems((prev) =>
-        prev.map((i) => (i.id === itemId ? { ...i, status: itemAnterior.status } : i))
+      showToast(
+        moverParaTopo
+          ? `Demanda movida para o topo da coluna!`
+          : `Demanda organizada em ${STATUS_LABELS[novoStatus].label}`,
+        'success'
       );
-      showToast('Erro ao atualizar status.', 'error');
+    } catch {
+      carregarDados();
+      showToast('Erro ao atualizar posição.', 'error');
     }
   }
 
@@ -922,6 +970,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     const temComentarios = (item.comentarios_revisao || []).length > 0;
                     const temAjustes = item.status === 'travado' || (item.status === 'revisao_interna' && temComentarios);
                     const isDragging = draggingItemId === item.id;
+                    const isOverItem = draggingOverItemId === item.id;
 
                     return (
                       <Card
@@ -933,13 +982,41 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                           e.dataTransfer.setData('text/plain', item.id);
                           e.dataTransfer.effectAllowed = 'move';
                         }}
-                        onDragEnd={() => setDraggingItemId(null)}
-                        className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 cursor-pointer ${
+                        onDragEnd={() => {
+                          setDraggingItemId(null);
+                          setDraggingOverItemId(null);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (draggingOverItemId !== item.id) setDraggingOverItemId(item.id);
+                        }}
+                        onDragLeave={(e) => {
+                          e.stopPropagation();
+                          if (draggingOverItemId === item.id) setDraggingOverItemId(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDraggingOverCol(null);
+                          setDraggingItemId(null);
+                          setDraggingOverItemId(null);
+                          const draggedId = e.dataTransfer.getData('text/plain');
+                          if (draggedId) handleMudarStatus(draggedId, colStatus, item.id);
+                        }}
+                        className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 cursor-pointer relative ${
                           temAjustes
                             ? 'border-destructive/40 bg-destructive/5'
                             : 'border-border/80 hover:border-foreground/30'
-                        } ${isDragging ? 'opacity-70' : 'opacity-100'}`}
+                        } ${isDragging ? 'opacity-50 scale-98' : 'opacity-100'} ${
+                          isOverItem ? 'ring-2 ring-primary border-primary bg-primary/10' : ''
+                        }`}
                       >
+                        {/* Indicador de Drop-target (Acima do Card) */}
+                        {isOverItem && (
+                          <div className="absolute -top-1.5 left-2 right-2 h-1 bg-primary rounded-full shadow-xs animate-pulse pointer-events-none z-10" />
+                        )}
+
                         {/* Capa da Demanda no Kanban */}
                         {(() => {
                           const capaUrl = item.arquivos?.[0]?.url || (item as any).midia_url || null;
@@ -1078,9 +1155,22 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                           </div>
                         )}
 
-                        {/* Ações Rápidas: Link, Editar e Enviar p/ Aprovação */}
+                        {/* Ações Rápidas: Topo, Link, Editar e Enviar p/ Aprovação */}
                         <div className="border-t border-border/60 pt-2.5 flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMudarStatus(item.id, colStatus, null, true);
+                              }}
+                              title="Mover demanda para o topo desta coluna"
+                              className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
+                            >
+                              <ArrowUpToLine className="w-3 h-3 text-primary" />
+                              <span>Topo</span>
+                            </button>
+
                             <button
                               type="button"
                               onClick={(e) => {
