@@ -87,7 +87,7 @@ export async function POST(req: Request) {
     if (authError) {
       // Se o usuário já existe no Auth, busca o ID dele
       if (authError.message?.toLowerCase().includes('already registered') || authError.code === 'email_exists') {
-        const { data: listData } = await serviceSupabase.auth.admin.listUsers();
+        const { data: listData } = await serviceSupabase.auth.admin.listUsers({ perPage: 1000 });
         const existing = listData.users.find((u) => u.email?.toLowerCase() === emailLimpo);
         if (!existing) {
           return respostaErro('E-mail já cadastrado no sistema.', 400);

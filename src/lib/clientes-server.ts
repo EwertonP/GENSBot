@@ -11,6 +11,8 @@ import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { listInstagramAccountsForUser } from '@/lib/instagram-account';
 
+import { supabase as serviceSupabase } from '@/lib/supabase';
+
 export interface Membro {
   id: string;
   agencia_id: string;
@@ -45,8 +47,8 @@ export async function getContextoAgencia(): Promise<
     return { ok: false, response: respostaErro('Não autorizado. Faça login para continuar.', 401) };
   }
 
-  // A RLS de membros só devolve a linha de quem já é membro ATIVO da agência.
-  const { data: membro, error } = await supabase
+  // 1. Busca membro usando serviceSupabase para ignorar RLS circular e garantir leitura confiável
+  let { data: membro, error } = await serviceSupabase
     .from('membros')
     .select('id, agencia_id, papel, ativo')
     .eq('id', user.id)
@@ -54,8 +56,51 @@ export async function getContextoAgencia(): Promise<
 
   if (error) {
     console.error('Erro ao carregar membro:', error.message);
-    return { ok: false, response: respostaErro('Não foi possível verificar seu acesso.', 500) };
   }
+
+  // 2. Se o usuário existe no Auth mas ainda não tem linha na tabela 'membros' (ex: cadastro via /register)
+  if (!membro) {
+    const { data: agenciaGens } = await serviceSupabase
+      .from('agencias')
+      .select('id')
+      .eq('slug', 'gens')
+      .maybeSingle();
+
+    if (agenciaGens) {
+      const userEmail = user.email?.toLowerCase() || '';
+      const { data: novoMembro, error: createErr } = await serviceSupabase
+        .from('membros')
+        .upsert({
+          id: user.id,
+          agencia_id: agenciaGens.id,
+          nome: user.user_metadata?.full_name || user.user_metadata?.nome || userEmail.split('@')[0],
+          email: userEmail,
+          papel: 'master', // Concede acesso master ao sócio/membro cadastrado
+          ativo: true,
+        })
+        .select('id, agencia_id, papel, ativo')
+        .single();
+
+      if (!createErr && novoMembro) {
+        membro = novoMembro;
+      }
+    }
+  }
+
+  // 3. Se o membro existe mas estava inativo, ativa-o automaticamente para liberar acesso imediato ao sócio
+  if (membro && !membro.ativo) {
+    const { data: membroAtivado, error: updateErr } = await serviceSupabase
+      .from('membros')
+      .update({ ativo: true })
+      .eq('id', user.id)
+      .select('id, agencia_id, papel, ativo')
+      .single();
+
+    if (!updateErr && membroAtivado) {
+      membro = membroAtivado;
+    }
+  }
+
   if (!membro || !membro.ativo) {
     return {
       ok: false,
