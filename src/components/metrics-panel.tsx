@@ -263,7 +263,7 @@ function SmoothAreaChart({
             className="absolute top-2 z-30 pointer-events-none -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border/80 px-3 py-2 rounded-2xl shadow-xl text-xs flex flex-col gap-1 min-w-[160px]"
             style={{ left: `${(pointsA[hoverIndex].x / width) * 100}%` }}
           >
-            <span className="text-[10px] text-muted-foreground font-mono font-bold">
+            <span className="text-xs text-muted-foreground font-mono font-bold">
               {new Date(pointsA[hoverIndex].date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
             </span>
             <div className="flex items-center justify-between gap-3 text-foreground font-bold">
@@ -297,7 +297,7 @@ function SmoothAreaChart({
             <span className="font-medium text-muted-foreground">{labelB}</span>
           </div>
         </div>
-        <span className="text-[10px] font-mono text-muted-foreground">Passe o cursor sobre os pontos para detalhar o dia</span>
+        <span className="text-xs font-mono text-muted-foreground">Passe o cursor sobre os pontos para detalhar o dia</span>
       </div>
     </div>
   );
@@ -328,7 +328,7 @@ function ContentFormatBreakdownCard() {
             Distribuição de impressões e proporção entre Seguidores vs Não-Seguidores por tipo de mídia
           </p>
         </div>
-        <Badge variant="muted" className="font-mono text-[11px] font-bold self-start sm:self-auto bg-[#edf4d8] text-[#192313] border-[#d8ff3c]">
+        <Badge variant="muted" className="font-mono text-xs font-bold self-start sm:self-auto bg-[#edf4d8] text-[#192313] border-[#d8ff3c]">
           Total: {totalViews.toLocaleString('pt-BR')} visualizações
         </Badge>
       </div>
@@ -347,12 +347,12 @@ function ContentFormatBreakdownCard() {
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-foreground">{f.name}</h4>
-                    <span className="text-[10px] text-muted-foreground font-mono">{pctOfTotal}% do tráfego total</span>
+                    <span className="text-xs text-muted-foreground font-mono">{pctOfTotal}% do tráfego total</span>
                   </div>
                 </div>
                 <div className="text-right">
                   <span className="text-sm font-bold font-mono text-foreground">{f.views.toLocaleString('pt-BR')}</span>
-                  <p className="text-[10px] text-muted-foreground">views</p>
+                  <p className="text-xs text-muted-foreground">views</p>
                 </div>
               </div>
 
@@ -362,7 +362,7 @@ function ContentFormatBreakdownCard() {
                     <div style={{ width: `${f.followersPct}%` }} className="bg-[#192313] h-full" title={`Seguidores: ${f.followersPct}%`} />
                     <div style={{ width: `${f.nonFollowersPct}%` }} className="bg-[#d8ff3c] h-full" title={`Não-Seguidores: ${f.nonFollowersPct}%`} />
                   </div>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-[#192313]" /> Seguidores ({f.followersPct}%)
                     </span>
@@ -372,7 +372,7 @@ function ContentFormatBreakdownCard() {
                   </div>
                 </div>
               ) : (
-                <p className="text-[10px] text-muted-foreground italic pt-1">Nenhum evento gravado no período</p>
+                <p className="text-xs text-muted-foreground italic pt-1">Nenhum evento gravado no período</p>
               )}
             </div>
           );
@@ -426,7 +426,7 @@ function DetailedInteractionsCard() {
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-foreground">{item.label}</h4>
-                    <span className="text-[10px] text-muted-foreground font-mono">
+                    <span className="text-xs text-muted-foreground font-mono">
                       {item.ig} IG • {item.fb} FB
                     </span>
                   </div>
@@ -649,7 +649,7 @@ function AudienceActivityCard({
                   }`}
                   style={{ height: `${heightPercent}%` }}
                 />
-                {h.hour % 3 === 0 && <span className="text-[9px] text-muted-foreground font-mono mt-1.5">{h.hour}h</span>}
+                {h.hour % 3 === 0 && <span className="text-xs text-muted-foreground font-mono mt-1.5">{h.hour}h</span>}
               </div>
             );
           })}
@@ -659,7 +659,7 @@ function AudienceActivityCard({
           <span className="font-semibold text-foreground flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-primary" /> Dias de Pico: Seg, Ter e Qui
           </span>
-          <span className="font-mono text-[10px]">Janela recomendada: 18h às 21h</span>
+          <span className="font-mono text-xs">Janela recomendada: 18h às 21h</span>
         </div>
       </div>
     </Card>
@@ -690,7 +690,7 @@ function FollowerConvertingContentCard({ publications }: { publications: Publica
             Mídias ranqueadas por conversão direta de novos seguidores e retenção de audiência
           </p>
         </div>
-        <Badge variant="muted" className="font-mono text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30">
+        <Badge variant="muted" className="font-mono text-xs bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30">
           Ranking Oficial Meta
         </Badge>
       </div>
@@ -719,12 +719,12 @@ function FollowerConvertingContentCard({ publications }: { publications: Publica
 
                 <div className="absolute top-2 left-2">
                   <span className="px-2.5 py-1 rounded-lg bg-[#192313] text-[#d8ff3c] text-xs font-bold font-mono shadow-md flex items-center gap-1 border border-[#d8ff3c]/40">
-                    <UserPlus className="w-3 h-3" /> +{gained} seg
+                    <UserPlus className="w-3.5 h-3.5" /> +{gained} seg
                   </span>
                 </div>
 
                 <div className="absolute top-2 right-2">
-                  <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-[9px] font-bold font-mono">
+                  <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-xs font-bold font-mono">
                     #{i + 1}
                   </span>
                 </div>
@@ -735,7 +735,7 @@ function FollowerConvertingContentCard({ publications }: { publications: Publica
                   {pub.caption || 'Sem legenda'}
                 </p>
 
-                <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border/50 text-[10px] font-mono text-muted-foreground">
+                <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border/50 text-xs font-mono text-muted-foreground">
                   <div>
                     <span>Views Únicas:</span>
                     <p className="font-bold text-foreground text-xs">{uniqueViews.toLocaleString('pt-BR')}</p>
@@ -777,15 +777,15 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
         )}
 
         <div className="absolute top-2 left-2">
-          <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-[9px] font-bold font-mono uppercase tracking-wider flex items-center gap-1">
-            {isVideo ? <Video className="w-2.5 h-2.5" /> : isCarousel ? <ImageIcon className="w-2.5 h-2.5" /> : <Sparkles className="w-2.5 h-2.5" />}
+          <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1">
+            {isVideo ? <Video className="w-3 h-3" /> : isCarousel ? <ImageIcon className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
             {isVideo ? 'Reels' : isCarousel ? 'Carrossel' : 'Post'}
           </span>
         </div>
 
         {engRate && (
           <div className="absolute top-2 right-2">
-            <span className="px-2 py-0.5 rounded-md bg-[#d8ff3c] text-[#192313] text-[9px] font-bold font-mono shadow-xs border border-[#192313]/20">
+            <span className="px-2 py-0.5 rounded-md bg-[#d8ff3c] text-[#192313] text-xs font-bold font-mono shadow-xs border border-[#192313]/20">
               {engRate}% engaj.
             </span>
           </div>
@@ -794,7 +794,7 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
 
       <div className="p-3.5 flex-1 flex flex-col justify-between gap-3">
         <div>
-          <p className="text-[10px] text-muted-foreground font-mono">
+          <p className="text-xs text-muted-foreground font-mono">
             {new Date(item.published_at).toLocaleDateString('pt-BR', {
               day: '2-digit',
               month: 'short',
@@ -807,13 +807,13 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-[11px]">
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-xs">
           <div className="flex flex-col">
-            <span className="text-[9px] text-muted-foreground font-medium uppercase">Alcance</span>
+            <span className="text-xs text-muted-foreground font-medium uppercase">Alcance</span>
             <span className="font-bold text-foreground font-mono">{item.reach.toLocaleString('pt-BR')}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] text-muted-foreground font-medium uppercase">Interações</span>
+            <span className="text-xs text-muted-foreground font-medium uppercase">Interações</span>
             <span className="font-bold text-foreground font-mono">{item.interactions.toLocaleString('pt-BR')}</span>
           </div>
         </div>
@@ -1210,7 +1210,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border/80 shadow-2xs text-xs">
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Mês:</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase">Mês:</span>
                   <input
                     type="month"
                     value={mainMonth}
@@ -1222,7 +1222,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <span className="text-muted-foreground font-bold">vs</span>
 
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Base:</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase">Base:</span>
                   <input
                     type="month"
                     value={compMonth}
@@ -1275,7 +1275,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           >
             <History className="w-4 h-4" />
             Histórico de Relatórios Gerados
-            <span className="px-1.5 py-0.2 rounded-full bg-card/80 text-foreground text-[10px] font-mono border">
+            <span className="px-2 py-0.5 rounded-full bg-card/80 text-foreground text-xs font-mono border">
               {relatoriosSalvos.length}
             </span>
           </button>
@@ -1311,7 +1311,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-border/60 text-muted-foreground font-mono text-[10px] uppercase">
+                  <tr className="border-b border-border/60 text-muted-foreground font-mono text-xs uppercase">
                     <th className="py-2.5 px-3">Cliente / Perfil</th>
                     <th className="py-2.5 px-3">Período Comparado</th>
                     <th className="py-2.5 px-3">Data de Geração</th>
@@ -1326,14 +1326,14 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                         {rel.clienteNome}
                       </td>
                       <td className="py-3 px-3 text-muted-foreground capitalize">
-                        {formatMonthLabel(rel.mainMonth)} <span className="text-[10px] font-mono text-muted-foreground">vs</span> {formatMonthLabel(rel.compMonth)}
+                        {formatMonthLabel(rel.mainMonth)} <span className="text-xs font-mono text-muted-foreground">vs</span> {formatMonthLabel(rel.compMonth)}
                       </td>
-                      <td className="py-3 px-3 text-muted-foreground font-mono text-[11px]">
+                      <td className="py-3 px-3 text-muted-foreground font-mono text-xs">
                         {new Date(rel.criadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="py-3 px-3">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
-                          <CheckCircle2 className="w-3 h-3" /> Ativo (Sem Expiração)
+                        <span className="inline-flex items-center gap-1 text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Ativo (Sem Expiração)
                         </span>
                       </td>
                       <td className="py-3 px-3 text-right">
@@ -1506,7 +1506,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="muted" className="font-mono text-[10px] bg-[#edf4d8] text-[#192313] border-[#d8ff3c]">
+                  <Badge variant="muted" className="font-mono text-xs bg-[#edf4d8] text-[#192313] border-[#d8ff3c]">
                     Total: {activeAccount.reach_total.toLocaleString('pt-BR')} contas
                   </Badge>
                 </div>
@@ -1634,7 +1634,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           <div id="executive-report-print-area" className="flex flex-col gap-6 text-foreground">
             {/* Banner de Apresentação ao Cliente */}
             <div className="p-5 rounded-2xl bg-[#edf4d8] border border-[#d8ff3c] text-[#192313]">
-              <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Relatório Oficial de Desempenho</span>
+              <span className="text-xs font-bold uppercase tracking-wider font-mono">Relatório Oficial de Desempenho</span>
               <h4 className="text-lg sm:text-xl font-bold font-display mt-0.5">
                 Desempenho Estratégico no Instagram · @{activeAccount?.username || selectedAccountId || 'geral'}
               </h4>
@@ -1646,24 +1646,24 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             {/* Quadro de Métricas Chave do Comparativo */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Contas Alcançadas</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Contas Alcançadas</span>
                 <span className="text-xl font-bold font-display text-foreground mt-1">209.432</span>
-                <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+14.2% vs mês anterior</span>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-0.5">+14.2% vs mês anterior</span>
               </div>
               <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Interações Totais</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Interações Totais</span>
                 <span className="text-xl font-bold font-display text-foreground mt-1">926</span>
-                <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+18.7% vs mês anterior</span>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-0.5">+18.7% vs mês anterior</span>
               </div>
               <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Total de Seguidores</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Total de Seguidores</span>
                 <span className="text-xl font-bold font-display text-foreground mt-1">14.850</span>
-                <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+137 novos net</span>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-0.5">+137 novos net</span>
               </div>
               <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Visitas ao Perfil (Bio)</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Visitas ao Perfil (Bio)</span>
                 <span className="text-xl font-bold font-display text-foreground mt-1">2.624</span>
-                <span className="text-[11px] text-emerald-600 font-bold font-mono mt-0.5">+24.4% vs mês anterior</span>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-0.5">+24.4% vs mês anterior</span>
               </div>
             </div>
 

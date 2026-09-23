@@ -1144,8 +1144,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Top Header Bar — Com Respiro Padronizado */}
-        <header className="hidden md:flex sticky top-0 z-30 min-h-[76px] py-4 px-8 items-center justify-between flex-shrink-0 bg-background/90 backdrop-blur-md border-b border-border/70 shadow-2xs">
+        {/* Top Header Bar — Com Respiro Padronizado e Altura Otimizada para 1080p */}
+        <header className="hidden md:flex sticky top-0 z-30 min-h-[64px] py-3 px-6 sm:px-8 items-center justify-between flex-shrink-0 bg-background/90 backdrop-blur-md border-b border-border/70 shadow-2xs">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold font-display text-foreground tracking-tight">

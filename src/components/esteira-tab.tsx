@@ -36,6 +36,8 @@ import {
   ArrowUpToLine,
   ArrowUp,
   Flag,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -174,6 +176,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
   // Modal Editar Item
   const [itemEmEdicao, setItemEmEdicao] = useState<ConteudoItem | null>(null);
+  const [expandirCapaEdit, setExpandirCapaEdit] = useState(false);
 
   // Rola a página para o topo ao trocar o modo de visualização (Kanban/Lista/Feed) ou ao alternar cliente/item
   useEffect(() => {
@@ -573,6 +576,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
   function handleAbrirModalEditar(item: ConteudoItem) {
     setItemEmEdicao(item);
+    setExpandirCapaEdit(false);
     setEditStatus(item.status);
     setEditTipo(item.tipo);
     setEditPrioridade(item.prioridade || 'media');
@@ -1039,11 +1043,11 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold font-display text-foreground">{info.label}</span>
-                    <span className="text-[10px] font-mono font-bold bg-accent text-muted-foreground px-1.5 py-0.5 rounded-md border border-border/60">
+                    <span className="text-xs font-mono font-bold bg-accent text-muted-foreground px-2 py-0.5 rounded-md border border-border/60">
                       {itensDaColuna.length}
                     </span>
                   </div>
-                  <span className="text-[10px] text-muted-foreground font-mono">{info.tag}</span>
+                  <span className="text-xs text-muted-foreground font-mono">{info.tag}</span>
                 </div>
 
                 {/* Lista de Cards da Coluna */}
@@ -1115,7 +1119,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                                 <img src={capaUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                               )}
                               <div className="absolute top-2 left-2">
-                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold font-mono border backdrop-blur-md uppercase tracking-wider ${
+                                <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold font-mono border backdrop-blur-md uppercase tracking-wider ${
                                   isReel ? 'bg-rose-500/90 text-white border-rose-400/50' :
                                   isStory ? 'bg-blue-500/90 text-white border-blue-400/50' :
                                   isCarrossel ? 'bg-emerald-500/90 text-white border-emerald-400/50' :
@@ -1141,7 +1145,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                               <p className="text-xs font-bold text-foreground truncate">
                                 {item.cliente?.nome}
                               </p>
-                              <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">
+                              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
                                 {item.tipo}
                               </span>
                             </div>
@@ -1150,7 +1154,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                           <div className="flex items-center gap-1.5 shrink-0">
                             {item.prioridade && item.prioridade !== 'media' && PRIORIDADE_CONFIG[item.prioridade] && (
                               <span
-                                className={`px-1.5 py-0.5 rounded-md font-mono text-[9px] font-bold border flex items-center gap-0.5 ${
+                                className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold border flex items-center gap-1 ${
                                   PRIORIDADE_CONFIG[item.prioridade].bg
                                 } ${PRIORIDADE_CONFIG[item.prioridade].text} ${
                                   PRIORIDADE_CONFIG[item.prioridade].border
@@ -1161,7 +1165,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                                 <span>{PRIORIDADE_CONFIG[item.prioridade].label}</span>
                               </span>
                             )}
-                            <Badge variant={info.variant} className="text-[9px] font-bold">
+                            <Badge variant={info.variant} className="text-xs font-bold">
                               {info.label}
                             </Badge>
                             <button
@@ -1173,20 +1177,20 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                               title="Editar Demanda"
                               className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-accent/60 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
-                              <Edit2 className="w-3 h-3" />
+                              <Edit2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
 
                         {/* Título */}
                         {item.titulo && (
-                          <h4 className="text-xs font-semibold text-foreground leading-snug line-clamp-2">
+                          <h4 className="text-sm font-semibold text-foreground leading-snug line-clamp-2">
                             {item.titulo}
                           </h4>
                         )}
 
                         {/* Badges de Slides, Prazo e Responsável */}
-                        <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
                           {item.arquivos?.length > 0 && (
                             <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono font-medium border border-border/50">
                               {item.arquivos.length} {item.tipo === 'reel' ? 'vídeo' : 'slides'}
@@ -1195,7 +1199,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
                           {item.prazo && (
                             <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono flex items-center gap-1 border border-border/50">
-                              <Clock className="w-2.5 h-2.5" />
+                              <Clock className="w-3 h-3" />
                               <span>
                                 {new Date(item.prazo).toLocaleDateString('pt-BR', {
                                   day: '2-digit',
@@ -1221,8 +1225,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
                         {/* Responsável */}
                         {item.responsavel && (
-                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium pt-1 border-t border-border/40">
-                            <div className="w-4 h-4 rounded-full bg-accent flex items-center justify-center text-[8px] font-bold text-foreground">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium pt-1 border-t border-border/40">
+                            <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-foreground">
                               {item.responsavel.nome[0].toUpperCase()}
                             </div>
                             <span className="truncate">{item.responsavel.nome}</span>
@@ -1231,7 +1235,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
                         {/* Status de Aprovação com Cliente */}
                         {item.status === 'revisao_cliente' && (
-                          <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2 text-[10px]">
+                          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2 text-xs">
                             <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold min-w-0">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
                               <span className="truncate">Aguardando {item.cliente?.nome || 'Cliente'}</span>
@@ -1243,7 +1247,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                                 window.open(`/aprovacao/${item.token_aprovacao}`, '_blank');
                               }}
                               title="Ver exatamente como o cliente visualiza a tela de aprovação"
-                              className="text-muted-foreground hover:text-foreground shrink-0 font-mono text-[9px] underline cursor-pointer"
+                              className="text-muted-foreground hover:text-foreground shrink-0 font-mono text-xs underline cursor-pointer"
                             >
                               Ver tela
                             </button>
@@ -1330,7 +1334,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
         <Card padding="lg" className="rounded-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-muted-foreground">
-              <thead className="uppercase text-[10px] font-bold border-b border-border/60">
+              <thead className="uppercase text-xs font-bold border-b border-border/60">
                 <tr>
                   <th className="py-2.5 px-3">Cliente</th>
                   <th className="py-2.5 px-3">Título / Formato</th>
@@ -1435,23 +1439,23 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
         open={modalNovoAberto}
         onClose={() => setModalNovoAberto(false)}
         aria-label="Nova Demanda"
-        className="w-full max-w-4xl lg:max-w-5xl p-0 overflow-hidden"
+        className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden"
       >
         <form onSubmit={handleSalvarNovo} className="flex flex-col max-h-[92vh] w-full bg-card select-none">
           {/* 1. Header Fixo com Título, Stepper e Micro-pills */}
-          <div className="p-4 sm:p-5 border-b border-border/70 flex flex-col gap-3.5 bg-card shrink-0">
+          <div className="p-3.5 sm:p-4 border-b border-border/70 flex flex-col gap-3 bg-card shrink-0">
             {/* Top Bar: Breadcrumb, Badges & Fechar */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                  <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
                     Produção & Esteira
                   </span>
-                  <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 uppercase tracking-wider">
+                  <span className="text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 uppercase tracking-wider">
                     + Nova Demanda
                   </span>
                   <span
-                    className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                    className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${
                       PRIORIDADE_CONFIG[formPrioridade]?.bg || 'bg-accent'
                     } ${PRIORIDADE_CONFIG[formPrioridade]?.text || 'text-foreground'} ${
                       PRIORIDADE_CONFIG[formPrioridade]?.border || 'border-border'
@@ -1464,7 +1468,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   value={formTitulo}
                   onChange={(e) => setFormTitulo(e.target.value)}
                   placeholder="Título ou Tema da Publicação..."
-                  className="w-full text-lg sm:text-2xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60"
+                  className="w-full text-lg sm:text-xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60"
                   required
                 />
               </div>
@@ -1478,8 +1482,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               </button>
             </div>
 
-            {/* Stepper Pipeline Interativo (Referência 1) */}
-            <div className="w-full bg-accent/20 rounded-xl p-2 border border-border/50 overflow-x-auto">
+            {/* Stepper Pipeline Interativo Compacto */}
+            <div className="w-full bg-accent/20 rounded-xl p-1.5 border border-border/50 overflow-x-auto">
               <div className="flex items-center justify-between min-w-[520px] gap-2">
                 {ETAPAS_PIPELINE.map((etapa, idx) => {
                   const currentStep = getEtapaIndex(formStatusInicial);
@@ -1491,7 +1495,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       <button
                         type="button"
                         onClick={() => setFormStatusInicial(etapa.status)}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                           isCurrent
                             ? 'bg-primary text-primary-foreground shadow-xs font-bold ring-2 ring-primary/30'
                             : isDone
@@ -1501,7 +1505,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                         title={`Definir etapa inicial como: ${etapa.label}`}
                       >
                         <span
-                          className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 font-mono ${
+                          className={`w-4 h-4 rounded-full flex items-center justify-center text-xs shrink-0 font-mono ${
                             isCurrent
                               ? 'bg-primary-foreground text-primary font-bold'
                               : isDone
@@ -1526,19 +1530,19 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               </div>
             </div>
 
-            {/* Micro-pills Bar (Referência 4) */}
+            {/* Micro-pills Bar */}
             <div className="flex items-center gap-2 flex-wrap pt-0.5 text-xs">
               {/* Pill 1: Prazo */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px]">
-                <Clock className="w-3 h-3 text-muted-foreground" />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs">
+                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                 <span>
                   {formPrazoInterno ? `Prazo: ${formatarDataCurta(formPrazoInterno)}` : 'Sem prazo'}
                 </span>
               </div>
 
               {/* Pill 2: Programado */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px]">
-                <Calendar className="w-3 h-3 text-muted-foreground" />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                 <span>
                   {formDataProgramada ? `Para: ${formatarDataCurta(formDataProgramada)}` : 'Não agendado'}
                 </span>
@@ -1546,20 +1550,20 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
               {/* Pill 3: Formato */}
               <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${
                   formTipo === 'reel'
-                    ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                    ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20'
                     : formTipo === 'story'
-                    ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                    ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
                     : formTipo === 'post'
-                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                    : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                    ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-800 dark:text-amber-400 border-amber-500/20'
                 }`}
               >
-                {formTipo === 'reel' && <Video className="w-3 h-3" />}
-                {formTipo === 'story' && <Smartphone className="w-3 h-3" />}
-                {formTipo === 'post' && <ImageIcon className="w-3 h-3" />}
-                {formTipo === 'avulso' && <Sparkles className="w-3 h-3" />}
+                {formTipo === 'reel' && <Video className="w-3.5 h-3.5" />}
+                {formTipo === 'story' && <Smartphone className="w-3.5 h-3.5" />}
+                {formTipo === 'post' && <ImageIcon className="w-3.5 h-3.5" />}
+                {formTipo === 'avulso' && <Sparkles className="w-3.5 h-3.5" />}
                 <span>
                   {formTipo === 'reel'
                     ? 'Reels'
@@ -1573,26 +1577,26 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
               {/* Pill 4: Prioridade */}
               <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${
                   PRIORIDADE_CONFIG[formPrioridade]?.bg
                 } ${PRIORIDADE_CONFIG[formPrioridade]?.text} ${
                   PRIORIDADE_CONFIG[formPrioridade]?.border
                 }`}
               >
-                <Flag className="w-3 h-3" />
+                <Flag className="w-3.5 h-3.5" />
                 <span>{PRIORIDADE_CONFIG[formPrioridade]?.label}</span>
               </div>
 
               {/* Pill 5: Equipe Stack */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px] ml-auto">
-                <Users className="w-3 h-3 text-muted-foreground" />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs ml-auto">
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
                 {formResponsavel ? (
                   <span className="truncate max-w-[120px]">{formResponsavel.nome.split(' ')[0]}</span>
                 ) : (
                   <span className="text-muted-foreground">Sem responsável</span>
                 )}
                 {formEditor && (
-                  <span className="text-muted-foreground text-[10px]">+ {formEditor.nome.split(' ')[0]}</span>
+                  <span className="text-muted-foreground text-xs">+ {formEditor.nome.split(' ')[0]}</span>
                 )}
               </div>
             </div>
@@ -1601,39 +1605,32 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
           {/* 2. Body Rolável Dividido em 2 Colunas */}
           <div className="p-4 sm:p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Legenda Formatada, Briefing & Anexos */}
-            <div className="lg:col-span-7 flex flex-col gap-5">
-              {/* Formato Rápido da Peça */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
-                  <Layers className="w-4 h-4 text-primary" />
-                  <span>Formato de Conteúdo</span>
+            <div className="lg:col-span-7 flex flex-col gap-4">
+              {/* Formato Rápido da Peça - Segmented Control Fino (32px) */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-border/40">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display shrink-0">
+                  <Layers className="w-3.5 h-3.5 text-primary" />
+                  <span>Formato de Conteúdo:</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-xl border border-border/60 flex-1 max-w-md">
                   {[
-                    { id: 'post' as const, label: 'Carrossel', sub: 'Feed 4:5', icon: ImageIcon },
-                    { id: 'reel' as const, label: 'Reels', sub: 'Vídeo 9:16', icon: Video },
-                    { id: 'story' as const, label: 'Story', sub: 'Interativo', icon: Smartphone },
-                    { id: 'avulso' as const, label: 'Avulso', sub: 'Extra / Banner', icon: Sparkles },
+                    { id: 'post' as const, label: 'Carrossel (4:5)', icon: ImageIcon },
+                    { id: 'reel' as const, label: 'Reels (9:16)', icon: Video },
+                    { id: 'story' as const, label: 'Story', icon: Smartphone },
+                    { id: 'avulso' as const, label: 'Avulso', icon: Sparkles },
                   ].map((fmt) => (
                     <button
                       key={fmt.id}
                       type="button"
                       onClick={() => setFormTipo(fmt.id)}
-                      className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all ${
+                      className={`h-7 px-2 rounded-lg flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
                         formTipo === fmt.id
-                          ? 'bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary'
-                          : 'bg-accent/40 hover:bg-accent border-border/70 text-foreground'
+                          ? 'bg-primary text-primary-foreground shadow-xs font-bold'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
                       }`}
                     >
-                      <fmt.icon className="w-4 h-4" />
-                      <span className="text-xs font-bold leading-none">{fmt.label}</span>
-                      <span
-                        className={`text-[9px] font-mono leading-none ${
-                          formTipo === fmt.id ? 'text-primary-foreground/80' : 'text-muted-foreground'
-                        }`}
-                      >
-                        {fmt.sub}
-                      </span>
+                      <fmt.icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{fmt.label}</span>
                     </button>
                   ))}
                 </div>
@@ -1646,7 +1643,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     <FileText className="w-4 h-4 text-primary" />
                     <span>Descrição / Legenda da Postagem</span>
                   </label>
-                  <span className="text-[10px] font-mono text-muted-foreground">
+                  <span className="text-xs font-mono text-muted-foreground">
                     {formLegenda.length} / 2.200
                   </span>
                 </div>
@@ -1695,7 +1692,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   onChange={(e) => setFormLegenda(e.target.value)}
                   placeholder="Escreva a copy da postagem com hashtags, tópicos e formatação..."
                   rows={5}
-                  className="rounded-t-none rounded-b-xl text-xs font-sans leading-relaxed bg-card"
+                  className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card"
                 />
               </div>
 
@@ -1710,7 +1707,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   onChange={(e) => setFormBriefing(e.target.value)}
                   placeholder="Instruções para o designer, editor ou copywriter (ex.: dor do cliente, tom de voz, CTA)..."
                   rows={3}
-                  className="rounded-xl text-xs bg-card"
+                  className="rounded-xl text-sm bg-card"
                 />
               </div>
 
@@ -1722,8 +1719,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     <span>Anexos & Materiais ({formArquivos.length})</span>
                   </label>
                   {formUploading && (
-                    <span className="text-[11px] text-primary flex items-center gap-1 animate-pulse font-medium">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Carregando...
+                    <span className="text-xs text-primary flex items-center gap-1 animate-pulse font-medium">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando...
                     </span>
                   )}
                 </div>
@@ -1750,12 +1747,12 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                                 {arq.nome || `Arquivo_${idx + 1}.${arq.tipo === 'video' ? 'mp4' : 'png'}`}
                               </span>
                               {idx === 0 && (
-                                <span className="text-[9px] font-bold font-mono px-1.5 py-0.2 rounded bg-[#192313] text-[#d8ff3c]">
+                                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-[#192313] text-[#d8ff3c]">
                                   ⭐ Capa
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                            <span className="text-xs text-muted-foreground font-mono mt-0.5">
                               #{idx + 1} · {arq.tipo === 'video' ? 'Vídeo MP4' : 'Imagem 4:5'}
                             </span>
                           </div>
@@ -1800,7 +1797,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   <p className="text-xs font-bold text-foreground">
                     Clique ou arraste fotos/vídeos para anexar
                   </p>
-                  <p className="text-[10px] text-muted-foreground font-mono">
+                  <p className="text-xs text-muted-foreground font-mono">
                     {formTipo === 'reel' ? 'Vídeo MP4 em 9:16' : 'Selecione várias para Carrossel em 4:5'}
                   </p>
                 </div>
@@ -1810,7 +1807,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   <button
                     type="button"
                     onClick={() => setShowManualUrlsForm((v) => !v)}
-                    className="text-[11px] text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
+                    className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
                   >
                     <span>{showManualUrlsForm ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
                   </button>
@@ -1832,14 +1829,14 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               {/* 1. Cliente da Agência (Compacto com Busca Popover) */}
               <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold uppercase font-mono text-muted-foreground flex items-center gap-1.5">
+                  <label className="text-xs font-bold uppercase font-mono text-muted-foreground flex items-center gap-1.5">
                     <span>1. Cliente da Agência *</span>
                   </label>
                   {clienteSelecionadoObj && (
                     <button
                       type="button"
                       onClick={() => setTrocarClienteAbertoNovo((prev) => !prev)}
-                      className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
                     >
                       {trocarClienteAbertoNovo ? 'Fechar busca' : 'Trocar cliente'}
                     </button>
@@ -1860,7 +1857,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                         <p className="text-xs font-bold text-foreground truncate">
                           {clienteSelecionadoObj.nome}
                         </p>
-                        <p className="text-[10px] text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground truncate">
                           {(clienteSelecionadoObj as any).instagram_username
                             ? `@${(clienteSelecionadoObj as any).instagram_username}`
                             : clienteSelecionadoObj.nicho || 'Geral'}
@@ -1878,13 +1875,13 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                         placeholder="Buscar cliente por nome ou nicho..."
                         value={buscaClienteForm}
                         onChange={(e) => setBuscaClienteForm(e.target.value)}
-                        className="pl-9 h-8 text-xs bg-card"
+                        className="pl-9 h-9 text-xs bg-card"
                         autoFocus={trocarClienteAbertoNovo}
                       />
                     </div>
                     <div className="max-h-40 overflow-y-auto flex flex-col gap-1 p-1 border border-border/70 rounded-xl bg-card">
                       {clientesFormFiltrados.length === 0 ? (
-                        <p className="text-[11px] text-muted-foreground p-2 text-center">
+                        <p className="text-xs text-muted-foreground p-2 text-center">
                           Nenhum cliente encontrado.
                         </p>
                       ) : (
@@ -1907,7 +1904,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                               <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
                               <div className="min-w-0 flex-1">
                                 <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
-                                <p className="text-[10px] text-muted-foreground truncate">
+                                <p className="text-xs text-muted-foreground truncate">
                                   {(c as any).instagram_username ? `@${(c as any).instagram_username}` : c.nicho || 'Geral'}
                                 </p>
                               </div>
@@ -1923,9 +1920,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
               {/* 2. Matriz de Prioridade (Referência 3) */}
               <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
-                <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground flex items-center justify-between">
+                <span className="text-xs font-bold font-mono uppercase text-muted-foreground flex items-center justify-between">
                   <span>2. Prioridade da Demanda</span>
-                  <span className="text-[10px] font-bold text-foreground">
+                  <span className="text-xs font-bold text-foreground">
                     {PRIORIDADE_CONFIG[formPrioridade]?.label}
                   </span>
                 </span>
@@ -1960,7 +1957,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                           >
                             {p.label}
                           </span>
-                          <span className="text-[9px] font-mono text-muted-foreground mt-0.5 leading-none">
+                          <span className="text-xs font-mono text-muted-foreground mt-0.5 leading-none">
                             {p.desc}
                           </span>
                         </div>
@@ -1973,7 +1970,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               {/* 3. Equipe Colaborativa (Referências 2 & 3) */}
               <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">
+                  <span className="text-xs font-bold font-mono uppercase text-muted-foreground">
                     3. Equipe Colaborativa
                   </span>
                   {/* Stack de Avatares Overlapping */}
@@ -1981,7 +1978,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     <div className="flex items-center -space-x-2">
                       {formResponsavel && (
                         <div
-                          className="w-6 h-6 rounded-full bg-primary text-primary-foreground font-bold text-[10px] flex items-center justify-center border-2 border-card shadow-xs"
+                          className="w-6 h-6 rounded-full bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center border-2 border-card shadow-xs"
                           title={`Responsável: ${formResponsavel.nome}`}
                         >
                           {formResponsavel.nome.slice(0, 2).toUpperCase()}
@@ -1989,7 +1986,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       )}
                       {formEditor && (
                         <div
-                          className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground font-bold text-[10px] flex items-center justify-center border-2 border-card shadow-xs"
+                          className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground font-bold text-xs flex items-center justify-center border-2 border-card shadow-xs"
                           title={`Designer/Editor: ${formEditor.nome}`}
                         >
                           {formEditor.nome.slice(0, 2).toUpperCase()}
@@ -2001,8 +1998,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
                 <div className="flex flex-col gap-2.5">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                      <User className="w-3 h-3 text-muted-foreground" />
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>Responsável Principal</span>
                     </label>
                     <Select
@@ -2019,8 +2016,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                      <Users className="w-3 h-3 text-muted-foreground" />
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>Designer / Editor (Opcional)</span>
                     </label>
                     <Select
@@ -2040,14 +2037,14 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
               {/* 4. Prazos e Cronograma */}
               <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
-                <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">
+                <span className="text-xs font-bold font-mono uppercase text-muted-foreground">
                   4. Prazos & Cronograma
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>Prazo Interno</span>
                     </label>
                     <Input
@@ -2058,8 +2055,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>Data Programada</span>
                     </label>
                     <Input
@@ -2106,7 +2103,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
       >
         <form onSubmit={handleDuplicarMes} className="p-6 flex flex-col gap-5 max-w-md">
           <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">
               Agilidade & Escala
             </span>
             <h3 className="text-lg sm:text-xl font-bold font-display text-foreground mt-0.5">
@@ -2189,30 +2186,55 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
         open={!!itemEmEdicao}
         onClose={() => setItemEmEdicao(null)}
         aria-label="Editar Demanda"
-        className="w-full max-w-4xl lg:max-w-5xl p-0 overflow-hidden"
+        className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden"
       >
         {itemEmEdicao && (
           <form onSubmit={handleSalvarEdicao} className="flex flex-col max-h-[92vh] w-full bg-card select-none">
-            {/* 1. Header Banner de Capa (se houver mídia anexada) */}
+            {/* 1. Header Banner de Capa (Compacto por padrão + Toggle de Expansão) */}
             {editArquivos[0]?.url && (
-              <div className="relative w-full h-44 sm:h-52 bg-slate-950 overflow-hidden flex items-center justify-center border-b border-border/80 shrink-0">
+              <div
+                className={`relative w-full ${
+                  expandirCapaEdit ? 'h-48 sm:h-56' : 'h-20 sm:h-24'
+                } bg-slate-950 overflow-hidden flex items-center justify-center border-b border-border/80 shrink-0 transition-all duration-300`}
+              >
                 <img src={editArquivos[0].url} alt="" className="w-full h-full object-cover opacity-60 blur-xs scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />
-                <div className="relative z-10 flex items-center justify-center h-full p-3">
+                <div className="relative z-10 flex items-center justify-center h-full p-2">
                   {editArquivos[0].tipo === 'video' ? (
-                    <video src={editArquivos[0].url} className="h-36 sm:h-44 aspect-auto rounded-2xl object-contain shadow-2xl border border-white/20" muted />
+                    <video
+                      src={editArquivos[0].url}
+                      className={`${
+                        expandirCapaEdit ? 'h-40 sm:h-48' : 'h-16 sm:h-20'
+                      } aspect-auto rounded-xl object-contain shadow-2xl border border-white/20`}
+                      muted
+                    />
                   ) : (
-                    <img src={editArquivos[0].url} alt="" className="h-36 sm:h-44 aspect-auto rounded-2xl object-contain shadow-2xl border border-white/20" />
+                    <img
+                      src={editArquivos[0].url}
+                      alt=""
+                      className={`${
+                        expandirCapaEdit ? 'h-40 sm:h-48' : 'h-16 sm:h-20'
+                      } aspect-auto rounded-xl object-contain shadow-2xl border border-white/20`}
+                    />
                   )}
                 </div>
-                <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
-                  <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-md border border-white/20">
+                <div className="absolute top-2.5 right-3 flex items-center gap-2 z-20">
+                  <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-md border border-white/20">
                     ⭐ Capa da Postagem
                   </span>
                   <button
                     type="button"
+                    onClick={() => setExpandirCapaEdit((v) => !v)}
+                    className="px-2 py-1 rounded-full bg-black/60 text-white hover:bg-black/90 transition-colors cursor-pointer flex items-center gap-1 text-xs font-medium border border-white/20"
+                    title={expandirCapaEdit ? 'Recolher Capa' : 'Expandir Capa'}
+                  >
+                    {expandirCapaEdit ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                    <span className="hidden sm:inline">{expandirCapaEdit ? 'Recolher' : 'Expandir'}</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setItemEmEdicao(null)}
-                    className="p-1.5 rounded-full bg-black/60 text-white hover:bg-black/90 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-full bg-black/60 text-white hover:bg-black/90 transition-colors cursor-pointer border border-white/20"
                     title="Fechar"
                   >
                     <X className="w-4 h-4" />
@@ -2221,19 +2243,20 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
               </div>
             )}
 
-            {/* 2. Top Bar Fixo com Título, Stepper e Micro-pills */}
-            <div className="p-4 sm:p-5 border-b border-border/70 flex flex-col gap-3.5 bg-card shrink-0">
+            {/* 2. Top Bar Fixo com Título, Ações Rápidas, Stepper e Micro-pills (Consolidado em 2 Linhas) */}
+            <div className="p-3.5 sm:p-4 border-b border-border/70 flex flex-col gap-3 bg-card shrink-0">
+              {/* Linha 1: Breadcrumb + Badges + Título (Esquerda) e Ações Rápidas + Fechar (Direita) */}
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                    <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
                       Demanda · #{itemEmEdicao.id.slice(0, 8)}
                     </span>
-                    <Badge variant={STATUS_LABELS[editStatus]?.variant || 'default'} className="text-[9px] font-bold">
+                    <Badge variant={STATUS_LABELS[editStatus]?.variant || 'default'} className="text-xs font-bold">
                       {STATUS_LABELS[editStatus]?.label || editStatus}
                     </Badge>
                     <span
-                      className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                      className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${
                         PRIORIDADE_CONFIG[editPrioridade]?.bg || 'bg-accent'
                       } ${PRIORIDADE_CONFIG[editPrioridade]?.text || 'text-foreground'} ${
                         PRIORIDADE_CONFIG[editPrioridade]?.border || 'border-border'
@@ -2246,206 +2269,191 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     value={editTitulo}
                     onChange={(e) => setEditTitulo(e.target.value)}
                     placeholder="Título da Demanda..."
-                    className="w-full text-lg sm:text-2xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60"
+                    className="w-full text-lg sm:text-xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60"
                     required
                   />
                 </div>
-                {!editArquivos[0]?.url && (
+
+                {/* Ações Rápidas integradas na Linha 1 */}
+                <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
                   <button
                     type="button"
-                    onClick={() => setItemEmEdicao(null)}
-                    className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
-                    title="Fechar"
+                    onClick={() => setShowManualUrlsEdit((v) => !v)}
+                    className="px-2.5 py-1.5 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs"
+                    title="Anexo Manual"
                   >
-                    <X className="w-5 h-5" />
+                    <Paperclip className="w-3.5 h-3.5 text-primary" />
+                    <span className="hidden sm:inline">Anexo</span>
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => handleCopiarLinkAprovacao(itemEmEdicao.token_aprovacao)}
+                    className="px-2.5 py-1.5 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs"
+                    title="Copiar Link de Aprovação do Cliente"
+                  >
+                    <Share2 className="w-3.5 h-3.5 text-primary" />
+                    <span className="hidden sm:inline">Link Aprovação</span>
+                  </button>
+                  {editStatus === 'agendamento' && onIrParaAgendamento && (
+                    <button
+                      type="button"
+                      onClick={() => handleLevarParaAgendamento(itemEmEdicao)}
+                      className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Agendamento</span>
+                    </button>
+                  )}
+                  {!editArquivos[0]?.url && (
+                    <button
+                      type="button"
+                      onClick={() => setItemEmEdicao(null)}
+                      className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
+                      title="Fechar"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Stepper Pipeline Interativo (Referência 1) */}
-              <div className="w-full bg-accent/20 rounded-xl p-2 border border-border/50 overflow-x-auto">
-                <div className="flex items-center justify-between min-w-[520px] gap-2">
-                  {ETAPAS_PIPELINE.map((etapa, idx) => {
-                    const currentStep = getEtapaIndex(editStatus);
-                    const isDone = etapa.step < currentStep;
-                    const isCurrent = etapa.step === currentStep;
+              {/* Linha 2: Stepper Pipeline Compacto + Micro-pills */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pt-1">
+                {/* Stepper Pipeline Interativo Compacto */}
+                <div className="flex-1 bg-accent/20 rounded-xl p-1.5 border border-border/50 overflow-x-auto">
+                  <div className="flex items-center justify-between min-w-[480px] gap-2">
+                    {ETAPAS_PIPELINE.map((etapa, idx) => {
+                      const currentStep = getEtapaIndex(editStatus);
+                      const isDone = etapa.step < currentStep;
+                      const isCurrent = etapa.step === currentStep;
 
-                    return (
-                      <React.Fragment key={etapa.status}>
-                        <button
-                          type="button"
-                          onClick={() => setEditStatus(etapa.status)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                            isCurrent
-                              ? 'bg-primary text-primary-foreground shadow-xs font-bold ring-2 ring-primary/30'
-                              : isDone
-                              ? 'bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
-                          }`}
-                          title={`Mover para: ${etapa.label}`}
-                        >
-                          <span
-                            className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 font-mono ${
+                      return (
+                        <React.Fragment key={etapa.status}>
+                          <button
+                            type="button"
+                            onClick={() => setEditStatus(etapa.status)}
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                               isCurrent
-                                ? 'bg-primary-foreground text-primary font-bold'
+                                ? 'bg-primary text-primary-foreground shadow-xs font-bold ring-2 ring-primary/30'
                                 : isDone
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted-foreground/20 text-muted-foreground'
+                                ? 'bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
                             }`}
+                            title={`Mover para: ${etapa.label}`}
                           >
-                            {isDone ? <Check className="w-2.5 h-2.5" /> : etapa.step}
-                          </span>
-                          <span className="truncate">{etapa.short}</span>
-                        </button>
-                        {idx < ETAPAS_PIPELINE.length - 1 && (
-                          <div
-                            className={`flex-1 h-0.5 min-w-3 rounded transition-colors ${
-                              idx + 1 < currentStep ? 'bg-primary' : 'bg-border'
-                            }`}
-                          />
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Micro-pills Bar (Referência 4) */}
-              <div className="flex items-center gap-2 flex-wrap pt-0.5 text-xs">
-                {/* Pill 1: Prazo */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px]">
-                  <Clock className="w-3 h-3 text-muted-foreground" />
-                  <span>
-                    {editPrazoInterno ? `Prazo: ${formatarDataCurta(editPrazoInterno)}` : 'Sem prazo'}
-                  </span>
-                </div>
-
-                {/* Pill 2: Programado */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px]">
-                  <Calendar className="w-3 h-3 text-muted-foreground" />
-                  <span>
-                    {editDataProgramada ? `Para: ${formatarDataCurta(editDataProgramada)}` : 'Não agendado'}
-                  </span>
+                            <span
+                              className={`w-4 h-4 rounded-full flex items-center justify-center text-xs shrink-0 font-mono ${
+                                isCurrent
+                                  ? 'bg-primary-foreground text-primary font-bold'
+                                  : isDone
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted-foreground/20 text-muted-foreground'
+                              }`}
+                            >
+                              {isDone ? <Check className="w-2.5 h-2.5" /> : etapa.step}
+                            </span>
+                            <span className="truncate">{etapa.short}</span>
+                          </button>
+                          {idx < ETAPAS_PIPELINE.length - 1 && (
+                            <div
+                              className={`flex-1 h-0.5 min-w-3 rounded transition-colors ${
+                                idx + 1 < currentStep ? 'bg-primary' : 'bg-border'
+                              }`}
+                            />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {/* Pill 3: Formato */}
-                <div
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
-                    editTipo === 'reel'
-                      ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
-                      : editTipo === 'story'
-                      ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
-                      : editTipo === 'post'
-                      ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                      : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                  }`}
-                >
-                  {editTipo === 'reel' && <Video className="w-3 h-3" />}
-                  {editTipo === 'story' && <Smartphone className="w-3 h-3" />}
-                  {editTipo === 'post' && <ImageIcon className="w-3 h-3" />}
-                  {editTipo === 'avulso' && <Sparkles className="w-3 h-3" />}
-                  <span>
-                    {editTipo === 'reel'
-                      ? 'Reels'
-                      : editTipo === 'story'
-                      ? 'Story'
-                      : editTipo === 'post'
-                      ? 'Carrossel'
-                      : 'Avulso'}
-                  </span>
-                </div>
+                {/* Micro-pills Bar Integrada */}
+                <div className="flex items-center gap-2 flex-wrap shrink-0 text-xs">
+                  {/* Pill 1: Prazo */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>
+                      {editPrazoInterno ? `Prazo: ${formatarDataCurta(editPrazoInterno)}` : 'Sem prazo'}
+                    </span>
+                  </div>
 
-                {/* Pill 4: Prioridade */}
-                <div
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
-                    PRIORIDADE_CONFIG[editPrioridade]?.bg
-                  } ${PRIORIDADE_CONFIG[editPrioridade]?.text} ${
-                    PRIORIDADE_CONFIG[editPrioridade]?.border
-                  }`}
-                >
-                  <Flag className="w-3 h-3" />
-                  <span>{PRIORIDADE_CONFIG[editPrioridade]?.label}</span>
-                </div>
+                  {/* Pill 2: Programado */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs">
+                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>
+                      {editDataProgramada ? `Para: ${formatarDataCurta(editDataProgramada)}` : 'Não agendado'}
+                    </span>
+                  </div>
 
-                {/* Pill 5: Equipe Stack */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-[11px] ml-auto">
-                  <Users className="w-3 h-3 text-muted-foreground" />
-                  {editResponsavel ? (
-                    <span className="truncate max-w-[120px]">{editResponsavel.nome.split(' ')[0]}</span>
-                  ) : (
-                    <span className="text-muted-foreground">Sem responsável</span>
-                  )}
-                  {editEditor && (
-                    <span className="text-muted-foreground text-[10px]">+ {editEditor.nome.split(' ')[0]}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Quick Actions Toolbar */}
-              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t border-border/40">
-                <span className="text-[10px] font-bold uppercase font-mono mr-1 text-muted-foreground/80">Ações Rápidas:</span>
-                <button
-                  type="button"
-                  onClick={() => setShowManualUrlsEdit((v) => !v)}
-                  className="px-2.5 py-1 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs"
-                >
-                  <Paperclip className="w-3.5 h-3.5 text-primary" /> Anexo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCopiarLinkAprovacao(itemEmEdicao.token_aprovacao)}
-                  className="px-2.5 py-1 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs"
-                >
-                  <Share2 className="w-3.5 h-3.5 text-primary" /> Copiar Link Aprovação
-                </button>
-                {editStatus === 'agendamento' && onIrParaAgendamento && (
-                  <button
-                    type="button"
-                    onClick={() => handleLevarParaAgendamento(itemEmEdicao)}
-                    className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
+                  {/* Pill 3: Formato */}
+                  <div
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${
+                      editTipo === 'reel'
+                        ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20'
+                        : editTipo === 'story'
+                        ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
+                        : editTipo === 'post'
+                        ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-800 dark:text-amber-400 border-amber-500/20'
+                    }`}
                   >
-                    <Sparkles className="w-3.5 h-3.5" /> Levar p/ Agendamento
-                  </button>
-                )}
+                    {editTipo === 'reel' && <Video className="w-3.5 h-3.5" />}
+                    {editTipo === 'story' && <Smartphone className="w-3.5 h-3.5" />}
+                    {editTipo === 'post' && <ImageIcon className="w-3.5 h-3.5" />}
+                    {editTipo === 'avulso' && <Sparkles className="w-3.5 h-3.5" />}
+                    <span>
+                      {editTipo === 'reel'
+                        ? 'Reels'
+                        : editTipo === 'story'
+                        ? 'Story'
+                        : editTipo === 'post'
+                        ? 'Carrossel'
+                        : 'Avulso'}
+                    </span>
+                  </div>
+
+                  {/* Pill 4: Equipe */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs">
+                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                    {editResponsavel ? (
+                      <span className="truncate max-w-[100px]">{editResponsavel.nome.split(' ')[0]}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Sem resp.</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* 3. Body Rolável Dividido em 2 Colunas */}
             <div className="p-4 sm:p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Legenda Formatada, Briefing & Anexos */}
-              <div className="lg:col-span-7 flex flex-col gap-5">
-                {/* Formato Rápido da Peça */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
-                    <Layers className="w-4 h-4 text-primary" />
-                    <span>Formato de Conteúdo</span>
+              <div className="lg:col-span-7 flex flex-col gap-4">
+                {/* Formato Rápido da Peça - Segmented Control Fino (32px) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-border/40">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display shrink-0">
+                    <Layers className="w-3.5 h-3.5 text-primary" />
+                    <span>Formato de Conteúdo:</span>
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-xl border border-border/60 flex-1 max-w-md">
                     {[
-                      { id: 'post' as const, label: 'Carrossel', sub: 'Feed 4:5', icon: ImageIcon },
-                      { id: 'reel' as const, label: 'Reels', sub: 'Vídeo 9:16', icon: Video },
-                      { id: 'story' as const, label: 'Story', sub: 'Interativo', icon: Smartphone },
-                      { id: 'avulso' as const, label: 'Avulso', sub: 'Extra / Banner', icon: Sparkles },
+                      { id: 'post' as const, label: 'Carrossel (4:5)', icon: ImageIcon },
+                      { id: 'reel' as const, label: 'Reels (9:16)', icon: Video },
+                      { id: 'story' as const, label: 'Story', icon: Smartphone },
+                      { id: 'avulso' as const, label: 'Avulso', icon: Sparkles },
                     ].map((fmt) => (
                       <button
                         key={fmt.id}
                         type="button"
                         onClick={() => setEditTipo(fmt.id)}
-                        className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all ${
+                        className={`h-7 px-2 rounded-lg flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
                           editTipo === fmt.id
-                            ? 'bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary'
-                            : 'bg-accent/40 hover:bg-accent border-border/70 text-foreground'
+                            ? 'bg-primary text-primary-foreground shadow-xs font-bold'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
                         }`}
                       >
-                        <fmt.icon className="w-4 h-4" />
-                        <span className="text-xs font-bold leading-none">{fmt.label}</span>
-                        <span
-                          className={`text-[9px] font-mono leading-none ${
-                            editTipo === fmt.id ? 'text-primary-foreground/80' : 'text-muted-foreground'
-                          }`}
-                        >
-                          {fmt.sub}
-                        </span>
+                        <fmt.icon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{fmt.label}</span>
                       </button>
                     ))}
                   </div>
@@ -2458,7 +2466,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       <FileText className="w-4 h-4 text-primary" />
                       <span>Descrição / Legenda da Postagem</span>
                     </label>
-                    <span className="text-[10px] font-mono text-muted-foreground">
+                    <span className="text-xs font-mono text-muted-foreground">
                       {editLegenda.length} / 2.200
                     </span>
                   </div>
@@ -2506,8 +2514,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     value={editLegenda}
                     onChange={(e) => setEditLegenda(e.target.value)}
                     placeholder="Escreva a copy da postagem com hashtags, tópicos e formatação..."
-                    rows={6}
-                    className="rounded-t-none rounded-b-xl text-xs font-sans leading-relaxed bg-card"
+                    rows={5}
+                    className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card"
                   />
                 </div>
 
@@ -2522,7 +2530,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     onChange={(e) => setEditBriefing(e.target.value)}
                     placeholder="Instruções para o designer, editor ou copywriter..."
                     rows={3}
-                    className="rounded-xl text-xs bg-card"
+                    className="rounded-xl text-sm bg-card"
                   />
                 </div>
 
@@ -2534,8 +2542,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       <span>Anexos & Materiais ({editArquivos.length})</span>
                     </label>
                     {editUploading && (
-                      <span className="text-[11px] text-primary flex items-center gap-1 animate-pulse font-medium">
-                        <Loader2 className="w-3 h-3 animate-spin" /> Carregando...
+                      <span className="text-xs text-primary flex items-center gap-1 animate-pulse font-medium">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando...
                       </span>
                     )}
                   </div>
@@ -2562,12 +2570,12 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                                   {arq.nome || `Arquivo_${idx + 1}.${arq.tipo === 'video' ? 'mp4' : 'png'}`}
                                 </span>
                                 {idx === 0 && (
-                                  <span className="text-[9px] font-bold font-mono px-1.5 py-0.2 rounded bg-[#192313] text-[#d8ff3c]">
+                                  <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-[#192313] text-[#d8ff3c]">
                                     ⭐ Capa
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                              <span className="text-xs text-muted-foreground font-mono mt-0.5">
                                 #{idx + 1} · {arq.tipo === 'video' ? 'Vídeo MP4' : 'Imagem 4:5'}
                               </span>
                             </div>
@@ -2612,7 +2620,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     <p className="text-xs font-bold text-foreground">
                       Clique ou arraste novos arquivos para anexar
                     </p>
-                    <p className="text-[10px] text-muted-foreground font-mono">
+                    <p className="text-xs text-muted-foreground font-mono">
                       {editTipo === 'reel' ? 'Vídeo MP4 em 9:16' : 'Selecione várias para Carrossel em 4:5'}
                     </p>
                   </div>
@@ -2622,7 +2630,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     <button
                       type="button"
                       onClick={() => setShowManualUrlsEdit((v) => !v)}
-                      className="text-[11px] text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
+                      className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
                     >
                       <span>{showManualUrlsEdit ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
                     </button>
@@ -2644,13 +2652,13 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                 {/* 1. Cliente da Demanda */}
                 <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-bold uppercase font-mono text-muted-foreground">
+                    <label className="text-xs font-bold uppercase font-mono text-muted-foreground">
                       1. Cliente da Agência
                     </label>
                     <button
                       type="button"
                       onClick={() => setTrocarClienteAbertoEdit((prev) => !prev)}
-                      className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
                     >
                       {trocarClienteAbertoEdit ? 'Fechar busca' : 'Trocar cliente'}
                     </button>
@@ -2669,7 +2677,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                           <p className="text-xs font-bold text-foreground truncate">
                             {editClienteObj.nome}
                           </p>
-                          <p className="text-[10px] text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {(editClienteObj as any).instagram_username
                               ? `@${(editClienteObj as any).instagram_username}`
                               : editClienteObj.nicho || 'Geral'}
@@ -2686,13 +2694,13 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                           placeholder="Buscar cliente por nome..."
                           value={buscaClienteEdit}
                           onChange={(e) => setBuscaClienteEdit(e.target.value)}
-                          className="pl-9 h-8 text-xs bg-card"
+                          className="pl-9 h-9 text-xs bg-card"
                           autoFocus={trocarClienteAbertoEdit}
                         />
                       </div>
                       <div className="max-h-40 overflow-y-auto flex flex-col gap-1 p-1 border border-border/70 rounded-xl bg-card">
                         {clientesEditFiltrados.length === 0 ? (
-                          <p className="text-[11px] text-muted-foreground p-2 text-center">
+                          <p className="text-xs text-muted-foreground p-2 text-center">
                             Nenhum cliente encontrado.
                           </p>
                         ) : (
@@ -2715,7 +2723,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                                 <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
                                 <div className="min-w-0 flex-1">
                                   <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
-                                  <p className="text-[10px] text-muted-foreground truncate">
+                                  <p className="text-xs text-muted-foreground truncate">
                                     {(c as any).instagram_username ? `@${(c as any).instagram_username}` : c.nicho || 'Geral'}
                                   </p>
                                 </div>
@@ -2731,9 +2739,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
                 {/* 2. Matriz de Prioridade (Referência 3) */}
                 <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
-                  <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono uppercase text-muted-foreground flex items-center justify-between">
                     <span>2. Prioridade da Demanda</span>
-                    <span className="text-[10px] font-bold text-foreground">
+                    <span className="text-xs font-bold text-foreground">
                       {PRIORIDADE_CONFIG[editPrioridade]?.label}
                     </span>
                   </span>
@@ -2768,7 +2776,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                             >
                               {p.label}
                             </span>
-                            <span className="text-[9px] font-mono text-muted-foreground mt-0.5 leading-none">
+                            <span className="text-xs font-mono text-muted-foreground mt-0.5 leading-none">
                               {p.desc}
                             </span>
                           </div>
@@ -2781,14 +2789,14 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                 {/* 3. Equipe Colaborativa (Referências 2 & 3) */}
                 <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">
+                    <span className="text-xs font-bold font-mono uppercase text-muted-foreground">
                       3. Equipe Colaborativa
                     </span>
                     {(editResponsavel || editEditor) && (
                       <div className="flex items-center -space-x-2">
                         {editResponsavel && (
                           <div
-                            className="w-6 h-6 rounded-full bg-primary text-primary-foreground font-bold text-[10px] flex items-center justify-center border-2 border-card shadow-xs"
+                            className="w-6 h-6 rounded-full bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center border-2 border-card shadow-xs"
                             title={`Responsável: ${editResponsavel.nome}`}
                           >
                             {editResponsavel.nome.slice(0, 2).toUpperCase()}
@@ -2796,7 +2804,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                         )}
                         {editEditor && (
                           <div
-                            className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground font-bold text-[10px] flex items-center justify-center border-2 border-card shadow-xs"
+                            className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground font-bold text-xs flex items-center justify-center border-2 border-card shadow-xs"
                             title={`Designer/Editor: ${editEditor.nome}`}
                           >
                             {editEditor.nome.slice(0, 2).toUpperCase()}
@@ -2808,7 +2816,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground">Responsável Principal</label>
+                      <label className="text-xs font-semibold text-muted-foreground">Responsável Principal</label>
                       <Select value={editResponsavelId} onChange={(e) => setEditResponsavelId(e.target.value)}>
                         <option value="">Nenhum...</option>
                         {membros.map((m) => (
@@ -2818,7 +2826,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground">Designer / Editor</label>
+                      <label className="text-xs font-semibold text-muted-foreground">Designer / Editor</label>
                       <Select value={editEditorId} onChange={(e) => setEditEditorId(e.target.value)}>
                         <option value="">Nenhum...</option>
                         {membros.map((m) => (
@@ -2831,13 +2839,13 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
                 {/* 4. Prazos & Cronograma */}
                 <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
-                  <span className="text-[10px] font-bold font-mono uppercase text-muted-foreground">
+                  <span className="text-xs font-bold font-mono uppercase text-muted-foreground">
                     4. Prazos & Cronograma
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-muted-foreground" />
+                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                         <span>Prazo Interno</span>
                       </label>
                       <Input
@@ -2848,8 +2856,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
-                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                         <span>Data Programada</span>
                       </label>
                       <Input
@@ -2874,13 +2882,13 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   {/* Ajustes do Cliente (se houver) */}
                   {(itemEmEdicao.comentarios_revisao || []).length > 0 && (
                     <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 space-y-1.5">
-                      <p className="text-[11px] font-bold text-destructive flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-destructive flex items-center gap-1.5">
                         <AlertCircle className="w-3.5 h-3.5" />
                         Ajustes do Cliente ({itemEmEdicao.comentarios_revisao.length})
                       </p>
                       {itemEmEdicao.comentarios_revisao.map((c) => (
-                        <div key={c.id} className="text-[10px] p-2 rounded-lg bg-card/90 border border-border/60">
-                          <span className="text-muted-foreground font-mono block">{c.autor || 'Cliente'}</span>
+                        <div key={c.id} className="text-xs p-2.5 rounded-lg bg-card/90 border border-border/60">
+                          <span className="text-muted-foreground font-mono block text-xs">{c.autor || 'Cliente'}</span>
                           <p className="text-foreground mt-0.5">{c.texto}</p>
                         </div>
                       ))}
@@ -2890,17 +2898,17 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   {/* Timeline de Comentários Internos */}
                   <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                     {(!itemEmEdicao.historico_atividades || itemEmEdicao.historico_atividades.length === 0) ? (
-                      <p className="text-[11px] text-muted-foreground italic py-2">
+                      <p className="text-xs text-muted-foreground italic py-2">
                         Nenhuma atividade registrada ainda.
                       </p>
                     ) : (
                       itemEmEdicao.historico_atividades.map((ev) => (
                         <div key={ev.id} className="p-2.5 rounded-xl bg-accent/20 border border-border/50 text-xs flex flex-col gap-1">
-                          <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
                             <span className="font-bold text-foreground">{ev.autor_nome || 'Equipe'}</span>
                             <span>{new Date(ev.criado_em).toLocaleDateString('pt-BR')}</span>
                           </div>
-                          <p className="text-foreground text-[11px]">{ev.texto}</p>
+                          <p className="text-foreground text-xs">{ev.texto}</p>
                         </div>
                       ))
                     )}
@@ -2988,7 +2996,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
             {/* Header Fixo */}
             <div className="p-5 sm:p-6 border-b border-border shrink-0 flex items-start justify-between gap-4">
               <div>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono flex items-center gap-1.5">
                   <Send className="w-3 h-3 text-lime" />
                   Aprovação de Conteúdo
                 </span>
@@ -3017,7 +3025,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     <ImageIcon className="w-3.5 h-3.5 text-primary" />
                     <span>Mídias Anexadas à Demanda</span>
                   </label>
-                  <span className="text-[11px] font-mono text-muted-foreground">
+                  <span className="text-xs font-mono text-muted-foreground">
                     {(itemParaAprovacao.arquivos || []).length} {itemParaAprovacao.tipo === 'reel' ? 'vídeo' : 'slide(s)'}
                   </span>
                 </div>
@@ -3028,7 +3036,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                       <div>
                         <p className="font-bold">Nenhuma foto ou vídeo anexado ainda!</p>
-                        <p className="text-[11px] mt-0.5 text-muted-foreground">
+                        <p className="text-xs mt-0.5 text-muted-foreground">
                           O cliente precisa visualizar a arte ou vídeo para aprovar. Anexe os arquivos agora:
                         </p>
                       </div>
@@ -3069,7 +3077,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       <span className="text-xs font-bold text-foreground">
                         {uploadingAprovacao ? 'Enviando arquivos...' : 'Clique para selecionar fotos ou vídeo'}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         JPG, PNG ou MP4 da postagem
                       </span>
                     </div>
@@ -3110,7 +3118,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                             <span className="text-xs font-bold text-foreground truncate">
                               {itemParaAprovacao.titulo || 'Publicação'}
                             </span>
-                            <span className="text-[9px] font-mono font-bold bg-lime text-foreground px-1.5 py-0.5 rounded">
+                            <span className="text-xs font-mono font-bold bg-lime text-foreground px-2 py-0.5 rounded">
                               {itemParaAprovacao.tipo === 'reel'
                                 ? '9:16 Reels'
                                 : itemParaAprovacao.tipo === 'story'
@@ -3120,7 +3128,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                                 : '4:5 Feed'}
                             </span>
                           </div>
-                          <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
                             Prévia renderizada sem barras pretas no link do cliente.
                           </p>
                         </div>
@@ -3140,7 +3148,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                               a.click();
                               showToast('Download da imagem iniciado!', 'success');
                             }}
-                            className="text-[11px] h-7 px-2"
+                            className="text-xs h-7 px-2"
                             title="Baixar capa para anexar direto no WhatsApp se desejar"
                           >
                             Baixar Capa
@@ -3153,7 +3161,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                           onClick={() => {
                             window.open(`/aprovacao/${itemParaAprovacao.token_aprovacao}`, '_blank');
                           }}
-                          className="text-[11px] h-7 px-2 text-primary"
+                          className="text-xs h-7 px-2 text-primary"
                           title="Abrir como o cliente visualiza"
                         >
                           Ver no Link
@@ -3187,11 +3195,11 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       >
                         <span>{c.nome}</span>
                         {c.e_grupo_whatsapp && (
-                          <span className="text-[9px] bg-lime/20 text-lime-800 dark:text-lime-300 px-1 rounded font-semibold">
+                          <span className="text-xs bg-lime/20 text-lime-800 dark:text-lime-300 px-1.5 py-0.5 rounded font-semibold">
                             Grupo
                           </span>
                         )}
-                        {c.telefone && <span className="font-mono text-[10px] opacity-80">({c.telefone})</span>}
+                        {c.telefone && <span className="font-mono text-xs opacity-80">({c.telefone})</span>}
                       </button>
                     ))}
                   </div>

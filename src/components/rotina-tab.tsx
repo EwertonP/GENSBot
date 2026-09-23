@@ -179,7 +179,7 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
     <div className="flex flex-col gap-6 animate-fade-in max-w-5xl mx-auto pb-12">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">
+        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">
           Operação Diária · TELAS §5.3
         </span>
         <h2 className="text-xl sm:text-2xl font-black font-display text-foreground tracking-tight flex items-center gap-2.5">
@@ -378,9 +378,9 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
                         {t.titulo}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
                         {/* Prioridade */}
-                        <Badge variant={prio.variant} className="text-[9px] font-bold">
+                        <Badge variant={prio.variant} className="text-xs font-bold">
                           {prio.label}
                         </Badge>
 
