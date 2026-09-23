@@ -1155,21 +1155,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                           </div>
                         )}
 
-                        {/* Ações Rápidas: Topo, Link, Editar e Enviar p/ Aprovação */}
+                        {/* Ações Rápidas: Link, Editar e Enviar p/ Aprovação */}
                         <div className="border-t border-border/60 pt-2.5 flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleMudarStatus(item.id, colStatus, null, true);
-                              }}
-                              title="Mover demanda para o topo desta coluna"
-                              className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
-                            >
-                              <ArrowUpToLine className="w-3 h-3 text-primary" />
-                              <span>Topo</span>
-                            </button>
 
                             <button
                               type="button"
