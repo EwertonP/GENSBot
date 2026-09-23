@@ -35,19 +35,34 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name, username: username.trim().toLowerCase(), cargo: cargo.trim() },
-      },
-    });
-    setLoading(false);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, username, cargo, email, password }),
+      });
+      const data = await res.json();
 
-    if (error) {
-      setError(error.message || 'Erro ao criar conta. Tente novamente.');
-    } else {
-      setSuccess(true);
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao criar conta.');
+      }
+
+      // Login automático imediatamente após cadastro
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
+      });
+
+      if (loginError) {
+        setSuccess(true);
+      } else {
+        router.push('/');
+        router.refresh();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao criar conta. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   }
 

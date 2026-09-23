@@ -19,10 +19,17 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
     setLoading(false);
     if (error) {
-      setError('E-mail ou senha incorretos. Verifique e tente novamente.');
+      if (error.message?.toLowerCase().includes('email not confirmed')) {
+        setError('O e-mail ainda não foi confirmado. Verifique a sua caixa de entrada.');
+      } else {
+        setError('E-mail ou senha incorretos. Verifique e tente novamente.');
+      }
     } else {
       router.push('/');
       router.refresh();
