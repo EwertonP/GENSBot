@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
-import Logo from '@/components/logo';
+import Logo, { LogoMark } from '@/components/logo';
 import type { Automation } from '@/types/automation';
 import { buildFlowFromAdvancedForm, decompileFlow, type QualificationStep, type WizardCondition, type WizardTail } from '@/lib/flow-engine/wizardCompiler';
 import UtmLinkBuilder from '@/components/utm-link-builder';
@@ -906,11 +906,15 @@ export default function Dashboard() {
         <div className={`p-4 pb-3 flex flex-col gap-2 ${isSidebarCollapsed ? 'items-center px-2' : ''}`}>
           <div className={`flex items-center ${isSidebarCollapsed ? 'flex-col gap-3 justify-center' : 'justify-between px-2'} pt-1`}>
             <div className="flex items-center gap-2">
-              <Logo className="h-6 w-auto" />
-              {!isSidebarCollapsed && (
-                <span className="text-[10px] font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded border border-border">
-                  2.0
-                </span>
+              {isSidebarCollapsed ? (
+                <LogoMark className="w-8 h-8 rounded-xl shadow-2xs" />
+              ) : (
+                <>
+                  <Logo className="h-6.5 w-auto" />
+                  <span className="text-[10px] font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded border border-border">
+                    2.0
+                  </span>
+                </>
               )}
             </div>
             

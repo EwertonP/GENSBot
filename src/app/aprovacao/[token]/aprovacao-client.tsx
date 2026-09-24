@@ -262,7 +262,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                       </span>
                     )}
                     {c.timestamp_seconds != null && (
-                      <span className="text-[10px] font-mono font-bold bg-lime text-foreground px-1.5 py-0.5 rounded flex items-center gap-1 border border-foreground/10">
+                      <span className="text-[10px] font-mono font-bold bg-lime text-lime-foreground px-1.5 py-0.5 rounded flex items-center gap-1 border border-foreground/10">
                         ⏱ {formatarTimecode(c.timestamp_seconds)}
                       </span>
                     )}
@@ -456,7 +456,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                             </span>
                           )}
                           {c.timestamp_seconds != null && (
-                            <span className="text-[9px] font-mono font-bold bg-lime/20 text-foreground px-1.5 py-0.5 rounded border border-foreground/10">
+                            <span className="text-[9px] font-mono font-bold bg-lime/20 text-lime-700 dark:text-lime-300 px-1.5 py-0.5 rounded border border-lime-500/20">
                               ⏱ {formatarTimecode(c.timestamp_seconds)}
                             </span>
                           )}
