@@ -151,7 +151,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
   if (carregando) {
     return (
-      <div className="min-h-screen bg-[#f4f5ee] flex flex-col items-center justify-center p-6 text-foreground font-sans">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-foreground font-sans">
         <div className="w-8 h-8 rounded-full border-2 border-foreground border-t-transparent animate-spin mb-4" />
         <p className="text-sm font-semibold text-muted-foreground">Carregando publicação oficial do Instagram...</p>
       </div>
@@ -160,7 +160,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
   if (erro || !item) {
     return (
-      <div className="min-h-screen bg-[#f4f5ee] flex flex-col items-center justify-center p-6 text-foreground font-sans">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-foreground font-sans">
         <div className="w-12 h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-3">
           <AlertCircle className="w-6 h-6" />
         </div>
@@ -184,7 +184,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   const isCarrossel = (item.tipo as string) === 'carrossel' || (arquivos.length > 1 && !isStory);
 
   return (
-    <div className="min-h-screen bg-[#f4f5ee] flex flex-col items-center justify-start py-4 px-3 sm:px-6 md:py-8 font-sans text-foreground">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-start py-4 px-3 sm:px-6 md:py-8 font-sans text-foreground">
       
       {/* Top Header da Agência GENS */}
       <header className="w-full max-w-md lg:max-w-5xl xl:max-w-6xl flex items-center justify-between py-2.5 mb-3 lg:mb-6 px-1">

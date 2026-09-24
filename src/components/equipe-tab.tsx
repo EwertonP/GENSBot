@@ -240,7 +240,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
           </span>
           <h2 className="text-xl sm:text-2xl font-black font-display text-foreground tracking-tight flex items-center gap-2.5 mt-0.5">
             <span>Equipe & Sócios da Agência</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#edf4d8] text-[#192313] border border-[#d8ff3c] font-mono font-bold">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 font-mono font-bold">
               {ativos.length} ativos
             </span>
           </h2>
@@ -263,7 +263,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
           <Button
             onClick={abrirModalCriar}
             variant="primary"
-            className="rounded-xl shadow-xs text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20"
+            className="rounded-xl shadow-xs text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30"
           >
             <UserPlus className="w-4 h-4 mr-1.5" />
             Cadastrar Membro
@@ -363,7 +363,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                   <Badge
                     variant={isMaster ? 'info' : 'muted'}
                     className={`text-[9px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                      isMaster ? 'bg-[#edf4d8] text-[#192313] border-[#d8ff3c]' : ''
+                      isMaster ? 'bg-primary/15 text-primary border-primary/30' : ''
                     }`}
                   >
                     {isMaster ? 'Sócio Master' : 'Colaborador'}
@@ -565,7 +565,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                 <Button type="button" variant="ghost" size="sm" onClick={() => setModalAberto(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" variant="primary" size="sm" loading={salvando} className="bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] font-bold">
+                <Button type="submit" variant="primary" size="sm" loading={salvando} className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold">
                   {membroEditando ? 'Salvar Alterações' : 'Criar e Ativar Sócio'}
                 </Button>
               </div>

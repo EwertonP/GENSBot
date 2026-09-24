@@ -209,10 +209,10 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                               className="sr-only peer"
                             />
                             <div className={`w-10 h-5 rounded-full transition-colors relative flex items-center p-0.5 cursor-pointer ${
-                              form.active ? 'bg-[#d8ff3c] border border-[#192313]/30' : 'bg-muted border border-border'
+                              form.active ? 'bg-primary border border-primary/30' : 'bg-muted border border-border'
                             }`}>
                               <div className={`w-4 h-4 rounded-full shadow-md transition-transform duration-200 ${
-                                form.active ? 'translate-x-5 bg-[#192313]' : 'translate-x-0 bg-background border border-border'
+                                form.active ? 'translate-x-5 bg-primary-foreground' : 'translate-x-0 bg-background border border-border'
                               }`} />
                             </div>
                             <span className={`text-xs font-bold font-mono ${form.active ? 'text-foreground' : 'text-muted-foreground'}`}>

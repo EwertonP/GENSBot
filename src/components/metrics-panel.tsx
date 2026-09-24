@@ -235,7 +235,7 @@ function SmoothAreaChart({
 
           <path d={areaA} fill="url(#metrics-spline-grad)" />
 
-          <path d={lineA} fill="none" stroke="#192313" strokeWidth={2.5} vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+          <path d={lineA} fill="none" stroke="var(--foreground)" strokeWidth={2.5} vectorEffect="non-scaling-stroke" strokeLinecap="round" />
           <path d={lineB} fill="none" stroke="#10b981" strokeWidth={2} strokeDasharray="4,4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
 
           {hoverIndex !== null && pointsA[hoverIndex] && (
@@ -245,13 +245,13 @@ function SmoothAreaChart({
                 y1={0}
                 x2={pointsA[hoverIndex].x}
                 y2={height}
-                stroke="#192313"
+                stroke="var(--foreground)"
                 strokeWidth={1}
                 strokeDasharray="2,2"
                 strokeOpacity={0.4}
               />
-              <circle cx={pointsA[hoverIndex].x} cy={pointsA[hoverIndex].y} r={5} fill="#192313" stroke="#d8ff3c" strokeWidth={2.5} />
-              {pointsB[hoverIndex] && <circle cx={pointsB[hoverIndex].x} cy={pointsB[hoverIndex].y} r={4} fill="#10b981" stroke="#ffffff" strokeWidth={1.5} />}
+              <circle cx={pointsA[hoverIndex].x} cy={pointsA[hoverIndex].y} r={5} fill="var(--foreground)" stroke="var(--primary)" strokeWidth={2.5} />
+              {pointsB[hoverIndex] && <circle cx={pointsB[hoverIndex].x} cy={pointsB[hoverIndex].y} r={4} fill="#10b981" stroke="var(--card)" strokeWidth={1.5} />}
             </>
           )}
 
@@ -328,7 +328,7 @@ function ContentFormatBreakdownCard() {
             Distribuição de impressões e proporção entre Seguidores vs Não-Seguidores por tipo de mídia
           </p>
         </div>
-        <Badge variant="muted" className="font-mono text-xs font-bold self-start sm:self-auto bg-[#edf4d8] text-[#192313] border-[#d8ff3c]">
+        <Badge variant="muted" className="font-mono text-xs font-bold self-start sm:self-auto bg-primary/15 text-primary border-primary/30">
           Total: {totalViews.toLocaleString('pt-BR')} visualizações
         </Badge>
       </div>
@@ -359,12 +359,12 @@ function ContentFormatBreakdownCard() {
               {f.views > 0 ? (
                 <div className="flex flex-col gap-1.5 pt-1">
                   <div className="h-2 w-full bg-accent rounded-full overflow-hidden flex">
-                    <div style={{ width: `${f.followersPct}%` }} className="bg-[#192313] h-full" title={`Seguidores: ${f.followersPct}%`} />
+                    <div style={{ width: `${f.followersPct}%` }} className="bg-[#192313] dark:bg-emerald-600 h-full" title={`Seguidores: ${f.followersPct}%`} />
                     <div style={{ width: `${f.nonFollowersPct}%` }} className="bg-[#d8ff3c] h-full" title={`Não-Seguidores: ${f.nonFollowersPct}%`} />
                   </div>
                   <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-[#192313]" /> Seguidores ({f.followersPct}%)
+                      <span className="w-2 h-2 rounded-full bg-[#192313] dark:bg-emerald-600" /> Seguidores ({f.followersPct}%)
                     </span>
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-[#d8ff3c]" /> Não-Seguidores ({f.nonFollowersPct}%)
@@ -470,7 +470,7 @@ function DetailedInteractionsCard() {
           </div>
         </div>
 
-        <div className="p-3 rounded-2xl bg-[#edf4d8] border border-[#d8ff3c] text-[11px] text-[#192313] font-medium leading-relaxed">
+        <div className="p-3 rounded-2xl bg-primary/10 border border-primary/30 text-[11px] text-foreground font-medium leading-relaxed">
           ⚡ <strong>Dica de Conversão GENS:</strong> Adicione uma Call-to-Action direta na bio para impulsionar a conversão dos {profileActions[0].count.toLocaleString('pt-BR')} visitantes.
         </div>
       </Card>
@@ -624,7 +624,7 @@ function AudienceActivityCard({
         </div>
 
         {peakHour && (
-          <Badge variant="info" className="text-[11px] font-bold self-start sm:self-auto py-1 px-3 bg-[#edf4d8] text-[#192313] border-[#d8ff3c]">
+          <Badge variant="info" className="text-[11px] font-bold self-start sm:self-auto py-1 px-3 bg-primary/15 text-primary border-primary/30">
             Pico: {peakHour.hour}:00h ({peakHour.followersOnline.toLocaleString('pt-BR')} online)
           </Badge>
         )}
@@ -645,7 +645,7 @@ function AudienceActivityCard({
               >
                 <div
                   className={`w-full rounded-t-md transition-all duration-200 ${
-                    isPeak ? 'bg-[#d8ff3c] shadow-xs border border-[#192313]' : 'bg-[#192313]/20 hover:bg-[#192313]/40'
+                    isPeak ? 'bg-primary shadow-xs border border-primary-foreground/30' : 'bg-primary/20 hover:bg-primary/35'
                   }`}
                   style={{ height: `${heightPercent}%` }}
                 />
@@ -898,21 +898,21 @@ function MonthlyComparisonCard({
   ];
 
   return (
-    <Card padding="lg" className="rounded-3xl border border-[#d8ff3c] bg-[#edf4d8]/40 shadow-xs flex flex-col gap-5">
+    <Card padding="lg" className="rounded-3xl border border-border/80 dark:border-primary/40 bg-card shadow-xs flex flex-col gap-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-[#192313]" />
-            <h3 className="text-base sm:text-lg font-bold font-display text-[#192313]">
+            <Layers className="w-5 h-5 text-primary" />
+            <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
               Relatório Comparativo: {mainMonthLabel} vs {compMonthLabel}
             </h3>
           </div>
-          <p className="text-xs text-[#59614f] mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Evolução de desempenho, engajamento e aquisição de audiência comparada mês a mês
           </p>
         </div>
 
-        <Badge variant="info" className="bg-[#d8ff3c] text-[#192313] font-bold text-xs border border-[#192313]/20 py-1 px-3">
+        <Badge variant="info" className="bg-primary/20 text-primary font-bold text-xs border border-primary/30 py-1 px-3">
           ⚡ Período Comparativo Selecionado
         </Badge>
       </div>
@@ -1165,7 +1165,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
               onClick={() => setFilterMode('preset')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 filterMode === 'preset'
-                  ? 'bg-[#192313] text-[#d8ff3c] shadow-xs'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -1176,7 +1176,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
               onClick={() => setFilterMode('month_comparison')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 filterMode === 'month_comparison'
-                  ? 'bg-[#192313] text-[#d8ff3c] shadow-xs'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -1195,7 +1195,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   onClick={() => setPeriod(opt.value)}
                   className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     period === opt.value
-                      ? 'bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]'
+                      ? 'bg-primary/20 text-primary border border-primary/30'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -1236,13 +1236,13 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 onClick={handleCopiarLinkRelatorio}
                 variant="outline"
                 size="sm"
-                className="rounded-2xl shadow-2xs h-9 text-xs font-bold bg-[#edf4d8] text-[#192313] hover:bg-[#d8ff3c] border border-[#d8ff3c] cursor-pointer transition-all"
+                className="rounded-2xl shadow-2xs h-9 text-xs font-bold bg-primary/15 text-primary hover:bg-primary hover:text-primary-foreground border border-primary/30 cursor-pointer transition-all"
                 title="Copiar link interativo do relatório para enviar ao cliente"
               >
                 {linkCopiado ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-[#192313]" />
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-primary" />
                 ) : (
-                  <Share2 className="w-3.5 h-3.5 mr-1.5 text-[#192313]" />
+                  <Share2 className="w-3.5 h-3.5 mr-1.5 text-primary" />
                 )}
                 {linkCopiado ? 'Link Copiado!' : 'Copiar link do relatório'}
               </Button>
@@ -1296,7 +1296,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 Todos os links públicos gerados ficam salvos com acesso perpétuo (sem expiração) para enviar aos clientes.
               </p>
             </div>
-            <Badge variant="info" className="bg-[#edf4d8] text-[#192313] border-[#d8ff3c] font-bold text-xs self-start sm:self-auto">
+            <Badge variant="info" className="bg-primary/15 text-primary border-primary/30 font-bold text-xs self-start sm:self-auto">
               Links Perpétuos & Sem Limite de Acesso ♾️
             </Badge>
           </div>
@@ -1409,7 +1409,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <span className="text-[11px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
                   Contas Alcançadas
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-[#edf4d8] text-[#192313] flex items-center justify-center font-bold border border-[#d8ff3c]">
+                <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold border border-primary/30">
                   <TrendingUp className="w-4 h-4" />
                 </div>
               </div>
@@ -1506,7 +1506,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="muted" className="font-mono text-xs bg-[#edf4d8] text-[#192313] border-[#d8ff3c]">
+                  <Badge variant="muted" className="font-mono text-xs bg-primary/15 text-primary border-primary/30">
                     Total: {activeAccount.reach_total.toLocaleString('pt-BR')} contas
                   </Badge>
                 </div>
@@ -1567,7 +1567,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                     onClick={() => setContentFilter(f.id)}
                     className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                       contentFilter === f.id
-                        ? 'bg-[#192313] text-[#d8ff3c] font-bold shadow-2xs'
+                        ? 'bg-primary text-primary-foreground font-bold shadow-2xs'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -1604,7 +1604,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           {/* Header do Relatório */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#192313] text-[#d8ff3c] flex items-center justify-center font-bold shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0 border border-primary/30">
                 ✳
               </div>
               <div>
@@ -1622,7 +1622,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 onClick={handlePrintReport}
                 variant="primary"
                 size="sm"
-                className="rounded-xl text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20 h-9 px-4 cursor-pointer"
+                className="rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 h-9 px-4 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5 mr-1.5" />
                 Imprimir / Salvar PDF
@@ -1633,12 +1633,12 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           {/* Área do Relatório Pronta para Impressão */}
           <div id="executive-report-print-area" className="flex flex-col gap-6 text-foreground">
             {/* Banner de Apresentação ao Cliente */}
-            <div className="p-5 rounded-2xl bg-[#edf4d8] border border-[#d8ff3c] text-[#192313]">
+            <div className="p-5 rounded-2xl bg-[#edf4d8] dark:bg-card border border-[#d8ff3c] dark:border-primary/40 text-[#192313] dark:text-foreground">
               <span className="text-xs font-bold uppercase tracking-wider font-mono">Relatório Oficial de Desempenho</span>
               <h4 className="text-lg sm:text-xl font-bold font-display mt-0.5">
                 Desempenho Estratégico no Instagram · @{activeAccount?.username || selectedAccountId || 'geral'}
               </h4>
-              <p className="text-xs mt-1 leading-relaxed text-[#59614f]">
+              <p className="text-xs mt-1 leading-relaxed text-[#59614f] dark:text-muted-foreground">
                 Este documento apresenta a análise comparativa oficial dos resultados obtidos no período de <strong className="capitalize">{formatMonthLabel(mainMonth)}</strong> em relação ao período de <strong className="capitalize">{formatMonthLabel(compMonth)}</strong>.
               </p>
             </div>

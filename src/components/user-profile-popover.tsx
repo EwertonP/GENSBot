@@ -135,13 +135,13 @@ export default function UserProfilePopover({
             }`}
           >
             {/* Header do Perfil no Popover */}
-            <div className="px-3 py-2.5 bg-[#edf4d8]/70 rounded-xl border border-[#d8ff3c]/60 mb-1.5 flex items-center justify-between">
+            <div className="px-3 py-2.5 bg-primary/10 rounded-xl border border-primary/30 mb-1.5 flex items-center justify-between">
               <div className="flex flex-col overflow-hidden">
-                <span className="text-xs font-bold text-[#192313] truncate">{userName}</span>
-                <span className="text-[10px] text-[#59614f] truncate">{userRole}</span>
+                <span className="text-xs font-bold text-foreground truncate">{userName}</span>
+                <span className="text-[10px] text-muted-foreground truncate">{userRole}</span>
               </div>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#d8ff3c] text-[#192313] shadow-2xs shrink-0 border border-[#192313]/20">
-                <Zap className="w-2.5 h-2.5 fill-[#192313]" />
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground shadow-2xs shrink-0">
+                <Zap className="w-2.5 h-2.5 fill-current" />
                 MASTER
               </span>
             </div>

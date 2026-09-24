@@ -823,7 +823,7 @@ export default function EsteiraTab({
               onClick={() => setViewMode('kanban')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'kanban'
-                  ? 'bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/60 shadow-2xs font-bold'
+                  ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
               title="Visualização em Kanban"
@@ -835,7 +835,7 @@ export default function EsteiraTab({
               onClick={() => setViewMode('list')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'list'
-                  ? 'bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/60 shadow-2xs font-bold'
+                  ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
               title="Visualização em Lista"
@@ -847,7 +847,7 @@ export default function EsteiraTab({
               onClick={() => setViewMode('feed')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'feed'
-                  ? 'bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/60 shadow-2xs font-bold'
+                  ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
               title="Visualização Preview de Feed 3x3"
@@ -900,9 +900,9 @@ export default function EsteiraTab({
             onClick={handleAbrirModalNovo}
             variant="primary"
             size="sm"
-            className="rounded-xl shadow-xs h-9 text-xs font-bold bg-[#d8ff3c] text-[#192313] hover:bg-[#cbf722] border border-[#192313]/20 shrink-0"
+            className="rounded-xl shadow-xs h-9 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shrink-0"
           >
-            <Plus className="w-4 h-4 mr-1.5 text-[#192313]" />
+            <Plus className="w-4 h-4 mr-1.5 text-primary-foreground" />
             Nova Demanda
           </Button>
         </div>
@@ -1799,7 +1799,7 @@ export default function EsteiraTab({
                                       {arq.nome || `Arquivo_${idx + 1}`}
                                     </span>
                                     {idx === 0 && (
-                                      <span className="text-[10px] font-bold font-mono px-1.5 py-0.2 rounded bg-[#192313] text-[#d8ff3c] shrink-0">
+                                      <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 shrink-0">
                                         ⭐ Capa
                                       </span>
                                     )}
@@ -2590,7 +2590,7 @@ export default function EsteiraTab({
                                         {arq.nome || `Arquivo_${idx + 1}`}
                                       </span>
                                       {idx === 0 && (
-                                        <span className="text-[10px] font-bold font-mono px-1.5 py-0.2 rounded bg-[#192313] text-[#d8ff3c] shrink-0">
+                                        <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 shrink-0">
                                           ⭐ Capa
                                         </span>
                                       )}

@@ -89,8 +89,8 @@ export function InstagramCarrosselPreview({
         </div>
       </div>
 
-      {/* 2. Área Visual 4:5 (Tema Claro) */}
-      <div className="relative w-full aspect-[4/5] bg-neutral-100 flex items-center justify-center overflow-hidden select-none group">
+      {/* 2. Área Visual 4:5 */}
+      <div className="relative w-full aspect-[4/5] bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center overflow-hidden select-none group">
         {totalSlides === 0 ? (
           <div className="text-center p-6 text-muted-foreground text-xs">
             <p>Mídia em processamento pela equipe.</p>

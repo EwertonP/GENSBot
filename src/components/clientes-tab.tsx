@@ -321,7 +321,7 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                         e.stopPropagation();
                         onAbrirConta('publish', conta.instagram_user_id);
                       }}
-                      className="h-7 text-[11px] font-bold px-2.5 rounded-xl bg-[#edf4d8] text-[#192313] border border-[#d8ff3c] hover:bg-[#192313] hover:text-[#d8ff3c] transition-all shrink-0 cursor-pointer shadow-2xs font-display"
+                      className="h-7 text-[11px] font-bold px-2.5 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all shrink-0 cursor-pointer shadow-2xs font-display"
                     >
                       🎯 Operar Painel
                     </Button>

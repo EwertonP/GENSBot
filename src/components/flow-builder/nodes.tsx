@@ -6,12 +6,12 @@ import { Zap, MessageSquare, GitBranch, Clock, Tag, MessageCircleQuestion } from
 import type { FlowNodeType } from '@/types/flow';
 
 const NODE_META: Record<FlowNodeType, { label: string; icon: React.ElementType; color: string }> = {
-  trigger: { label: 'Gatilho', icon: Zap, color: 'border-amber-500 bg-amber-500/10 text-amber-600' },
-  sendMessage: { label: 'Mensagem', icon: MessageSquare, color: 'border-primary bg-primary/10 text-primary' },
-  condition: { label: 'Condição', icon: GitBranch, color: 'border-violet-500 bg-violet-500/10 text-violet-600' },
-  delay: { label: 'Espera', icon: Clock, color: 'border-sky-500 bg-sky-500/10 text-sky-600' },
-  action: { label: 'Ação', icon: Tag, color: 'border-emerald-500 bg-emerald-500/10 text-emerald-600' },
-  waitForReply: { label: 'Aguardar Resposta', icon: MessageCircleQuestion, color: 'border-fuchsia-500 bg-fuchsia-500/10 text-fuchsia-600' },
+  trigger: { label: 'Gatilho', icon: Zap, color: 'border-amber-500 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400' },
+  sendMessage: { label: 'Mensagem', icon: MessageSquare, color: 'border-primary bg-primary/10 dark:bg-primary/20 text-primary' },
+  condition: { label: 'Condição', icon: GitBranch, color: 'border-violet-500 bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400' },
+  delay: { label: 'Espera', icon: Clock, color: 'border-sky-500 bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400' },
+  action: { label: 'Ação', icon: Tag, color: 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' },
+  waitForReply: { label: 'Aguardar Resposta', icon: MessageCircleQuestion, color: 'border-fuchsia-500 bg-fuchsia-500/10 dark:bg-fuchsia-500/20 text-fuchsia-600 dark:text-fuchsia-400' },
 };
 
 /** Extrai as classes `bg-*`/`text-*` de `meta.color` pra colorir o quadrado do ícone — `meta.color` continua servindo o resto do app (borda de seleção, handles). */

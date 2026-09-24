@@ -78,6 +78,8 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f7f8f2; /* paper */
   --foreground: #192313; /* ink */
@@ -141,12 +143,65 @@
   --tracking-normal: -0.012em;
 }
 
+.dark, :root[class~="dark"], [data-theme="dark"] {
+  --background: #0c110a; /* obsidian forest */
+  --foreground: #f4f7ee; /* paper light */
+  --card: #13190f; /* machined slate-olive */
+  --card-foreground: #f4f7ee;
+  --popover: #182214; /* elevated deep surface */
+  --popover-foreground: #f4f7ee;
+  --primary: #d8ff3c; /* lime — marca GENS alta voltagem */
+  --primary-foreground: #12180d; /* ink escuro sobre lime (14.2:1 AAA) */
+  --secondary: #1a2516; /* verde-oliva sutil */
+  --secondary-foreground: #d8ff3c;
+  --muted: #161f13;
+  --muted-foreground: #9cb08f; /* sálvia suave legível (6.2:1 AA/AAA) */
+  --accent: #1c2617;
+  --accent-foreground: #f4f7ee;
+  --lime: #d8ff3c;
+  --lime-foreground: #12180d;
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: #ffffff;
+  --success: oklch(0.68 0.18 145);
+  --success-foreground: #12180d;
+  --warning: oklch(0.75 0.16 75);
+  --warning-foreground: #12180d;
+  --border: #222f1c; /* hairline suave */
+  --input: #24331d;
+  --ring: #d8ff3c; /* foco neon acessível */
+  --chart-1: #d8ff3c;
+  --chart-2: oklch(0.68 0.18 145);
+  --chart-3: oklch(0.75 0.16 75);
+  --chart-4: #8cb04a;
+  --chart-5: oklch(0.62 0.22 25);
+  --sidebar: #090e08; /* obsidian mais profundo */
+  --sidebar-foreground: #f4f7ee;
+  --sidebar-primary: #d8ff3c;
+  --sidebar-primary-foreground: #12180d;
+  --sidebar-accent: #151d11;
+  --sidebar-accent-foreground: #d8ff3c;
+  --sidebar-border: #1a2215;
+  --sidebar-ring: #d8ff3c;
+  --shadow-color: #000000;
+  --shadow-opacity: 0.5;
+  --shadow-2xs: none;
+  --shadow-xs: 2px 2px 0px 0px #040703;
+  --shadow-sm: 3px 3px 0px 0px #040703;
+  --shadow: 4px 5px 0px 0px #040703;
+  --shadow-md: 5px 5px 0px 0px #040703;
+  --shadow-lg: 7px 8px 0px 0px #020402;
+  --shadow-xl: 9px 9px 0px 0px #020402;
+  --shadow-2xl: 9px 9px 0px 0px #020402;
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground font-sans;
   }
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
   html {
     @apply font-sans;
@@ -170,7 +225,7 @@
   }
   .double-bezel {
     border: 1px solid var(--border);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
   }
 }
 
