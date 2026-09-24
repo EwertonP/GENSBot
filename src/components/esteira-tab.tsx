@@ -178,6 +178,13 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
   const [itemEmEdicao, setItemEmEdicao] = useState<ConteudoItem | null>(null);
   const [expandirCapaEdit, setExpandirCapaEdit] = useState(false);
 
+  // Modos de Visualização e Abas para Modais de Demanda (Ergonomia 1920x1080)
+  const [formAbaConteudo, setFormAbaConteudo] = useState<'legenda' | 'briefing' | 'anexos'>('legenda');
+  const [formModoVisualizacao, setFormModoVisualizacao] = useState<'abas' | 'split'>('abas');
+  const [editAbaConteudo, setEditAbaConteudo] = useState<'legenda' | 'briefing' | 'anexos'>('legenda');
+  const [editModoVisualizacao, setEditModoVisualizacao] = useState<'abas' | 'split'>('abas');
+  const [previewCapaLightbox, setPreviewCapaLightbox] = useState<string | null>(null);
+
   // Rola a página para o topo ao trocar o modo de visualização (Kanban/Lista/Feed) ou ao alternar cliente/item
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -479,6 +486,8 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
     setFormArquivos([]);
     setShowManualUrlsForm(false);
     setTrocarClienteAbertoNovo(false);
+    setFormAbaConteudo('legenda');
+    setFormModoVisualizacao('abas');
     setModalNovoAberto(true);
   }
 
@@ -594,6 +603,9 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
     setEditClienteId(item.cliente_id);
     setBuscaClienteEdit('');
     setTrocarClienteAbertoEdit(false);
+    setEditAbaConteudo('legenda');
+    setEditModoVisualizacao('abas');
+    setPreviewCapaLightbox(null);
   }
 
   async function handleSalvarEdicao(e: React.FormEvent) {
@@ -1442,177 +1454,101 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
         className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden"
       >
         <form onSubmit={handleSalvarNovo} className="flex flex-col max-h-[92vh] w-full bg-card select-none">
-          {/* 1. Header Fixo com Título, Stepper e Micro-pills */}
-          <div className="p-3.5 sm:p-4 border-b border-border/70 flex flex-col gap-3 bg-card shrink-0">
-            {/* Top Bar: Breadcrumb, Badges & Fechar */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
-                    Produção & Esteira
-                  </span>
-                  <span className="text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 uppercase tracking-wider">
-                    + Nova Demanda
-                  </span>
-                  <span
-                    className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${
-                      PRIORIDADE_CONFIG[formPrioridade]?.bg || 'bg-accent'
-                    } ${PRIORIDADE_CONFIG[formPrioridade]?.text || 'text-foreground'} ${
-                      PRIORIDADE_CONFIG[formPrioridade]?.border || 'border-border'
-                    }`}
-                  >
-                    {PRIORIDADE_CONFIG[formPrioridade]?.flag} {PRIORIDADE_CONFIG[formPrioridade]?.label}
-                  </span>
-                </div>
-                <Input
-                  value={formTitulo}
-                  onChange={(e) => setFormTitulo(e.target.value)}
-                  placeholder="Título ou Tema da Publicação..."
-                  className="w-full text-lg sm:text-xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60"
-                  required
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setModalNovoAberto(false)}
-                className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
-                title="Fechar"
-              >
-                <X className="w-5 h-5" />
-              </button>
+          {/* 1. Header Slim de Linha Única (48px - Ultra Compacto) */}
+          <div className="px-4 py-2.5 border-b border-border/70 flex items-center justify-between gap-3 bg-card shrink-0">
+            {/* Esquerda: Tag Nova Demanda + Título Inline */}
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+              <span className="text-xs font-mono font-bold text-primary uppercase px-2 py-0.5 rounded-md bg-primary/10 border border-primary/25 shrink-0">
+                + Nova Demanda
+              </span>
+
+              {/* Título da Demanda Editável Direto */}
+              <Input
+                value={formTitulo}
+                onChange={(e) => setFormTitulo(e.target.value)}
+                placeholder="Título ou Tema da Publicação..."
+                className="text-base sm:text-lg font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60 flex-1 min-w-0"
+                required
+              />
             </div>
 
-            {/* Stepper Pipeline Interativo Compacto */}
-            <div className="w-full bg-accent/20 rounded-xl p-1.5 border border-border/50 overflow-x-auto">
-              <div className="flex items-center justify-between min-w-[520px] gap-2">
-                {ETAPAS_PIPELINE.map((etapa, idx) => {
+            {/* Centro/Direita: Stepper de Status Inicial Compacto + Fechar */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Stepper Pipeline Compacto em Linha */}
+              <div className="hidden md:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border/60">
+                {ETAPAS_PIPELINE.map((etapa) => {
                   const currentStep = getEtapaIndex(formStatusInicial);
-                  const isDone = etapa.step < currentStep;
                   const isCurrent = etapa.step === currentStep;
+                  const isDone = etapa.step < currentStep;
 
                   return (
-                    <React.Fragment key={etapa.status}>
-                      <button
-                        type="button"
-                        onClick={() => setFormStatusInicial(etapa.status)}
-                        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    <button
+                      key={etapa.status}
+                      type="button"
+                      onClick={() => setFormStatusInicial(etapa.status)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                        isCurrent
+                          ? 'bg-primary text-primary-foreground font-bold shadow-2xs'
+                          : isDone
+                          ? 'text-primary hover:bg-accent/60'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+                      }`}
+                      title={`Definir etapa inicial: ${etapa.label}`}
+                    >
+                      <span
+                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] shrink-0 font-mono ${
                           isCurrent
-                            ? 'bg-primary text-primary-foreground shadow-xs font-bold ring-2 ring-primary/30'
+                            ? 'bg-primary-foreground text-primary font-bold'
                             : isDone
-                            ? 'bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                            ? 'bg-primary/20 text-primary'
+                            : 'bg-muted-foreground/20 text-muted-foreground'
                         }`}
-                        title={`Definir etapa inicial como: ${etapa.label}`}
                       >
-                        <span
-                          className={`w-4 h-4 rounded-full flex items-center justify-center text-xs shrink-0 font-mono ${
-                            isCurrent
-                              ? 'bg-primary-foreground text-primary font-bold'
-                              : isDone
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted-foreground/20 text-muted-foreground'
-                          }`}
-                        >
-                          {isDone ? <Check className="w-2.5 h-2.5" /> : etapa.step}
-                        </span>
-                        <span className="truncate">{etapa.short}</span>
-                      </button>
-                      {idx < ETAPAS_PIPELINE.length - 1 && (
-                        <div
-                          className={`flex-1 h-0.5 min-w-3 rounded transition-colors ${
-                            idx + 1 < currentStep ? 'bg-primary' : 'bg-border'
-                          }`}
-                        />
-                      )}
-                    </React.Fragment>
+                        {isDone ? <Check className="w-2.5 h-2.5" /> : etapa.step}
+                      </span>
+                      <span className="hidden xl:inline">{etapa.short}</span>
+                    </button>
                   );
                 })}
               </div>
-            </div>
 
-            {/* Micro-pills Bar */}
-            <div className="flex items-center gap-2 flex-wrap pt-0.5 text-xs">
-              {/* Pill 1: Prazo */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs">
-                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>
-                  {formPrazoInterno ? `Prazo: ${formatarDataCurta(formPrazoInterno)}` : 'Sem prazo'}
-                </span>
+              {/* Seletor dropdown para mobile */}
+              <div className="md:hidden">
+                <Select
+                  value={formStatusInicial}
+                  onChange={(e) => setFormStatusInicial(e.target.value as StatusConteudo)}
+                  className="h-8 text-xs font-bold"
+                >
+                  {ETAPAS_PIPELINE.map((etapa) => (
+                    <option key={etapa.status} value={etapa.status}>
+                      {etapa.step}. {etapa.label}
+                    </option>
+                  ))}
+                </Select>
               </div>
 
-              {/* Pill 2: Programado */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs">
-                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>
-                  {formDataProgramada ? `Para: ${formatarDataCurta(formDataProgramada)}` : 'Não agendado'}
-                </span>
-              </div>
-
-              {/* Pill 3: Formato */}
-              <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${
-                  formTipo === 'reel'
-                    ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20'
-                    : formTipo === 'story'
-                    ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
-                    : formTipo === 'post'
-                    ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/20'
-                    : 'bg-amber-500/10 text-amber-800 dark:text-amber-400 border-amber-500/20'
-                }`}
+              <button
+                type="button"
+                onClick={() => setModalNovoAberto(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
+                title="Fechar"
               >
-                {formTipo === 'reel' && <Video className="w-3.5 h-3.5" />}
-                {formTipo === 'story' && <Smartphone className="w-3.5 h-3.5" />}
-                {formTipo === 'post' && <ImageIcon className="w-3.5 h-3.5" />}
-                {formTipo === 'avulso' && <Sparkles className="w-3.5 h-3.5" />}
-                <span>
-                  {formTipo === 'reel'
-                    ? 'Reels'
-                    : formTipo === 'story'
-                    ? 'Story'
-                    : formTipo === 'post'
-                    ? 'Carrossel'
-                    : 'Avulso'}
-                </span>
-              </div>
-
-              {/* Pill 4: Prioridade */}
-              <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${
-                  PRIORIDADE_CONFIG[formPrioridade]?.bg
-                } ${PRIORIDADE_CONFIG[formPrioridade]?.text} ${
-                  PRIORIDADE_CONFIG[formPrioridade]?.border
-                }`}
-              >
-                <Flag className="w-3.5 h-3.5" />
-                <span>{PRIORIDADE_CONFIG[formPrioridade]?.label}</span>
-              </div>
-
-              {/* Pill 5: Equipe Stack */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs ml-auto">
-                <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                {formResponsavel ? (
-                  <span className="truncate max-w-[120px]">{formResponsavel.nome.split(' ')[0]}</span>
-                ) : (
-                  <span className="text-muted-foreground">Sem responsável</span>
-                )}
-                {formEditor && (
-                  <span className="text-muted-foreground text-xs">+ {formEditor.nome.split(' ')[0]}</span>
-                )}
-              </div>
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
           {/* 2. Body Rolável Dividido em 2 Colunas */}
-          <div className="p-4 sm:p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Legenda Formatada, Briefing & Anexos */}
-            <div className="lg:col-span-7 flex flex-col gap-4">
-              {/* Formato Rápido da Peça - Segmented Control Fino (32px) */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-border/40">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display shrink-0">
+          <div className="p-3.5 sm:p-5 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Abas/Split de Redação, Legenda e Briefing */}
+            <div className="lg:col-span-7 flex flex-col gap-3">
+              {/* 1. Barra de Formato (28px) + Toggle Abas vs Split */}
+              <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50 shrink-0">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-foreground font-display shrink-0">
                   <Layers className="w-3.5 h-3.5 text-primary" />
-                  <span>Formato de Conteúdo:</span>
-                </label>
-                <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-xl border border-border/60 flex-1 max-w-md">
+                  <span>Formato:</span>
+                </div>
+                <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border/60 max-w-sm flex-1">
                   {[
                     { id: 'post' as const, label: 'Carrossel (4:5)', icon: ImageIcon },
                     { id: 'reel' as const, label: 'Reels (9:16)', icon: Video },
@@ -1623,267 +1559,417 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       key={fmt.id}
                       type="button"
                       onClick={() => setFormTipo(fmt.id)}
-                      className={`h-7 px-2 rounded-lg flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+                      className={`h-6.5 px-2 rounded-md flex items-center justify-center gap-1 text-xs font-bold transition-all cursor-pointer ${
                         formTipo === fmt.id
-                          ? 'bg-primary text-primary-foreground shadow-xs font-bold'
+                          ? 'bg-primary text-primary-foreground shadow-2xs font-bold'
                           : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
                       }`}
                     >
-                      <fmt.icon className="w-3.5 h-3.5 shrink-0" />
+                      <fmt.icon className="w-3 h-3 shrink-0" />
                       <span className="truncate">{fmt.label}</span>
                     </button>
                   ))}
                 </div>
+
+                {/* Alternador de Modo: Abas vs Dividido */}
+                <div className="hidden sm:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border/50 text-xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setFormModoVisualizacao('abas')}
+                    className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer text-xs ${
+                      formModoVisualizacao === 'abas'
+                        ? 'bg-card text-foreground shadow-2xs font-bold'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    title="Visualização em Abas (Espaço Máximo para Redação)"
+                  >
+                    Abas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormModoVisualizacao('split')}
+                    className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer text-xs ${
+                      formModoVisualizacao === 'split'
+                        ? 'bg-card text-foreground shadow-2xs font-bold'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    title="Visualização Dividida (Legenda + Briefing Visíveis Juntos)"
+                  >
+                    Dividido
+                  </button>
+                </div>
               </div>
 
-              {/* Legenda do Instagram com Rich Formatting Toolbar */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
-                    <FileText className="w-4 h-4 text-primary" />
-                    <span>Descrição / Legenda da Postagem</span>
-                  </label>
-                  <span className="text-xs font-mono text-muted-foreground">
-                    {formLegenda.length} / 2.200
-                  </span>
-                </div>
-
-                {/* Formatting Toolbar */}
-                <div className="flex items-center gap-1 p-1.5 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setFormLegenda((prev) => `${prev} **texto em destaque**`)}
-                    className="px-2 py-0.5 rounded hover:bg-card font-bold text-foreground cursor-pointer text-xs"
-                    title="Negrito"
-                  >
-                    B
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormLegenda((prev) => `${prev} *texto itálico*`)}
-                    className="px-2 py-0.5 rounded hover:bg-card italic text-foreground cursor-pointer text-xs"
-                    title="Itálico"
-                  >
-                    I
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormLegenda((prev) => `${prev}\n• `)}
-                    className="px-2 py-0.5 rounded hover:bg-card font-mono text-foreground cursor-pointer text-xs"
-                    title="Lista com tópicos"
-                  >
-                    := Lista
-                  </button>
-                  <span className="w-px h-3 bg-border mx-1" />
-                  {['🚀', '👉', '💡', '🔥', '✅', '💪', '🎯', '📲'].map((emoji) => (
+              {/* 2. Visualização em Modo ABAS (Padrão Recomendado - 100% Espaço de Redação) */}
+              {formModoVisualizacao === 'abas' && (
+                <div className="flex flex-col gap-2.5 flex-1 min-h-0">
+                  {/* Seletor de Abas de Conteúdo */}
+                  <div className="flex items-center gap-1 p-1 bg-accent/30 rounded-xl border border-border/60 shrink-0">
                     <button
-                      key={emoji}
                       type="button"
-                      onClick={() => setFormLegenda((prev) => `${prev} ${emoji}`)}
-                      className="p-1 rounded hover:bg-card cursor-pointer text-xs"
+                      onClick={() => setFormAbaConteudo('legenda')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                        formAbaConteudo === 'legenda'
+                          ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
+                      }`}
                     >
-                      {emoji}
+                      <FileText className="w-3.5 h-3.5 text-primary" />
+                      <span>Legenda da Postagem</span>
+                      <span className="text-[11px] font-mono text-muted-foreground ml-1">
+                        ({formLegenda.length}/2.200)
+                      </span>
                     </button>
-                  ))}
-                </div>
 
-                <Textarea
-                  value={formLegenda}
-                  onChange={(e) => setFormLegenda(e.target.value)}
-                  placeholder="Escreva a copy da postagem com hashtags, tópicos e formatação..."
-                  rows={5}
-                  className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card"
-                />
-              </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormAbaConteudo('briefing')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                        formAbaConteudo === 'briefing'
+                          ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-primary" />
+                      <span>Briefing & Roteiro</span>
+                      {formBriefing.trim() && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      )}
+                    </button>
 
-              {/* Briefing / Instruções de Criação */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  <span>Briefing & Instruções da Peça</span>
-                </label>
-                <Textarea
-                  value={formBriefing}
-                  onChange={(e) => setFormBriefing(e.target.value)}
-                  placeholder="Instruções para o designer, editor ou copywriter (ex.: dor do cliente, tom de voz, CTA)..."
-                  rows={3}
-                  className="rounded-xl text-sm bg-card"
-                />
-              </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormAbaConteudo('anexos')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                        formAbaConteudo === 'anexos'
+                          ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
+                      }`}
+                    >
+                      <Paperclip className="w-3.5 h-3.5 text-primary" />
+                      <span>Mídias & Anexos</span>
+                      <span className="text-[11px] font-mono text-muted-foreground ml-0.5">
+                        ({formArquivos.length})
+                      </span>
+                    </button>
+                  </div>
 
-              {/* Listagem de Anexos & Arquivos da Demanda */}
-              <div className="flex flex-col gap-2.5 pt-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
-                    <Paperclip className="w-4 h-4 text-primary" />
-                    <span>Anexos & Materiais ({formArquivos.length})</span>
-                  </label>
-                  {formUploading && (
-                    <span className="text-xs text-primary flex items-center gap-1 animate-pulse font-medium">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando...
-                    </span>
-                  )}
-                </div>
-
-                {/* Lista de Arquivos Anexados */}
-                {formArquivos.length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    {formArquivos.map((arq, idx) => (
-                      <div
-                        key={arq.id || idx}
-                        className="p-2.5 rounded-2xl bg-accent/30 border border-border/70 flex items-center justify-between gap-3 group hover:border-foreground/30 transition-all"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-12 h-12 rounded-xl bg-black overflow-hidden shrink-0 border border-border/80 relative">
-                            {arq.tipo === 'video' ? (
-                              <video src={arq.url} className="w-full h-full object-cover" muted />
-                            ) : (
-                              <img src={arq.url} alt="" className="w-full h-full object-cover" />
-                            )}
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-foreground truncate">
-                                {arq.nome || `Arquivo_${idx + 1}.${arq.tipo === 'video' ? 'mp4' : 'png'}`}
-                              </span>
-                              {idx === 0 && (
-                                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-[#192313] text-[#d8ff3c]">
-                                  ⭐ Capa
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground font-mono mt-0.5">
-                              #{idx + 1} · {arq.tipo === 'video' ? 'Vídeo MP4' : 'Imagem 4:5'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1 shrink-0">
+                  {/* Conteúdo Aba: Legenda */}
+                  {formAbaConteudo === 'legenda' && (
+                    <div className="flex flex-col gap-1.5 flex-1 min-h-0">
+                      {/* Toolbar de Formatação */}
+                      <div className="flex items-center gap-1 p-1.5 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground flex-wrap shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setFormLegenda((prev) => `${prev} **texto em destaque**`)}
+                          className="px-2 py-0.5 rounded hover:bg-card font-bold text-foreground cursor-pointer text-xs"
+                          title="Negrito"
+                        >
+                          B
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormLegenda((prev) => `${prev} *texto itálico*`)}
+                          className="px-2 py-0.5 rounded hover:bg-card italic text-foreground cursor-pointer text-xs"
+                          title="Itálico"
+                        >
+                          I
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormLegenda((prev) => `${prev}\n• `)}
+                          className="px-2 py-0.5 rounded hover:bg-card font-mono text-foreground cursor-pointer text-xs"
+                          title="Lista com tópicos"
+                        >
+                          := Lista
+                        </button>
+                        <span className="w-px h-3 bg-border mx-1" />
+                        {['🚀', '👉', '💡', '🔥', '✅', '💪', '🎯', '📲', '📸', '📅'].map((emoji) => (
                           <button
+                            key={emoji}
                             type="button"
-                            onClick={() => window.open(arq.url, '_blank')}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                            title="Abrir anexo em nova aba"
+                            onClick={() => setFormLegenda((prev) => `${prev} ${emoji}`)}
+                            className="p-1 rounded hover:bg-card cursor-pointer text-xs"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            {emoji}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setFormArquivos((prev) => prev.filter((_, i) => i !== idx))}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                            title="Remover anexo"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        ))}
+                        <span className="w-px h-3 bg-border mx-1" />
+                        <button
+                          type="button"
+                          onClick={() => setFormLegenda((prev) => `${prev}\n\n#marketing #conteudo`)}
+                          className="px-1.5 py-0.5 rounded hover:bg-card text-muted-foreground hover:text-foreground text-xs font-mono"
+                          title="Inserir Hashtags"
+                        >
+                          #tags
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                )}
 
-                {/* Dropzone para Upload de Anexos */}
-                <div className="relative border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl p-4 text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5">
-                  <input
-                    type="file"
-                    multiple={formTipo !== 'reel'}
-                    accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
-                    onChange={handleFormFilesChange}
-                    disabled={formUploading}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
-                  />
-                  <div className="w-8 h-8 rounded-xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
-                    <UploadCloud className="w-4 h-4 text-primary" />
-                  </div>
-                  <p className="text-xs font-bold text-foreground">
-                    Clique ou arraste fotos/vídeos para anexar
-                  </p>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {formTipo === 'reel' ? 'Vídeo MP4 em 9:16' : 'Selecione várias para Carrossel em 4:5'}
-                  </p>
-                </div>
+                      {/* Editor de Legenda Generoso */}
+                      <Textarea
+                        value={formLegenda}
+                        onChange={(e) => setFormLegenda(e.target.value)}
+                        placeholder="Escreva a legenda oficial da postagem com hashtags, quebras de linha e chamada para ação (CTA)..."
+                        rows={11}
+                        className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card flex-1 min-h-[260px] sm:min-h-[300px] xl:min-h-[350px] resize-y"
+                      />
+                    </div>
+                  )}
 
-                {/* Inserir Link Manual */}
-                <div className="mt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setShowManualUrlsForm((v) => !v)}
-                    className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>{showManualUrlsForm ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
-                  </button>
-                  {showManualUrlsForm && (
-                    <Textarea
-                      placeholder="https://.../slide-01.png&#10;https://.../slide-02.png"
-                      value={formUrls}
-                      onChange={(e) => setFormUrls(e.target.value)}
-                      rows={2}
-                      className="mt-1.5 text-xs font-mono"
-                    />
+                  {/* Conteúdo Aba: Briefing & Roteiro */}
+                  {formAbaConteudo === 'briefing' && (
+                    <div className="flex flex-col gap-2 flex-1 min-h-0">
+                      <div className="p-2.5 rounded-xl bg-accent/20 border border-border/60 text-xs text-muted-foreground flex items-center justify-between">
+                        <span>Instruções para designer, editor de vídeo, copywriter ou roteiro cena a cena da peça.</span>
+                        <span className="font-mono text-[11px]">{formBriefing.length} caracteres</span>
+                      </div>
+                      <Textarea
+                        value={formBriefing}
+                        onChange={(e) => setFormBriefing(e.target.value)}
+                        placeholder="Exemplo de Roteiro / Briefing:&#10;&#10;Cena 1 (Gancho): Mostrar o antes e depois do procedimento com zoom...&#10;Cena 2: Explicar por que acontece em 3 tópicos...&#10;Cena 3 (CTA): Direcionar pro link na bio ou direct..."
+                        rows={12}
+                        className="rounded-xl text-sm font-sans leading-relaxed bg-card flex-1 min-h-[280px] sm:min-h-[320px] xl:min-h-[360px] resize-y"
+                      />
+                    </div>
+                  )}
+
+                  {/* Conteúdo Aba: Mídias & Anexos */}
+                  {formAbaConteudo === 'anexos' && (
+                    <div className="flex flex-col gap-3 flex-1 min-h-0">
+                      {/* Dropzone Compacto */}
+                      <div className="relative border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl p-4 text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-colors">
+                        <input
+                          type="file"
+                          multiple={formTipo !== 'reel'}
+                          accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                          onChange={handleFormFilesChange}
+                          disabled={formUploading}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
+                        />
+                        <div className="w-8 h-8 rounded-xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
+                          <UploadCloud className="w-4 h-4 text-primary" />
+                        </div>
+                        <p className="text-xs font-bold text-foreground">
+                          Clique ou arraste novos arquivos para anexar
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {formTipo === 'reel' ? 'Vídeo MP4 em 9:16' : 'Selecione fotos para Carrossel em 4:5'}
+                        </p>
+                      </div>
+
+                      {/* Grade de Arquivos */}
+                      {formArquivos.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[260px] overflow-y-auto pr-1">
+                          {formArquivos.map((arq, idx) => (
+                            <div
+                              key={arq.id || idx}
+                              className="p-2.5 rounded-xl bg-accent/30 border border-border/70 flex items-center justify-between gap-2.5 group hover:border-foreground/30 transition-all"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-10 h-10 rounded-lg bg-black overflow-hidden shrink-0 border border-border/80 relative">
+                                  {arq.tipo === 'video' ? (
+                                    <video src={arq.url} className="w-full h-full object-cover" muted />
+                                  ) : (
+                                    <img src={arq.url} alt="" className="w-full h-full object-cover" />
+                                  )}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-xs font-bold text-foreground truncate">
+                                      {arq.nome || `Arquivo_${idx + 1}`}
+                                    </span>
+                                    {idx === 0 && (
+                                      <span className="text-[10px] font-bold font-mono px-1.5 py-0.2 rounded bg-[#192313] text-[#d8ff3c] shrink-0">
+                                        ⭐ Capa
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-muted-foreground font-mono">
+                                    #{idx + 1} · {arq.tipo === 'video' ? 'Vídeo' : 'Imagem'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewCapaLightbox(arq.url)}
+                                  className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+                                  title="Visualizar em tamanho real"
+                                >
+                                  <Maximize2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setFormArquivos((prev) => prev.filter((_, i) => i !== idx))}
+                                  className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
+                                  title="Remover anexo"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic text-center py-4">
+                          Nenhum arquivo anexado a esta demanda.
+                        </p>
+                      )}
+
+                      {/* Inserir Link Manual */}
+                      <div className="mt-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowManualUrlsForm((v) => !v)}
+                          className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>{showManualUrlsForm ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
+                        </button>
+                        {showManualUrlsForm && (
+                          <Textarea
+                            placeholder="https://.../slide-01.png&#10;https://.../slide-02.png"
+                            value={formUrls}
+                            onChange={(e) => setFormUrls(e.target.value)}
+                            rows={2}
+                            className="mt-1.5 text-xs font-mono"
+                          />
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
+              )}
+
+              {/* 3. Visualização em Modo DIVIDIDO (Split - Briefing Compacto + Legenda Juntos) */}
+              {formModoVisualizacao === 'split' && (
+                <div className="flex flex-col gap-3 flex-1 min-h-0">
+                  {/* Briefing Compacto no Topo */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                        <span>Briefing & Roteiro da Peça</span>
+                      </label>
+                      <span className="text-[11px] text-muted-foreground font-mono">{formBriefing.length} caracteres</span>
+                    </div>
+                    <Textarea
+                      value={formBriefing}
+                      onChange={(e) => setFormBriefing(e.target.value)}
+                      placeholder="Instruções para a equipe, ganchos, cenas ou tópicos do post..."
+                      rows={3}
+                      className="rounded-xl text-xs bg-card"
+                    />
+                  </div>
+
+                  {/* Legenda Logo Abaixo com Toolbar */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-primary" />
+                        <span>Legenda da Postagem (Instagram)</span>
+                      </label>
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {formLegenda.length} / 2.200
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 p-1 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setFormLegenda((prev) => `${prev} **texto em destaque**`)}
+                        className="px-1.5 py-0.5 rounded hover:bg-card font-bold text-foreground text-xs"
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormLegenda((prev) => `${prev} *texto itálico*`)}
+                        className="px-1.5 py-0.5 rounded hover:bg-card italic text-foreground text-xs"
+                      >
+                        I
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormLegenda((prev) => `${prev}\n• `)}
+                        className="px-1.5 py-0.5 rounded hover:bg-card font-mono text-foreground text-xs"
+                      >
+                        :=
+                      </button>
+                      <span className="w-px h-3 bg-border mx-1" />
+                      {['🚀', '👉', '💡', '🔥', '✅'].map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setFormLegenda((prev) => `${prev} ${emoji}`)}
+                          className="p-1 rounded hover:bg-card text-xs"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                    <Textarea
+                      value={formLegenda}
+                      onChange={(e) => setFormLegenda(e.target.value)}
+                      placeholder="Escreva a legenda..."
+                      rows={6}
+                      className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* COLUNA DA DIREITA (5 Cols): Cliente Compacto, Matriz Prioridade, Equipe Colaborativa, Prazos */}
-            <div className="lg:col-span-5 flex flex-col gap-4">
-              {/* 1. Cliente da Agência (Compacto com Busca Popover) */}
+            {/* COLUNA DA DIREITA (5 Cols): Inspector Unificado de Propriedades */}
+            <div className="lg:col-span-5 flex flex-col gap-3">
+              {/* Card Unificado de Propriedades (Linear / Notion Style) */}
               <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase font-mono text-muted-foreground flex items-center gap-1.5">
-                    <span>1. Cliente da Agência *</span>
-                  </label>
-                  {clienteSelecionadoObj && (
-                    <button
-                      type="button"
-                      onClick={() => setTrocarClienteAbertoNovo((prev) => !prev)}
-                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
-                    >
-                      {trocarClienteAbertoNovo ? 'Fechar busca' : 'Trocar cliente'}
-                    </button>
-                  )}
+                {/* Linha 1: Cliente */}
+                <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50">
+                  <span className="text-xs font-bold uppercase font-mono text-muted-foreground flex items-center gap-1.5 shrink-0">
+                    <Users className="w-3.5 h-3.5 text-primary" />
+                    Cliente: *
+                  </span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {clienteSelecionadoObj && !trocarClienteAbertoNovo ? (
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ClienteAvatar nome={clienteSelecionadoObj.nome} cor={clienteSelecionadoObj.cor} fotoUrl={clienteSelecionadoObj.foto_url} tamanho="sm" />
+                        <span className="text-xs font-bold text-foreground truncate max-w-[130px]">{clienteSelecionadoObj.nome}</span>
+                        <button
+                          type="button"
+                          onClick={() => setTrocarClienteAbertoNovo(true)}
+                          className="text-xs font-bold text-primary hover:underline cursor-pointer ml-0.5"
+                        >
+                          Trocar
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setTrocarClienteAbertoNovo((v) => !v)}
+                        className="text-xs font-bold text-primary hover:underline cursor-pointer"
+                      >
+                        {trocarClienteAbertoNovo ? 'Fechar' : 'Selecionar'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {/* Card do Cliente Selecionado */}
-                {clienteSelecionadoObj && !trocarClienteAbertoNovo ? (
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-accent/30 border border-border/70 group hover:border-foreground/30 transition-all">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <ClienteAvatar
-                        nome={clienteSelecionadoObj.nome}
-                        cor={clienteSelecionadoObj.cor}
-                        fotoUrl={clienteSelecionadoObj.foto_url}
-                        tamanho="md"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-foreground truncate">
-                          {clienteSelecionadoObj.nome}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {(clienteSelecionadoObj as any).instagram_username
-                            ? `@${(clienteSelecionadoObj as any).instagram_username}`
-                            : clienteSelecionadoObj.nicho || 'Geral'}
-                        </p>
-                      </div>
-                    </div>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  </div>
-                ) : (
-                  /* Busca e Seleção de Cliente */
-                  <div className="flex flex-col gap-2">
+                {/* Busca de Cliente (se expandido) */}
+                {trocarClienteAbertoNovo && (
+                  <div className="flex flex-col gap-1.5 pb-2 border-b border-border/50">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                       <Input
-                        placeholder="Buscar cliente por nome ou nicho..."
+                        placeholder="Buscar cliente..."
                         value={buscaClienteForm}
                         onChange={(e) => setBuscaClienteForm(e.target.value)}
-                        className="pl-9 h-9 text-xs bg-card"
-                        autoFocus={trocarClienteAbertoNovo}
+                        className="pl-8 h-8 text-xs bg-card"
+                        autoFocus
                       />
                     </div>
-                    <div className="max-h-40 overflow-y-auto flex flex-col gap-1 p-1 border border-border/70 rounded-xl bg-card">
+                    <div className="max-h-32 overflow-y-auto flex flex-col gap-0.5 p-1 border border-border/70 rounded-xl bg-card">
                       {clientesFormFiltrados.length === 0 ? (
-                        <p className="text-xs text-muted-foreground p-2 text-center">
-                          Nenhum cliente encontrado.
-                        </p>
+                        <p className="text-xs text-muted-foreground p-1 text-center">Nenhum cliente encontrado.</p>
                       ) : (
                         clientesFormFiltrados.map((c) => {
                           const isSelected = formClienteId === c.id;
@@ -1895,20 +1981,15 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                                 setFormClienteId(c.id);
                                 setTrocarClienteAbertoNovo(false);
                               }}
-                              className={`flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                              className={`flex items-center gap-2 p-1.5 rounded-lg text-left transition-all cursor-pointer ${
                                 isSelected
-                                  ? 'bg-accent/80 border-foreground/30 shadow-2xs ring-1 ring-foreground/20'
-                                  : 'border-transparent hover:bg-accent/40'
+                                  ? 'bg-accent/80 font-bold text-foreground'
+                                  : 'hover:bg-accent/40 text-muted-foreground'
                               }`}
                             >
                               <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {(c as any).instagram_username ? `@${(c as any).instagram_username}` : c.nicho || 'Geral'}
-                                </p>
-                              </div>
-                              {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                              <span className="text-xs truncate flex-1">{c.nome}</span>
+                              {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
                             </button>
                           );
                         })
@@ -1916,154 +1997,89 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* 2. Matriz de Prioridade (Referência 3) */}
-              <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
-                <span className="text-xs font-bold font-mono uppercase text-muted-foreground flex items-center justify-between">
-                  <span>2. Prioridade da Demanda</span>
-                  <span className="text-xs font-bold text-foreground">
-                    {PRIORIDADE_CONFIG[formPrioridade]?.label}
+                {/* Linha 2: Prioridade (4 Chips em 1 Linha Contínua) */}
+                <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50">
+                  <span className="text-xs font-bold uppercase font-mono text-muted-foreground shrink-0">
+                    Prioridade:
                   </span>
-                </span>
+                  <div className="grid grid-cols-4 gap-1 flex-1 max-w-[270px]">
+                    {(
+                      [
+                        { id: 'urgente', label: 'Urgente', flag: '🔴' },
+                        { id: 'alta', label: 'Alta', flag: '🟠' },
+                        { id: 'media', label: 'Média', flag: '🔵' },
+                        { id: 'baixa', label: 'Baixa', flag: '🟢' },
+                      ] as const
+                    ).map((p) => {
+                      const isSelected = formPrioridade === p.id;
+                      const conf = PRIORIDADE_CONFIG[p.id];
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setFormPrioridade(p.id)}
+                          className={`h-6.5 px-1 rounded-md border flex items-center justify-center gap-1 cursor-pointer transition-all text-xs ${
+                            isSelected
+                              ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs`
+                              : 'bg-accent/20 hover:bg-accent/50 border-border/60 text-muted-foreground'
+                          }`}
+                          title={p.label}
+                        >
+                          <span className="text-xs">{p.flag}</span>
+                          <span className="text-[11px] font-semibold">{p.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Linha 3: Equipe (Responsável & Designer Lado a Lado) */}
+                <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border/50">
+                  <div className="flex flex-col gap-0.5">
+                    <label className="text-[11px] font-semibold text-muted-foreground">Responsável Principal</label>
+                    <Select value={formResponsavelId} onChange={(e) => setFormResponsavelId(e.target.value)} className="h-7.5 text-xs">
+                      <option value="">Nenhum...</option>
+                      {membros.map((m) => (
+                        <option key={m.id} value={m.id}>{m.nome}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <label className="text-[11px] font-semibold text-muted-foreground">Designer / Editor</label>
+                    <Select value={formEditorId} onChange={(e) => setFormEditorId(e.target.value)} className="h-7.5 text-xs">
+                      <option value="">Nenhum...</option>
+                      {membros.map((m) => (
+                        <option key={m.id} value={m.id}>{m.nome}</option>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Linha 4: Prazos (Prazo Interno & Data Programada) */}
                 <div className="grid grid-cols-2 gap-2">
-                  {(
-                    [
-                      { id: 'urgente', label: 'Urgente', flag: '🔴', desc: 'Imediato' },
-                      { id: 'alta', label: 'Alta', flag: '🟠', desc: 'Prioritário' },
-                      { id: 'media', label: 'Média', flag: '🔵', desc: 'Padrão' },
-                      { id: 'baixa', label: 'Baixa', flag: '🟢', desc: 'Sem pressa' },
-                    ] as const
-                  ).map((p) => {
-                    const isSelected = formPrioridade === p.id;
-                    const conf = PRIORIDADE_CONFIG[p.id];
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setFormPrioridade(p.id)}
-                        className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                          isSelected
-                            ? `${conf.bg} ${conf.border} ring-2 ring-foreground/20 shadow-2xs font-bold`
-                            : 'bg-accent/20 hover:bg-accent/50 border-border/60 text-muted-foreground'
-                        }`}
-                      >
-                        <span className="text-sm shrink-0">{p.flag}</span>
-                        <div className="flex flex-col text-left min-w-0">
-                          <span
-                            className={`text-xs leading-none font-bold ${
-                              isSelected ? conf.text : 'text-foreground'
-                            }`}
-                          >
-                            {p.label}
-                          </span>
-                          <span className="text-xs font-mono text-muted-foreground mt-0.5 leading-none">
-                            {p.desc}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 3. Equipe Colaborativa (Referências 2 & 3) */}
-              <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold font-mono uppercase text-muted-foreground">
-                    3. Equipe Colaborativa
-                  </span>
-                  {/* Stack de Avatares Overlapping */}
-                  {(formResponsavel || formEditor) && (
-                    <div className="flex items-center -space-x-2">
-                      {formResponsavel && (
-                        <div
-                          className="w-6 h-6 rounded-full bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center border-2 border-card shadow-xs"
-                          title={`Responsável: ${formResponsavel.nome}`}
-                        >
-                          {formResponsavel.nome.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      {formEditor && (
-                        <div
-                          className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground font-bold text-xs flex items-center justify-center border-2 border-card shadow-xs"
-                          title={`Designer/Editor: ${formEditor.nome}`}
-                        >
-                          {formEditor.nome.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-2.5">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                      <User className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span>Responsável Principal</span>
-                    </label>
-                    <Select
-                      value={formResponsavelId}
-                      onChange={(e) => setFormResponsavelId(e.target.value)}
-                    >
-                      <option value="">Selecione o responsável...</option>
-                      {membros.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.nome} ({m.cargo || (m.papel === 'master' ? 'Sócio' : 'Membro')})
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span>Designer / Editor (Opcional)</span>
-                    </label>
-                    <Select
-                      value={formEditorId}
-                      onChange={(e) => setFormEditorId(e.target.value)}
-                    >
-                      <option value="">Selecione o editor/designer...</option>
-                      {membros.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.nome} ({m.cargo || 'Especialista'})
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Prazos e Cronograma */}
-              <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
-                <span className="text-xs font-bold font-mono uppercase text-muted-foreground">
-                  4. Prazos & Cronograma
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  <div className="flex flex-col gap-0.5">
+                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
                       <span>Prazo Interno</span>
                     </label>
                     <Input
                       type="date"
                       value={formPrazoInterno}
                       onChange={(e) => setFormPrazoInterno(e.target.value)}
-                      className="h-8 text-xs"
+                      className="h-7.5 text-xs"
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                  <div className="flex flex-col gap-0.5">
+                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-muted-foreground" />
                       <span>Data Programada</span>
                     </label>
                     <Input
                       type="date"
                       value={formDataProgramada}
                       onChange={(e) => setFormDataProgramada(e.target.value)}
-                      className="h-8 text-xs"
+                      className="h-7.5 text-xs"
                     />
                   </div>
                 </div>
@@ -2190,252 +2206,144 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
       >
         {itemEmEdicao && (
           <form onSubmit={handleSalvarEdicao} className="flex flex-col max-h-[92vh] w-full bg-card select-none">
-            {/* 1. Header Banner de Capa (Compacto por padrão + Toggle de Expansão) */}
-            {editArquivos[0]?.url && (
-              <div
-                className={`relative w-full ${
-                  expandirCapaEdit ? 'h-48 sm:h-56' : 'h-20 sm:h-24'
-                } bg-slate-950 overflow-hidden flex items-center justify-center border-b border-border/80 shrink-0 transition-all duration-300`}
-              >
-                <img src={editArquivos[0].url} alt="" className="w-full h-full object-cover opacity-60 blur-xs scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />
-                <div className="relative z-10 flex items-center justify-center h-full p-2">
-                  {editArquivos[0].tipo === 'video' ? (
-                    <video
-                      src={editArquivos[0].url}
-                      className={`${
-                        expandirCapaEdit ? 'h-40 sm:h-48' : 'h-16 sm:h-20'
-                      } aspect-auto rounded-xl object-contain shadow-2xl border border-white/20`}
-                      muted
-                    />
-                  ) : (
-                    <img
-                      src={editArquivos[0].url}
-                      alt=""
-                      className={`${
-                        expandirCapaEdit ? 'h-40 sm:h-48' : 'h-16 sm:h-20'
-                      } aspect-auto rounded-xl object-contain shadow-2xl border border-white/20`}
-                    />
-                  )}
-                </div>
-                <div className="absolute top-2.5 right-3 flex items-center gap-2 z-20">
-                  <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-md border border-white/20">
-                    ⭐ Capa da Postagem
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setExpandirCapaEdit((v) => !v)}
-                    className="px-2 py-1 rounded-full bg-black/60 text-white hover:bg-black/90 transition-colors cursor-pointer flex items-center gap-1 text-xs font-medium border border-white/20"
-                    title={expandirCapaEdit ? 'Recolher Capa' : 'Expandir Capa'}
-                  >
-                    {expandirCapaEdit ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                    <span className="hidden sm:inline">{expandirCapaEdit ? 'Recolher' : 'Expandir'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setItemEmEdicao(null)}
-                    className="p-1.5 rounded-full bg-black/60 text-white hover:bg-black/90 transition-colors cursor-pointer border border-white/20"
-                    title="Fechar"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* 1. Header Slim de Linha Única (48px - Ultra Compacto) */}
+            <div className="px-4 py-2.5 border-b border-border/70 flex items-center justify-between gap-3 bg-card shrink-0">
+              {/* Esquerda: ID da Demanda + Título Inline + Chip de Capa */}
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                <span className="text-xs font-mono font-bold text-muted-foreground uppercase px-2 py-0.5 rounded-md bg-accent/60 border border-border/70 shrink-0">
+                  #{itemEmEdicao.id.slice(0, 8)}
+                </span>
 
-            {/* 2. Top Bar Fixo com Título, Ações Rápidas, Stepper e Micro-pills (Consolidado em 2 Linhas) */}
-            <div className="p-3.5 sm:p-4 border-b border-border/70 flex flex-col gap-3 bg-card shrink-0">
-              {/* Linha 1: Breadcrumb + Badges + Título (Esquerda) e Ações Rápidas + Fechar (Direita) */}
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
-                      Demanda · #{itemEmEdicao.id.slice(0, 8)}
-                    </span>
-                    <Badge variant={STATUS_LABELS[editStatus]?.variant || 'default'} className="text-xs font-bold">
-                      {STATUS_LABELS[editStatus]?.label || editStatus}
-                    </Badge>
-                    <span
-                      className={`text-xs font-bold font-mono px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${
-                        PRIORIDADE_CONFIG[editPrioridade]?.bg || 'bg-accent'
-                      } ${PRIORIDADE_CONFIG[editPrioridade]?.text || 'text-foreground'} ${
-                        PRIORIDADE_CONFIG[editPrioridade]?.border || 'border-border'
-                      }`}
-                    >
-                      {PRIORIDADE_CONFIG[editPrioridade]?.flag} {PRIORIDADE_CONFIG[editPrioridade]?.label}
-                    </span>
-                  </div>
-                  <Input
-                    value={editTitulo}
-                    onChange={(e) => setEditTitulo(e.target.value)}
-                    placeholder="Título da Demanda..."
-                    className="w-full text-lg sm:text-xl font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60"
-                    required
-                  />
-                </div>
+                {/* Se houver capa/mídia, chip compacto com preview e zoom */}
+                {editArquivos[0]?.url && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewCapaLightbox(editArquivos[0].url)}
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-accent/60 hover:bg-accent border border-border/70 text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer group"
+                    title="Clique para ampliar a capa"
+                  >
+                    <div className="w-4 h-4 rounded overflow-hidden bg-black shrink-0 border border-border">
+                      {editArquivos[0].tipo === 'video' ? (
+                        <video src={editArquivos[0].url} className="w-full h-full object-cover" muted />
+                      ) : (
+                        <img src={editArquivos[0].url} alt="" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                    <span className="hidden sm:inline">Capa</span>
+                    <Maximize2 className="w-3 h-3 text-muted-foreground group-hover:text-foreground" />
+                  </button>
+                )}
 
-                {/* Ações Rápidas integradas na Linha 1 */}
-                <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setShowManualUrlsEdit((v) => !v)}
-                    className="px-2.5 py-1.5 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs"
-                    title="Anexo Manual"
-                  >
-                    <Paperclip className="w-3.5 h-3.5 text-primary" />
-                    <span className="hidden sm:inline">Anexo</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCopiarLinkAprovacao(itemEmEdicao.token_aprovacao)}
-                    className="px-2.5 py-1.5 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs"
-                    title="Copiar Link de Aprovação do Cliente"
-                  >
-                    <Share2 className="w-3.5 h-3.5 text-primary" />
-                    <span className="hidden sm:inline">Link Aprovação</span>
-                  </button>
-                  {editStatus === 'agendamento' && onIrParaAgendamento && (
-                    <button
-                      type="button"
-                      onClick={() => handleLevarParaAgendamento(itemEmEdicao)}
-                      className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Agendamento</span>
-                    </button>
-                  )}
-                  {!editArquivos[0]?.url && (
-                    <button
-                      type="button"
-                      onClick={() => setItemEmEdicao(null)}
-                      className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
-                      title="Fechar"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
+                {/* Título da Demanda Editável Direto */}
+                <Input
+                  value={editTitulo}
+                  onChange={(e) => setEditTitulo(e.target.value)}
+                  placeholder="Título da Demanda..."
+                  className="text-base sm:text-lg font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60 flex-1 min-w-0"
+                  required
+                />
               </div>
 
-              {/* Linha 2: Stepper Pipeline Compacto + Micro-pills */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pt-1">
-                {/* Stepper Pipeline Interativo Compacto */}
-                <div className="flex-1 bg-accent/20 rounded-xl p-1.5 border border-border/50 overflow-x-auto">
-                  <div className="flex items-center justify-between min-w-[480px] gap-2">
-                    {ETAPAS_PIPELINE.map((etapa, idx) => {
-                      const currentStep = getEtapaIndex(editStatus);
-                      const isDone = etapa.step < currentStep;
-                      const isCurrent = etapa.step === currentStep;
+              {/* Centro/Direita: Stepper de Status Compacto + Ações */}
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Stepper Pipeline Compacto em Linha (sem scroll horizontal) */}
+                <div className="hidden md:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border/60">
+                  {ETAPAS_PIPELINE.map((etapa) => {
+                    const currentStep = getEtapaIndex(editStatus);
+                    const isCurrent = etapa.step === currentStep;
+                    const isDone = etapa.step < currentStep;
 
-                      return (
-                        <React.Fragment key={etapa.status}>
-                          <button
-                            type="button"
-                            onClick={() => setEditStatus(etapa.status)}
-                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                              isCurrent
-                                ? 'bg-primary text-primary-foreground shadow-xs font-bold ring-2 ring-primary/30'
-                                : isDone
-                                ? 'bg-primary/15 text-primary hover:bg-primary/25 border border-primary/20'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
-                            }`}
-                            title={`Mover para: ${etapa.label}`}
-                          >
-                            <span
-                              className={`w-4 h-4 rounded-full flex items-center justify-center text-xs shrink-0 font-mono ${
-                                isCurrent
-                                  ? 'bg-primary-foreground text-primary font-bold'
-                                  : isDone
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-muted-foreground/20 text-muted-foreground'
-                              }`}
-                            >
-                              {isDone ? <Check className="w-2.5 h-2.5" /> : etapa.step}
-                            </span>
-                            <span className="truncate">{etapa.short}</span>
-                          </button>
-                          {idx < ETAPAS_PIPELINE.length - 1 && (
-                            <div
-                              className={`flex-1 h-0.5 min-w-3 rounded transition-colors ${
-                                idx + 1 < currentStep ? 'bg-primary' : 'bg-border'
-                              }`}
-                            />
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
+                    return (
+                      <button
+                        key={etapa.status}
+                        type="button"
+                        onClick={() => setEditStatus(etapa.status)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                          isCurrent
+                            ? 'bg-primary text-primary-foreground font-bold shadow-2xs'
+                            : isDone
+                            ? 'text-primary hover:bg-accent/60'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+                        }`}
+                        title={`Etapa: ${etapa.label}`}
+                      >
+                        <span
+                          className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] shrink-0 font-mono ${
+                            isCurrent
+                              ? 'bg-primary-foreground text-primary font-bold'
+                              : isDone
+                              ? 'bg-primary/20 text-primary'
+                              : 'bg-muted-foreground/20 text-muted-foreground'
+                          }`}
+                        >
+                          {isDone ? <Check className="w-2.5 h-2.5" /> : etapa.step}
+                        </span>
+                        <span className="hidden xl:inline">{etapa.short}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Micro-pills Bar Integrada */}
-                <div className="flex items-center gap-2 flex-wrap shrink-0 text-xs">
-                  {/* Pill 1: Prazo */}
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span>
-                      {editPrazoInterno ? `Prazo: ${formatarDataCurta(editPrazoInterno)}` : 'Sem prazo'}
-                    </span>
-                  </div>
-
-                  {/* Pill 2: Programado */}
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs">
-                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span>
-                      {editDataProgramada ? `Para: ${formatarDataCurta(editDataProgramada)}` : 'Não agendado'}
-                    </span>
-                  </div>
-
-                  {/* Pill 3: Formato */}
-                  <div
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${
-                      editTipo === 'reel'
-                        ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20'
-                        : editTipo === 'story'
-                        ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
-                        : editTipo === 'post'
-                        ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/20'
-                        : 'bg-amber-500/10 text-amber-800 dark:text-amber-400 border-amber-500/20'
-                    }`}
+                {/* Dropdown de status para telas menores */}
+                <div className="md:hidden">
+                  <Select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as StatusConteudo)}
+                    className="h-8 text-xs font-bold"
                   >
-                    {editTipo === 'reel' && <Video className="w-3.5 h-3.5" />}
-                    {editTipo === 'story' && <Smartphone className="w-3.5 h-3.5" />}
-                    {editTipo === 'post' && <ImageIcon className="w-3.5 h-3.5" />}
-                    {editTipo === 'avulso' && <Sparkles className="w-3.5 h-3.5" />}
-                    <span>
-                      {editTipo === 'reel'
-                        ? 'Reels'
-                        : editTipo === 'story'
-                        ? 'Story'
-                        : editTipo === 'post'
-                        ? 'Carrossel'
-                        : 'Avulso'}
-                    </span>
-                  </div>
-
-                  {/* Pill 4: Equipe */}
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/40 border border-border/70 text-foreground font-medium text-xs">
-                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                    {editResponsavel ? (
-                      <span className="truncate max-w-[100px]">{editResponsavel.nome.split(' ')[0]}</span>
-                    ) : (
-                      <span className="text-muted-foreground">Sem resp.</span>
-                    )}
-                  </div>
+                    {ETAPAS_PIPELINE.map((etapa) => (
+                      <option key={etapa.status} value={etapa.status}>
+                        {etapa.step}. {etapa.label}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
+
+                {/* Ações Rápidas */}
+                <button
+                  type="button"
+                  onClick={() => handleCopiarLinkAprovacao(itemEmEdicao.token_aprovacao)}
+                  className="px-2.5 py-1.5 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs"
+                  title="Copiar Link de Aprovação do Cliente"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-primary" />
+                  <span className="hidden sm:inline">Link Aprovação</span>
+                </button>
+
+                {editStatus === 'agendamento' && onIrParaAgendamento && (
+                  <button
+                    type="button"
+                    onClick={() => handleLevarParaAgendamento(itemEmEdicao)}
+                    className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer text-xs"
+                    title="Agendar Postagem"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Agendamento</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setItemEmEdicao(null)}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
+                  title="Fechar"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
-            {/* 3. Body Rolável Dividido em 2 Colunas */}
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Legenda Formatada, Briefing & Anexos */}
-              <div className="lg:col-span-7 flex flex-col gap-4">
-                {/* Formato Rápido da Peça - Segmented Control Fino (32px) */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-border/40">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display shrink-0">
+            {/* 2. Body Rolável Dividido em 2 Colunas */}
+            <div className="p-3.5 sm:p-5 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5">
+              {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Abas/Split de Redação, Legenda e Briefing */}
+              <div className="lg:col-span-7 flex flex-col gap-3">
+                {/* 1. Barra de Formato (28px) + Toggle Abas vs Split */}
+                <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50 shrink-0">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground font-display shrink-0">
                     <Layers className="w-3.5 h-3.5 text-primary" />
-                    <span>Formato de Conteúdo:</span>
-                  </label>
-                  <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-xl border border-border/60 flex-1 max-w-md">
+                    <span>Formato:</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border/60 max-w-sm flex-1">
                     {[
                       { id: 'post' as const, label: 'Carrossel (4:5)', icon: ImageIcon },
                       { id: 'reel' as const, label: 'Reels (9:16)', icon: Video },
@@ -2446,263 +2354,417 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                         key={fmt.id}
                         type="button"
                         onClick={() => setEditTipo(fmt.id)}
-                        className={`h-7 px-2 rounded-lg flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+                        className={`h-6.5 px-2 rounded-md flex items-center justify-center gap-1 text-xs font-bold transition-all cursor-pointer ${
                           editTipo === fmt.id
-                            ? 'bg-primary text-primary-foreground shadow-xs font-bold'
+                            ? 'bg-primary text-primary-foreground shadow-2xs font-bold'
                             : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
                         }`}
                       >
-                        <fmt.icon className="w-3.5 h-3.5 shrink-0" />
+                        <fmt.icon className="w-3 h-3 shrink-0" />
                         <span className="truncate">{fmt.label}</span>
                       </button>
                     ))}
                   </div>
+
+                  {/* Alternador de Modo: Abas vs Dividido */}
+                  <div className="hidden sm:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border/50 text-xs shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setEditModoVisualizacao('abas')}
+                      className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer text-xs ${
+                        editModoVisualizacao === 'abas'
+                          ? 'bg-card text-foreground shadow-2xs font-bold'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                      title="Visualização em Abas (Espaço Máximo para Redação)"
+                    >
+                      Abas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditModoVisualizacao('split')}
+                      className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer text-xs ${
+                        editModoVisualizacao === 'split'
+                          ? 'bg-card text-foreground shadow-2xs font-bold'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                      title="Visualização Dividida (Legenda + Briefing Visíveis Juntos)"
+                    >
+                      Dividido
+                    </button>
+                  </div>
                 </div>
 
-                {/* Legenda do Instagram com Rich Formatting Toolbar */}
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
-                      <FileText className="w-4 h-4 text-primary" />
-                      <span>Descrição / Legenda da Postagem</span>
-                    </label>
-                    <span className="text-xs font-mono text-muted-foreground">
-                      {editLegenda.length} / 2.200
-                    </span>
-                  </div>
-
-                  {/* Formatting Toolbar */}
-                  <div className="flex items-center gap-1 p-1.5 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setEditLegenda((prev) => `${prev} **texto em destaque**`)}
-                      className="px-2 py-0.5 rounded hover:bg-card font-bold text-foreground cursor-pointer text-xs"
-                      title="Negrito"
-                    >
-                      B
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditLegenda((prev) => `${prev} *texto itálico*`)}
-                      className="px-2 py-0.5 rounded hover:bg-card italic text-foreground cursor-pointer text-xs"
-                      title="Itálico"
-                    >
-                      I
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditLegenda((prev) => `${prev}\n• `)}
-                      className="px-2 py-0.5 rounded hover:bg-card font-mono text-foreground cursor-pointer text-xs"
-                      title="Lista com tópicos"
-                    >
-                      := Lista
-                    </button>
-                    <span className="w-px h-3 bg-border mx-1" />
-                    {['🚀', '👉', '💡', '🔥', '✅', '💪', '🎯', '📲'].map((emoji) => (
+                {/* 2. Visualização em Modo ABAS (Padrão Recomendado - 100% Espaço de Redação) */}
+                {editModoVisualizacao === 'abas' && (
+                  <div className="flex flex-col gap-2.5 flex-1 min-h-0">
+                    {/* Seletor de Abas de Conteúdo */}
+                    <div className="flex items-center gap-1 p-1 bg-accent/30 rounded-xl border border-border/60 shrink-0">
                       <button
-                        key={emoji}
                         type="button"
-                        onClick={() => setEditLegenda((prev) => `${prev} ${emoji}`)}
-                        className="p-1 rounded hover:bg-card cursor-pointer text-xs"
+                        onClick={() => setEditAbaConteudo('legenda')}
+                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                          editAbaConteudo === 'legenda'
+                            ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
+                        }`}
                       >
-                        {emoji}
+                        <FileText className="w-3.5 h-3.5 text-primary" />
+                        <span>Legenda da Postagem</span>
+                        <span className="text-[11px] font-mono text-muted-foreground ml-1">
+                          ({editLegenda.length}/2.200)
+                        </span>
                       </button>
-                    ))}
-                  </div>
 
-                  <Textarea
-                    value={editLegenda}
-                    onChange={(e) => setEditLegenda(e.target.value)}
-                    placeholder="Escreva a copy da postagem com hashtags, tópicos e formatação..."
-                    rows={5}
-                    className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card"
-                  />
-                </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditAbaConteudo('briefing')}
+                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                          editAbaConteudo === 'briefing'
+                            ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
+                        }`}
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                        <span>Briefing & Roteiro</span>
+                        {editBriefing.trim() && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        )}
+                      </button>
 
-                {/* Briefing / Instruções de Criação */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-primary" />
-                    <span>Briefing & Instruções da Equipe</span>
-                  </label>
-                  <Textarea
-                    value={editBriefing}
-                    onChange={(e) => setEditBriefing(e.target.value)}
-                    placeholder="Instruções para o designer, editor ou copywriter..."
-                    rows={3}
-                    className="rounded-xl text-sm bg-card"
-                  />
-                </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditAbaConteudo('anexos')}
+                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                          editAbaConteudo === 'anexos'
+                            ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
+                        }`}
+                      >
+                        <Paperclip className="w-3.5 h-3.5 text-primary" />
+                        <span>Mídias & Anexos</span>
+                        <span className="text-[11px] font-mono text-muted-foreground ml-0.5">
+                          ({editArquivos.length})
+                        </span>
+                      </button>
+                    </div>
 
-                {/* Listagem de Anexos & Arquivos da Demanda */}
-                <div className="flex flex-col gap-2.5 pt-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-foreground flex items-center gap-2 font-display">
-                      <Paperclip className="w-4 h-4 text-primary" />
-                      <span>Anexos & Materiais ({editArquivos.length})</span>
-                    </label>
-                    {editUploading && (
-                      <span className="text-xs text-primary flex items-center gap-1 animate-pulse font-medium">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando...
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Lista de Arquivos */}
-                  {editArquivos.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                      {editArquivos.map((arq, idx) => (
-                        <div
-                          key={arq.id || idx}
-                          className="p-2.5 rounded-2xl bg-accent/30 border border-border/70 flex items-center justify-between gap-3 group hover:border-foreground/30 transition-all"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-12 h-12 rounded-xl bg-black overflow-hidden shrink-0 border border-border/80 relative">
-                              {arq.tipo === 'video' ? (
-                                <video src={arq.url} className="w-full h-full object-cover" muted />
-                              ) : (
-                                <img src={arq.url} alt="" className="w-full h-full object-cover" />
-                              )}
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-bold text-foreground truncate">
-                                  {arq.nome || `Arquivo_${idx + 1}.${arq.tipo === 'video' ? 'mp4' : 'png'}`}
-                                </span>
-                                {idx === 0 && (
-                                  <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-[#192313] text-[#d8ff3c]">
-                                    ⭐ Capa
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-xs text-muted-foreground font-mono mt-0.5">
-                                #{idx + 1} · {arq.tipo === 'video' ? 'Vídeo MP4' : 'Imagem 4:5'}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1 shrink-0">
+                    {/* Conteúdo Aba: Legenda */}
+                    {editAbaConteudo === 'legenda' && (
+                      <div className="flex flex-col gap-1.5 flex-1 min-h-0">
+                        {/* Toolbar de Formatação */}
+                        <div className="flex items-center gap-1 p-1.5 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground flex-wrap shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setEditLegenda((prev) => `${prev} **texto em destaque**`)}
+                            className="px-2 py-0.5 rounded hover:bg-card font-bold text-foreground cursor-pointer text-xs"
+                            title="Negrito"
+                          >
+                            B
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditLegenda((prev) => `${prev} *texto itálico*`)}
+                            className="px-2 py-0.5 rounded hover:bg-card italic text-foreground cursor-pointer text-xs"
+                            title="Itálico"
+                          >
+                            I
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditLegenda((prev) => `${prev}\n• `)}
+                            className="px-2 py-0.5 rounded hover:bg-card font-mono text-foreground cursor-pointer text-xs"
+                            title="Lista com tópicos"
+                          >
+                            := Lista
+                          </button>
+                          <span className="w-px h-3 bg-border mx-1" />
+                          {['🚀', '👉', '💡', '🔥', '✅', '💪', '🎯', '📲', '📸', '📅'].map((emoji) => (
                             <button
+                              key={emoji}
                               type="button"
-                              onClick={() => window.open(arq.url, '_blank')}
-                              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                              title="Abrir anexo em nova aba"
+                              onClick={() => setEditLegenda((prev) => `${prev} ${emoji}`)}
+                              className="p-1 rounded hover:bg-card cursor-pointer text-xs"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
+                              {emoji}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditArquivos((prev) => prev.filter((_, i) => i !== idx))}
-                              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                              title="Remover anexo"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                          ))}
+                          <span className="w-px h-3 bg-border mx-1" />
+                          <button
+                            type="button"
+                            onClick={() => setEditLegenda((prev) => `${prev}\n\n#marketing #conteudo`)}
+                            className="px-1.5 py-0.5 rounded hover:bg-card text-muted-foreground hover:text-foreground text-xs font-mono"
+                            title="Inserir Hashtags"
+                          >
+                            #tags
+                          </button>
                         </div>
-                      ))}
-                    </div>
-                  )}
 
-                  {/* Dropzone para Upload de Novos Anexos */}
-                  <div className="relative border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl p-4 text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5">
-                    <input
-                      type="file"
-                      multiple={editTipo !== 'reel'}
-                      accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
-                      onChange={handleEditFilesChange}
-                      disabled={editUploading}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
-                    />
-                    <div className="w-8 h-8 rounded-xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
-                      <UploadCloud className="w-4 h-4 text-primary" />
-                    </div>
-                    <p className="text-xs font-bold text-foreground">
-                      Clique ou arraste novos arquivos para anexar
-                    </p>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      {editTipo === 'reel' ? 'Vídeo MP4 em 9:16' : 'Selecione várias para Carrossel em 4:5'}
-                    </p>
-                  </div>
+                        {/* Editor de Legenda Generoso */}
+                        <Textarea
+                          value={editLegenda}
+                          onChange={(e) => setEditLegenda(e.target.value)}
+                          placeholder="Escreva a legenda oficial da postagem com hashtags, quebras de linha e chamada para ação (CTA)..."
+                          rows={11}
+                          className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card flex-1 min-h-[260px] sm:min-h-[300px] xl:min-h-[350px] resize-y"
+                        />
+                      </div>
+                    )}
 
-                  {/* Inserir Link Manual */}
-                  <div className="mt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setShowManualUrlsEdit((v) => !v)}
-                      className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>{showManualUrlsEdit ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
-                    </button>
-                    {showManualUrlsEdit && (
-                      <Textarea
-                        placeholder="https://.../slide-01.png&#10;https://.../slide-02.png"
-                        value={editUrls}
-                        onChange={(e) => setEditUrls(e.target.value)}
-                        rows={2}
-                        className="mt-1.5 text-xs font-mono"
-                      />
+                    {/* Conteúdo Aba: Briefing & Roteiro */}
+                    {editAbaConteudo === 'briefing' && (
+                      <div className="flex flex-col gap-2 flex-1 min-h-0">
+                        <div className="p-2.5 rounded-xl bg-accent/20 border border-border/60 text-xs text-muted-foreground flex items-center justify-between">
+                          <span>Instruções para designer, editor de vídeo, copywriter ou roteiro cena a cena da peça.</span>
+                          <span className="font-mono text-[11px]">{editBriefing.length} caracteres</span>
+                        </div>
+                        <Textarea
+                          value={editBriefing}
+                          onChange={(e) => setEditBriefing(e.target.value)}
+                          placeholder="Exemplo de Roteiro / Briefing:&#10;&#10;Cena 1 (Gancho): Mostrar o antes e depois do procedimento com zoom...&#10;Cena 2: Explicar por que acontece em 3 tópicos...&#10;Cena 3 (CTA): Direcionar pro link na bio ou direct..."
+                          rows={12}
+                          className="rounded-xl text-sm font-sans leading-relaxed bg-card flex-1 min-h-[280px] sm:min-h-[320px] xl:min-h-[360px] resize-y"
+                        />
+                      </div>
+                    )}
+
+                    {/* Conteúdo Aba: Mídias & Anexos */}
+                    {editAbaConteudo === 'anexos' && (
+                      <div className="flex flex-col gap-3 flex-1 min-h-0">
+                        {/* Dropzone Compacto */}
+                        <div className="relative border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl p-4 text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-colors">
+                          <input
+                            type="file"
+                            multiple={editTipo !== 'reel'}
+                            accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                            onChange={handleEditFilesChange}
+                            disabled={editUploading}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
+                          />
+                          <div className="w-8 h-8 rounded-xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
+                            <UploadCloud className="w-4 h-4 text-primary" />
+                          </div>
+                          <p className="text-xs font-bold text-foreground">
+                            Clique ou arraste novos arquivos para anexar
+                          </p>
+                          <p className="text-xs text-muted-foreground font-mono">
+                            {editTipo === 'reel' ? 'Vídeo MP4 em 9:16' : 'Selecione fotos para Carrossel em 4:5'}
+                          </p>
+                        </div>
+
+                        {/* Grade de Arquivos */}
+                        {editArquivos.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[260px] overflow-y-auto pr-1">
+                            {editArquivos.map((arq, idx) => (
+                              <div
+                                key={arq.id || idx}
+                                className="p-2.5 rounded-xl bg-accent/30 border border-border/70 flex items-center justify-between gap-2.5 group hover:border-foreground/30 transition-all"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="w-10 h-10 rounded-lg bg-black overflow-hidden shrink-0 border border-border/80 relative">
+                                    {arq.tipo === 'video' ? (
+                                      <video src={arq.url} className="w-full h-full object-cover" muted />
+                                    ) : (
+                                      <img src={arq.url} alt="" className="w-full h-full object-cover" />
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs font-bold text-foreground truncate">
+                                        {arq.nome || `Arquivo_${idx + 1}`}
+                                      </span>
+                                      {idx === 0 && (
+                                        <span className="text-[10px] font-bold font-mono px-1.5 py-0.2 rounded bg-[#192313] text-[#d8ff3c] shrink-0">
+                                          ⭐ Capa
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[11px] text-muted-foreground font-mono">
+                                      #{idx + 1} · {arq.tipo === 'video' ? 'Vídeo' : 'Imagem'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-0.5 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewCapaLightbox(arq.url)}
+                                    className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+                                    title="Visualizar em tamanho real"
+                                  >
+                                    <Maximize2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditArquivos((prev) => prev.filter((_, i) => i !== idx))}
+                                    className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
+                                    title="Remover anexo"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic text-center py-4">
+                            Nenhum arquivo anexado a esta demanda.
+                          </p>
+                        )}
+
+                        {/* Inserir Link Manual */}
+                        <div className="mt-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowManualUrlsEdit((v) => !v)}
+                            className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>{showManualUrlsEdit ? '- Ocultar links manuais' : '+ Inserir links externos manualmente (Google Drive / CDN)'}</span>
+                          </button>
+                          {showManualUrlsEdit && (
+                            <Textarea
+                              placeholder="https://.../slide-01.png&#10;https://.../slide-02.png"
+                              value={editUrls}
+                              onChange={(e) => setEditUrls(e.target.value)}
+                              rows={2}
+                              className="mt-1.5 text-xs font-mono"
+                            />
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
+                )}
+
+                {/* 3. Visualização em Modo DIVIDIDO (Split - Briefing Compacto + Legenda Juntos) */}
+                {editModoVisualizacao === 'split' && (
+                  <div className="flex flex-col gap-3 flex-1 min-h-0">
+                    {/* Briefing Compacto no Topo */}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-primary" />
+                          <span>Briefing & Roteiro da Criação</span>
+                        </label>
+                        <span className="text-[11px] text-muted-foreground font-mono">{editBriefing.length} caracteres</span>
+                      </div>
+                      <Textarea
+                        value={editBriefing}
+                        onChange={(e) => setEditBriefing(e.target.value)}
+                        placeholder="Instruções para a equipe, ganchos, cenas ou tópicos do post..."
+                        rows={3}
+                        className="rounded-xl text-xs bg-card"
+                      />
+                    </div>
+
+                    {/* Legenda Logo Abaixo com Toolbar */}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-primary" />
+                          <span>Legenda da Postagem (Instagram)</span>
+                        </label>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {editLegenda.length} / 2.200
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 p-1 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setEditLegenda((prev) => `${prev} **texto em destaque**`)}
+                          className="px-1.5 py-0.5 rounded hover:bg-card font-bold text-foreground text-xs"
+                        >
+                          B
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditLegenda((prev) => `${prev} *texto itálico*`)}
+                          className="px-1.5 py-0.5 rounded hover:bg-card italic text-foreground text-xs"
+                        >
+                          I
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditLegenda((prev) => `${prev}\n• `)}
+                          className="px-1.5 py-0.5 rounded hover:bg-card font-mono text-foreground text-xs"
+                        >
+                          :=
+                        </button>
+                        <span className="w-px h-3 bg-border mx-1" />
+                        {['🚀', '👉', '💡', '🔥', '✅'].map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => setEditLegenda((prev) => `${prev} ${emoji}`)}
+                            className="p-1 rounded hover:bg-card text-xs"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                      <Textarea
+                        value={editLegenda}
+                        onChange={(e) => setEditLegenda(e.target.value)}
+                        placeholder="Escreva a legenda..."
+                        rows={6}
+                        className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* COLUNA DA DIREITA (5 Cols): Cliente, Prioridade, Equipe, Prazos & Atividades */}
-              <div className="lg:col-span-5 flex flex-col gap-4">
-                {/* 1. Cliente da Demanda */}
-                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase font-mono text-muted-foreground">
-                      1. Cliente da Agência
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setTrocarClienteAbertoEdit((prev) => !prev)}
-                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
-                    >
-                      {trocarClienteAbertoEdit ? 'Fechar busca' : 'Trocar cliente'}
-                    </button>
+              {/* COLUNA DA DIREITA (5 Cols): Inspector Unificado de Propriedades + Comentários */}
+              <div className="lg:col-span-5 flex flex-col gap-3">
+                {/* Card Unificado de Propriedades (Linear / Notion Style) */}
+                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5 shrink-0">
+                  {/* Linha 1: Cliente */}
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50">
+                    <span className="text-xs font-bold uppercase font-mono text-muted-foreground flex items-center gap-1.5 shrink-0">
+                      <Users className="w-3.5 h-3.5 text-primary" />
+                      Cliente:
+                    </span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {editClienteObj && !trocarClienteAbertoEdit ? (
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ClienteAvatar nome={editClienteObj.nome} cor={editClienteObj.cor} fotoUrl={editClienteObj.foto_url} tamanho="sm" />
+                          <span className="text-xs font-bold text-foreground truncate max-w-[130px]">{editClienteObj.nome}</span>
+                          <button
+                            type="button"
+                            onClick={() => setTrocarClienteAbertoEdit(true)}
+                            className="text-xs font-bold text-primary hover:underline cursor-pointer ml-0.5"
+                          >
+                            Trocar
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setTrocarClienteAbertoEdit((v) => !v)}
+                          className="text-xs font-bold text-primary hover:underline cursor-pointer"
+                        >
+                          {trocarClienteAbertoEdit ? 'Fechar' : 'Selecionar'}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  {editClienteObj && !trocarClienteAbertoEdit ? (
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-accent/30 border border-border/70 group hover:border-foreground/30 transition-all">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <ClienteAvatar
-                          nome={editClienteObj.nome}
-                          cor={editClienteObj.cor}
-                          fotoUrl={editClienteObj.foto_url}
-                          tamanho="md"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-foreground truncate">
-                            {editClienteObj.nome}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {(editClienteObj as any).instagram_username
-                              ? `@${(editClienteObj as any).instagram_username}`
-                              : editClienteObj.nicho || 'Geral'}
-                          </p>
-                        </div>
-                      </div>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2">
+                  {/* Busca de Cliente (se expandido) */}
+                  {trocarClienteAbertoEdit && (
+                    <div className="flex flex-col gap-1.5 pb-2 border-b border-border/50">
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                         <Input
-                          placeholder="Buscar cliente por nome..."
+                          placeholder="Buscar cliente..."
                           value={buscaClienteEdit}
                           onChange={(e) => setBuscaClienteEdit(e.target.value)}
-                          className="pl-9 h-9 text-xs bg-card"
-                          autoFocus={trocarClienteAbertoEdit}
+                          className="pl-8 h-8 text-xs bg-card"
+                          autoFocus
                         />
                       </div>
-                      <div className="max-h-40 overflow-y-auto flex flex-col gap-1 p-1 border border-border/70 rounded-xl bg-card">
+                      <div className="max-h-32 overflow-y-auto flex flex-col gap-0.5 p-1 border border-border/70 rounded-xl bg-card">
                         {clientesEditFiltrados.length === 0 ? (
-                          <p className="text-xs text-muted-foreground p-2 text-center">
-                            Nenhum cliente encontrado.
-                          </p>
+                          <p className="text-xs text-muted-foreground p-1 text-center">Nenhum cliente encontrado.</p>
                         ) : (
                           clientesEditFiltrados.map((c) => {
                             const isSelected = (editClienteId || itemEmEdicao.cliente_id) === c.id;
@@ -2714,20 +2776,15 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                                   setEditClienteId(c.id);
                                   setTrocarClienteAbertoEdit(false);
                                 }}
-                                className={`flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                                className={`flex items-center gap-2 p-1.5 rounded-lg text-left transition-all cursor-pointer ${
                                   isSelected
-                                    ? 'bg-accent/80 border-foreground/30 shadow-2xs ring-1 ring-foreground/20'
-                                    : 'border-transparent hover:bg-accent/40'
+                                    ? 'bg-accent/80 font-bold text-foreground'
+                                    : 'hover:bg-accent/40 text-muted-foreground'
                                 }`}
                               >
                                 <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-xs font-bold text-foreground truncate">{c.nome}</p>
-                                  <p className="text-xs text-muted-foreground truncate">
-                                    {(c as any).instagram_username ? `@${(c as any).instagram_username}` : c.nicho || 'Geral'}
-                                  </p>
-                                </div>
-                                {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                                <span className="text-xs truncate flex-1">{c.nome}</span>
+                                {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
                               </button>
                             );
                           })
@@ -2735,144 +2792,126 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       </div>
                     </div>
                   )}
-                </div>
 
-                {/* 2. Matriz de Prioridade (Referência 3) */}
-                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
-                  <span className="text-xs font-bold font-mono uppercase text-muted-foreground flex items-center justify-between">
-                    <span>2. Prioridade da Demanda</span>
-                    <span className="text-xs font-bold text-foreground">
-                      {PRIORIDADE_CONFIG[editPrioridade]?.label}
+                  {/* Linha 2: Prioridade (4 Chips em 1 Linha Contínua) */}
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50">
+                    <span className="text-xs font-bold uppercase font-mono text-muted-foreground shrink-0">
+                      Prioridade:
                     </span>
-                  </span>
+                    <div className="grid grid-cols-4 gap-1 flex-1 max-w-[270px]">
+                      {(
+                        [
+                          { id: 'urgente', label: 'Urgente', flag: '🔴' },
+                          { id: 'alta', label: 'Alta', flag: '🟠' },
+                          { id: 'media', label: 'Média', flag: '🔵' },
+                          { id: 'baixa', label: 'Baixa', flag: '🟢' },
+                        ] as const
+                      ).map((p) => {
+                        const isSelected = editPrioridade === p.id;
+                        const conf = PRIORIDADE_CONFIG[p.id];
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setEditPrioridade(p.id)}
+                            className={`h-6.5 px-1 rounded-md border flex items-center justify-center gap-1 cursor-pointer transition-all text-xs ${
+                              isSelected
+                                ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs`
+                                : 'bg-accent/20 hover:bg-accent/50 border-border/60 text-muted-foreground'
+                            }`}
+                            title={p.label}
+                          >
+                            <span className="text-xs">{p.flag}</span>
+                            <span className="text-[11px] font-semibold">{p.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Linha 3: Equipe (Responsável & Designer Lado a Lado) */}
+                  <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border/50">
+                    <div className="flex flex-col gap-0.5">
+                      <label className="text-[11px] font-semibold text-muted-foreground">Responsável Principal</label>
+                      <Select value={editResponsavelId} onChange={(e) => setEditResponsavelId(e.target.value)} className="h-7.5 text-xs">
+                        <option value="">Nenhum...</option>
+                        {membros.map((m) => (
+                          <option key={m.id} value={m.id}>{m.nome}</option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <label className="text-[11px] font-semibold text-muted-foreground">Designer / Editor</label>
+                      <Select value={editEditorId} onChange={(e) => setEditEditorId(e.target.value)} className="h-7.5 text-xs">
+                        <option value="">Nenhum...</option>
+                        {membros.map((m) => (
+                          <option key={m.id} value={m.id}>{m.nome}</option>
+                        ))}
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Linha 4: Prazos (Prazo Interno & Data Programada) */}
                   <div className="grid grid-cols-2 gap-2">
-                    {(
-                      [
-                        { id: 'urgente', label: 'Urgente', flag: '🔴', desc: 'Imediato' },
-                        { id: 'alta', label: 'Alta', flag: '🟠', desc: 'Prioritário' },
-                        { id: 'media', label: 'Média', flag: '🔵', desc: 'Padrão' },
-                        { id: 'baixa', label: 'Baixa', flag: '🟢', desc: 'Sem pressa' },
-                      ] as const
-                    ).map((p) => {
-                      const isSelected = editPrioridade === p.id;
-                      const conf = PRIORIDADE_CONFIG[p.id];
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setEditPrioridade(p.id)}
-                          className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
-                            isSelected
-                              ? `${conf.bg} ${conf.border} ring-2 ring-foreground/20 shadow-2xs font-bold`
-                              : 'bg-accent/20 hover:bg-accent/50 border-border/60 text-muted-foreground'
-                          }`}
-                        >
-                          <span className="text-sm shrink-0">{p.flag}</span>
-                          <div className="flex flex-col text-left min-w-0">
-                            <span
-                              className={`text-xs leading-none font-bold ${
-                                isSelected ? conf.text : 'text-foreground'
-                              }`}
-                            >
-                              {p.label}
-                            </span>
-                            <span className="text-xs font-mono text-muted-foreground mt-0.5 leading-none">
-                              {p.desc}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 3. Equipe Colaborativa (Referências 2 & 3) */}
-                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold font-mono uppercase text-muted-foreground">
-                      3. Equipe Colaborativa
-                    </span>
-                    {(editResponsavel || editEditor) && (
-                      <div className="flex items-center -space-x-2">
-                        {editResponsavel && (
-                          <div
-                            className="w-6 h-6 rounded-full bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center border-2 border-card shadow-xs"
-                            title={`Responsável: ${editResponsavel.nome}`}
-                          >
-                            {editResponsavel.nome.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        {editEditor && (
-                          <div
-                            className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground font-bold text-xs flex items-center justify-center border-2 border-card shadow-xs"
-                            title={`Designer/Editor: ${editEditor.nome}`}
-                          >
-                            {editEditor.nome.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Responsável Principal</label>
-                      <Select value={editResponsavelId} onChange={(e) => setEditResponsavelId(e.target.value)}>
-                        <option value="">Nenhum...</option>
-                        {membros.map((m) => (
-                          <option key={m.id} value={m.id}>{m.nome}</option>
-                        ))}
-                      </Select>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Designer / Editor</label>
-                      <Select value={editEditorId} onChange={(e) => setEditEditorId(e.target.value)}>
-                        <option value="">Nenhum...</option>
-                        {membros.map((m) => (
-                          <option key={m.id} value={m.id}>{m.nome}</option>
-                        ))}
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. Prazos & Cronograma */}
-                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
-                  <span className="text-xs font-bold font-mono uppercase text-muted-foreground">
-                    4. Prazos & Cronograma
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                    <div className="flex flex-col gap-0.5">
+                      <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-muted-foreground" />
                         <span>Prazo Interno</span>
                       </label>
                       <Input
                         type="date"
                         value={editPrazoInterno}
                         onChange={(e) => setEditPrazoInterno(e.target.value)}
-                        className="h-8 text-xs"
+                        className="h-7.5 text-xs"
                       />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                    <div className="flex flex-col gap-0.5">
+                      <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
                         <span>Data Programada</span>
                       </label>
                       <Input
                         type="date"
                         value={editDataProgramada}
                         onChange={(e) => setEditDataProgramada(e.target.value)}
-                        className="h-8 text-xs"
+                        className="h-7.5 text-xs"
                       />
                     </div>
                   </div>
+
+                  {/* Miniatura da Capa com Ação de Zoom (se houver mídia) */}
+                  {editArquivos[0]?.url && (
+                    <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-black shrink-0 border border-border/80 relative">
+                          {editArquivos[0].tipo === 'video' ? (
+                            <video src={editArquivos[0].url} className="w-full h-full object-cover" muted />
+                          ) : (
+                            <img src={editArquivos[0].url} alt="" className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-bold text-foreground">⭐ Capa da Postagem</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {editArquivos[0].tipo === 'video' ? 'Vídeo MP4' : 'Imagem'}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewCapaLightbox(editArquivos[0].url)}
+                        className="px-2 py-0.5 rounded-md bg-accent/60 hover:bg-accent border border-border/70 text-xs font-semibold text-foreground flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Maximize2 className="w-3 h-3" />
+                        <span>Ampliar</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {/* 5. Área de Comentários & Atividades (Trello Activity Feed) */}
-                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3 flex-1">
-                  <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                {/* Área de Comentários & Atividades (Aproveitando a Altura Livre) */}
+                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2 flex-1 min-h-[160px]">
+                  <div className="flex items-center justify-between border-b border-border/60 pb-2">
                     <span className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display">
                       <MessageSquare className="w-3.5 h-3.5 text-primary" />
                       Comentários & Atividades
@@ -2881,14 +2920,14 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
                   {/* Ajustes do Cliente (se houver) */}
                   {(itemEmEdicao.comentarios_revisao || []).length > 0 && (
-                    <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 space-y-1.5">
+                    <div className="p-2.5 rounded-xl bg-destructive/10 border border-destructive/20 space-y-1">
                       <p className="text-xs font-bold text-destructive flex items-center gap-1.5">
                         <AlertCircle className="w-3.5 h-3.5" />
                         Ajustes do Cliente ({itemEmEdicao.comentarios_revisao.length})
                       </p>
                       {itemEmEdicao.comentarios_revisao.map((c) => (
-                        <div key={c.id} className="text-xs p-2.5 rounded-lg bg-card/90 border border-border/60">
-                          <span className="text-muted-foreground font-mono block text-xs">{c.autor || 'Cliente'}</span>
+                        <div key={c.id} className="text-xs p-2 rounded-lg bg-card/90 border border-border/60">
+                          <span className="text-muted-foreground font-mono block text-[11px]">{c.autor || 'Cliente'}</span>
                           <p className="text-foreground mt-0.5">{c.texto}</p>
                         </div>
                       ))}
@@ -2896,15 +2935,15 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   )}
 
                   {/* Timeline de Comentários Internos */}
-                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  <div className="space-y-1.5 max-h-44 sm:max-h-56 overflow-y-auto pr-1 flex-1">
                     {(!itemEmEdicao.historico_atividades || itemEmEdicao.historico_atividades.length === 0) ? (
-                      <p className="text-xs text-muted-foreground italic py-2">
+                      <p className="text-xs text-muted-foreground italic py-1.5">
                         Nenhuma atividade registrada ainda.
                       </p>
                     ) : (
                       itemEmEdicao.historico_atividades.map((ev) => (
-                        <div key={ev.id} className="p-2.5 rounded-xl bg-accent/20 border border-border/50 text-xs flex flex-col gap-1">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
+                        <div key={ev.id} className="p-2 rounded-xl bg-accent/20 border border-border/50 text-xs flex flex-col gap-0.5">
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
                             <span className="font-bold text-foreground">{ev.autor_nome || 'Equipe'}</span>
                             <span>{new Date(ev.criado_em).toLocaleDateString('pt-BR')}</span>
                           </div>
@@ -2915,13 +2954,13 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                   </div>
 
                   {/* Input Novo Comentário */}
-                  <div className="flex gap-2 pt-2 border-t border-border/60">
+                  <div className="flex gap-2 pt-1.5 border-t border-border/60 shrink-0">
                     <Textarea
                       value={novoComentarioTexto}
                       onChange={(e) => setNovoComentarioTexto(e.target.value)}
-                      placeholder="Escreva um comentário interno..."
+                      placeholder="Comentário interno (Ctrl+Enter para enviar)..."
                       rows={2}
-                      className="text-xs flex-1 bg-accent/20 resize-none"
+                      className="text-xs flex-1 bg-accent/20 resize-none h-14"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                           e.preventDefault();
@@ -2936,7 +2975,7 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                       disabled={!novoComentarioTexto.trim() || enviandoComentario}
                       loading={enviandoComentario}
                       onClick={handleEnviarComentarioEquipe}
-                      className="h-full px-3 text-xs bg-primary text-primary-foreground font-bold shrink-0 cursor-pointer"
+                      className="h-14 px-3 text-xs bg-primary text-primary-foreground font-bold shrink-0 cursor-pointer"
                     >
                       <Send className="w-3.5 h-3.5" />
                     </Button>
@@ -2984,6 +3023,30 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
           </form>
         )}
       </Sheet>
+
+      {/* Lightbox / Zoom da Capa da Postagem */}
+      {previewCapaLightbox && (
+        <div
+          className="fixed inset-0 z-60 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewCapaLightbox(null)}
+        >
+          <div className="relative max-w-4xl max-h-[88vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setPreviewCapaLightbox(null)}
+              className="absolute -top-10 right-0 p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors cursor-pointer"
+              title="Fechar visualização"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            {previewCapaLightbox.endsWith('.mp4') || previewCapaLightbox.includes('video') ? (
+              <video src={previewCapaLightbox} controls autoPlay className="max-w-full max-h-[82vh] rounded-2xl shadow-2xl object-contain border border-white/20" />
+            ) : (
+              <img src={previewCapaLightbox} alt="Capa da Postagem" className="max-w-full max-h-[82vh] rounded-2xl shadow-2xl object-contain border border-white/20" />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 5. Modal de Envio para Aprovação (WhatsApp Web Seguro) */}
       <Sheet
