@@ -15,6 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +54,34 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   const [sucessoAprovado, setSucessoAprovado] = useState(
     itemInicial?.status === 'agendamento' || itemInicial?.status === 'pronto_publicar' || itemInicial?.status === 'publicado'
   );
+
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('gensbot_theme');
+      if (saved === 'light') {
+        setTheme('light');
+        document.documentElement.classList.remove('dark');
+      } else {
+        setTheme('dark');
+        document.documentElement.classList.add('dark');
+      }
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('gensbot_theme', nextTheme);
+      if (nextTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  };
 
   useEffect(() => {
     if (itemInicial) return;
@@ -203,6 +233,19 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           >
             {sucessoAprovado ? 'Aprovado' : item.status === 'travado' ? 'Ajustes Solicitados' : 'Aguardando Aprovação'}
           </Badge>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
+            aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
+            className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border/80 text-foreground transition-all duration-150 cursor-pointer shadow-2xs flex items-center justify-center ml-1 active:scale-[0.98]"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
+            ) : (
+              <Moon className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
+            )}
+          </button>
         </div>
       </header>
 
@@ -319,10 +362,10 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
         </div>
       </main>
 
-      {/* --- VISÃO DESKTOP (>= lg) estilo Instagram Web Native Modal (Tema Claro) --- */}
-      <main className="hidden lg:flex w-full max-w-5xl h-[660px] rounded-2xl bg-white border border-border/80 shadow-2xl overflow-hidden my-auto">
+      {/* --- VISÃO DESKTOP (>= lg) estilo Instagram Web Native Modal --- */}
+      <main className="hidden lg:flex w-full max-w-5xl h-[660px] rounded-2xl bg-card border border-border/80 shadow-2xl overflow-hidden my-auto">
         {/* Coluna da Esquerda (60%): Estágio Visual de Mídia (Carrossel / Reels / Story) */}
-        <div className="w-7/12 bg-neutral-50 flex items-center justify-center relative overflow-hidden border-r border-border/60 p-4">
+        <div className="w-7/12 bg-neutral-100 dark:bg-black/90 flex items-center justify-center relative overflow-hidden border-r border-border/60 p-4">
           {isStory ? (
             <InstagramStoryPreview
               clienteNome={clienteNome}
@@ -360,11 +403,11 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           )}
         </div>
 
-        {/* Coluna da Direita (40%): Painel Nativo do Instagram Web (Tema Claro) */}
-        <div className="w-5/12 bg-white flex flex-col justify-between overflow-hidden text-foreground">
+        {/* Coluna da Direita (40%): Painel Nativo do Instagram Web */}
+        <div className="w-5/12 bg-card flex flex-col justify-between overflow-hidden text-foreground">
           
           {/* Header Superior Nativo */}
-          <div className="px-4 py-3.5 border-b border-border/60 flex items-center justify-between shrink-0 bg-white">
+          <div className="px-4 py-3.5 border-b border-border/60 flex items-center justify-between shrink-0 bg-card">
             <div className="flex items-center gap-3">
               <div className="p-[2px] rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600">
                 <ClienteAvatar
@@ -372,7 +415,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                   cor={clienteCor}
                   fotoUrl={clienteFotoUrl}
                   tamanho="md"
-                  className="ring-2 ring-white"
+                  className="ring-2 ring-card"
                 />
               </div>
               <div className="flex flex-col">
@@ -397,7 +440,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           </div>
 
           {/* Área Scrollável Central: Legenda e Comentários / Ajustes */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white scrollbar-thin scrollbar-thumb-neutral-300">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-card scrollbar-thin scrollbar-thumb-border">
             
             {/* Item Principal: Legenda com Avatar e Username em Negrito */}
             <div className="flex items-start gap-3">
@@ -474,8 +517,8 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             )}
           </div>
 
-          {/* Footer do Painel Nativo do Instagram Web (Tema Claro) */}
-          <div className="border-t border-border/60 bg-white shrink-0">
+          {/* Footer do Painel Nativo do Instagram Web */}
+          <div className="border-t border-border/60 bg-card shrink-0">
             {/* Barra de Ações Ícones (Curtir, Comentar, Compartilhar, Salvar) */}
             <div className="px-4 pt-3 pb-2 flex items-center justify-between text-foreground">
               <div className="flex items-center gap-4">
@@ -521,7 +564,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             </div>
 
             {/* Decision Bar para Aprovação ou Solicitação de Ajustes */}
-            <div className="p-3 border-t border-border/60 bg-accent/20">
+            <div className="p-3 border-t border-border/60 bg-accent/30">
               {sucessoAprovado ? (
                 <div className="p-3 rounded-xl bg-success/15 border border-success/30 text-success flex items-center justify-center gap-2 font-bold text-xs">
                   <CheckCircle2 className="w-4 h-4" />
@@ -540,7 +583,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                       }
                     }}
                     disabled={enviando}
-                    className="rounded-xl text-xs font-bold h-10 border-border bg-white text-foreground hover:bg-accent"
+                    className="rounded-xl text-xs font-bold h-10 border border-border bg-card text-foreground hover:bg-accent active:scale-[0.98] transition-all"
                   >
                     <MessageSquarePlus className="w-3.5 h-3.5 mr-1 text-primary" />
                     {isReel
@@ -555,7 +598,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                     variant="lime"
                     onClick={handleAprovar}
                     loading={enviando}
-                    className="rounded-xl text-xs font-bold shadow-xs h-10"
+                    className="rounded-xl text-xs font-bold shadow-xs h-10 active:scale-[0.98] transition-all"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                     Aprovar Post
