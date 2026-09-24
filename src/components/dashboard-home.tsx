@@ -1086,7 +1086,7 @@ export default function DashboardHome({
                   {stats.leadsGenerated}
                 </p>
               </div>
-              <span className="text-xs font-bold text-foreground bg-lime px-2 py-1 rounded-lg border border-foreground/10">
+              <span className="text-xs font-bold text-lime-foreground bg-lime px-2 py-1 rounded-lg border border-foreground/10">
                 Qualificados
               </span>
             </div>
@@ -1172,7 +1172,7 @@ export default function DashboardHome({
               { label: '1. Comentários Captados', val: funnel.comments, color: 'bg-primary' },
               { label: '2. DMs Entregues', val: funnel.welcomeDms, color: 'bg-primary/80' },
               { label: '3. Cliques no Link', val: funnel.clicks, color: 'bg-primary/50' },
-              { label: '4. Leads Qualificados', val: funnel.leads, color: 'bg-lime text-foreground' },
+              { label: '4. Leads Qualificados', val: funnel.leads, color: 'bg-lime text-lime-foreground font-bold' },
             ].map((step, idx) => {
               const maxVal = Math.max(funnel.comments, 1);
               const percent = Math.min(100, Math.round((step.val / maxVal) * 100));
@@ -1292,7 +1292,7 @@ export default function DashboardHome({
                     {i + 1}
                   </span>
                   <span className="text-foreground font-bold flex-1 truncate">{auto.name}</span>
-                  <span className="font-bold text-foreground bg-lime px-2.5 py-1 rounded-xl text-[11px] tabular-nums border border-foreground/10 shrink-0">
+                  <span className="font-bold text-lime-foreground bg-lime px-2.5 py-1 rounded-xl text-[11px] tabular-nums border border-foreground/10 shrink-0">
                     {auto.leads} leads
                   </span>
                 </div>

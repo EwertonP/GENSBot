@@ -18,6 +18,11 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "GENSBot — Sistema Unificado Agência GENS",
   description: "Automações, CRM e Gestão de Conteúdo para o Instagram da sua agência",
+  icons: {
+    icon: "/fav-icon.png",
+    shortcut: "/fav-icon.png",
+    apple: "/fav-icon.png",
+  },
 };
 
 export default function RootLayout({

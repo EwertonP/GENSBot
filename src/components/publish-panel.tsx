@@ -431,6 +431,7 @@ export default function PublishPanel({
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filtroStatus, setFiltroStatus] = useState<'all' | 'scheduled' | 'published' | 'failed'>('all');
+  const [filaContaFiltro, setFilaContaFiltro] = useState<'target' | 'all'>('target');
 
   useEffect(() => {
     if (selectedAccountId && selectedAccountId !== 'all') {
@@ -448,17 +449,19 @@ export default function PublishPanel({
       .catch(() => setSuggestions([]));
   }, [targetAccount]);
 
-  const loadPosts = () => {
+  const loadPosts = (accOverride?: string, modoOverride?: 'target' | 'all') => {
     setLoadingPosts(true);
-    fetch(withAccount('/api/instagram/publish'))
+    const activeModo = modoOverride !== undefined ? modoOverride : filaContaFiltro;
+    const activeAcc = activeModo === 'all' ? 'all' : (accOverride || targetAccount || selectedAccountId);
+    fetch(withAccount('/api/instagram/publish', activeAcc))
       .then((res) => res.json())
       .then((data) => setPosts(Array.isArray(data) ? data : []))
       .finally(() => setLoadingPosts(false));
   };
 
   useEffect(() => {
-    loadPosts();
-  }, [selectedAccountId]);
+    loadPosts(targetAccount, filaContaFiltro);
+  }, [targetAccount, selectedAccountId, filaContaFiltro]);
 
   const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -618,7 +621,7 @@ export default function PublishPanel({
       setAutoPublicReply('');
       onClearPrefill?.();
       setShowConfirmModal(false);
-      loadPosts();
+      loadPosts(targetAccount, filaContaFiltro);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -972,7 +975,7 @@ export default function PublishPanel({
                 <div className="flex items-center gap-2.5">
                   <div
                     className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                      autoEnabled ? 'bg-primary text-black' : 'bg-accent text-muted-foreground'
+                      autoEnabled ? 'bg-primary text-primary-foreground' : 'bg-accent text-muted-foreground'
                     }`}
                   >
                     <Zap className="w-4 h-4" />
@@ -1002,7 +1005,7 @@ export default function PublishPanel({
                   aria-label="Ativar automação de comentários"
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-black shadow ring-0 transition duration-200 ease-in-out ${
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-card shadow-sm ring-1 ring-border transition duration-200 ease-in-out ${
                       autoEnabled ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
@@ -1026,7 +1029,7 @@ export default function PublishPanel({
                       setAutoWelcomeDm(autoDetectedPrompt.dm);
                       setAutoPublicReply(autoDetectedPrompt.publicReply);
                     }}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-primary text-black hover:opacity-90 transition-opacity cursor-pointer shrink-0"
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer shrink-0 active:scale-[0.98]"
                   >
                     ⚡ Ativar em 1 Clique
                   </button>
@@ -1487,27 +1490,56 @@ export default function PublishPanel({
             </p>
           </div>
 
-          {/* Filtros de Status */}
-          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border/70 self-start sm:self-auto text-xs">
-            {[
-              { id: 'all' as const, label: 'Todas' },
-              { id: 'scheduled' as const, label: 'Agendadas' },
-              { id: 'published' as const, label: 'Publicadas' },
-              { id: 'failed' as const, label: 'Falhas' },
-            ].map((st) => (
+          {/* Filtros de Escopo de Conta e Status */}
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto text-xs">
+            {/* Seletor de Escopo de Conta */}
+            <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border/70">
               <button
-                key={st.id}
                 type="button"
-                onClick={() => setFiltroStatus(st.id)}
+                onClick={() => setFilaContaFiltro('target')}
                 className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
-                  filtroStatus === st.id
+                  filaContaFiltro === 'target'
                     ? 'bg-card text-foreground shadow-2xs border border-border/80'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {st.label}
+                @{accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || 'Conta Ativa'}
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setFilaContaFiltro('all')}
+                className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                  filaContaFiltro === 'all'
+                    ? 'bg-card text-foreground shadow-2xs border border-border/80'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Todas as Contas
+              </button>
+            </div>
+
+            {/* Filtros de Status */}
+            <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border/70">
+              {[
+                { id: 'all' as const, label: 'Todas' },
+                { id: 'scheduled' as const, label: 'Agendadas' },
+                { id: 'published' as const, label: 'Publicadas' },
+                { id: 'failed' as const, label: 'Falhas' },
+              ].map((st) => (
+                <button
+                  key={st.id}
+                  type="button"
+                  onClick={() => setFiltroStatus(st.id)}
+                  className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                    filtroStatus === st.id
+                      ? 'bg-card text-foreground shadow-2xs border border-border/80'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -1560,9 +1592,14 @@ export default function PublishPanel({
 
                       {/* Info */}
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-foreground truncate max-w-md group-hover:text-primary transition-colors">
-                          {post.caption || '(sem legenda)'}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold bg-accent text-foreground px-2 py-0.5 rounded-md border border-border/60 shrink-0">
+                            @{accounts.find((a) => a.instagram_user_id === post.instagram_user_id)?.instagram_username || 'instagram'}
+                          </span>
+                          <p className="text-xs font-bold text-foreground truncate max-w-md group-hover:text-primary transition-colors">
+                            {post.caption || '(sem legenda)'}
+                          </p>
+                        </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {post.media_type} · {new Date(post.status === 'published' && post.published_at ? post.published_at : post.scheduled_at).toLocaleString('pt-BR')}
                         </p>
@@ -1600,9 +1637,9 @@ export default function PublishPanel({
                         <button
                           type="button"
                           onClick={() => handleStartEdit(post)}
-                          className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                          className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-[0.98] ${
                             isEditingThis
-                              ? 'bg-amber-500 text-black border-amber-500'
+                              ? 'bg-amber-400 text-amber-950 border-amber-500/40 shadow-xs'
                               : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 hover:border-primary/50'
                           }`}
                           title="Editar publicação no simulador"

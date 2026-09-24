@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
-import { LogoMark } from '@/components/logo';
+import Logo, { LogoMark } from '@/components/logo';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -95,12 +95,14 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
 
         {/* Logo & Brand */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/20 mb-5 text-primary-foreground">
-            <LogoMark className="w-9 h-9" />
+        <div className="text-center mb-10 flex flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl shadow-lg shadow-black/10 mb-4 overflow-hidden">
+            <LogoMark className="w-full h-full" />
           </div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">GENSBot</h1>
-          <p className="text-sm text-muted-foreground mt-1.5 font-medium">Crie sua conta para começar</p>
+          <div className="h-8 flex items-center justify-center mb-1">
+            <Logo className="h-7 w-auto" />
+          </div>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">Crie sua conta para começar</p>
         </div>
 
         {/* Register Card */}

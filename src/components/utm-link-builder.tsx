@@ -595,7 +595,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                         </td>
 
                         <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-md bg-lime/40 text-foreground font-mono font-bold border border-foreground/10">
+                          <span className="px-2 py-0.5 rounded-md bg-lime/20 text-lime-700 dark:text-lime-300 font-mono font-bold border border-lime-500/30">
                             {l.click_count || 0} cliques
                           </span>
                         </td>
