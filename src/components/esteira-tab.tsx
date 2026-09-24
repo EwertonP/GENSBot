@@ -120,10 +120,18 @@ export function formatarDataCurta(dataStr?: string | null): string {
 interface EsteiraTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
   clienteFiltroId?: string | null;
+  itemFocoId?: string | null;
+  onClearItemFoco?: () => void;
   onIrParaAgendamento?: (prefill: PrefillAgendamento) => void;
 }
 
-export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendamento }: EsteiraTabProps) {
+export default function EsteiraTab({
+  showToast,
+  clienteFiltroId,
+  itemFocoId,
+  onClearItemFoco,
+  onIrParaAgendamento,
+}: EsteiraTabProps) {
   const [items, setItems] = useState<ConteudoItem[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [membros, setMembros] = useState<MembroEquipe[]>([]);
@@ -255,6 +263,17 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
   useEffect(() => {
     carregarDados();
   }, []);
+
+  // Foca e abre automaticamente o modal da demanda se itemFocoId for fornecido
+  useEffect(() => {
+    if (itemFocoId && items.length > 0) {
+      const itemEncontrado = items.find((i) => i.id === itemFocoId);
+      if (itemEncontrado) {
+        handleAbrirModalEditar(itemEncontrado);
+        onClearItemFoco?.();
+      }
+    }
+  }, [itemFocoId, items]);
 
   const itemsFiltrados = useMemo(() => {
     return items.filter((item) => {

@@ -67,7 +67,7 @@ interface DashboardHomeProps {
   automationRanking: { id: string; name: string; comments: number; welcomeDms: number; clicks: number; leads: number }[];
   selectedAccountId: string | null;
   withAccount: (url: string, accountIdOverride?: string | null) => string;
-  onNavigateTab?: (tab: string) => void;
+  onNavigateTab?: (tab: string, itemId?: string) => void;
 }
 
 /** Gráfico de Área Suave Estilo Instagram / Linear */
@@ -689,7 +689,7 @@ export default function DashboardHome({
                           return (
                             <div
                               key={item.id}
-                              onClick={() => onNavigateTab?.('esteira')}
+                              onClick={() => onNavigateTab?.('esteira', item.id)}
                               className="p-2 rounded-xl bg-card border border-border/80 hover:border-foreground/30 transition-all cursor-pointer shadow-2xs flex flex-col gap-1.5"
                             >
                               <div className="flex items-center gap-1.5">

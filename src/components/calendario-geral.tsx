@@ -21,6 +21,7 @@ import {
   FileText,
   Paperclip,
   Share2,
+  Edit2,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,12 +29,14 @@ import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Sheet } from '@/components/ui/sheet';
 import { ClienteAvatar } from '@/components/cliente-avatar';
-import { STATUS_LABELS, type ConteudoItem, type StatusConteudo, gerarLinkWhatsAppAprovacao } from '@/lib/conteudo';
+import { STATUS_LABELS, type ConteudoItem, type StatusConteudo, type PrefillAgendamento, gerarLinkWhatsAppAprovacao } from '@/lib/conteudo';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
 
 interface CalendarioGeralProps {
   showToast: (message: string, type: 'success' | 'error') => void;
+  onAbrirDemanda?: (itemId: string) => void;
+  onIrParaAgendamento?: (prefill: PrefillAgendamento) => void;
 }
 
 interface DiaCalendario {
@@ -43,7 +46,11 @@ interface DiaCalendario {
   nomeDia?: string;
 }
 
-export default function CalendarioGeral({ showToast }: CalendarioGeralProps) {
+export default function CalendarioGeral({
+  showToast,
+  onAbrirDemanda,
+  onIrParaAgendamento,
+}: CalendarioGeralProps) {
   const [items, setItems] = useState<ConteudoItem[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [membros, setMembros] = useState<MembroEquipe[]>([]);
@@ -690,8 +697,47 @@ export default function CalendarioGeral({ showToast }: CalendarioGeralProps) {
                   </div>
                 </div>
 
-                {/* Ações de Aprovação */}
+                {/* Ações de Edição, Agendamento e Aprovação */}
                 <div className="border-t border-border pt-4 flex flex-col gap-2">
+                  {onAbrirDemanda && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = itemModal.id;
+                        setItemModal(null);
+                        onAbrirDemanda(id);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent hover:bg-accent/80 text-foreground font-bold text-xs transition-all border border-border/80 cursor-pointer shadow-2xs"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-primary" />
+                      <span>Editar Demanda Completa</span>
+                    </button>
+                  )}
+
+                  {onIrParaAgendamento && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const prefill: PrefillAgendamento = {
+                          conteudoId: itemModal.id,
+                          clienteNome: itemModal.cliente?.nome || 'Cliente',
+                          instagramUserId: (itemModal.cliente as any)?.instagram_accounts?.instagram_username || null,
+                          kind: itemModal.tipo === 'reel' ? 'reels' : itemModal.tipo === 'story' ? 'story' : 'post',
+                          mediaUrls: itemModal.arquivos?.map((a) => a.url) || [],
+                          caption: itemModal.legenda || '',
+                          scheduledAt: itemModal.data_programada || null,
+                          titulo: itemModal.titulo || 'Publicação',
+                        };
+                        setItemModal(null);
+                        onIrParaAgendamento(prefill);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/85 text-primary-foreground font-bold text-xs transition-all cursor-pointer shadow-2xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Abrir no Simulador de Post</span>
+                    </button>
+                  )}
+
                   <a
                     href={gerarLinkWhatsAppAprovacao({
                       nomeCliente: itemModal.cliente?.nome || 'Cliente',

@@ -27,11 +27,28 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const { id } = await params;
     const body = await req.json();
-    const { approval_status, scheduled_at, caption, rejection_reason } = body as {
+    const {
+      approval_status,
+      scheduled_at,
+      caption,
+      rejection_reason,
+      media_type,
+      media_url,
+      media_urls,
+      collaborators,
+      user_tags,
+      automation_config,
+    } = body as {
       approval_status?: ApprovalStatus;
       scheduled_at?: string;
       caption?: string;
       rejection_reason?: string;
+      media_type?: string;
+      media_url?: string;
+      media_urls?: string[];
+      collaborators?: string[];
+      user_tags?: { username: string }[];
+      automation_config?: any;
     };
 
     const { data: post, error: fetchError } = await supabase
@@ -56,6 +73,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (caption !== undefined) update.caption = caption;
     if (rejection_reason !== undefined) update.error_message = rejection_reason;
     if (scheduled_at) update.scheduled_at = scheduled_at;
+    if (media_type) update.media_type = media_type;
+    if (media_url) update.media_url = media_url;
+    if (media_urls !== undefined) update.media_urls = media_urls;
+    if (collaborators !== undefined) update.collaborators = collaborators;
+    if (user_tags !== undefined) update.user_tags = user_tags;
+    if (automation_config !== undefined) update.automation_config = automation_config;
 
     // Mover pro Kanban pra "aprovado" sem uma data já definida dispara o agendamento
     // automático usando a sugestão de melhor horário (Onda 1, item 1.1 do plano) —
@@ -80,6 +103,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .select()
       .single();
     if (error) throw error;
+
+    // Sincroniza com a esteira caso esse agendamento esteja atrelado a um conteudo_item
+    try {
+      const esteiraUpdate: Record<string, unknown> = { atualizado_em: new Date().toISOString() };
+      if (caption !== undefined) esteiraUpdate.legenda = caption;
+      if (scheduled_at) esteiraUpdate.data_programada = scheduled_at;
+      if (automation_config !== undefined) esteiraUpdate.automacao_config = automation_config;
+
+      await supabase
+        .from('conteudo_items')
+        .update(esteiraUpdate)
+        .eq('scheduled_post_id', id);
+    } catch (syncErr) {
+      console.warn('Erro ao sincronizar com esteira:', syncErr);
+    }
 
     return NextResponse.json(data);
   } catch (err: any) {

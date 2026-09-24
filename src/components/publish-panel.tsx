@@ -34,6 +34,8 @@ import {
   AlertTriangle,
   ArrowLeft,
   User,
+  Pencil,
+  Save,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -298,6 +300,8 @@ export default function PublishPanel({
   const [userTagsInput, setUserTagsInput] = useState('');
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingPostScheduledAt, setEditingPostScheduledAt] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -537,25 +541,47 @@ export default function PublishPanel({
           }
         : undefined;
 
-      const publishRes = await fetch('/api/instagram/publish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          instagram_user_id: targetAccount,
-          media_type: mediaType,
-          media_url: uploadedUrls[0],
-          media_urls: mediaType === 'CAROUSEL' ? uploadedUrls : undefined,
-          caption,
-          collaborators: collaborators.length > 0 ? collaborators : undefined,
-          user_tags: userTags.length > 0 ? userTags : undefined,
-          scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
-          conteudo_item_id: prefillData?.conteudoId || undefined,
-          automation_config: automationPayload,
-        }),
-      });
+      if (editingPostId) {
+        const patchRes = await fetch(`/api/instagram/publish/${editingPostId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            media_type: mediaType,
+            media_url: uploadedUrls[0],
+            media_urls: mediaType === 'CAROUSEL' ? uploadedUrls : undefined,
+            caption,
+            collaborators: collaborators.length > 0 ? collaborators : undefined,
+            user_tags: userTags.length > 0 ? userTags : undefined,
+            scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
+            automation_config: automationPayload,
+          }),
+        });
 
-      const publishData = await publishRes.json();
-      if (!publishRes.ok) throw new Error(publishData.error || 'Falha ao publicar ou agendar.');
+        const patchData = await patchRes.json();
+        if (!patchRes.ok) throw new Error(patchData.error || 'Falha ao atualizar agendamento.');
+        setEditingPostId(null);
+        setEditingPostScheduledAt(null);
+      } else {
+        const publishRes = await fetch('/api/instagram/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instagram_user_id: targetAccount,
+            media_type: mediaType,
+            media_url: uploadedUrls[0],
+            media_urls: mediaType === 'CAROUSEL' ? uploadedUrls : undefined,
+            caption,
+            collaborators: collaborators.length > 0 ? collaborators : undefined,
+            user_tags: userTags.length > 0 ? userTags : undefined,
+            scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
+            conteudo_item_id: prefillData?.conteudoId || undefined,
+            automation_config: automationPayload,
+          }),
+        });
+
+        const publishData = await publishRes.json();
+        if (!publishRes.ok) throw new Error(publishData.error || 'Falha ao publicar ou agendar.');
+      }
 
       if (autoEnabled && saveToLibrary && automationPayload) {
         fetch(withAccount('/api/automations', targetAccount), {
@@ -582,6 +608,8 @@ export default function PublishPanel({
       setUserTagsInput('');
       setScheduleEnabled(false);
       setScheduledAt(null);
+      setEditingPostId(null);
+      setEditingPostScheduledAt(null);
       setAutoEnabled(false);
       setAutoKeywords('QUERO');
       setAutoWelcomeDm('');
@@ -598,8 +626,83 @@ export default function PublishPanel({
     }
   };
 
+  const handleStartEdit = (post: ScheduledPost) => {
+    setEditingPostId(post.id);
+    setEditingPostScheduledAt(post.scheduled_at);
+    setTargetAccount(post.instagram_user_id);
+
+    // Formato
+    if (post.media_type === 'STORIES') setKind('story');
+    else if (post.media_type === 'REELS') setKind('reels');
+    else setKind('post');
+
+    // Legenda
+    setCaption(post.caption || '');
+
+    // Mídias
+    const remoteUrls = post.media_urls && post.media_urls.length > 0 ? post.media_urls : [post.media_url];
+    const filteredUrls = remoteUrls.filter(Boolean);
+    setPrefillRemoteUrls(filteredUrls);
+    setPreviewUrls(filteredUrls);
+    setFiles([]);
+
+    // Data / Agendamento
+    setScheduleEnabled(true);
+    try {
+      setScheduledAt(new Date(post.scheduled_at));
+    } catch {
+      setScheduledAt(new Date());
+    }
+
+    // Colaboradores e Tags
+    const postCollabs = (post as any).collaborators;
+    setCollaboratorsInput(Array.isArray(postCollabs) ? postCollabs.join(', ') : '');
+    const postTags = (post as any).user_tags;
+    setUserTagsInput(
+      Array.isArray(postTags)
+        ? postTags.map((t: any) => (typeof t === 'string' ? t : t.username)).join(', ')
+        : ''
+    );
+
+    // Automação Direct
+    if (post.automation_config?.enabled) {
+      setAutoEnabled(true);
+      setAutoKeywords(post.automation_config.keywords?.join(', ') || 'QUERO');
+      setAutoMatchType(post.automation_config.match_type || 'contains');
+      setAutoWelcomeDm(post.automation_config.welcome_dm || '');
+      setAutoLinkUrl(post.automation_config.link_url || '');
+      setAutoLinkButtonLabel(post.automation_config.link_button_label || '');
+      setAutoPublicReply(post.automation_config.public_replies?.[0] || '');
+    } else {
+      setAutoEnabled(false);
+    }
+
+    setError(null);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPostId(null);
+    setEditingPostScheduledAt(null);
+    setFiles([]);
+    setPreviewUrls([]);
+    setPrefillRemoteUrls([]);
+    setCaption('');
+    setCollaboratorsInput('');
+    setUserTagsInput('');
+    setScheduleEnabled(false);
+    setScheduledAt(null);
+    setAutoEnabled(false);
+    setError(null);
+  };
+
   const handleCancel = async (id: string) => {
     if (!confirm('Deseja cancelar esta publicação agendada?')) return;
+    if (editingPostId === id) {
+      handleCancelEdit();
+    }
     await fetch(withAccount(`/api/instagram/publish/${id}`), { method: 'DELETE' });
     loadPosts();
   };
@@ -678,6 +781,43 @@ export default function PublishPanel({
                 className="text-xs h-7 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
               >
                 Desvincular
+              </Button>
+            </div>
+          )}
+
+          {/* Banner de Modo de Edição de Agendamento */}
+          {editingPostId && (
+            <div className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in shadow-2xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+                  <Pencil className="w-4.5 h-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-foreground text-sm">
+                      Modo de Edição de Agendamento
+                    </p>
+                    <Badge variant="warning" className="text-[10px] px-2 py-0.5 font-bold">
+                      Em Edição
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground text-xs mt-0.5">
+                    Post agendado para{' '}
+                    <span className="font-bold text-foreground font-mono">
+                      {editingPostScheduledAt ? new Date(editingPostScheduledAt).toLocaleString('pt-BR') : 'Data futura'}
+                    </span>
+                    . Altere qualquer campo e clique em &quot;Salvar Alterações&quot;.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={handleCancelEdit}
+                className="text-xs h-8.5 px-3 border-amber-500/40 text-foreground hover:bg-amber-500/15 shrink-0 cursor-pointer font-bold rounded-xl"
+              >
+                Cancelar Edição
               </Button>
             </div>
           )}
@@ -1145,8 +1285,12 @@ export default function PublishPanel({
             disabled={(files.length === 0 && prefillRemoteUrls.length === 0) || (scheduleEnabled && !scheduledAt)}
             className="w-full py-3.5 rounded-2xl text-xs font-bold shadow-xs text-foreground cursor-pointer"
           >
-            {!submitting && <Send className="w-4 h-4 mr-1.5" />}
-            {scheduleEnabled ? 'Agendar Publicação Oficial' : 'Publicar Agora no Instagram'}
+            {!submitting && (editingPostId ? <Save className="w-4 h-4 mr-1.5" /> : <Send className="w-4 h-4 mr-1.5" />)}
+            {editingPostId
+              ? 'Salvar Alterações do Agendamento'
+              : scheduleEnabled
+              ? 'Agendar Publicação Oficial'
+              : 'Publicar Agora no Instagram'}
           </Button>
         </Card>
 
@@ -1165,10 +1309,12 @@ export default function PublishPanel({
               </div>
               <div className="flex flex-col">
                 <h4 className="text-base font-bold font-display text-foreground">
-                  Confirmação de Publicação
+                  {editingPostId ? 'Confirmar Alterações de Agendamento' : 'Confirmação de Publicação'}
                 </h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Verifique a conta de destino e as informações antes de postar para evitar envios no perfil incorreto.
+                  {editingPostId
+                    ? 'Verifique as informações antes de salvar o agendamento atualizado.'
+                    : 'Verifique a conta de destino e as informações antes de postar para evitar envios no perfil incorreto.'}
                 </p>
               </div>
             </div>
@@ -1300,7 +1446,11 @@ export default function PublishPanel({
                 className="flex-1 text-xs font-bold text-foreground h-11 shadow-md cursor-pointer"
               >
                 {!submitting && <Check className="w-4 h-4 mr-1.5" />}
-                {scheduleEnabled ? 'Confirmar e Agendar' : 'Confirmar e Publicar'}
+                {editingPostId
+                  ? 'Confirmar e Salvar Alterações'
+                  : scheduleEnabled
+                  ? 'Confirmar e Agendar'
+                  : 'Confirmar e Publicar'}
               </Button>
             </div>
           </div>
@@ -1380,13 +1530,26 @@ export default function PublishPanel({
               const StatusIcon = meta.icon;
               const isExpanded = expandedId === post.id;
               const isCarouselPost = post.media_type === 'CAROUSEL';
+              const isScheduled = post.status === 'scheduled';
+              const isEditingThis = editingPostId === post.id;
 
               return (
-                <div key={post.id} className="py-3.5 flex flex-col gap-2 hover:bg-accent/25 transition-colors rounded-2xl px-2">
+                <div
+                  key={post.id}
+                  className={`py-3.5 flex flex-col gap-2 transition-all rounded-2xl px-3 ${
+                    isEditingThis
+                      ? 'bg-amber-500/10 border-2 border-amber-500/50 shadow-xs ring-1 ring-amber-500/20'
+                      : 'hover:bg-accent/25 border border-transparent'
+                  }`}
+                >
                   <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      onClick={() => isScheduled && handleStartEdit(post)}
+                      className={`flex items-center gap-3.5 min-w-0 ${isScheduled ? 'cursor-pointer group' : ''}`}
+                      title={isScheduled ? 'Clique para editar esta publicação no simulador' : undefined}
+                    >
                       {/* Thumbnail */}
-                      <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-accent shrink-0 border border-border/80">
+                      <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-accent shrink-0 border border-border/80 group-hover:border-foreground/40 transition-colors">
                         <img src={post.media_url} alt="" className="w-full h-full object-cover" />
                         {isCarouselPost && post.media_urls && (
                           <span className="absolute bottom-0 right-0 bg-black/80 text-white text-[9px] font-mono font-bold px-1 rounded-tl">
@@ -1397,7 +1560,7 @@ export default function PublishPanel({
 
                       {/* Info */}
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-foreground truncate max-w-md">
+                        <p className="text-xs font-bold text-foreground truncate max-w-md group-hover:text-primary transition-colors">
                           {post.caption || '(sem legenda)'}
                         </p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -1427,13 +1590,29 @@ export default function PublishPanel({
                     </div>
 
                     {/* Ações e Badges */}
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-2.5 shrink-0">
                       <Badge variant={meta.variant} className="text-[10px] font-bold">
                         <StatusIcon className={`w-3 h-3 ${post.status === 'publishing' ? 'animate-spin' : ''}`} />
                         {meta.label}
                       </Badge>
 
-                      {post.status === 'scheduled' && (
+                      {isScheduled && (
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(post)}
+                          className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                            isEditingThis
+                              ? 'bg-amber-500 text-black border-amber-500'
+                              : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 hover:border-primary/50'
+                          }`}
+                          title="Editar publicação no simulador"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          <span>{isEditingThis ? 'Editando' : 'Editar'}</span>
+                        </button>
+                      )}
+
+                      {isScheduled && (
                         <button
                           type="button"
                           onClick={() => handleCancel(post.id)}

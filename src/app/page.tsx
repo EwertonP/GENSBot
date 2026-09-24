@@ -91,6 +91,7 @@ export default function Dashboard() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [prefillAgendamento, setPrefillAgendamento] = useState<PrefillAgendamento | null>(null);
+  const [itemFocoId, setItemFocoId] = useState<string | null>(null);
   const [stats, setStats] = useState({ automations: 0, contacts: 0, automationsTriggered: 0, events: 0, leadsGenerated: 0 });
   const [funnel, setFunnel] = useState({ comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
   const [weeklyChart, setWeeklyChart] = useState<{ day: string; comments: number; dms: number }[]>([]);
@@ -1226,7 +1227,8 @@ export default function Dashboard() {
               automationRanking={automationRanking}
               selectedAccountId={selectedAccountId}
               withAccount={withAccount}
-              onNavigateTab={(tab) => {
+              onNavigateTab={(tab, itemId) => {
+                if (itemId) setItemFocoId(itemId);
                 setActiveTab(tab as any);
                 setIsEditing(false);
               }}
@@ -1336,6 +1338,8 @@ export default function Dashboard() {
           {activeTab === 'esteira' && (
             <EsteiraTab
               showToast={showToast}
+              itemFocoId={itemFocoId}
+              onClearItemFoco={() => setItemFocoId(null)}
               onIrParaAgendamento={(prefill) => {
                 setPrefillAgendamento(prefill);
                 setActiveTab('publish');
@@ -1345,7 +1349,17 @@ export default function Dashboard() {
 
           {/* TAB: CALENDÁRIO GERAL DA AGÊNCIA */}
           {activeTab === 'calendario_geral' && (
-            <CalendarioGeral showToast={showToast} />
+            <CalendarioGeral
+              showToast={showToast}
+              onAbrirDemanda={(itemId) => {
+                setItemFocoId(itemId);
+                setActiveTab('esteira');
+              }}
+              onIrParaAgendamento={(prefill) => {
+                setPrefillAgendamento(prefill);
+                setActiveTab('publish');
+              }}
+            />
           )}
 
           {/* TAB: EQUIPE & SÓCIOS */}
