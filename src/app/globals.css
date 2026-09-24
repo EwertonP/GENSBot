@@ -254,6 +254,10 @@
   text-transform: uppercase;
 }
 
+@utility text-lime-foreground {
+  color: #12180d;
+}
+
 /* Anima só quando o SO permite — troca spring/slide por cross-fade curto,
    sem desligar feedback de estado (cor/opacidade continuam). */
 @media (prefers-reduced-motion: reduce) {

@@ -378,7 +378,7 @@ export default function CrmBoard() {
                   size="sm"
                   onClick={handlePromoverParaCliente}
                   loading={promovendo}
-                  className="w-full rounded-xl text-xs font-bold shadow-2xs"
+                  className="w-full rounded-xl text-xs font-bold shadow-2xs text-neutral-950 dark:text-neutral-950"
                 >
                   <UserCheck className="w-3.5 h-3.5 mr-1" />
                   Promover a Cliente da Agência

@@ -1286,7 +1286,7 @@ export default function PublishPanel({
             onClick={handleOpenConfirmation}
             loading={submitting}
             disabled={(files.length === 0 && prefillRemoteUrls.length === 0) || (scheduleEnabled && !scheduledAt)}
-            className="w-full py-3.5 rounded-2xl text-xs font-bold shadow-xs text-foreground cursor-pointer"
+            className="w-full py-3.5 rounded-2xl text-xs font-bold shadow-xs text-neutral-950 dark:text-neutral-950 cursor-pointer"
           >
             {!submitting && (editingPostId ? <Save className="w-4 h-4 mr-1.5" /> : <Send className="w-4 h-4 mr-1.5" />)}
             {editingPostId
@@ -1446,7 +1446,7 @@ export default function PublishPanel({
                 variant="lime"
                 loading={submitting}
                 onClick={handleSubmit}
-                className="flex-1 text-xs font-bold text-foreground h-11 shadow-md cursor-pointer"
+                className="flex-1 text-xs font-bold text-neutral-950 dark:text-neutral-950 h-11 shadow-md cursor-pointer"
               >
                 {!submitting && <Check className="w-4 h-4 mr-1.5" />}
                 {editingPostId

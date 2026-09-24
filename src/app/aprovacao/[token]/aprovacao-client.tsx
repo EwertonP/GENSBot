@@ -352,7 +352,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                 variant="lime"
                 onClick={handleAprovar}
                 loading={enviando}
-                className="rounded-xl text-xs font-bold shadow-xs h-10"
+                className="rounded-xl text-xs font-bold shadow-xs h-10 text-neutral-950 dark:text-neutral-950 active:scale-[0.98]"
               >
                 <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                 Aprovar Post
@@ -598,7 +598,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                     variant="lime"
                     onClick={handleAprovar}
                     loading={enviando}
-                    className="rounded-xl text-xs font-bold shadow-xs h-10 active:scale-[0.98] transition-all"
+                    className="rounded-xl text-xs font-bold shadow-xs h-10 text-neutral-950 dark:text-neutral-950 active:scale-[0.98] transition-all"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                     Aprovar Post
