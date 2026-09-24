@@ -46,6 +46,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet } from '@/components/ui/sheet';
+import { MemberChipSelect } from '@/components/ui/member-chip-select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { Instagram } from '@/components/instagram-icon';
@@ -2019,10 +2020,10 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                           key={p.id}
                           type="button"
                           onClick={() => setFormPrioridade(p.id)}
-                          className={`h-6.5 px-1 rounded-md border flex items-center justify-center gap-1 cursor-pointer transition-all text-xs ${
+                          className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-all text-xs ${
                             isSelected
-                              ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs`
-                              : 'bg-accent/20 hover:bg-accent/50 border-border/60 text-muted-foreground'
+                              ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs ring-1 ring-primary/20`
+                              : 'bg-card hover:bg-accent/50 border-border/80 text-foreground font-semibold hover:border-foreground/30'
                           }`}
                           title={p.label}
                         >
@@ -2036,24 +2037,20 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
                 {/* Linha 3: Equipe (Responsável & Designer Lado a Lado) */}
                 <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border/50">
-                  <div className="flex flex-col gap-0.5">
-                    <label className="text-[11px] font-semibold text-muted-foreground">Responsável Principal</label>
-                    <Select value={formResponsavelId} onChange={(e) => setFormResponsavelId(e.target.value)} className="h-7.5 text-xs">
-                      <option value="">Nenhum...</option>
-                      {membros.map((m) => (
-                        <option key={m.id} value={m.id}>{m.nome}</option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <label className="text-[11px] font-semibold text-muted-foreground">Designer / Editor</label>
-                    <Select value={formEditorId} onChange={(e) => setFormEditorId(e.target.value)} className="h-7.5 text-xs">
-                      <option value="">Nenhum...</option>
-                      {membros.map((m) => (
-                        <option key={m.id} value={m.id}>{m.nome}</option>
-                      ))}
-                    </Select>
-                  </div>
+                  <MemberChipSelect
+                    label="Responsável Principal"
+                    value={formResponsavelId}
+                    onChange={setFormResponsavelId}
+                    membros={membros}
+                    placeholder="Atribuir..."
+                  />
+                  <MemberChipSelect
+                    label="Designer / Editor"
+                    value={formEditorId}
+                    onChange={setFormEditorId}
+                    membros={membros}
+                    placeholder="Atribuir..."
+                  />
                 </div>
 
                 {/* Linha 4: Prazos (Prazo Interno & Data Programada) */}
@@ -2814,10 +2811,10 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
                             key={p.id}
                             type="button"
                             onClick={() => setEditPrioridade(p.id)}
-                            className={`h-6.5 px-1 rounded-md border flex items-center justify-center gap-1 cursor-pointer transition-all text-xs ${
+                            className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-all text-xs ${
                               isSelected
-                                ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs`
-                                : 'bg-accent/20 hover:bg-accent/50 border-border/60 text-muted-foreground'
+                                ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs ring-1 ring-primary/20`
+                                : 'bg-card hover:bg-accent/50 border-border/80 text-foreground font-semibold hover:border-foreground/30'
                             }`}
                             title={p.label}
                           >
@@ -2831,24 +2828,20 @@ export default function EsteiraTab({ showToast, clienteFiltroId, onIrParaAgendam
 
                   {/* Linha 3: Equipe (Responsável & Designer Lado a Lado) */}
                   <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border/50">
-                    <div className="flex flex-col gap-0.5">
-                      <label className="text-[11px] font-semibold text-muted-foreground">Responsável Principal</label>
-                      <Select value={editResponsavelId} onChange={(e) => setEditResponsavelId(e.target.value)} className="h-7.5 text-xs">
-                        <option value="">Nenhum...</option>
-                        {membros.map((m) => (
-                          <option key={m.id} value={m.id}>{m.nome}</option>
-                        ))}
-                      </Select>
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      <label className="text-[11px] font-semibold text-muted-foreground">Designer / Editor</label>
-                      <Select value={editEditorId} onChange={(e) => setEditEditorId(e.target.value)} className="h-7.5 text-xs">
-                        <option value="">Nenhum...</option>
-                        {membros.map((m) => (
-                          <option key={m.id} value={m.id}>{m.nome}</option>
-                        ))}
-                      </Select>
-                    </div>
+                    <MemberChipSelect
+                      label="Responsável Principal"
+                      value={editResponsavelId}
+                      onChange={setEditResponsavelId}
+                      membros={membros}
+                      placeholder="Atribuir..."
+                    />
+                    <MemberChipSelect
+                      label="Designer / Editor"
+                      value={editEditorId}
+                      onChange={setEditEditorId}
+                      membros={membros}
+                      placeholder="Atribuir..."
+                    />
                   </div>
 
                   {/* Linha 4: Prazos (Prazo Interno & Data Programada) */}
