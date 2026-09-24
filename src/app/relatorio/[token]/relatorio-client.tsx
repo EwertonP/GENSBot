@@ -87,7 +87,7 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-[#f7f8f2] text-foreground font-sans antialiased pb-16">
+    <div className="min-h-screen bg-background text-foreground font-sans antialiased pb-16">
       {/* Estilos de Impressão Nativa sem cortes */}
       <style>{`
         @media print {
@@ -120,7 +120,7 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
       {/* Header Fixo de Navegação para o Cliente (no-print) */}
       <header className="no-print sticky top-0 z-40 bg-card/90 backdrop-blur-xl border-b border-border/70 py-3 px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="w-8 h-8 rounded-xl bg-[#192313] text-[#d8ff3c] flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shadow-xs shrink-0 border border-primary/30">
             ✳
           </div>
           <div className="min-w-0 flex-1">
@@ -128,7 +128,7 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
               <h1 className="text-sm sm:text-base font-bold font-display text-foreground leading-tight truncate">
                 Relatório de Performance Instagram
               </h1>
-              <Badge variant="info" className="bg-[#edf4d8] text-[#192313] border-[#d8ff3c] text-[10px] font-bold shrink-0">
+              <Badge variant="info" className="bg-primary/15 text-primary border-primary/30 text-[10px] font-bold shrink-0">
                 Agência GENS
               </Badge>
             </div>
@@ -164,10 +164,10 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
       {/* Conteúdo Principal do Relatório — Responsivo de Mobile até Ultrawide */}
       <main className="print-container max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] mx-auto px-3 sm:px-6 md:px-8 pt-6 sm:pt-8 flex flex-col gap-8">
         {/* Banner de Boas-Vindas e Apresentação do Mês */}
-        <div className="print-card p-5 sm:p-6 rounded-3xl bg-[#edf4d8] border border-[#d8ff3c] text-[#192313] shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="print-card p-5 sm:p-6 rounded-3xl bg-[#edf4d8] dark:bg-card border border-[#d8ff3c] dark:border-primary/40 text-[#192313] dark:text-foreground shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#192313]" />
+              <ShieldCheck className="w-4 h-4 text-[#192313] dark:text-primary" />
               <span className="text-[10px] font-bold uppercase tracking-widest font-mono">
                 Documento Oficial de Resultados
               </span>
@@ -175,14 +175,14 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
             <h2 className="text-xl sm:text-3xl font-black font-display tracking-tight mt-1">
               Desempenho Estratégico · {clienteNome}
             </h2>
-            <p className="text-xs text-[#59614f] mt-1 leading-relaxed max-w-3xl">
+            <p className="text-xs text-[#59614f] dark:text-muted-foreground mt-1 leading-relaxed max-w-3xl">
               Análise comparativa oficial consolidada de <strong className="capitalize">{mainMonthLabel}</strong> em relação a <strong className="capitalize">{compMonthLabel}</strong>. Todas as métricas são extraídas diretamente dos servidores oficiais da Meta.
             </p>
           </div>
 
           <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
-            <span className="text-[10px] font-mono text-[#59614f]">Agência de Crescimento:</span>
-            <span className="text-xs font-bold font-mono bg-[#192313] text-[#d8ff3c] px-3 py-1 rounded-xl shadow-2xs">
+            <span className="text-[10px] font-mono text-[#59614f] dark:text-muted-foreground">Agência de Crescimento:</span>
+            <span className="text-xs font-bold font-mono bg-primary/20 text-primary px-3 py-1 rounded-xl shadow-2xs border border-primary/30">
               AGÊNCIA GENS ✳
             </span>
           </div>
@@ -195,7 +195,7 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
               <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
                 Contas Alcançadas (Alcance)
               </span>
-              <div className="w-8 h-8 rounded-xl bg-[#edf4d8] text-[#192313] flex items-center justify-center font-bold border border-[#d8ff3c]">
+              <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold border border-primary/30">
                 <TrendingUp className="w-4 h-4" />
               </div>
             </div>
@@ -275,7 +275,7 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
                   Comparativo de impressões e proporções entre Seguidores vs Não-Seguidores
                 </p>
               </div>
-              <Badge variant="muted" className="font-mono text-[10px] font-bold self-start sm:self-auto bg-[#edf4d8] text-[#192313] border-[#d8ff3c]">
+              <Badge variant="muted" className="font-mono text-[10px] font-bold self-start sm:self-auto bg-primary/15 text-primary border-primary/30">
                 Total: 204.960 views
               </Badge>
             </div>
@@ -307,12 +307,12 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
 
                     <div className="flex flex-col gap-1.5 pt-1">
                       <div className="h-2 w-full bg-accent rounded-full overflow-hidden flex">
-                        <div style={{ width: `${f.seg}%` }} className="bg-[#192313] h-full" title={`Seguidores: ${f.seg}%`} />
+                        <div style={{ width: `${f.seg}%` }} className="bg-[#192313] dark:bg-emerald-600 h-full" title={`Seguidores: ${f.seg}%`} />
                         <div style={{ width: `${f.nseg}%` }} className="bg-[#d8ff3c] h-full" title={`Não-Seguidores: ${f.nseg}%`} />
                       </div>
                       <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full bg-[#192313]" /> Seguidores ({f.seg}%)
+                          <span className="w-2 h-2 rounded-full bg-[#192313] dark:bg-emerald-600" /> Seguidores ({f.seg}%)
                         </span>
                         <span className="flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-[#d8ff3c]" /> Não-Seguidores ({f.nseg}%)
@@ -386,8 +386,8 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-[#edf4d8] border border-[#d8ff3c] text-xs text-[#192313] font-medium leading-relaxed flex items-center gap-2">
-              <Zap className="w-4 h-4 text-[#192313] shrink-0" />
+            <div className="p-3.5 rounded-2xl bg-[#edf4d8] dark:bg-card border border-[#d8ff3c] dark:border-primary/40 text-xs text-[#192313] dark:text-foreground font-medium leading-relaxed flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[#192313] dark:text-primary shrink-0" />
               <span>
                 <strong>Estratégia GENS:</strong> Os Reels trouxeram 88% de novos não-seguidores. Recomendamos manter 3 postagens no Reels por semana nos horários de pico.
               </span>
@@ -498,7 +498,7 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
                 Evolução comparada ponto a ponto em todas as métricas essenciais da conta
               </p>
             </div>
-            <Badge variant="info" className="bg-[#edf4d8] text-[#192313] border-[#d8ff3c] font-bold text-xs self-start sm:self-auto">
+            <Badge variant="info" className="bg-primary/15 text-primary border-primary/30 font-bold text-xs self-start sm:self-auto">
               Crescimento Geral Positivo 📈
             </Badge>
           </div>
@@ -570,7 +570,7 @@ export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
             <h4 className="text-sm font-bold font-display text-foreground flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" /> Horários & Dias de Maior Atividade
             </h4>
-            <div className="p-3.5 rounded-2xl bg-[#edf4d8] border border-[#d8ff3c] text-[#192313] text-xs font-semibold">
+            <div className="p-3.5 rounded-2xl bg-[#edf4d8] dark:bg-card border border-[#d8ff3c] dark:border-primary/40 text-[#192313] dark:text-foreground text-xs font-semibold">
               ⏰ Pico de Seguidores Online: <strong>18:00h às 21:00h</strong>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed pt-1">

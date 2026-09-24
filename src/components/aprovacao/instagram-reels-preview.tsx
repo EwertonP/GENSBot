@@ -282,9 +282,9 @@ export function InstagramReelsPreview({
               }
               onPedirAjuste(tempoAtual);
             }}
-            className="text-xs font-bold px-4 py-2 rounded-xl bg-lime hover:bg-lime/90 text-foreground flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer font-sans"
+            className="text-xs font-bold px-4 py-2 rounded-xl bg-lime hover:bg-lime/90 text-lime-foreground flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer font-sans"
           >
-            <Clock className="w-4 h-4 text-foreground" />
+            <Clock className="w-4 h-4 text-lime-foreground" />
             <span>Sugerir Ajuste aos {formatarTimecode(tempoAtual)}</span>
           </button>
         </div>

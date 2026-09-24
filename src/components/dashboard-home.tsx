@@ -176,10 +176,10 @@ function SmoothAreaChart({
           <path d={areaA} fill="url(#instagram-area-grad)" />
 
           {/* Linha Principal (Alcance) */}
-          <path d={lineA} fill="none" stroke="#192313" strokeWidth={2.5} vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+          <path d={lineA} fill="none" stroke="var(--foreground)" strokeWidth={2.5} vectorEffect="non-scaling-stroke" strokeLinecap="round" />
 
           {/* Linha Secundária (Visitas ao Perfil) */}
-          <path d={lineB} fill="none" stroke="#657e48" strokeWidth={1.75} strokeDasharray="4,4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+          <path d={lineB} fill="none" stroke="var(--muted-foreground)" strokeWidth={1.75} strokeDasharray="4,4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
 
           {/* Ponto e Guia no Hover */}
           {hoverIndex !== null && pointsA[hoverIndex] && (
@@ -189,14 +189,14 @@ function SmoothAreaChart({
                 y1={0}
                 x2={pointsA[hoverIndex].x}
                 y2={height}
-                stroke="#192313"
+                stroke="var(--foreground)"
                 strokeWidth={1}
                 strokeDasharray="2,2"
                 strokeOpacity={0.5}
               />
-              <circle cx={pointsA[hoverIndex].x} cy={pointsA[hoverIndex].y} r={4.5} fill="#192313" stroke="#d8ff3c" strokeWidth={2} />
+              <circle cx={pointsA[hoverIndex].x} cy={pointsA[hoverIndex].y} r={4.5} fill="var(--foreground)" stroke="var(--primary)" strokeWidth={2} />
               {pointsB[hoverIndex] && (
-                <circle cx={pointsB[hoverIndex].x} cy={pointsB[hoverIndex].y} r={3.5} fill="#657e48" stroke="#ffffff" strokeWidth={1.5} />
+                <circle cx={pointsB[hoverIndex].x} cy={pointsB[hoverIndex].y} r={3.5} fill="var(--muted-foreground)" stroke="var(--card)" strokeWidth={1.5} />
               )}
             </>
           )}
@@ -229,10 +229,10 @@ function SmoothAreaChart({
       <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5 font-bold text-foreground">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#192313]" /> {labelA}
+            <span className="w-2.5 h-2.5 rounded-full bg-foreground" /> {labelA}
           </span>
           <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#657e48]" /> {labelB}
+            <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /> {labelB}
           </span>
         </div>
         <span className="text-[11px] font-mono font-semibold">
@@ -556,69 +556,69 @@ export default function DashboardHome({
 
           {/* 4 Bento KPIs Operacionais (Niond Style em Verde GENS) */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-5 rounded-3xl border border-[#d8ff3c]/60 bg-[#edf4d8] shadow-2xs flex flex-col justify-between">
+            <Card className="p-5 rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#59614f] uppercase tracking-wider">Demandas Ativas</span>
-                <div className="w-8 h-8 rounded-xl bg-[#d8ff3c] border border-[#192313]/10 flex items-center justify-center text-[#192313] shadow-2xs">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Demandas Ativas</span>
+                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary shadow-2xs">
                   <Layers className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-[#192313] tracking-tight tabular-nums">
+                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
                   {demandasAtivas.length}
                 </span>
-                <span className="text-[#59614f] text-[11px] font-medium mt-1">
+                <span className="text-muted-foreground text-[11px] font-medium mt-1">
                   em produção ou aprovação
                 </span>
               </div>
             </Card>
 
-            <Card className="p-5 rounded-3xl border border-[#d8ff3c]/80 bg-[#d8ff3c]/25 shadow-2xs flex flex-col justify-between">
+            <Card className="p-5 rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#59614f] uppercase tracking-wider">Entregas da Semana</span>
-                <div className="w-8 h-8 rounded-xl bg-[#192313] text-[#d8ff3c] flex items-center justify-center">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Entregas da Semana</span>
+                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 text-primary flex items-center justify-center">
                   <Calendar className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-[#192313] tracking-tight tabular-nums">
+                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
                   {entregasSemana.length}
                 </span>
-                <span className="text-[#59614f] text-[11px] font-medium mt-1">
+                <span className="text-muted-foreground text-[11px] font-medium mt-1">
                   agendadas de Seg a Dom
                 </span>
               </div>
             </Card>
 
-            <Card className="p-5 rounded-3xl border border-emerald-200 bg-emerald-100/80 shadow-2xs flex flex-col justify-between">
+            <Card className="p-5 rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Rotina Pendente</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-200/80 border border-emerald-300 flex items-center justify-center text-emerald-950">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Rotina Pendente</span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                   <CheckSquare className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-emerald-950 tracking-tight tabular-nums">
+                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
                   {tarefasFiltradas.length}
                 </span>
-                <span className="text-emerald-800 text-[11px] font-medium mt-1">
+                <span className="text-muted-foreground text-[11px] font-medium mt-1">
                   afazeres internos da equipe
                 </span>
               </div>
             </Card>
 
-            <Card className="p-5 rounded-3xl border border-[#192313] bg-[#192313] text-white shadow-md flex flex-col justify-between">
+            <Card className="p-5 rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Finalizadas no Mês</span>
-                <div className="w-8 h-8 rounded-xl bg-[#d8ff3c] text-[#192313] flex items-center justify-center font-bold">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Finalizadas no Mês</span>
+                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 text-primary flex items-center justify-center font-bold">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-white tracking-tight tabular-nums">
+                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
                   {demandasConcluidasMes.length}
                 </span>
-                <span className="text-neutral-400 text-[11px] font-medium mt-1">
+                <span className="text-muted-foreground text-[11px] font-medium mt-1">
                   conteúdos entregues e publicados
                 </span>
               </div>

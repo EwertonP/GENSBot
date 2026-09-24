@@ -62,6 +62,8 @@ import {
   Columns3,
   PanelLeftClose,
   PanelLeftOpen,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 interface InstagramAccountSummary {
@@ -156,6 +158,37 @@ export default function Dashboard() {
       }
       return next;
     });
+  };
+
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('gensbot_theme') as 'dark' | 'light' | null;
+      if (saved) {
+        setTheme(saved);
+        if (saved === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('gensbot_theme', nextTheme);
+      if (nextTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
   };
   const [form, setForm] = useState<Automation>({
     name: '',
@@ -1092,11 +1125,11 @@ export default function Dashboard() {
                     }}
                     className={`relative w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2'} rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
                       active 
-                        ? 'text-[#192313] bg-[#edf4d8] font-bold shadow-2xs border border-[#d8ff3c]/60' 
+                        ? 'text-primary bg-primary/15 font-bold shadow-2xs border border-primary/30' 
                         : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                     }`}
                   >
-                    <Icon className={`relative w-4 h-4 flex-shrink-0 ${active ? 'text-[#192313]' : 'text-muted-foreground'}`} />
+                    <Icon className={`relative w-4 h-4 flex-shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
                     {!isSidebarCollapsed && <span className="relative truncate">{item.label}</span>}
                   </button>
                 );
@@ -1140,8 +1173,23 @@ export default function Dashboard() {
             </button>
             <Logo className="h-5" />
           </div>
-          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs shadow-xs">
-            {currentUser?.email?.substring(0, 1).toUpperCase()}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
+              aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
+              className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border/80 text-foreground transition-all duration-150 cursor-pointer shadow-2xs flex items-center justify-center"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
+              ) : (
+                <Moon className="w-4 h-4 text-foreground animate-in spin-in-180 duration-200" />
+              )}
+            </button>
+            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs shadow-xs">
+              {currentUser?.email?.substring(0, 1).toUpperCase()}
+            </div>
           </div>
         </div>
 
@@ -1195,6 +1243,21 @@ export default function Dashboard() {
                 </button>
               </div>
             )}
+
+            {/* Alternador Simples de Tema (Dark / Light) */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
+              aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
+              className="p-2 rounded-xl bg-card hover:bg-accent border border-border/80 text-foreground transition-all duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 flex items-center justify-center"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
+              ) : (
+                <Moon className="w-4 h-4 text-foreground animate-in spin-in-180 duration-200" />
+              )}
+            </button>
           </div>
         </header>
 

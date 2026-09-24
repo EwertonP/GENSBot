@@ -260,7 +260,7 @@ export default function CalendarioGeral({
               onClick={() => setViewMode('mes')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'mes'
-                  ? 'bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/60 shadow-2xs font-bold'
+                  ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -271,7 +271,7 @@ export default function CalendarioGeral({
               onClick={() => setViewMode('semana')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'semana'
-                  ? 'bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/60 shadow-2xs font-bold'
+                  ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -282,7 +282,7 @@ export default function CalendarioGeral({
               onClick={() => setViewMode('dia')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'dia'
-                  ? 'bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/60 shadow-2xs font-bold'
+                  ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -361,7 +361,7 @@ export default function CalendarioGeral({
       {/* 3. Grade do Calendário (Mês / Semana / Dia) */}
       <Card padding="none" className="rounded-3xl border border-border/80 overflow-hidden shadow-xs bg-card">
         {viewMode !== 'dia' && (
-          <div className="grid grid-cols-7 border-b border-border/60 bg-[#edf4d8]/40 text-center py-2.5 text-[11px] font-bold uppercase tracking-wider text-[#59614f] font-mono">
+          <div className="grid grid-cols-7 border-b border-border/60 bg-muted/40 text-center py-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
             <span>Dom</span>
             <span>Seg</span>
             <span>Ter</span>
@@ -374,7 +374,7 @@ export default function CalendarioGeral({
 
         {/* Células em modo Mês ou Semana */}
         {viewMode !== 'dia' ? (
-          <div className="grid grid-cols-7 divide-x divide-y divide-border/50 bg-[#f7f8f2]/30">
+          <div className="grid grid-cols-7 divide-x divide-y divide-border/50 bg-card">
             {diasExibicao.map((d, idx) => {
               if (d.dia === null) {
                 return <div key={`empty-${idx}`} className="bg-accent/10 min-h-[120px]" />;
@@ -388,14 +388,14 @@ export default function CalendarioGeral({
                   key={d.dataStr || `day-${idx}`}
                   onClick={() => setDiaSelecionado(d.dia!)}
                   className={`p-2 ${viewMode === 'semana' ? 'min-h-[220px]' : 'min-h-[130px]'} flex flex-col justify-between transition-colors cursor-pointer ${
-                    temChoque ? 'bg-warning/5' : eHoje ? 'bg-[#d8ff3c]/10' : 'hover:bg-accent/20'
+                    temChoque ? 'bg-warning/5' : eHoje ? 'bg-primary/10' : 'hover:bg-accent/20'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span
                       className={`text-xs font-bold font-mono ${
                         eHoje
-                          ? 'w-6 h-6 rounded-full bg-[#192313] text-[#d8ff3c] flex items-center justify-center font-bold shadow-2xs'
+                          ? 'w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold shadow-2xs'
                           : 'text-foreground'
                       }`}
                     >
@@ -403,7 +403,7 @@ export default function CalendarioGeral({
                     </span>
 
                     {d.itens.length > 0 && (
-                      <span className="text-[10px] font-mono text-[#59614f] font-bold bg-[#edf4d8] px-1.5 py-0.2 rounded-md">
+                      <span className="text-[10px] font-mono text-muted-foreground font-bold bg-accent px-1.5 py-0.2 rounded-md border border-border/60">
                         {d.itens.length} {d.itens.length === 1 ? 'post' : 'posts'}
                       </span>
                     )}
@@ -423,7 +423,7 @@ export default function CalendarioGeral({
                             e.stopPropagation();
                             setItemModal(item);
                           }}
-                          className="text-left p-2 rounded-xl border-l-4 border-[#d8ff3c] bg-[#edf4d8]/70 hover:bg-[#edf4d8] border border-border/60 text-[#192313] shadow-2xs hover:shadow-xs transition-all flex flex-col gap-1.5 cursor-pointer group"
+                          className="text-left p-2 rounded-xl border-l-4 border-primary bg-card/90 hover:bg-card border border-border/70 text-foreground shadow-2xs hover:shadow-xs transition-all flex flex-col gap-1.5 cursor-pointer group"
                         >
                           <div className="flex items-center justify-between gap-1">
                             <div className="flex items-center gap-1.5 min-w-0">
@@ -434,12 +434,12 @@ export default function CalendarioGeral({
                                 tamanho="xs"
                                 className="shrink-0"
                               />
-                              <span className="text-[10px] font-bold text-[#192313] truncate">
+                              <span className="text-[10px] font-bold text-foreground truncate">
                                 {item.cliente?.nome}
                               </span>
                             </div>
                             {horaFormatada && (
-                              <span className="text-[9px] font-mono text-[#59614f] font-bold">
+                              <span className="text-[9px] font-mono text-muted-foreground font-bold">
                                 {horaFormatada}
                               </span>
                             )}
@@ -447,13 +447,13 @@ export default function CalendarioGeral({
 
                           {/* Previsualização da Capa se houver */}
                           {capaUrl && (
-                            <div className="w-full h-16 rounded-lg overflow-hidden relative border border-black/10 bg-black/5">
+                            <div className="w-full h-16 rounded-lg overflow-hidden relative border border-border/80 bg-background/50">
                               <img src={capaUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                             </div>
                           )}
 
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-[10px] font-medium text-[#192313]/90 line-clamp-1 group-hover:font-bold flex-1">
+                            <span className="text-[10px] font-medium text-foreground/90 line-clamp-1 group-hover:font-bold flex-1">
                               {item.titulo || item.tipo}
                             </span>
                             {getFormatBadge(item.tipo)}
@@ -463,7 +463,7 @@ export default function CalendarioGeral({
                     })}
 
                     {d.itens.length > (viewMode === 'semana' ? 6 : 3) && (
-                      <span className="text-[9px] font-bold text-[#59614f] text-center pt-0.5">
+                      <span className="text-[9px] font-bold text-muted-foreground text-center pt-0.5">
                         +{d.itens.length - (viewMode === 'semana' ? 6 : 3)} outros
                       </span>
                     )}

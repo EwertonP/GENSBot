@@ -186,14 +186,14 @@ export default function KanbanBoard({ accounts, selectedAccountId, withAccount, 
         renderCard={(post) => (
           <div
             onClick={() => openEditor(post)}
-            className="p-3.5 rounded-2xl bg-white border border-border/80 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-2.5 group"
+            className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-2.5 group"
           >
             {/* Topo: Tag de Formato & Username */}
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-[#edf4d8] text-[#192313] border border-[#d8ff3c]/40 uppercase tracking-wide">
+              <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 uppercase tracking-wide">
                 {post.media_type}
               </span>
-              <span className="text-[10px] font-bold text-[#59614f] truncate">
+              <span className="text-[10px] font-bold text-muted-foreground truncate">
                 @{usernameFor(post.instagram_user_id)}
               </span>
             </div>
@@ -221,7 +221,7 @@ export default function KanbanBoard({ accounts, selectedAccountId, withAccount, 
                 <Calendar className="w-3 h-3 text-muted-foreground" />
                 {new Date(post.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </span>
-              <span className="text-[9px] text-[#59614f] font-bold bg-[#edf4d8] px-1.5 py-0.2 rounded-md">
+              <span className="text-[9px] text-muted-foreground font-bold bg-accent/60 px-1.5 py-0.5 rounded-md border border-border/40">
                 Verificar
               </span>
             </div>

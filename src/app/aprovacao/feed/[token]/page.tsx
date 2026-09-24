@@ -98,7 +98,7 @@ export default function FeedAprovacaoPage() {
 
   if (carregando) {
     return (
-      <div className="min-h-screen bg-[#fafafa] dark:bg-[#000] flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
         <div className="w-10 h-10 border-3 border-foreground/20 border-t-foreground rounded-full animate-spin" />
         <p className="text-xs text-muted-foreground mt-4 font-mono">Carregando feed no Instagram...</p>
       </div>
@@ -107,7 +107,7 @@ export default function FeedAprovacaoPage() {
 
   if (erro || !cliente) {
     return (
-      <div className="min-h-screen bg-[#fafafa] dark:bg-[#000] flex flex-col items-center justify-center p-4 text-center">
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 text-center">
         <div className="w-12 h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-3">
           <X className="w-6 h-6" />
         </div>
@@ -125,19 +125,19 @@ export default function FeedAprovacaoPage() {
   const pendentesAprovacao = posts.filter((p) => p.status === 'revisao_cliente').length;
 
   return (
-    <div className="min-h-screen bg-white text-black antialiased flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-foreground antialiased flex flex-col font-sans">
       {/* 1. Barra de Topo da Agência GENS */}
-      <header className="sticky top-0 z-30 bg-[#192313] text-[#f7f8f2] px-4 py-3 border-b border-white/10 shadow-sm flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-card text-foreground px-4 py-3 border-b border-border shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold tracking-widest uppercase bg-[#d8ff3c] text-[#192313] px-2 py-0.5 rounded-full font-mono">
+          <span className="text-[10px] font-bold tracking-widest uppercase bg-lime text-lime-foreground px-2 py-0.5 rounded-full font-mono">
             GENS APROVAÇÃO
           </span>
-          <span className="text-xs font-semibold hidden sm:inline">Preview de Grade de Feed</span>
+          <span className="text-xs font-semibold hidden sm:inline text-muted-foreground">Preview de Grade de Feed</span>
         </div>
 
         <div className="flex items-center gap-2">
           {gradeAprovada ? (
-            <div className="flex items-center gap-1 text-xs font-bold text-[#d8ff3c]">
+            <div className="flex items-center gap-1 text-xs font-bold text-lime">
               <CheckCircle2 className="w-4 h-4" />
               <span>Grade Aprovada!</span>
             </div>
@@ -146,12 +146,12 @@ export default function FeedAprovacaoPage() {
               type="button"
               onClick={handleAprovarGrade}
               disabled={aprovandoGrade}
-              className="px-3.5 py-1.5 rounded-xl bg-[#d8ff3c] text-[#192313] font-bold text-xs hover:bg-[#c9ef30] transition-all shadow-xs cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-1.5 rounded-xl bg-lime text-lime-foreground font-bold text-xs hover:bg-lime/90 transition-all shadow-xs cursor-pointer disabled:opacity-50"
             >
               {aprovandoGrade ? 'Aprovando...' : `Aprovar Grade (${pendentesAprovacao} posts)`}
             </button>
           ) : (
-            <span className="text-xs text-[#d8ff3c] font-semibold">Tudo Aprovado</span>
+            <span className="text-xs text-lime font-semibold">Tudo Aprovado</span>
           )}
         </div>
       </header>
@@ -163,7 +163,7 @@ export default function FeedAprovacaoPage() {
           {/* Avatar com Story Ring */}
           <div className="relative shrink-0">
             <div className="p-0.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600">
-              <div className="p-0.5 rounded-full bg-white">
+              <div className="p-0.5 rounded-full bg-card">
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}
@@ -185,43 +185,43 @@ export default function FeedAprovacaoPage() {
           {/* Dados do Perfil */}
           <div className="flex flex-col gap-3 min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-lg sm:text-xl font-medium tracking-tight text-neutral-900 truncate">
+              <h1 className="text-lg sm:text-xl font-medium tracking-tight text-foreground truncate">
                 {username}
               </h1>
-              <span className="text-xs px-2.5 py-0.5 rounded-md bg-neutral-100 text-neutral-700 font-semibold">
+              <span className="text-xs px-2.5 py-0.5 rounded-md bg-accent text-accent-foreground font-semibold">
                 Cliente Agência GENS
               </span>
             </div>
 
             {/* Contadores */}
-            <div className="flex items-center gap-6 text-sm text-neutral-800">
+            <div className="flex items-center gap-6 text-sm text-foreground/90">
               <span>
-                <strong className="font-semibold">{posts.length}</strong> publicações
+                <strong className="font-semibold text-foreground">{posts.length}</strong> publicações
               </span>
               <span className="hidden sm:inline">
-                <strong className="font-semibold">3.4k</strong> seguidores
+                <strong className="font-semibold text-foreground">3.4k</strong> seguidores
               </span>
               <span className="hidden sm:inline">
-                <strong className="font-semibold">412</strong> seguindo
+                <strong className="font-semibold text-foreground">412</strong> seguindo
               </span>
             </div>
 
             {/* Bio & Identificação */}
-            <div className="text-xs sm:text-sm text-neutral-800 leading-relaxed">
-              <p className="font-bold">{cliente.nome}</p>
-              {cliente.nicho && <p className="text-neutral-500">{cliente.nicho}</p>}
-              <p className="mt-1">{cliente.briefing || 'Transformando presença digital em autoridade e vendas.'}</p>
+            <div className="text-xs sm:text-sm text-foreground/90 leading-relaxed">
+              <p className="font-bold text-foreground">{cliente.nome}</p>
+              {cliente.nicho && <p className="text-muted-foreground">{cliente.nicho}</p>}
+              <p className="mt-1 text-foreground/80">{cliente.briefing || 'Transformando presença digital em autoridade e vendas.'}</p>
             </div>
           </div>
         </div>
 
         {/* Barra de Abas do Perfil */}
-        <div className="border-t border-neutral-200 flex items-center justify-center gap-12 text-xs font-semibold tracking-wider uppercase text-neutral-400">
-          <div className="flex items-center gap-1.5 py-3 border-t-2 border-black text-black">
+        <div className="border-t border-border flex items-center justify-center gap-12 text-xs font-semibold tracking-wider uppercase text-muted-foreground">
+          <div className="flex items-center gap-1.5 py-3 border-t-2 border-foreground text-foreground">
             <Grid3X3 className="w-3.5 h-3.5" />
             <span>Publicações</span>
           </div>
-          <div className="flex items-center gap-1.5 py-3 text-neutral-400">
+          <div className="flex items-center gap-1.5 py-3 text-muted-foreground">
             <Video className="w-3.5 h-3.5" />
             <span>Reels</span>
           </div>
@@ -229,7 +229,7 @@ export default function FeedAprovacaoPage() {
 
         {/* Grade 3xN do Feed */}
         {posts.length === 0 ? (
-          <div className="py-16 text-center text-neutral-400 text-xs">
+          <div className="py-16 text-center text-muted-foreground text-xs">
             Nenhuma publicação pronta nesta grade.
           </div>
         ) : (
@@ -246,7 +246,7 @@ export default function FeedAprovacaoPage() {
                     setPostSelecionado(post);
                     setSlideAtivo(0);
                   }}
-                  className="group relative aspect-square bg-neutral-100 overflow-hidden cursor-pointer select-none"
+                  className="group relative aspect-square bg-card border border-border/60 overflow-hidden cursor-pointer select-none rounded-xl"
                 >
                   {primeiraMidia ? (
                     isVideo ? (
@@ -259,19 +259,19 @@ export default function FeedAprovacaoPage() {
                       />
                     )
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-neutral-50 text-neutral-400 text-xs">
-                      <p className="font-semibold text-neutral-700 line-clamp-2">{post.titulo || 'Sem mídia'}</p>
+                    <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-accent/40 text-muted-foreground text-xs">
+                      <p className="font-semibold text-foreground line-clamp-2">{post.titulo || 'Sem mídia'}</p>
                     </div>
                   )}
 
                   {/* Badges de Tipo no Canto Superior Direito */}
                   {isCarrossel && (
-                    <div className="absolute top-2 right-2 p-1 rounded-md bg-black/50 text-white backdrop-blur-xs">
+                    <div className="absolute top-2 right-2 p-1 rounded-md bg-black/60 text-white backdrop-blur-xs">
                       <Layers className="w-3.5 h-3.5" />
                     </div>
                   )}
                   {isVideo && !isCarrossel && (
-                    <div className="absolute top-2 right-2 p-1 rounded-md bg-black/50 text-white backdrop-blur-xs">
+                    <div className="absolute top-2 right-2 p-1 rounded-md bg-black/60 text-white backdrop-blur-xs">
                       <Video className="w-3.5 h-3.5" />
                     </div>
                   )}
@@ -295,18 +295,18 @@ export default function FeedAprovacaoPage() {
       {/* Modal de Inspeção do Post Selecionado */}
       {postSelecionado && (
         <div
-          className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm"
           onClick={() => setPostSelecionado(null)}
         >
           <div
-            className="bg-white rounded-2xl overflow-hidden max-w-3xl w-full max-h-[90vh] flex flex-col md:flex-row shadow-2xl relative"
+            className="bg-card text-foreground border border-border rounded-2xl overflow-hidden max-w-3xl w-full max-h-[90vh] flex flex-col md:flex-row shadow-2xl relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Fechar */}
             <button
               type="button"
               onClick={() => setPostSelecionado(null)}
-              className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 cursor-pointer"
+              className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-black/60 text-white hover:bg-black cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -360,35 +360,35 @@ export default function FeedAprovacaoPage() {
             <div className="md:w-2/5 p-5 flex flex-col justify-between overflow-y-auto max-h-[500px]">
               <div className="flex flex-col gap-3">
                 {/* Header autor */}
-                <div className="flex items-center gap-2.5 pb-3 border-b border-neutral-100">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
                   <img src={avatarUrl || ''} alt="" className="w-8 h-8 rounded-full object-cover" />
-                  <span className="text-xs font-bold text-neutral-900">{username}</span>
+                  <span className="text-xs font-bold text-foreground">{username}</span>
                 </div>
 
                 {/* Legenda */}
-                <div className="text-xs text-neutral-800 leading-relaxed space-y-2">
-                  <p className="font-bold">{postSelecionado.titulo}</p>
+                <div className="text-xs text-foreground/90 leading-relaxed space-y-2">
+                  <p className="font-bold text-foreground">{postSelecionado.titulo}</p>
                   <p className="whitespace-pre-wrap">{postSelecionado.legenda || 'Sem legenda cadastrada.'}</p>
                 </div>
 
                 {/* Roteiro / texto de cada slide — separado da legenda, que é só a legenda do Instagram */}
                 {postSelecionado.briefing && (
-                  <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500 mb-1.5">
+                  <div className="rounded-xl border border-dashed border-border bg-accent/40 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5">
                       📝 Roteiro / Texto dos Slides
                     </p>
-                    <p className="text-xs leading-relaxed text-neutral-800 whitespace-pre-wrap">{postSelecionado.briefing}</p>
+                    <p className="text-xs leading-relaxed text-foreground whitespace-pre-wrap">{postSelecionado.briefing}</p>
                   </div>
                 )}
               </div>
 
               {/* Ação de Aprovação Individual */}
-              <div className="pt-4 border-t border-neutral-100 mt-4 flex flex-col gap-2">
+              <div className="pt-4 border-t border-border/60 mt-4 flex flex-col gap-2">
                 <a
                   href={`/aprovacao/${postSelecionado.token_aprovacao}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full py-2 rounded-xl bg-neutral-900 hover:bg-black text-white text-center text-xs font-bold transition-all shadow-xs"
+                  className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-center text-xs font-bold transition-all shadow-xs cursor-pointer"
                 >
                   Abrir Tela de Aprovação Dedicada ↗
                 </a>
