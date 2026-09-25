@@ -155,6 +155,17 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     if (error) throw error;
 
+    // Se havia uma demanda vinculada na esteira, reseta o vínculo mantendo-a pronta para agendamento
+    await supabase
+      .from('conteudo_items')
+      .update({
+        scheduled_post_id: null,
+        data_programada: null,
+        status: 'agendamento',
+        atualizado_em: new Date().toISOString(),
+      })
+      .eq('scheduled_post_id', id);
+
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

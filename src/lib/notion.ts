@@ -4,6 +4,8 @@
  * Utiliza fetch nativo com a REST API v1 do Notion para alta performance sem dependências extras.
  */
 
+import type { StatusConteudo } from '@/lib/conteudo';
+
 export interface NotionPagePropertyRichText {
   plain_text: string;
 }
@@ -45,7 +47,7 @@ export interface MappedNotionDemand {
   notionPageId: string;
   titulo: string;
   tipo: 'post' | 'reel' | 'story' | 'avulso';
-  status: 'planejamento' | 'copy' | 'criacao_arte' | 'revisao_cliente' | 'pronto_publicar' | 'publicado';
+  status: StatusConteudo;
   legenda: string;
   briefing: string;
   arquivosUrls: string[];
@@ -365,7 +367,9 @@ export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand 
     status = 'publicado';
   } else if (statusName.includes('aprovado') || statusName.includes('agendado') || statusName.includes('pronto') || statusName.includes('concluíd') || statusName.includes('conclui')) {
     status = 'pronto_publicar';
-  } else if (statusName.includes('revisão') || statusName.includes('revisao') || statusName.includes('cliente')) {
+  } else if (statusName.includes('ajuste') || statusName.includes('revisão interna') || statusName.includes('revisao interna')) {
+    status = 'revisao_interna';
+  } else if (statusName.includes('revisão') || statusName.includes('revisao') || statusName.includes('cliente') || statusName.includes('aprova')) {
     status = 'revisao_cliente';
   } else if (statusName.includes('progresso') || statusName.includes('design') || statusName.includes('arte') || statusName.includes('edição') || statusName.includes('criação') || statusName.includes('criacao') || statusName.includes('andamento')) {
     status = 'criacao_arte';
@@ -391,26 +395,33 @@ export function mapNotionPageToDemand(page: NotionPageItem): MappedNotionDemand 
 }
 
 /**
- * Escreve o status de volta no Notion quando o cliente aprovar o post no GENSBot.
+ * Escreve o status de volta no Notion quando o cliente aprovar o post, pedir ajustes ou publicar no GENSBot.
+ * Aceita uma string ou uma lista de nomes candidatos (ex.: ['Aprovado', 'Agendado', 'Pronto para Publicar']).
  */
-export async function updateNotionPageStatus(pageId: string, newStatusName: string): Promise<boolean> {
+export async function updateNotionPageStatus(pageId: string, newStatusName: string | string[]): Promise<boolean> {
   const cleanId = pageId.replace(/-/g, '');
+  const names = Array.isArray(newStatusName) ? newStatusName : [newStatusName];
 
-  // Ordem de tentativas: 'Etapa' (coluna de status na base única do Hub, tipo select) primeiro,
-  // depois 'Status' como status ou select (bases antigas/individuais).
-  const tentativasDeProperty = [
-    { Etapa: { select: { name: newStatusName } } },
-    { Status: { status: { name: newStatusName } } },
-    { Status: { select: { name: newStatusName } } },
-  ];
+  for (const name of names) {
+    const tentativasDeProperty = [
+      { Etapa: { select: { name } } },
+      { Status: { status: { name } } },
+      { Status: { select: { name } } },
+      { Etapa: { status: { name } } },
+    ];
 
-  for (const properties of tentativasDeProperty) {
-    const res = await fetchNotionComRetry(`https://api.notion.com/v1/pages/${cleanId}`, {
-      method: 'PATCH',
-      headers: getHeaders(),
-      body: JSON.stringify({ properties }),
-    } as RequestInit);
-    if (res.ok) return true;
+    for (const properties of tentativasDeProperty) {
+      try {
+        const res = await fetchNotionComRetry(`https://api.notion.com/v1/pages/${cleanId}`, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ properties }),
+        } as RequestInit);
+        if (res.ok) return true;
+      } catch {
+        // Tenta próxima propriedade/nome
+      }
+    }
   }
 
   return false;

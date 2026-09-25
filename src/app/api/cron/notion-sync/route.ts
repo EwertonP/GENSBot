@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { queryNotionDatabase, mapNotionPageToDemand, correspondeClienteEnotionDb, clienteLabelBate, fetchNotionPageContent, splitEstruturaELegenda } from '@/lib/notion';
 import { getContextoAgencia } from '@/lib/clientes-server';
+import type { StatusConteudo } from '@/lib/conteudo';
 
 // Plano Hobby da Vercel: teto de execução de função serverless. Igual aos outros crons do projeto
 // (drain, publish-scheduled, instagram/publish).
@@ -108,25 +109,30 @@ export async function handleNotionSync(req: Request) {
 
         // Verifica se o item já existe por notion_page_id (ou por título + cliente_id)
         let existingId: string | null = null;
+        let existingStatus: string | null = null;
         let existingLastEdited: string | null = null;
         try {
           const { data: existing } = await supabase
             .from('conteudo_items')
-            .select('id, notion_last_edited')
+            .select('id, status, notion_last_edited')
             .eq('notion_page_id', demand.notionPageId)
             .maybeSingle();
           if (existing) {
             existingId = existing.id;
+            existingStatus = existing.status;
             existingLastEdited = existing.notion_last_edited;
           }
         } catch {
           const { data: existingByTitle } = await supabase
             .from('conteudo_items')
-            .select('id')
+            .select('id, status')
             .eq('cliente_id', clienteMatch.id)
             .eq('titulo', demand.titulo)
             .maybeSingle();
-          if (existingByTitle) existingId = existingByTitle.id;
+          if (existingByTitle) {
+            existingId = existingByTitle.id;
+            existingStatus = existingByTitle.status;
+          }
         }
 
         // Página já sincronizada e sem edição desde a última vez: pula, sem gastar chamada na API do Notion.
@@ -168,10 +174,23 @@ export async function handleNotionSync(req: Request) {
           ordem: index,
         }));
 
+        // Se o item já existe no GENSBot com status avançado (ex.: agendamento ou publicado),
+        // não permite que o Notion retroceda o status.
+        let statusParaSalvar: StatusConteudo = demand.status;
+        if (existingStatus === 'publicado') {
+          statusParaSalvar = 'publicado';
+        } else if (existingStatus === 'agendamento' || existingStatus === 'pronto_publicar') {
+          if (demand.status === 'publicado') {
+            statusParaSalvar = 'publicado';
+          } else {
+            statusParaSalvar = 'agendamento';
+          }
+        }
+
         const payloadBase: any = {
           titulo: demand.titulo,
           tipo: demand.tipo,
-          status: demand.status,
+          status: statusParaSalvar,
           legenda: demand.legenda,
           briefing: demand.briefing,
           arquivos: arquivos.length > 0 ? arquivos : undefined,

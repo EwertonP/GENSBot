@@ -79,15 +79,24 @@ export async function POST(req: Request) {
       if (error) throw error;
 
       if (conteudo_item_id) {
-        await supabase
+        const { data: itemConteudo } = await supabase
           .from('conteudo_items')
           .update({
             scheduled_post_id: data.id,
             status: 'agendamento',
+            data_programada: scheduled_at,
             automacao_config: automation_config?.enabled ? automation_config : null,
             atualizado_em: new Date().toISOString(),
           })
-          .eq('id', conteudo_item_id);
+          .eq('id', conteudo_item_id)
+          .select('notion_page_id')
+          .maybeSingle();
+
+        if (itemConteudo?.notion_page_id) {
+          import('@/lib/notion').then(({ updateNotionPageStatus }) => {
+            updateNotionPageStatus(itemConteudo.notion_page_id, ['Agendado', 'Aprovado', 'Pronto para Publicar']).catch(() => {});
+          });
+        }
       }
 
       return NextResponse.json(data);
@@ -135,16 +144,26 @@ export async function POST(req: Request) {
       if (error) throw error;
 
       if (conteudo_item_id) {
-        await supabase
+        const publishedDate = data.published_at || new Date().toISOString();
+        const { data: itemConteudo } = await supabase
           .from('conteudo_items')
           .update({
             scheduled_post_id: data.id,
             status: 'publicado',
+            data_programada: scheduled_at || publishedDate,
+            publicado_em: publishedDate,
             automacao_config: automation_config?.enabled ? automation_config : null,
-            publicado_em: data.published_at || new Date().toISOString(),
             atualizado_em: new Date().toISOString(),
           })
-          .eq('id', conteudo_item_id);
+          .eq('id', conteudo_item_id)
+          .select('notion_page_id')
+          .maybeSingle();
+
+        if (itemConteudo?.notion_page_id) {
+          import('@/lib/notion').then(({ updateNotionPageStatus }) => {
+            updateNotionPageStatus(itemConteudo.notion_page_id, ['Publicado', 'Postado', 'Concluído']).catch(() => {});
+          });
+        }
       }
 
       return NextResponse.json(data);

@@ -85,7 +85,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     // 1. Busca o item atual
     const { data: item, error: fetchErr } = await supabase
       .from('conteudo_items')
-      .select('id, status, comentarios_revisao')
+      .select('id, status, comentarios_revisao, historico_atividades')
       .eq('token_aprovacao', token)
       .single();
 
@@ -106,18 +106,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     const comentarios: ComentarioRevisao[] = Array.isArray(item.comentarios_revisao)
       ? item.comentarios_revisao
       : [];
+    const historico = Array.isArray(item.historico_atividades)
+      ? [...item.historico_atividades]
+      : [];
 
     let novoStatus = item.status;
+    const nomeAutor = autor || 'Cliente';
 
     if (acao === 'aprovar') {
       novoStatus = 'agendamento';
       comentarios.push({
         id: crypto.randomUUID(),
-        autor: autor || 'Cliente',
+        autor: nomeAutor,
         tipo: 'cliente',
         texto: '✅ Conteúdo aprovado pelo cliente!',
         criado_em: new Date().toISOString(),
         resolvido: true,
+      });
+      historico.push({
+        id: crypto.randomUUID(),
+        tipo: 'status',
+        autor_nome: nomeAutor,
+        de_status: item.status,
+        para_status: novoStatus,
+        texto: 'Publicação aprovada pelo cliente. Movida para Agendamento.',
+        criado_em: new Date().toISOString(),
       });
     } else if (acao === 'ajuste') {
       novoStatus = 'revisao_interna';
@@ -127,13 +140,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
       comentarios.push({
         id: crypto.randomUUID(),
-        autor: autor || 'Cliente',
+        autor: nomeAutor,
         tipo: 'cliente',
         slide_index: typeof slide_index === 'number' ? slide_index : null,
         timestamp_seconds: typeof timestamp_seconds === 'number' ? timestamp_seconds : null,
         texto: texto.trim(),
         criado_em: new Date().toISOString(),
         resolvido: false,
+      });
+      historico.push({
+        id: crypto.randomUUID(),
+        tipo: 'status',
+        autor_nome: nomeAutor,
+        de_status: item.status,
+        para_status: novoStatus,
+        texto: `Ajustes solicitados pelo cliente: "${texto.trim()}"`,
+        criado_em: new Date().toISOString(),
       });
     } else {
       return NextResponse.json({ error: 'Ação não reconhecida' }, { status: 400 });
@@ -144,6 +166,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       .update({
         status: novoStatus,
         comentarios_revisao: comentarios,
+        historico_atividades: historico,
         atualizado_em: new Date().toISOString(),
       })
       .eq('id', item.id)
@@ -154,10 +177,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
 
-    // Se o item estiver vinculado ao Notion e for aprovado, escreve de volta no Notion
-    if (updated.notion_page_id && acao === 'aprovar') {
+    // Se o item estiver vinculado ao Notion, escreve de volta no Notion com nomes candidatos
+    if (updated.notion_page_id) {
       import('@/lib/notion').then(({ updateNotionPageStatus }) => {
-        updateNotionPageStatus(updated.notion_page_id, 'Aprovado').catch(() => {});
+        if (acao === 'aprovar') {
+          updateNotionPageStatus(updated.notion_page_id, ['Aprovado', 'Agendado', 'Pronto para Publicar', 'Pronto']).catch(() => {});
+        } else if (acao === 'ajuste') {
+          updateNotionPageStatus(updated.notion_page_id, ['Ajuste', 'Ajustes', 'Revisão', 'Revisão Interna', 'Em Revisão']).catch(() => {});
+        }
       });
     }
 
