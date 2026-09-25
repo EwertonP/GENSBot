@@ -124,14 +124,24 @@ async function handlePublishScheduled(req: Request) {
           .eq('id', post.id);
 
         // Atualizar esteira de conteúdo caso esse agendamento tenha vindo de uma demanda
-        await supabase
+        const { data: updatedConteudo } = await supabase
           .from('conteudo_items')
           .update({
             status: 'publicado',
             publicado_em: publishedAt,
             atualizado_em: publishedAt,
           })
-          .eq('scheduled_post_id', post.id);
+          .eq('scheduled_post_id', post.id)
+          .select('id, notion_page_id');
+
+        if (updatedConteudo && updatedConteudo.length > 0) {
+          const { updateNotionPageStatus } = await import('@/lib/notion');
+          for (const item of updatedConteudo) {
+            if (item.notion_page_id) {
+              await updateNotionPageStatus(item.notion_page_id, ['Publicado', 'Postado', 'Concluído']).catch(() => {});
+            }
+          }
+        }
 
         results.push({ id: post.id, status: 'published' });
       } catch (publishErr: any) {

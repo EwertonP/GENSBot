@@ -1286,10 +1286,46 @@ export default function EsteiraTab({
                           </div>
                         )}
 
-                        {/* Ações Rápidas: Link, Editar e Enviar p/ Aprovação */}
+                        {/* Status de Agendamento */}
+                        {(colStatus === 'agendamento' || item.status === 'agendamento' || item.status === 'pronto_publicar') && (
+                          item.data_programada || item.scheduled_post_id ? (
+                            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between gap-2 text-xs">
+                              <div className="flex items-center gap-1.5 text-primary font-semibold min-w-0">
+                                <Calendar className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">
+                                  {item.data_programada
+                                    ? `Agendado: ${new Date(item.data_programada).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às ${new Date(item.data_programada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                                    : 'Agendado no Instagram'}
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between gap-2 text-xs">
+                              <div className="flex items-center gap-1.5 text-primary font-semibold min-w-0">
+                                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">Aprovado • Pronto para agendar</span>
+                              </div>
+                            </div>
+                          )
+                        )}
+
+                        {/* Status de Publicado */}
+                        {(colStatus === 'publicado' || item.status === 'publicado') && (
+                          <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-semibold min-w-0">
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">
+                                {item.publicado_em
+                                  ? `Publicado: ${new Date(item.publicado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às ${new Date(item.publicado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                                  : 'Publicado no Instagram'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Ações Rápidas: Link, Editar e Enviar p/ Aprovação / Agendar */}
                         <div className="border-t border-border/60 pt-2.5 flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1">
-
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1317,41 +1353,76 @@ export default function EsteiraTab({
                             </button>
                           </div>
 
-                          {item.status === 'agendamento' ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleLevarParaAgendamento(item);
-                              }}
-                              title="Levar demanda aprovada direto para a tela de Agendamento do Instagram"
-                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-primary hover:bg-primary/85 text-primary-foreground border border-primary/40 shadow-xs transition-all cursor-pointer"
-                            >
-                              <Sparkles className="w-3 h-3" />
-                              <span>Agendar</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAbrirModalAprovacao(item);
-                              }}
-                              title={
-                                item.status === 'revisao_cliente'
-                                  ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
-                                  : 'Enviar para aprovação no WhatsApp Web'
+                          {(() => {
+                            const isPublicado = colStatus === 'publicado' || item.status === 'publicado';
+                            const isAgendadoCol = colStatus === 'agendamento' || item.status === 'agendamento' || item.status === 'pronto_publicar';
+                            const isAgendadoComData = isAgendadoCol && Boolean(item.scheduled_post_id || item.data_programada);
+
+                            if (isPublicado) {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>Publicado</span>
+                                </span>
+                              );
+                            }
+
+                            if (isAgendadoCol) {
+                              if (isAgendadoComData) {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleLevarParaAgendamento(item);
+                                    }}
+                                    title="Ver ou reagendar publicação agendada"
+                                    className="text-[11px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 transition-all cursor-pointer"
+                                  >
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Agendado</span>
+                                  </button>
+                                );
                               }
-                              className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-all cursor-pointer ${
-                                item.status === 'revisao_cliente'
-                                  ? 'bg-amber-400 hover:bg-amber-300 text-amber-950 border-amber-500/30'
-                                  : 'bg-lime hover:bg-lime/90 text-lime-foreground font-bold border-foreground/15 shadow-xs active:scale-[0.98]'
-                              }`}
-                            >
-                              <Send className="w-3 h-3" />
-                              <span>{item.status === 'revisao_cliente' ? 'Reenviar' : 'Aprovação'}</span>
-                            </button>
-                          )}
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleLevarParaAgendamento(item);
+                                  }}
+                                  title="Levar demanda aprovada direto para a tela de Agendamento do Instagram"
+                                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-primary hover:bg-primary/85 text-primary-foreground border border-primary/40 shadow-xs transition-all cursor-pointer"
+                                >
+                                  <Sparkles className="w-3 h-3" />
+                                  <span>Agendar</span>
+                                </button>
+                              );
+                            }
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAbrirModalAprovacao(item);
+                                }}
+                                title={
+                                  item.status === 'revisao_cliente'
+                                    ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
+                                    : 'Enviar para aprovação no WhatsApp Web'
+                                }
+                                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-all cursor-pointer ${
+                                  item.status === 'revisao_cliente'
+                                    ? 'bg-amber-400 hover:bg-amber-300 text-amber-950 border-amber-500/30'
+                                    : 'bg-lime hover:bg-lime/90 text-lime-foreground font-bold border-foreground/15 shadow-xs active:scale-[0.98]'
+                                }`}
+                              >
+                                <Send className="w-3 h-3" />
+                                <span>{item.status === 'revisao_cliente' ? 'Reenviar' : 'Aprovação'}</span>
+                              </button>
+                            );
+                          })()}
                         </div>
                       </Card>
                     );
@@ -1429,33 +1500,76 @@ export default function EsteiraTab({
                         >
                           <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
                         </button>
-                        {item.status === 'agendamento' ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleLevarParaAgendamento(item);
-                            }}
-                            title="Levar demanda aprovada para a tela de Agendamento"
-                            className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
-                          >
-                            <Sparkles className="w-3 h-3" />
-                            <span>Agendar</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAbrirModalAprovacao(item);
-                            }}
-                            title="Enviar p/ Aprovação no WhatsApp"
-                            className="px-2.5 py-1 rounded-lg bg-lime hover:bg-lime/90 text-lime-foreground font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs active:scale-[0.98]"
-                          >
-                            <Send className="w-3 h-3" />
-                            <span>WhatsApp</span>
-                          </button>
-                        )}
+                        {(() => {
+                          const isPublicado = item.status === 'publicado';
+                          const isAgendadoCol = item.status === 'agendamento' || item.status === 'pronto_publicar';
+                          const isAgendadoComData = isAgendadoCol && Boolean(item.scheduled_post_id || item.data_programada);
+
+                          if (isPublicado) {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Publicado</span>
+                              </span>
+                            );
+                          }
+
+                          if (isAgendadoCol) {
+                            if (isAgendadoComData) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleLevarParaAgendamento(item);
+                                  }}
+                                  title="Ver ou reagendar publicação agendada"
+                                  className="px-2.5 py-1 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
+                                >
+                                  <Calendar className="w-3 h-3" />
+                                  <span>Agendado</span>
+                                </button>
+                              );
+                            }
+                            return (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleLevarParaAgendamento(item);
+                                }}
+                                title="Levar demanda aprovada para a tela de Agendamento"
+                                className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                <span>Agendar</span>
+                              </button>
+                            );
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAbrirModalAprovacao(item);
+                              }}
+                              title={
+                                item.status === 'revisao_cliente'
+                                  ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
+                                  : 'Enviar para aprovação no WhatsApp'
+                              }
+                              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs ${
+                                item.status === 'revisao_cliente'
+                                  ? 'bg-amber-400 hover:bg-amber-300 text-amber-950 border border-amber-500/30'
+                                  : 'bg-lime hover:bg-lime/90 text-lime-foreground border border-foreground/15 shadow-xs active:scale-[0.98]'
+                              }`}
+                            >
+                              <Send className="w-3 h-3" />
+                              <span>{item.status === 'revisao_cliente' ? 'Reenviar' : 'WhatsApp'}</span>
+                            </button>
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>
@@ -2326,7 +2440,7 @@ export default function EsteiraTab({
                   <span className="hidden sm:inline">Link Aprovação</span>
                 </button>
 
-                {editStatus === 'agendamento' && onIrParaAgendamento && (
+                {(editStatus === 'agendamento' || editStatus === 'pronto_publicar') && onIrParaAgendamento && (
                   <button
                     type="button"
                     onClick={() => handleLevarParaAgendamento(itemEmEdicao)}

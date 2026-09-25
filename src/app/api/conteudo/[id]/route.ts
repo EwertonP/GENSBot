@@ -93,11 +93,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     }
 
+    // Se o status for alterado para publicado e não tiver publicado_em, define a data atual
+    if (updates.status === 'publicado' && !updates.publicado_em) {
+      updates.publicado_em = new Date().toISOString();
+    }
+
     // Se houve alteração de status ou envio de novo comentário, registra no histórico (audit trail)
     if ('status' in updates || body.novo_comentario_equipe) {
       const { data: itemAtual } = await supabase
         .from('conteudo_items')
-        .select('status, historico_atividades')
+        .select('status, historico_atividades, notion_page_id')
         .eq('id', id)
         .single();
 
@@ -116,6 +121,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             texto: `Status alterado para ${String(updates.status).toUpperCase()}`,
             criado_em: new Date().toISOString(),
           });
+
+          // Sincroniza com Notion se a demanda for vinculada
+          if (itemAtual.notion_page_id) {
+            import('@/lib/notion').then(({ updateNotionPageStatus }) => {
+              if (updates.status === 'publicado') {
+                updateNotionPageStatus(itemAtual.notion_page_id, ['Publicado', 'Postado', 'Concluído']).catch(() => {});
+              } else if (updates.status === 'agendamento' || updates.status === 'pronto_publicar') {
+                updateNotionPageStatus(itemAtual.notion_page_id, ['Aprovado', 'Agendado', 'Pronto para Publicar', 'Pronto']).catch(() => {});
+              } else if (updates.status === 'revisao_interna' || updates.status === 'travado') {
+                updateNotionPageStatus(itemAtual.notion_page_id, ['Revisão', 'Ajuste', 'Revisão Interna', 'Em Revisão']).catch(() => {});
+              } else if (updates.status === 'revisao_cliente') {
+                updateNotionPageStatus(itemAtual.notion_page_id, ['Revisão do Cliente', 'Aprovação', 'Aprovação Cliente']).catch(() => {});
+              }
+            });
+          }
         }
 
         if (body.novo_comentario_equipe && String(body.novo_comentario_equipe).trim()) {
