@@ -10,16 +10,10 @@ import { buildFlowFromAdvancedForm, decompileFlow, type QualificationStep, type 
 import UtmLinkBuilder from '@/components/utm-link-builder';
 import MetricsPanel from '@/components/metrics-panel';
 import PublishPanel from '@/components/publish-panel';
-import KanbanBoard from '@/components/kanban-board';
-import { Sheet } from '@/components/ui/sheet';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
 import ContactsTab from '@/components/contacts-tab';
 import InboxPanel from '@/components/inbox-panel';
 import UserProfilePopover from '@/components/user-profile-popover';
-import LogsTab from '@/components/logs-tab';
 import DashboardHome from '@/components/dashboard-home';
 import AutomationsTab from '@/components/automations-tab';
 import ClientesTab from '@/components/clientes-tab';
@@ -32,41 +26,26 @@ import type { PrefillAgendamento } from '@/lib/conteudo';
 import { Instagram } from '@/components/instagram-icon';
 import type { IgMedia, IgStory } from '@/types/instagram-media';
 import {
-  Settings,
   Plus,
-  Trash2,
-  Edit2,
   CheckCircle,
-  CheckSquare,
-  CalendarDays,
   LogOut,
   Send,
   X,
-  FileCode,
-  Lock,
-  Home,
   Users,
-  Users2,
-  BarChart3,
-  HelpCircle,
-  MessageCircle,
-  Link2,
-  TrendingUp,
-  Layers,
   Building2,
-  Briefcase,
   ChevronDown,
-  Calendar,
-  Columns3,
   PanelLeftClose,
   PanelLeftOpen,
   Sun,
   Moon,
+  Search,
 } from 'lucide-react';
 import { confirmDialog } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/toast';
 import { Tip } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TELAS, GRUPOS_MENU, ABAS, isAbaId, type AbaId } from '@/components/nav-config';
+import { CommandPalette, type ComandoItem } from '@/components/command-palette';
 
 interface InstagramAccountSummary {
   id: string;
@@ -95,7 +74,9 @@ export default function Dashboard() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [prefillAgendamento, setPrefillAgendamento] = useState<PrefillAgendamento | null>(null);
-  const [itemFocoId, setItemFocoId] = useState<string | null>(null);
+  const [itemFocoId, setItemFocoId] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('item')
+  );
   const [stats, setStats] = useState({ automations: 0, contacts: 0, automationsTriggered: 0, events: 0, leadsGenerated: 0 });
   const [funnel, setFunnel] = useState({ comments: 0, welcomeDms: 0, clicks: 0, leads: 0 });
   const [weeklyChart, setWeeklyChart] = useState<{ day: string; comments: number; dms: number }[]>([]);
@@ -145,7 +126,16 @@ export default function Dashboard() {
 
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'rotina' | 'clientes' | 'esteira' | 'calendario_geral' | 'equipe' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'inbox'>('dashboard');
+  // A tela ativa vive na URL (?tab=…&item=…): recarregar mantém a tela, o
+  // voltar do navegador funciona e dá pra mandar o link de uma demanda.
+  const [activeTab, setActiveTab] = useState<AbaId>(() => {
+    if (typeof window === 'undefined') return 'dashboard';
+    const t = new URLSearchParams(window.location.search).get('tab');
+    return isAbaId(t) ? t : 'dashboard';
+  });
+  const [paletteAberta, setPaletteAberta] = useState(false);
+  const [trocandoConta, setTrocandoConta] = useState(false);
+  const [novaDemandaSinal, setNovaDemandaSinal] = useState(0);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('gensbot_sidebar_collapsed') === 'true';
@@ -219,11 +209,6 @@ export default function Dashboard() {
     followups: [],
   });
   
-  // Live Chat States
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [sendingMessage, setSendingMessage] = useState(false);
   
   // Estado para inputs auxiliares
   const [keywordInput, setKeywordInput] = useState('');
@@ -262,6 +247,8 @@ export default function Dashboard() {
 
   // Layout states
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // No celular o menu abre sempre expandido — o modo compacto é só de desktop.
+  const sidebarCompacta = isSidebarCollapsed && !isMobileMenuOpen;
 
   // Garante que qualquer troca de tela, aba ou conta inicie sempre no topo da página
   useEffect(() => {
@@ -448,9 +435,11 @@ export default function Dashboard() {
     if (accountId === selectedAccountId) return;
     setSelectedAccountId(accountId);
     if (typeof window !== 'undefined') localStorage.setItem(SELECTED_ACCOUNT_STORAGE_KEY, accountId);
-    setLoading(true);
+    // Sem esqueleto de tela inteira: a tela atual fica e uma barra no topo
+    // indica a troca; cada aba recarrega os próprios dados pela conta nova.
+    setTrocandoConta(true);
     setMediaList([]);
-    fetchStatusAndData(accountId);
+    Promise.resolve(fetchStatusAndData(accountId)).finally(() => setTrocandoConta(false));
   };
 
   useEffect(() => {
@@ -512,56 +501,50 @@ export default function Dashboard() {
     else toast.success(message);
   };
 
-  const fetchChatMessages = async (contactId: string) => {
-    try {
-      const res = await fetch(withAccount(`/api/messages?contact_id=${contactId}`));
-      const data = await res.json();
-      if (res.ok) {
-        setChatMessages(data);
-      }
-    } catch (err) {
-      console.error('Erro ao carregar mensagens do chat:', err);
-    }
+  /**
+   * Única porta de navegação entre telas: confere edição não salva, fecha o
+   * menu do celular, atualiza a URL (histórico do navegador) e o foco.
+   */
+  const navegarPara = async (tab: AbaId, opts: { item?: string | null; replace?: boolean } = {}) => {
+    if (!(await podeSairDaEdicao())) return false;
+    if (opts.item) setItemFocoId(opts.item);
+    setActiveTab(tab);
+    setIsEditing(false);
+    setIsMobileMenuOpen(false);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    url.searchParams.delete('item');
+    url.searchParams.delete('account');
+    if (opts.item) url.searchParams.set('item', opts.item);
+    window.history[opts.replace ? 'replaceState' : 'pushState']({ tab }, '', url);
+    return true;
   };
 
+  // Voltar/avançar do navegador troca de tela.
   useEffect(() => {
-    if (selectedContactId) {
-      fetchChatMessages(selectedContactId);
-      const interval = setInterval(() => {
-        fetchChatMessages(selectedContactId);
-      }, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [selectedContactId]);
+    const onPop = () => {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get('tab');
+      setActiveTab(isAbaId(t) ? t : 'dashboard');
+      setItemFocoId(params.get('item'));
+      setIsEditing(false);
+      setIsMobileMenuOpen(false);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedContactId || !chatInput.trim() || sendingMessage) return;
-
-    setSendingMessage(true);
-    try {
-      const res = await fetch(withAccount('/api/messages'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contact_id: selectedContactId,
-          text: chatInput.trim()
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setChatInput('');
-        setChatMessages(prev => [...prev, data]);
-        showToast('Mensagem enviada com sucesso!', 'success');
-      } else {
-        showToast(data.error || 'Erro ao enviar mensagem.', 'error');
+  // Ctrl/⌘+K abre a busca rápida de qualquer lugar (inclusive de dentro de campos).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteAberta((v) => !v);
       }
-    } catch (err: any) {
-      showToast('Erro de rede ao enviar mensagem.', 'error');
-    } finally {
-      setSendingMessage(false);
-    }
-  };
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const handleConnectInstagram = () => {
     const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
@@ -906,8 +889,78 @@ export default function Dashboard() {
     );
   }
 
+  const itensBusca: ComandoItem[] = [
+    ...ABAS.map((id) => ({
+      id: `tela-${id}`,
+      label: TELAS[id].label,
+      hint: TELAS[id].grupo === 'instagram' ? 'Instagram' : TELAS[id].grupo === 'admin' ? 'Administração' : 'Agência',
+      grupo: 'Ir para',
+      icon: TELAS[id].icon,
+      keywords: TELAS[id].titulo,
+      run: () => navegarPara(id),
+    })),
+    {
+      id: 'acao-nova-demanda',
+      label: 'Nova demanda',
+      grupo: 'Ações',
+      icon: Plus,
+      keywords: 'criar post reel conteudo esteira',
+      run: async () => {
+        if (await navegarPara('esteira')) setNovaDemandaSinal((n) => n + 1);
+      },
+    },
+    {
+      id: 'acao-novo-agendamento',
+      label: 'Agendar publicação',
+      grupo: 'Ações',
+      icon: Send,
+      keywords: 'publicar post story reels agendar',
+      run: () => navegarPara('publish'),
+    },
+    {
+      id: 'acao-nova-automacao',
+      label: 'Nova automação',
+      grupo: 'Ações',
+      icon: TELAS.automations.icon,
+      keywords: 'fluxo direct comentario dm',
+      run: async () => {
+        if (!(await navegarPara('automations'))) return;
+        resetForm();
+        setIsEditing(true);
+      },
+    },
+    {
+      id: 'acao-tema',
+      label: theme === 'dark' ? 'Mudar para o modo claro' : 'Mudar para o modo escuro',
+      grupo: 'Ações',
+      icon: theme === 'dark' ? Sun : Moon,
+      keywords: 'tema dark light escuro claro',
+      run: toggleTheme,
+    },
+    ...(accounts.length > 1
+      ? [
+          {
+            id: 'conta-all',
+            label: 'Visão da agência (todas as contas)',
+            grupo: 'Trocar de conta',
+            icon: Instagram,
+            run: () => handleSelectAccount('all'),
+          },
+        ]
+      : []),
+    ...accounts.map((acc) => ({
+      id: `conta-${acc.instagram_user_id}`,
+      label: `@${acc.instagram_username || acc.instagram_user_id}`,
+      hint: acc.instagram_user_id === selectedAccountId ? 'atual' : undefined,
+      grupo: 'Trocar de conta',
+      icon: Instagram,
+      run: () => handleSelectAccount(acc.instagram_user_id),
+    })),
+  ];
+
   return (
     <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased">
+      <CommandPalette open={paletteAberta} onOpenChange={setPaletteAberta} itens={itensBusca} />
       {/* Overlay para o Menu Mobile */}
       {isMobileMenuOpen && (
         <div 
@@ -917,13 +970,13 @@ export default function Dashboard() {
       )}
 
       {/* 1. Left Sidebar Navigation — 100% fixa em tela inteira */}
-      <aside className={`fixed md:relative inset-y-0 left-0 z-50 ${isSidebarCollapsed ? 'w-20' : 'w-72'} h-full bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:relative inset-y-0 left-0 z-50 ${sidebarCompacta ? 'w-20' : 'w-72'} h-full bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
 
         {/* Brand & Workspace Header */}
-        <div className={`p-4 pb-3 flex flex-col gap-2 ${isSidebarCollapsed ? 'items-center px-2' : ''}`}>
-          <div className={`flex items-center ${isSidebarCollapsed ? 'flex-col gap-3 justify-center' : 'justify-between px-2'} pt-1`}>
+        <div className={`p-4 pb-3 flex flex-col gap-2 ${sidebarCompacta ? 'items-center px-2' : ''}`}>
+          <div className={`flex items-center ${sidebarCompacta ? 'flex-col gap-3 justify-center' : 'justify-between px-2'} pt-1`}>
             <div className="flex items-center gap-2">
-              {isSidebarCollapsed ? (
+              {sidebarCompacta ? (
                 <LogoMark className="w-8 h-8 rounded-xl shadow-2xs" />
               ) : (
                 <>
@@ -941,15 +994,23 @@ export default function Dashboard() {
               onClick={toggleSidebar}
               aria-label={isSidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
               aria-expanded={!isSidebarCollapsed}
-              className="p-1.5 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="hidden md:inline-flex p-1.5 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
-              {isSidebarCollapsed ? (
+              {sidebarCompacta ? (
                 <PanelLeftOpen className="w-4 h-4" />
               ) : (
                 <PanelLeftClose className="w-4 h-4" />
               )}
             </button>
             </Tip>
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-label="Fechar menu"
+              className="md:hidden p-1.5 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Seletor de Conta do Instagram (perfil ativo) */}
@@ -960,7 +1021,7 @@ export default function Dashboard() {
                 aria-haspopup="listbox"
                 aria-expanded={accountMenuOpen}
                 title={selectedAccountId === 'all' ? 'Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}
-                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 p-2'} rounded-xl bg-accent/60 hover:bg-accent border border-border hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group`}
+                className={`w-full flex items-center ${sidebarCompacta ? 'justify-center p-2' : 'gap-2.5 p-2'} rounded-xl bg-accent/60 hover:bg-accent border border-border hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group`}
               >
                 {selectedAccountId === 'all' ? (
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 border border-primary/40">
@@ -978,7 +1039,7 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {!isSidebarCollapsed && (
+                {!sidebarCompacta && (
                   <>
                     <div className="flex-1 min-w-0 leading-tight">
                       <p className="text-xs font-bold text-foreground truncate">
@@ -999,7 +1060,7 @@ export default function Dashboard() {
                     className="fixed inset-0 z-40"
                     onClick={() => setAccountMenuOpen(false)}
                   />
-                  <div className={`absolute ${isSidebarCollapsed ? 'left-full top-0 ml-2 w-64' : 'left-0 top-full mt-1.5 w-full'} bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}>
+                  <div className={`absolute ${sidebarCompacta ? 'left-full top-0 ml-2 w-64' : 'left-0 top-full mt-1.5 w-full'} bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}>
                     <div className="max-h-64 overflow-y-auto py-1">
                       {accounts.length > 1 && (
                         <button
@@ -1080,10 +1141,10 @@ export default function Dashboard() {
             <button
               onClick={handleConnectInstagram}
               title="Conectar Instagram"
-              className={`mt-2 w-full flex items-center justify-center ${isSidebarCollapsed ? 'p-2.5' : 'gap-2 px-3 py-2.5'} rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-all shadow-xs cursor-pointer`}
+              className={`mt-2 w-full flex items-center justify-center ${sidebarCompacta ? 'p-2.5' : 'gap-2 px-3 py-2.5'} rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-all shadow-xs cursor-pointer`}
             >
               <Instagram className="w-3.5 h-3.5 flex-shrink-0" />
-              {!isSidebarCollapsed && <span>Conectar Instagram</span>}
+              {!sidebarCompacta && <span>Conectar Instagram</span>}
             </button>
           )}
         </div>
@@ -1091,45 +1152,17 @@ export default function Dashboard() {
         <div className="border-t border-sidebar-border mx-3" />
 
         {/* Navigation Links — Linear-inspired grouping */}
-        <nav className={`flex-1 ${isSidebarCollapsed ? 'px-2 py-4' : 'px-3 py-4'} flex flex-col gap-4 overflow-y-auto`}>
-          {[
-            {
-              label: 'Geral',
-              items: [
-                { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-                { id: 'rotina', label: 'Rotina & Afazeres', icon: CheckSquare },
-                { id: 'clientes', label: 'Clientes', icon: Briefcase },
-                { id: 'equipe', label: 'Equipe & Sócios', icon: Users2 },
-              ],
-            },
-            {
-              label: 'Conteúdo',
-              items: [
-                { id: 'esteira', label: 'Demandas & Aprovação', icon: Layers },
-                { id: 'calendario_geral', label: 'Calendário Geral', icon: CalendarDays },
-                { id: 'publish', label: 'Agendamentos', icon: Send },
-                { id: 'metrics', label: 'Métricas', icon: TrendingUp },
-              ],
-            },
-            {
-              label: 'Relacionamento',
-              items: [
-                { id: 'automations', label: 'Automações', icon: Settings },
-                { id: 'contacts', label: 'Contatos & Leads', icon: Users },
-                { id: 'inbox', label: 'Inbox', icon: MessageCircle },
-              ],
-            },
-            {
-              label: 'Ferramentas',
-              items: [
-                { id: 'utm', label: 'Links UTM', icon: Link2 },
-              ],
-            },
-          ].map((group, gi) => (
+        <nav className={`flex-1 ${sidebarCompacta ? 'px-2 py-4' : 'px-3 py-4'} flex flex-col gap-4 overflow-y-auto`}>
+          {GRUPOS_MENU.map((g) => ({
+            label: g.id === 'instagram'
+              ? `Instagram · ${selectedAccountId && selectedAccountId !== 'all' ? '@' + (config?.instagram_username || '…') : 'todas as contas'}`
+              : g.label,
+            items: ABAS.filter((id) => TELAS[id].grupo === g.id).map((id) => ({ id, label: TELAS[id].label, icon: TELAS[id].icon })),
+          })).map((group, gi) => (
             <div key={gi} className="flex flex-col gap-1">
-              {!isSidebarCollapsed ? (
+              {!sidebarCompacta ? (
                 group.label && (
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-3 mb-0.5">
+                  <span className="text-xs font-medium text-muted-foreground px-3 mb-0.5 truncate">
                     {group.label}
                   </span>
                 )
@@ -1141,24 +1174,22 @@ export default function Dashboard() {
                 const active = activeTab === item.id;
 
                 return (
-                  <Tip key={item.id} label={item.label} side="right" disabled={!isSidebarCollapsed}>
+                  <Tip key={item.id} label={item.label} side="right" disabled={!sidebarCompacta}>
                   <button
                     type="button"
                     aria-current={active ? 'page' : undefined}
-                    aria-label={isSidebarCollapsed ? item.label : undefined}
-                    onClick={async () => {
-                      if (!(await podeSairDaEdicao())) return;
-                      setActiveTab(item.id as any);
-                      setIsEditing(false);
-                    }}
-                    className={`relative w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2'} rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
-                      active 
-                        ? 'text-primary bg-primary/15 font-bold shadow-2xs border border-primary/30' 
-                        : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+                    aria-label={sidebarCompacta ? item.label : undefined}
+                    onClick={() => navegarPara(item.id)}
+                    className={`relative w-full flex items-center ${sidebarCompacta ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2'} rounded-xl text-sm font-medium transition-colors cursor-pointer text-left ${
+                      active
+                        ? 'text-sidebar-accent-foreground bg-sidebar-accent'
+                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
                     }`}
                   >
-                    <Icon className={`relative w-4 h-4 flex-shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                    {!isSidebarCollapsed && <span className="relative truncate">{item.label}</span>}
+                    {/* Indicador de tela ativa (estilo Linear): a cor de marca aparece só aqui */}
+                    {active && <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-full bg-sidebar-primary" />}
+                    <Icon className={`relative w-4 h-4 flex-shrink-0 ${active ? 'text-sidebar-primary' : 'text-muted-foreground'}`} />
+                    {!sidebarCompacta && <span className="relative truncate">{item.label}</span>}
                   </button>
                   </Tip>
                 );
@@ -1168,17 +1199,15 @@ export default function Dashboard() {
         </nav>
 
         {/* Sidebar Footer: Perfil Único do Usuário Master na Sidebar */}
-        <div className={`p-3 border-t border-sidebar-border ${isSidebarCollapsed ? 'flex justify-center p-2' : ''}`}>
+        <div className={`p-3 border-t border-sidebar-border ${sidebarCompacta ? 'flex justify-center p-2' : ''}`}>
           {currentUser && (
             <UserProfilePopover
               userName={currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Agência GENS'}
               userEmail={currentUser?.email || 'contato@agenciagens.com'}
               userRole="Diretor de Conteúdo"
               avatarUrl={currentUser?.user_metadata?.avatar_url}
-              onNavigate={async (tab) => {
-                if (!(await podeSairDaEdicao())) return;
-                setActiveTab(tab as any);
-                setIsEditing(false);
+              onNavigate={(tab) => {
+                if (isAbaId(tab)) navegarPara(tab);
               }}
               onLogout={handleAppLogout}
               onUpdateProfile={handleUpdateUserProfile}
@@ -1201,9 +1230,17 @@ export default function Dashboard() {
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
-            <Logo className="h-5" />
+            <span className="text-sm font-semibold font-display text-foreground truncate">{TELAS[activeTab].titulo}</span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPaletteAberta(true)}
+              aria-label="Busca rápida"
+              className="p-1.5 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <Search className="w-4 h-4" />
+            </button>
             <Tip label={theme === 'dark' ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'} side="bottom">
             <button
               type="button"
@@ -1228,34 +1265,10 @@ export default function Dashboard() {
         <header className="hidden md:flex sticky top-0 z-30 min-h-[64px] py-3 px-6 sm:px-8 items-center justify-between flex-shrink-0 bg-background/90 backdrop-blur-md border-b border-border shadow-2xs">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold font-display text-foreground tracking-tight">
-                {activeTab === 'dashboard' && 'Dashboard'}
-                {activeTab === 'rotina' && 'Rotina & Afazeres da Agência'}
-                {activeTab === 'clientes' && 'Clientes'}
-                {activeTab === 'esteira' && 'Demandas & Aprovação'}
-                {activeTab === 'calendario_geral' && 'Calendário Geral de Postagens'}
-                {activeTab === 'equipe' && 'Equipe & Sócios'}
-                {activeTab === 'automations' && 'Automações'}
-                {activeTab === 'utm' && 'Links UTM'}
-                {activeTab === 'metrics' && 'Métricas'}
-                {activeTab === 'publish' && 'Agendamentos'}
-                {activeTab === 'contacts' && 'Leads & Público'}
-                {activeTab === 'inbox' && 'Inbox'}
-              </h2>
+              <h2 className="text-xl font-semibold font-display text-foreground tracking-tight">{TELAS[activeTab].titulo}</h2>
             </div>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5">
-              {activeTab === 'dashboard' && 'Visão unificada das métricas, fila e performance das automações.'}
-              {activeTab === 'rotina' && 'Afazeres internos, tarefas operacionais e pendências do dia a dia da agência.'}
-              {activeTab === 'clientes' && 'Dossiê, contratos e contatos organizados por cliente.'}
-              {activeTab === 'esteira' && 'Esteira de produção de posts e reels com link de aprovação direta pelo WhatsApp.'}
-              {activeTab === 'calendario_geral' && 'Visão macro unificada de todos os posts com detecção de conflitos.'}
-              {activeTab === 'equipe' && 'Gestão de membros, sócios, papéis e permissões da agência.'}
-              {activeTab === 'automations' && 'Fluxos e funis de resposta automática no Instagram.'}
-              {activeTab === 'utm' && 'Links rastreáveis conectados a campanhas e automações.'}
-              {activeTab === 'metrics' && 'Performance e crescimento das contas conectadas.'}
-              {activeTab === 'publish' && 'Calendário, esteira e agendamento de posts, reels e stories.'}
-              {activeTab === 'contacts' && 'Pessoas captadas e qualificadas pelas automações.'}
-              {activeTab === 'inbox' && 'Central de mensagens diretas e atendimento.'}
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {TELAS[activeTab].subtitulo}
             </p>
           </div>
 
@@ -1274,6 +1287,26 @@ export default function Dashboard() {
                 </button>
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={() => setPaletteAberta(true)}
+              className="hidden lg:flex items-center gap-2 h-9 pl-3 pr-2 rounded-xl border border-border-strong bg-card text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer min-w-56"
+            >
+              <Search aria-hidden className="w-4 h-4" />
+              <span className="flex-1 text-left">Buscar ou ir para…</span>
+              <kbd className="rounded border border-border-strong bg-muted px-1.5 text-[11px]">Ctrl K</kbd>
+            </button>
+            <Tip label="Busca rápida" shortcut="Ctrl+K" side="bottom">
+              <button
+                type="button"
+                onClick={() => setPaletteAberta(true)}
+                aria-label="Busca rápida"
+                className="lg:hidden p-2 rounded-xl bg-card hover:bg-accent border border-border text-foreground cursor-pointer"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            </Tip>
 
             {/* Alternador Simples de Tema (Dark / Light) */}
             <Tip label={theme === 'dark' ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'} side="bottom">
@@ -1294,7 +1327,12 @@ export default function Dashboard() {
         </header>
 
         {/* 3. Tab-based Content Area — Respiro Visual Harmonioso */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8 bg-background max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] w-full mx-auto space-y-6">
+        {trocandoConta && (
+          <div role="status" aria-label="Trocando de conta" className="sticky top-0 z-40 h-0.5 w-full overflow-hidden">
+            <div className="h-full w-1/3 bg-primary animate-[progresso_1.1s_ease-in-out_infinite]" />
+          </div>
+        )}
+        <main aria-busy={trocandoConta} className="flex-1 p-4 sm:p-6 md:p-8 bg-background max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] w-full mx-auto space-y-6">
           <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -1323,9 +1361,10 @@ export default function Dashboard() {
               selectedAccountId={selectedAccountId}
               withAccount={withAccount}
               onNavigateTab={(tab, itemId) => {
-                if (itemId) setItemFocoId(itemId);
-                setActiveTab(tab as any);
-                setIsEditing(false);
+                if (isAbaId(tab)) navegarPara(tab, { item: itemId });
+              }}
+              onNovaDemanda={async () => {
+                if (await navegarPara('esteira')) setNovaDemandaSinal((n) => n + 1);
               }}
             />
           )}
@@ -1423,8 +1462,7 @@ export default function Dashboard() {
               onAbrirConta={(destino: DestinoConta, instagramUserId: string) => {
                 // Escopa o app inteiro na conta do cliente e abre a aba pedida.
                 handleSelectAccount(instagramUserId);
-                setActiveTab(destino);
-                setIsEditing(false);
+                navegarPara(destino);
               }}
             />
           )}
@@ -1435,9 +1473,10 @@ export default function Dashboard() {
               showToast={showToast}
               itemFocoId={itemFocoId}
               onClearItemFoco={() => setItemFocoId(null)}
+              novaDemandaSinal={novaDemandaSinal}
               onIrParaAgendamento={(prefill) => {
                 setPrefillAgendamento(prefill);
-                setActiveTab('publish');
+                navegarPara('publish');
               }}
             />
           )}
@@ -1446,13 +1485,10 @@ export default function Dashboard() {
           {activeTab === 'calendario_geral' && (
             <CalendarioGeral
               showToast={showToast}
-              onAbrirDemanda={(itemId) => {
-                setItemFocoId(itemId);
-                setActiveTab('esteira');
-              }}
+              onAbrirDemanda={(itemId) => navegarPara('esteira', { item: itemId })}
               onIrParaAgendamento={(prefill) => {
                 setPrefillAgendamento(prefill);
-                setActiveTab('publish');
+                navegarPara('publish');
               }}
             />
           )}

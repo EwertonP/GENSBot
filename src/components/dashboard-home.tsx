@@ -69,6 +69,8 @@ interface DashboardHomeProps {
   selectedAccountId: string | null;
   withAccount: (url: string, accountIdOverride?: string | null) => string;
   onNavigateTab?: (tab: string, itemId?: string) => void;
+  /** Abre direto o formulário de nova demanda na Esteira. */
+  onNovaDemanda?: () => void;
 }
 
 /** Gráfico de Área Suave Estilo Instagram / Linear */
@@ -302,6 +304,7 @@ export default function DashboardHome({
   selectedAccountId,
   withAccount,
   onNavigateTab,
+  onNovaDemanda,
 }: DashboardHomeProps) {
   // Modo de visualização da Home: Operacional ("Minhas Demandas") vs Métricas ("Painel Profissional")
   const [homeMode, setHomeMode] = useState<'demandas' | 'metricas'>('demandas');
@@ -546,7 +549,7 @@ export default function DashboardHome({
                 type="button"
                 variant="primary"
                 size="sm"
-                onClick={() => onNavigateTab?.('esteira')}
+                onClick={() => (onNovaDemanda ? onNovaDemanda() : onNavigateTab?.('esteira'))}
                 className="rounded-xl text-xs h-9 font-semibold"
               >
                 <Plus className="w-3.5 h-3.5 mr-1.5" />

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   Plus,
   Search,
@@ -125,6 +125,8 @@ interface EsteiraTabProps {
   itemFocoId?: string | null;
   onClearItemFoco?: () => void;
   onIrParaAgendamento?: (prefill: PrefillAgendamento) => void;
+  /** Incrementa pra abrir "Nova demanda" de fora (busca rápida, dashboard). */
+  novaDemandaSinal?: number;
 }
 
 export default function EsteiraTab({
@@ -133,6 +135,7 @@ export default function EsteiraTab({
   itemFocoId,
   onClearItemFoco,
   onIrParaAgendamento,
+  novaDemandaSinal = 0,
 }: EsteiraTabProps) {
   const [items, setItems] = useState<ConteudoItem[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -503,6 +506,17 @@ export default function EsteiraTab({
     setFormModoVisualizacao('abas');
     setModalNovoAberto(true);
   }
+
+  // Pedido externo de "Nova demanda": abre assim que os dados (clientes,
+  // equipe) terminam de carregar, uma vez por sinal.
+  const sinalAtendidoRef = useRef(0);
+  useEffect(() => {
+    if (novaDemandaSinal > sinalAtendidoRef.current && !carregando) {
+      sinalAtendidoRef.current = novaDemandaSinal;
+      handleAbrirModalNovo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [novaDemandaSinal, carregando]);
 
   // Criação Elaborada de Nova Demanda
   async function handleSalvarNovo(e: React.FormEvent) {
