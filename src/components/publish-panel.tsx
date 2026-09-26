@@ -49,6 +49,7 @@ import type { PrefillAgendamento } from '@/lib/conteudo';
 import { detectarGatilhosDaLegenda, type PublishAutomationConfig } from '@/lib/publish-automation';
 import type { Automation } from '@/types/automation';
 import { uploadMediaFile } from '@/lib/storage-upload';
+import { confirmDialog } from '@/components/ui/dialog';
 
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
@@ -699,7 +700,7 @@ export default function PublishPanel({
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm('Deseja cancelar esta publicação agendada?')) return;
+    if (!(await confirmDialog({title: "Cancelar esta publicação agendada?",description: "Ela não será publicada no horário marcado.",confirmLabel: "Cancelar publicação",cancelLabel: "Manter agendada",tone: "destructive"}))) return;
     if (editingPostId === id) {
       handleCancelEdit();
     }

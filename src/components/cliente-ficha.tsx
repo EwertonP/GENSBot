@@ -30,6 +30,7 @@ import {
   type ContaInstagramResumo,
   type DestinoConta,
 } from '@/lib/clientes';
+import { confirmDialog } from '@/components/ui/dialog';
 
 // Campos editáveis pelo formulário. Todos viram string no input; o servidor
 // converte (a validação de verdade mora em parseClienteInput).
@@ -211,8 +212,8 @@ export default function ClienteFicha({
     setErroForm(null);
   }
 
-  function voltar() {
-    if (sujo && !confirm('Há alterações não salvas nesta ficha. Sair mesmo assim?')) return;
+  async function voltar() {
+    if (sujo && !(await confirmDialog({title: "Sair sem salvar?",description: "Há alterações nesta ficha que ainda não foram salvas.",confirmLabel: "Sair sem salvar",cancelLabel: "Continuar editando",tone: "destructive"}))) return;
     onVoltar();
   }
 
@@ -221,7 +222,7 @@ export default function ClienteFicha({
     const arquivar = cliente.ativo;
     if (
       arquivar &&
-      !confirm(`Arquivar ${cliente.nome}? Ele some da lista principal, mas nada é apagado e dá para restaurar.`)
+      !(await confirmDialog({ title: `Arquivar ${cliente.nome}?`, description: 'Ele some da lista principal, mas nada é apagado — dá para restaurar depois em "Mostrar arquivados".', confirmLabel: 'Arquivar' }))
     ) {
       return;
     }
@@ -540,7 +541,7 @@ function Contatos({
   }
 
   async function remover(contato: ClienteContato) {
-    if (!confirm(`Remover o contato ${contato.nome}?`)) return;
+    if (!(await confirmDialog({ title: `Remover ${contato.nome}?`, description: 'O contato deixa de receber as mensagens de aprovação deste cliente.', confirmLabel: 'Remover contato', tone: 'destructive' }))) return;
     try {
       const res = await fetch(`/api/clientes/${clienteId}/contatos/${contato.id}`, { method: 'DELETE' });
       if (!res.ok) {

@@ -5,6 +5,7 @@ import { Send, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { SkeletonRows } from '@/components/ui/skeleton';
 
 interface Conversation {
   contact_id: string;
@@ -88,7 +89,7 @@ export default function InboxPanel({ withAccount }: InboxPanelProps) {
   const selected = conversations.find((c) => c.contact_id === selectedId);
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground text-center py-12">Carregando conversas...</p>;
+    return <SkeletonRows rows={5} className="p-4" />;
   }
 
   if (conversations.length === 0) {

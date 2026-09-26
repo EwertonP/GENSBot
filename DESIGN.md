@@ -111,7 +111,14 @@ Receita:
 | `Badge` | Variantes `success`, `warning`, `destructive`, `info`, `brand`, `muted`, mais a prop `dot`. `STATUS_LABELS` em `lib/conteudo.ts` já mapeia cada etapa da esteira para uma variante. |
 | `Input` / `Select` / `Textarea` | Usam `fieldInputClass` de `lib/form-styles.ts` (`border-input`, foco em `ring`, `aria-invalid` vermelho). Campo cru (`<input>`) usa `border-input`, nunca `border-border`. |
 | `Card` | `bg-card border-border rounded-2xl shadow-2xs`. `interactive` só em card realmente clicável. |
-| `Sheet`, `EmptyState`, `CalendarPicker`, `MemberChipSelect`, `Board` | Ver o código. Os primitivos que faltam entram na Onda 2 (abaixo). |
+| `Sheet` | Modal padrão, sobre o Dialog do Base UI: foco preso, foco devolvido ao gatilho, scroll travado, Esc/clique fora. A prop `dirty` pede confirmação antes de descartar alterações. Dialogs renderizados **dentro** dele são aninhados (o Esc fecha só o de cima). |
+| `confirmDialog()` (`ui/dialog.tsx`) | Substitui `window.confirm()`: `if (!(await confirmDialog({ title, description, confirmLabel, tone: 'destructive' }))) return;`. O título diz a ação; a descrição, a consequência. `confirm()` e `alert()` nativos são **proibidos**. |
+| `MediaLightbox` | Zoom de imagem/vídeo. Renderize dentro do Sheet que o abre. |
+| `toast` (`ui/toast.tsx`) | `toast.success/error/warning/info(título, { description })` de qualquer lugar, com fila, pausa no hover e swipe. `toast.undo(título, onUndo, { onClose })` serve para exclusão adiada com "Desfazer" (padrão em `rotina-tab.tsx`). O `showToast` antigo das abas já delega para cá. |
+| `Tip` (`ui/tooltip.tsx`) | Tooltip acessível (hover + foco), com `shortcut` opcional. Substitui `title=`. Botão só de ícone continua precisando de `aria-label`. |
+| `Skeleton` / `SkeletonRows` | Carregamento com o formato do conteúdo, no lugar de spinner ou texto solto. |
+| `EmptyState` | Ícone, título, descrição, `action` (próximo passo) e `secondaryAction`. `size="compact"` para colunas e painéis. |
+| `CalendarPicker`, `MemberChipSelect`, `Board` | Ver o código. |
 
 `cn()` (`lib/utils.ts`) é um tailwind-merge estendido com a escala tipográfica. Sem isso, `text-label text-foreground` perderia o tamanho.
 
@@ -143,11 +150,12 @@ Raios: card/modal `rounded-2xl`, campo/botão `rounded-xl`, pill/avatar `rounded
 Cada Onda é mergeada e testada antes da próxima.
 
 1. ✅ **Fundação:** tokens de contraste, piso de 12px, varredura de cores, Badge/Button/Input/Card.
-2. **Primitivos de interação:**
-   - Dialog, AlertDialog, Dropdown, Popover, Tooltip, Tabs, Skeleton e Sonner.
-   - Trocar os ~22 `confirm()`/`alert()` e o toast próprio do `page.tsx`.
-   - Desfazer em exclusões (Undo Pill do Spectrum).
-   - `Sheet` com focus trap e aviso de alterações não salvas (o padrão já existe em `cliente-ficha.tsx`).
+2. ✅ **Primitivos de interação:**
+   - Dialog, AlertDialog, Tooltip e Toast do Base UI, sem dependência nova.
+   - Os 22 `confirm()`/`alert()` foram trocados, e o toast do `page.tsx` agora usa o gerenciador global.
+   - `Sheet` com focus trap e `dirty`; os lightboxes e modais feitos à mão viraram Dialog.
+   - Skeletons, Ctrl+B e tooltips no shell.
+   - Ficou para depois: o FlowBuilder (entra com o aviso de alterações não salvas na Onda 3), os ~110 `title=` fora do shell (trocar ao mexer em cada tela) e o "Desfazer" nas outras exclusões.
 3. **Dados honestos e segurança:**
    - Remover os números fixos de métricas/relatório/dashboard, com empty state no lugar.
    - Aviso de alterações não salvas na Esteira, Publicação e Automações.

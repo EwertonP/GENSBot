@@ -70,6 +70,7 @@ import { detectarGatilhosDaLegenda } from '@/lib/publish-automation';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
 import { uploadMediaFile } from '@/lib/storage-upload';
+import { confirmDialog, MediaLightbox } from '@/components/ui/dialog';
 
 
 export const ETAPAS_PIPELINE: { status: StatusConteudo; label: string; short: string; step: number }[] = [
@@ -693,7 +694,7 @@ export default function EsteiraTab({
   }
 
   async function handleExcluirDemanda(itemId: string) {
-    if (!window.confirm('Tem certeza que deseja excluir esta demanda da esteira?')) return;
+    if (!(await confirmDialog({title: "Excluir esta demanda?",description: "Ela sai da esteira junto com comentários e arquivos anexados.",confirmLabel: "Excluir demanda",tone: "destructive"}))) return;
 
     setExcluindoItem(true);
     try {
@@ -2224,6 +2225,9 @@ export default function EsteiraTab({
             </Button>
           </div>
         </form>
+
+        {/* Lightbox aninhado: Esc fecha só o zoom, não o formulário */}
+        <MediaLightbox src={previewCapaLightbox} onClose={() => setPreviewCapaLightbox(null)} alt="Capa da postagem" />
       </Sheet>
 
       {/* 4. Modal Duplicar Mês de Conteúdo */}
@@ -3133,31 +3137,10 @@ export default function EsteiraTab({
             </div>
           </form>
         )}
-      </Sheet>
 
-      {/* Lightbox / Zoom da Capa da Postagem */}
-      {previewCapaLightbox && (
-        <div
-          className="fixed inset-0 z-60 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setPreviewCapaLightbox(null)}
-        >
-          <div className="relative max-w-4xl max-h-[88vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setPreviewCapaLightbox(null)}
-              className="absolute -top-10 right-0 p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors cursor-pointer"
-              title="Fechar visualização"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            {previewCapaLightbox.endsWith('.mp4') || previewCapaLightbox.includes('video') ? (
-              <video src={previewCapaLightbox} controls autoPlay className="max-w-full max-h-[82vh] rounded-2xl shadow-2xl object-contain border border-white/20" />
-            ) : (
-              <img src={previewCapaLightbox} alt="Capa da Postagem" className="max-w-full max-h-[82vh] rounded-2xl shadow-2xl object-contain border border-white/20" />
-            )}
-          </div>
-        </div>
-      )}
+        {/* Lightbox aninhado: Esc fecha só o zoom, não o formulário */}
+        <MediaLightbox src={previewCapaLightbox} onClose={() => setPreviewCapaLightbox(null)} alt="Capa da postagem" />
+      </Sheet>
 
       {/* 5. Modal de Envio para Aprovação (WhatsApp Web Seguro) */}
       <Sheet

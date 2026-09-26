@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Sora, DM_Sans } from "next/font/google";
 import { MotionConfig } from "motion/react";
+import { AppProviders } from "@/components/app-providers";
 import "./globals.css";
 
 const sora = Sora({
@@ -46,7 +47,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
-        <MotionConfig reducedMotion="user">{children}</MotionConfig>
+        <MotionConfig reducedMotion="user">
+          <AppProviders>{children}</AppProviders>
+        </MotionConfig>
       </body>
     </html>
   );

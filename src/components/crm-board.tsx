@@ -26,6 +26,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Board } from '@/components/ui/board';
+import { toast } from '@/components/ui/toast';
 
 type LeadStatus = 'novo' | 'qualificado' | 'contatado' | 'promovido' | 'descartado';
 
@@ -197,7 +198,7 @@ export default function CrmBoard() {
         body: JSON.stringify({ body: 'Promovido a Cliente ativo da GENS.', channel: 'sistema' }),
       });
     } catch (err: any) {
-      alert(err.message || 'Erro ao promover lead.');
+      toast.error('Não foi possível promover o lead', { description: err.message });
     } finally {
       setPromovendo(false);
     }

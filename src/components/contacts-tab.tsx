@@ -7,6 +7,8 @@ import { Sheet } from '@/components/ui/sheet';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { confirmDialog } from '@/components/ui/dialog';
+import { SkeletonRows } from '@/components/ui/skeleton';
 
 const PAGE_SIZE = 50;
 
@@ -143,7 +145,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
 
   const handleDeleteSelected = async () => {
     if (selectedContacts.length === 0) return;
-    if (!confirm(`Excluir ${selectedContacts.length} contato(s) da audiência? Essa ação não pode ser desfeita.`)) return;
+    if (!(await confirmDialog({ title: `Excluir ${selectedContacts.length} contato${selectedContacts.length > 1 ? 's' : ''}?`, description: 'Eles saem da audiência e das automações. Essa ação não pode ser desfeita.', confirmLabel: 'Excluir', tone: 'destructive' }))) return;
     for (const c of selectedContacts) {
       try {
         await fetch(withAccount(`/api/contacts/${c.instagram_id}`), { method: 'DELETE' });
@@ -347,7 +349,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
           <tbody className="divide-y divide-accent">
             {loading ? (
               <tr>
-                <td colSpan={10} className="py-12 text-center text-muted-foreground">Carregando...</td>
+                <td colSpan={10} className="p-4"><SkeletonRows rows={6} /></td>
               </tr>
             ) : contacts.length === 0 ? (
               <tr>

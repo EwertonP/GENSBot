@@ -17,6 +17,9 @@ import {
   ExternalLink,
   X,
 } from 'lucide-react';
+import { confirmDialog } from '@/components/ui/dialog';
+import { Sheet } from '@/components/ui/sheet';
+import { toast } from '@/components/ui/toast';
 
 interface PostFeed {
   id: string;
@@ -76,7 +79,7 @@ export default function FeedAprovacaoPage() {
   }, [token]);
 
   async function handleAprovarGrade() {
-    if (!confirm('Deseja aprovar todas as publicações pendentes desta grade?')) return;
+    if (!(await confirmDialog({title: "Aprovar a grade inteira?",description: "Todas as publicações que ainda aguardam sua revisão serão aprovadas de uma vez.",confirmLabel: "Aprovar todas"}))) return;
     setAprovandoGrade(true);
     try {
       const res = await fetch(`/api/aprovacao/feed/${token}`, {
@@ -90,7 +93,7 @@ export default function FeedAprovacaoPage() {
         prev.map((p) => (p.status === 'revisao_cliente' ? { ...p, status: 'agendamento' } : p))
       );
     } catch {
-      alert('Não foi possível aprovar a grade. Tente novamente.');
+      toast.error('Não foi possível aprovar a grade', { description: 'Verifique sua conexão e tente novamente.' });
     } finally {
       setAprovandoGrade(false);
     }
@@ -293,11 +296,8 @@ export default function FeedAprovacaoPage() {
       </main>
 
       {/* Modal de Inspeção do Post Selecionado */}
-      {postSelecionado && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm"
-          onClick={() => setPostSelecionado(null)}
-        >
+      <Sheet open={!!postSelecionado} onClose={() => setPostSelecionado(null)} aria-label="Detalhes da publicação" className="bg-transparent border-0 shadow-none rounded-none overflow-visible max-h-none w-full max-w-3xl">
+        {postSelecionado && (
           <div
             className="bg-card text-foreground border border-border rounded-2xl overflow-hidden max-w-3xl w-full max-h-[90vh] flex flex-col md:flex-row shadow-2xl relative"
             onClick={(e) => e.stopPropagation()}
@@ -395,8 +395,8 @@ export default function FeedAprovacaoPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Sheet>
     </div>
   );
 }

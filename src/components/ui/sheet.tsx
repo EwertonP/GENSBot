@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '@/lib/utils';
+import React from 'react';
+import { DialogShell, confirmDialog } from './dialog';
 
 export interface SheetProps {
   open: boolean;
@@ -10,52 +9,37 @@ export interface SheetProps {
   children: React.ReactNode;
   className?: string;
   'aria-label'?: string;
+  /**
+   * Há alterações não salvas? Se sim, Esc / clique fora pedem confirmação
+   * antes de fechar em vez de descartar o formulário em silêncio.
+   */
+  dirty?: boolean;
 }
 
 /**
- * Modal/sheet compartilhado: scrim + painel que materializa com spring
- * (não só opacity), fecha com Esc ou clique fora, sempre desmontado via
- * AnimatePresence pra ter saída animada em vez de sumir cru.
+ * Modal/sheet compartilhado. Roda sobre o Dialog do Base UI (ver
+ * ui/dialog.tsx): foco preso dentro do painel e devolvido ao gatilho ao
+ * fechar, scroll da página travado, Esc/clique fora, e suporte a dialogs
+ * aninhados (lightbox, confirmação) sem fechar o de baixo.
  */
-export function Sheet({ open, onClose, children, className, 'aria-label': ariaLabel }: SheetProps) {
-  useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose]);
+export function Sheet({ open, onClose, children, className, 'aria-label': ariaLabel, dirty }: SheetProps) {
+  const requestClose = async () => {
+    if (dirty) {
+      const ok = await confirmDialog({
+        title: 'Descartar alterações?',
+        description: 'Você tem alterações que ainda não foram salvas. Se fechar agora, elas serão perdidas.',
+        confirmLabel: 'Descartar',
+        cancelLabel: 'Continuar editando',
+        tone: 'destructive',
+      });
+      if (!ok) return;
+    }
+    onClose();
+  };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 dark:bg-black/80 backdrop-blur-sm p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          onClick={onClose}
-        >
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label={ariaLabel}
-            className={cn(
-              'bg-card border border-border rounded-2xl shadow-2xl overflow-hidden text-foreground max-h-[92vh] flex flex-col',
-              className
-            )}
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {children}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <DialogShell open={open} onRequestClose={requestClose} className={className} aria-label={ariaLabel}>
+      {children}
+    </DialogShell>
   );
 }

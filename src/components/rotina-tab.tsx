@@ -26,6 +26,7 @@ import { ClienteAvatar } from '@/components/cliente-avatar';
 import type { TarefaRotina } from '@/app/api/rotina/route';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
+import { toast } from '@/components/ui/toast';
 
 interface RotinaTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
@@ -143,17 +144,38 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
     }
   }
 
-  // Deletar
-  async function handleExcluir(id: string) {
-    if (!confirm('Deseja excluir esta tarefa?')) return;
-    try {
-      const res = await fetch(`/api/rotina/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
-      setTarefas((prev) => prev.filter((t) => t.id !== id));
-      showToast('Tarefa removida.', 'success');
-    } catch {
-      showToast('Erro ao remover tarefa.', 'error');
-    }
+  // Excluir com "Desfazer": some da lista na hora, o DELETE só vai pro
+  // servidor quando o toast fecha (7s) — se o usuário desfizer, nada é apagado.
+  function handleExcluir(id: string) {
+    const index = tarefas.findIndex((t) => t.id === id);
+    if (index < 0) return;
+    const tarefa = tarefas[index];
+    const restaurar = () =>
+      setTarefas((prev) => {
+        if (prev.some((t) => t.id === id)) return prev;
+        const next = [...prev];
+        next.splice(Math.min(index, next.length), 0, tarefa);
+        return next;
+      });
+
+    setTarefas((prev) => prev.filter((t) => t.id !== id));
+    let desfeito = false;
+    toast.undo('Tarefa excluída', () => {
+      desfeito = true;
+      restaurar();
+    }, {
+      description: tarefa.titulo,
+      onClose: async () => {
+        if (desfeito) return;
+        try {
+          const res = await fetch(`/api/rotina/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error();
+        } catch {
+          restaurar();
+          toast.error('Não foi possível excluir a tarefa', { description: 'Ela voltou para a lista.' });
+        }
+      },
+    });
   }
 
   const tarefasFiltradas = useMemo(() => {

@@ -38,6 +38,7 @@ import { ClienteAvatar } from '@/components/cliente-avatar';
 import { STATUS_LABELS, type ConteudoItem, type StatusConteudo } from '@/lib/conteudo';
 import type { MembroEquipe } from '@/components/equipe-tab';
 import type { TarefaRotina } from '@/app/api/rotina/route';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface DailyInsight {
   date: string;
@@ -88,8 +89,10 @@ function SmoothAreaChart({
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-48 w-full flex items-center justify-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border">
-        Carregando métricas do período...
+      <div role="status" aria-label="Carregando métricas do período" className="h-48 w-full flex items-end gap-2 px-2 pb-2">
+        {[38, 55, 44, 70, 52, 82, 64].map((h, i) => (
+          <Skeleton key={i} className="flex-1 rounded-md" style={{ height: `${h}%` }} />
+        ))}
       </div>
     );
   }
