@@ -21,6 +21,7 @@ import EsteiraTab from '@/components/esteira-tab';
 import EquipeTab from '@/components/equipe-tab';
 import RotinaTab from '@/components/rotina-tab';
 import CalendarioGeral from '@/components/calendario-geral';
+import FormsTab from '@/components/forms-tab';
 import type { DestinoConta } from '@/lib/clientes';
 import type { PrefillAgendamento } from '@/lib/conteudo';
 import { Instagram } from '@/components/instagram-icon';
@@ -1338,6 +1339,13 @@ export default function Dashboard() {
                 setPrefillAgendamento(prefill);
                 navegarPara('publish');
               }}
+            />
+          )}
+
+          {/* TAB: FORMULÁRIOS (TYPEFORM BUILDER) */}
+          {activeTab === 'forms' && (
+            <FormsTab
+              clienteSelecionado={selectedAccountId}
             />
           )}
 
