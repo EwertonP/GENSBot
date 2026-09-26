@@ -88,7 +88,7 @@ function SmoothAreaChart({
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-48 w-full flex items-center justify-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border/80">
+      <div className="h-48 w-full flex items-center justify-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border">
         Carregando métricas do período...
       </div>
     );
@@ -161,9 +161,9 @@ function SmoothAreaChart({
         >
           <defs>
             <linearGradient id="instagram-area-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#d8ff3c" stopOpacity="0.45" />
-              <stop offset="70%" stopColor="#d8ff3c" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#d8ff3c" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.45" />
+              <stop offset="70%" stopColor="var(--chart-1)" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0.0" />
             </linearGradient>
           </defs>
 
@@ -208,7 +208,7 @@ function SmoothAreaChart({
             className="absolute top-1 z-30 pointer-events-none bg-foreground text-background text-xs py-2 px-3 rounded-xl shadow-xl flex flex-col gap-1 font-mono transform -translate-x-1/2 animate-in fade-in zoom-in-95 duration-100"
             style={{ left: `${(pointsA[hoverIndex].x / width) * 100}%` }}
           >
-            <span className="text-[10px] text-muted font-bold uppercase tracking-wider">
+            <span className="text-xs text-muted font-bold uppercase tracking-wider">
               {new Date(data[hoverIndex].date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
             </span>
             <div className="flex items-center gap-2">
@@ -216,7 +216,7 @@ function SmoothAreaChart({
               <span className="font-bold text-background">{pointsA[hoverIndex].val.toLocaleString('pt-BR')} {labelA}</span>
             </div>
             {pointsB[hoverIndex] && (
-              <div className="flex items-center gap-2 text-[11px] text-muted">
+              <div className="flex items-center gap-2 text-xs text-muted">
                 <span className="w-2 h-2 rounded-full bg-muted-foreground" />
                 <span>{pointsB[hoverIndex].val.toLocaleString('pt-BR')} {labelB}</span>
               </div>
@@ -226,7 +226,7 @@ function SmoothAreaChart({
       </div>
 
       {/* Legenda do Gráfico */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
+      <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5 font-bold text-foreground">
             <span className="w-2.5 h-2.5 rounded-full bg-foreground" /> {labelA}
@@ -235,7 +235,7 @@ function SmoothAreaChart({
             <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground" /> {labelB}
           </span>
         </div>
-        <span className="text-[11px] font-mono font-semibold">
+        <span className="text-xs font-mono font-semibold">
           Total no período: {data.reduce((acc, curr) => acc + (Number(curr[metricA]) || 0), 0).toLocaleString('pt-BR')}
         </span>
       </div>
@@ -446,21 +446,21 @@ export default function DashboardHome({
       )}
 
       {/* 0. Seletor de Modo da Home (Operacional vs Métricas) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-2.5 rounded-2xl border border-border/80 shadow-2xs">
-        <div className="flex items-center gap-1.5 p-1 bg-accent/60 rounded-xl border border-border/70">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-2.5 rounded-2xl border border-border shadow-2xs">
+        <div className="flex items-center gap-1.5 p-1 bg-accent/60 rounded-xl border border-border">
           <button
             type="button"
             onClick={() => setHomeMode('demandas')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               homeMode === 'demandas'
-                ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                ? 'bg-card text-foreground shadow-2xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <CheckCircle2 className={`w-3.5 h-3.5 ${homeMode === 'demandas' ? 'text-primary' : ''}`} />
             <span>Minhas Demandas & Semana</span>
             {demandasAtivas.length > 0 && (
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-primary/10 text-primary font-bold">
+              <span className="text-xs font-mono px-1.5 py-0.2 rounded-full bg-primary/10 text-primary font-bold">
                 {demandasAtivas.length}
               </span>
             )}
@@ -471,7 +471,7 @@ export default function DashboardHome({
             onClick={() => setHomeMode('metricas')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               homeMode === 'metricas'
-                ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                ? 'bg-card text-foreground shadow-2xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -486,7 +486,7 @@ export default function DashboardHome({
             <select
               value={verComo}
               onChange={(e) => setVerComo(e.target.value)}
-              className="h-8 text-xs font-semibold bg-accent/50 border border-border rounded-xl px-2.5 py-1 text-foreground focus:outline-none cursor-pointer"
+              className="h-8 text-xs font-semibold bg-accent/50 border border-input rounded-xl px-2.5 py-1 text-foreground focus:outline-none cursor-pointer"
             >
               <option value="all">Toda a equipe ({demandas.length} demandas)</option>
               {membros.map((m) => (
@@ -502,10 +502,10 @@ export default function DashboardHome({
       {homeMode === 'demandas' ? (
         <div className="flex flex-col gap-6 animate-fade-in">
           {/* Saudação & Ações Rápidas Operacionais */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-card border border-border/80 shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-card border border-border shadow-2xs">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono bg-accent px-2 py-0.5 rounded-md border border-border/60">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono bg-accent px-2 py-0.5 rounded-md border border-border">
                   Centro Operacional
                 </span>
                 <span className="text-xs text-muted-foreground font-mono">✳</span>
@@ -567,7 +567,7 @@ export default function DashboardHome({
                 <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
                   {demandasAtivas.length}
                 </span>
-                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                <span className="text-muted-foreground text-xs font-medium mt-1">
                   em produção ou aprovação
                 </span>
               </div>
@@ -584,7 +584,7 @@ export default function DashboardHome({
                 <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
                   {entregasSemana.length}
                 </span>
-                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                <span className="text-muted-foreground text-xs font-medium mt-1">
                   agendadas de Seg a Dom
                 </span>
               </div>
@@ -593,7 +593,7 @@ export default function DashboardHome({
             <Card className="p-5 rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Rotina Pendente</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <div className="w-8 h-8 rounded-xl bg-success-soft border border-success-ring flex items-center justify-center text-success">
                   <CheckSquare className="w-4 h-4" />
                 </div>
               </div>
@@ -601,7 +601,7 @@ export default function DashboardHome({
                 <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
                   {tarefasFiltradas.length}
                 </span>
-                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                <span className="text-muted-foreground text-xs font-medium mt-1">
                   afazeres internos da equipe
                 </span>
               </div>
@@ -618,7 +618,7 @@ export default function DashboardHome({
                 <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
                   {demandasConcluidasMes.length}
                 </span>
-                <span className="text-muted-foreground text-[11px] font-medium mt-1">
+                <span className="text-muted-foreground text-xs font-medium mt-1">
                   conteúdos entregues e publicados
                 </span>
               </div>
@@ -626,8 +626,8 @@ export default function DashboardHome({
           </section>
 
           {/* Seção Minha Semana (Grade 7 Dias Seg a Dom) */}
-          <div className="p-5 rounded-3xl bg-card border border-border/80 shadow-2xs flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+          <div className="p-5 rounded-3xl bg-card border border-border shadow-2xs flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
               <div>
                 <h4 className="text-base font-bold font-display text-foreground tracking-tight flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-primary" />
@@ -637,7 +637,7 @@ export default function DashboardHome({
                   Cronograma de publicações e prazos dos 7 dias da semana atual.
                 </p>
               </div>
-              <span className="text-[11px] font-mono text-muted-foreground bg-accent px-2.5 py-1 rounded-xl border border-border/60 self-start sm:self-auto">
+              <span className="text-xs font-mono text-muted-foreground bg-accent px-2.5 py-1 rounded-xl border border-border self-start sm:self-auto">
                 {inicioSemanaIso.slice(8, 10)}/{inicioSemanaIso.slice(5, 7)} — {fimSemanaIso.slice(8, 10)}/{fimSemanaIso.slice(5, 7)}
               </span>
             </div>
@@ -656,27 +656,27 @@ export default function DashboardHome({
                     className={`flex flex-col gap-2 p-3 rounded-2xl border transition-all ${
                       dia.eHoje
                         ? 'bg-accent/40 border-primary/40 shadow-xs ring-1 ring-primary/20'
-                        : 'bg-background/60 border-border/60'
+                        : 'bg-background/60 border-border'
                     }`}
                   >
-                    <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-border">
                       <div>
-                        <p className={`text-[11px] font-bold ${dia.eHoje ? 'text-primary' : 'text-foreground'}`}>
+                        <p className={`text-xs font-bold ${dia.eHoje ? 'text-primary' : 'text-foreground'}`}>
                           {dia.nomeCurto}
                         </p>
-                        <p className="text-[10px] text-muted-foreground font-mono">
+                        <p className="text-xs text-muted-foreground font-mono">
                           {String(dia.diaMes).padStart(2, '0')}/{String(dia.mes).padStart(2, '0')}
                         </p>
                       </div>
                       {dia.eHoje && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-1.5 py-0.2 rounded font-mono">
+                        <span className="text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground px-1.5 py-0.2 rounded font-mono">
                           Hoje
                         </span>
                       )}
                     </div>
 
                     {itensDoDia.length === 0 ? (
-                      <div className="h-16 flex items-center justify-center text-[10px] text-muted-foreground/60 border border-dashed border-border/50 rounded-xl">
+                      <div className="h-16 flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">
                         Sem entregas
                       </div>
                     ) : (
@@ -690,24 +690,24 @@ export default function DashboardHome({
                             <div
                               key={item.id}
                               onClick={() => onNavigateTab?.('esteira', item.id)}
-                              className="p-2 rounded-xl bg-card border border-border/80 hover:border-foreground/30 transition-all cursor-pointer shadow-2xs flex flex-col gap-1.5"
+                              className="p-2 rounded-xl bg-card border border-border hover:border-foreground/30 transition-all cursor-pointer shadow-2xs flex flex-col gap-1.5"
                             >
                               <div className="flex items-center gap-1.5">
                                 {item.tipo === 'reel' ? (
-                                  <Video className="w-3 h-3 text-purple-500 shrink-0" />
+                                  <Video className="w-3 h-3 text-chart-4 shrink-0" />
                                 ) : item.arquivos && item.arquivos.length > 1 ? (
-                                  <Layers className="w-3 h-3 text-blue-500 shrink-0" />
+                                  <Layers className="w-3 h-3 text-info shrink-0" />
                                 ) : (
-                                  <ImageIcon className="w-3 h-3 text-emerald-500 shrink-0" />
+                                  <ImageIcon className="w-3 h-3 text-success shrink-0" />
                                 )}
-                                <span className="text-[11px] font-bold text-foreground truncate">
+                                <span className="text-xs font-bold text-foreground truncate">
                                   {item.cliente?.nome || 'Cliente'}
                                 </span>
                               </div>
-                              <p className="text-[10px] text-muted-foreground line-clamp-2 leading-tight">
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-tight">
                                 {item.titulo || 'Sem título'}
                               </p>
-                              <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[9px]">
+                              <div className="flex items-center justify-between pt-1 border-t border-border text-xs">
                                 <span className="font-semibold text-muted-foreground truncate">
                                   {statusInfo.label}
                                 </span>
@@ -726,8 +726,8 @@ export default function DashboardHome({
           {/* 2 Colunas Operacionais: Demandas Prioritárias vs Rotina de Hoje */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Coluna 1: Demandas Prioritárias na Esteira */}
-            <div className="p-5 rounded-3xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3.5">
-              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+            <div className="p-5 rounded-3xl bg-card border border-border shadow-2xs flex flex-col gap-3.5">
+              <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
                   <h4 className="text-base font-bold font-display text-foreground tracking-tight flex items-center gap-2">
                     <Layers className="w-4 h-4 text-primary" />
@@ -749,7 +749,7 @@ export default function DashboardHome({
               </div>
 
               {demandasAtivas.length === 0 ? (
-                <div className="py-8 text-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border/80">
+                <div className="py-8 text-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border">
                   Tudo em dia! Nenhuma demanda em andamento atribuída.
                 </div>
               ) : (
@@ -763,7 +763,7 @@ export default function DashboardHome({
                       <div
                         key={item.id}
                         onClick={() => onNavigateTab?.('esteira')}
-                        className="p-3 rounded-2xl bg-accent/30 border border-border/60 hover:border-foreground/30 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs"
+                        className="p-3 rounded-2xl bg-accent/30 border border-border hover:border-foreground/30 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <ClienteAvatar
@@ -776,7 +776,7 @@ export default function DashboardHome({
                             <p className="text-xs font-bold text-foreground truncate">
                               {item.titulo || 'Demanda sem título'}
                             </p>
-                            <p className="text-[10px] text-muted-foreground truncate">
+                            <p className="text-xs text-muted-foreground truncate">
                               {item.cliente?.nome} · {item.tipo.toUpperCase()}
                             </p>
                           </div>
@@ -784,12 +784,12 @@ export default function DashboardHome({
 
                         <div className="flex items-center gap-2 shrink-0">
                           {item.prazo && (
-                            <span className="text-[10px] font-mono text-muted-foreground bg-card px-2 py-0.5 rounded-lg border border-border/60 flex items-center gap-1">
+                            <span className="text-xs font-mono text-muted-foreground bg-card px-2 py-0.5 rounded-lg border border-border flex items-center gap-1">
                               <Clock className="w-3 h-3 text-muted-foreground" />
                               {item.prazo.slice(8, 10)}/{item.prazo.slice(5, 7)}
                             </span>
                           )}
-                          <Badge variant={statusInfo.variant} className="text-[10px] py-0.5 px-2">
+                          <Badge variant={statusInfo.variant} className="text-xs py-0.5 px-2">
                             {statusInfo.label}
                           </Badge>
                         </div>
@@ -801,8 +801,8 @@ export default function DashboardHome({
             </div>
 
             {/* Coluna 2: Afazeres de Rotina da Agência */}
-            <div className="p-5 rounded-3xl bg-card border border-border/80 shadow-2xs flex flex-col gap-3.5">
-              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+            <div className="p-5 rounded-3xl bg-card border border-border shadow-2xs flex flex-col gap-3.5">
+              <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
                   <h4 className="text-base font-bold font-display text-foreground tracking-tight flex items-center gap-2">
                     <CheckSquare className="w-4 h-4 text-primary" />
@@ -824,7 +824,7 @@ export default function DashboardHome({
               </div>
 
               {tarefasFiltradas.length === 0 ? (
-                <div className="py-8 text-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border/80">
+                <div className="py-8 text-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border">
                   Nenhum afazer pendente na rotina da agência! 🎉
                 </div>
               ) : (
@@ -832,7 +832,7 @@ export default function DashboardHome({
                   {tarefasFiltradas.slice(0, 5).map((tarefa) => (
                     <div
                       key={tarefa.id}
-                      className="p-3 rounded-2xl bg-accent/30 border border-border/60 hover:border-foreground/30 transition-all flex items-center justify-between gap-3 shadow-2xs"
+                      className="p-3 rounded-2xl bg-accent/30 border border-border hover:border-foreground/30 transition-all flex items-center justify-between gap-3 shadow-2xs"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <button
@@ -847,7 +847,7 @@ export default function DashboardHome({
                           <p className="text-xs font-semibold text-foreground truncate">
                             {tarefa.titulo}
                           </p>
-                          <p className="text-[10px] text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {tarefa.cliente?.nome ? `Cliente: ${tarefa.cliente.nome}` : 'Tarefa Geral'}
                             {tarefa.prazo ? ` · Até ${tarefa.prazo.slice(8, 10)}/${tarefa.prazo.slice(5, 7)}` : ''}
                           </p>
@@ -855,12 +855,12 @@ export default function DashboardHome({
                       </div>
 
                       <span
-                        className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border shrink-0 ${
+                        className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border shrink-0 ${
                           tarefa.prioridade === 'urgente'
                             ? 'bg-destructive/15 text-destructive border-destructive/30'
                             : tarefa.prioridade === 'alta'
                             ? 'bg-warning/20 text-warning-foreground border-warning/30'
-                            : 'bg-card text-muted-foreground border-border/60'
+                            : 'bg-card text-muted-foreground border-border'
                         }`}
                       >
                         {tarefa.prioridade}
@@ -875,10 +875,10 @@ export default function DashboardHome({
       ) : (
         <>
           {/* 1. Header do Painel Profissional do Instagram */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-accent px-2 py-0.5 rounded-md border border-border/60">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest bg-accent px-2 py-0.5 rounded-md border border-border">
                   Painel Profissional
                 </span>
                 <span className="text-xs text-muted-foreground font-mono">✳</span>
@@ -892,7 +892,7 @@ export default function DashboardHome({
             </div>
 
         {/* Switcher de Período em Pílulas (Padrão Instagram / Linear) */}
-        <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border/80 self-start sm:self-auto shadow-2xs">
+        <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">
           {([
             { days: 7 as const, label: '7 dias' },
             { days: 14 as const, label: '14 dias' },
@@ -908,7 +908,7 @@ export default function DashboardHome({
               }}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 periodDays === p.days
-                  ? 'bg-card text-foreground shadow-2xs border border-border/80'
+                  ? 'bg-card text-foreground shadow-2xs border border-border'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -921,7 +921,7 @@ export default function DashboardHome({
       {/* 2. Bento Grid do Painel Profissional (4 Top KPIs) */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Contas Alcançadas */}
-        <Card className="p-5 rounded-3xl border border-border/80 bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+        <Card className="p-5 rounded-3xl border border-border bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Contas Alcançadas</span>
             <div className="w-8 h-8 rounded-xl bg-lime/40 border border-foreground/10 flex items-center justify-center text-foreground">
@@ -933,16 +933,16 @@ export default function DashboardHome({
               {Math.round(alcanceTotal).toLocaleString('pt-BR')}
             </span>
             <div className="flex items-center gap-1.5 mt-2.5 text-xs">
-              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-[11px] text-success bg-success/10 px-2 py-0.5 rounded-md">
+              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-xs text-success bg-success/10 px-2 py-0.5 rounded-md">
                 <ArrowUpRight className="w-3 h-3" /> +24.8%
               </span>
-              <span className="text-muted-foreground text-[11px] font-medium">vs período anterior</span>
+              <span className="text-muted-foreground text-xs font-medium">vs período anterior</span>
             </div>
           </div>
         </Card>
 
         {/* Card 2: Contas com Engajamento */}
-        <Card className="p-5 rounded-3xl border border-border/80 bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+        <Card className="p-5 rounded-3xl border border-border bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Contas Engajadas</span>
             <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
@@ -954,16 +954,16 @@ export default function DashboardHome({
               {Math.round(contasEngajadas).toLocaleString('pt-BR')}
             </span>
             <div className="flex items-center gap-1.5 mt-2.5 text-xs">
-              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-[11px] text-success bg-success/10 px-2 py-0.5 rounded-md">
+              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-xs text-success bg-success/10 px-2 py-0.5 rounded-md">
                 <ArrowUpRight className="w-3 h-3" /> +17.4%
               </span>
-              <span className="text-muted-foreground text-[11px] font-medium">comentários e DMs</span>
+              <span className="text-muted-foreground text-xs font-medium">comentários e DMs</span>
             </div>
           </div>
         </Card>
 
         {/* Card 3: Total de Seguidores */}
-        <Card className="p-5 rounded-3xl border border-border/80 bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+        <Card className="p-5 rounded-3xl border border-border bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total de Seguidores</span>
             <div className="w-8 h-8 rounded-xl bg-secondary/60 border border-border flex items-center justify-center text-foreground">
@@ -975,16 +975,16 @@ export default function DashboardHome({
               {seguidoresTotal.toLocaleString('pt-BR')}
             </span>
             <div className="flex items-center gap-1.5 mt-2.5 text-xs">
-              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-[11px] text-foreground bg-accent px-2 py-0.5 rounded-md border border-border/60">
+              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-xs text-foreground bg-accent px-2 py-0.5 rounded-md border border-border">
                 +148 líquidos
               </span>
-              <span className="text-muted-foreground text-[11px] font-medium">neste período</span>
+              <span className="text-muted-foreground text-xs font-medium">neste período</span>
             </div>
           </div>
         </Card>
 
         {/* Card 4: Toques no Link da Bio */}
-        <Card className="p-5 rounded-3xl border border-border/80 bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+        <Card className="p-5 rounded-3xl border border-border bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Cliques no Link da Bio</span>
             <div className="w-8 h-8 rounded-xl bg-lime/60 border border-foreground/15 flex items-center justify-center text-foreground">
@@ -996,17 +996,17 @@ export default function DashboardHome({
               {cliquesBio.toLocaleString('pt-BR')}
             </span>
             <div className="flex items-center gap-1.5 mt-2.5 text-xs">
-              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-[11px] text-success bg-success/10 px-2 py-0.5 rounded-md">
+              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-xs text-success bg-success/10 px-2 py-0.5 rounded-md">
                 <ArrowUpRight className="w-3 h-3" /> +31.2%
               </span>
-              <span className="text-muted-foreground text-[11px] font-medium">conversão para o site</span>
+              <span className="text-muted-foreground text-xs font-medium">conversão para o site</span>
             </div>
           </div>
         </Card>
       </section>
 
       {/* 3. Gráfico Principal de Área: Tendência de Alcance & Visitas ao Perfil */}
-      <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-6">
+      <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -1021,7 +1021,7 @@ export default function DashboardHome({
           </div>
 
           <div className="flex items-center gap-3 text-xs">
-            <div className="flex items-center gap-1.5 bg-accent/60 px-3 py-1.5 rounded-xl border border-border/70">
+            <div className="flex items-center gap-1.5 bg-accent/60 px-3 py-1.5 rounded-xl border border-border">
               <Eye className="w-3.5 h-3.5 text-foreground" />
               <span className="text-muted-foreground">Média diária:</span>
               <strong className="text-foreground font-bold">
@@ -1043,7 +1043,7 @@ export default function DashboardHome({
       {/* 4. Atividade do Perfil & Conversões em Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Atividade no Perfil */}
-        <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between gap-4">
+        <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <Compass className="w-4 h-4 text-primary" />
@@ -1055,7 +1055,7 @@ export default function DashboardHome({
           </div>
 
           <div className="flex flex-col gap-3">
-            <div className="p-3.5 rounded-2xl bg-accent/40 border border-border/60 flex items-center justify-between">
+            <div className="p-3.5 rounded-2xl bg-accent/40 border border-border flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Visitas ao Perfil</p>
                 <p className="text-2xl font-bold font-display text-foreground tabular-nums mt-0.5">
@@ -1067,7 +1067,7 @@ export default function DashboardHome({
               </span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-accent/40 border border-border/60 flex items-center justify-between">
+            <div className="p-3.5 rounded-2xl bg-accent/40 border border-border flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Toques no Link Externo</p>
                 <p className="text-2xl font-bold font-display text-foreground tabular-nums mt-0.5">
@@ -1079,7 +1079,7 @@ export default function DashboardHome({
               </span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-accent/40 border border-border/60 flex items-center justify-between">
+            <div className="p-3.5 rounded-2xl bg-accent/40 border border-border flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Contatos Gerados (WhatsApp)</p>
                 <p className="text-2xl font-bold font-display text-foreground tabular-nums mt-0.5">
@@ -1094,7 +1094,7 @@ export default function DashboardHome({
         </Card>
 
         {/* Melhores Horários / Quando seus seguidores estão mais ativos */}
-        <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between gap-4">
+        <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" />
@@ -1126,7 +1126,7 @@ export default function DashboardHome({
                         style={{ height: `${percent}%` }}
                       />
                       {h.hour % 6 === 0 && (
-                        <span className="text-[9px] font-mono text-muted-foreground mt-1.5">{h.hour}h</span>
+                        <span className="text-xs font-mono text-muted-foreground mt-1.5">{h.hour}h</span>
                       )}
                     </div>
                   );
@@ -1140,15 +1140,15 @@ export default function DashboardHome({
                       className={`w-full rounded-t-sm ${val >= 85 ? 'bg-foreground' : 'bg-accent'}`}
                       style={{ height: `${val}%` }}
                     />
-                    {idx % 3 === 0 && <span className="text-[9px] font-mono text-muted-foreground mt-1.5">{idx * 2}h</span>}
+                    {idx % 3 === 0 && <span className="text-xs font-mono text-muted-foreground mt-1.5">{idx * 2}h</span>}
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="p-3 rounded-2xl bg-accent/40 border border-border/60 text-xs flex items-center justify-between">
+            <div className="p-3 rounded-2xl bg-accent/40 border border-border text-xs flex items-center justify-between">
               <span className="text-muted-foreground font-medium">Melhor momento p/ publicar:</span>
-              <span className="font-bold text-foreground font-mono bg-card px-2 py-0.5 rounded-lg border border-border/60">
+              <span className="font-bold text-foreground font-mono bg-card px-2 py-0.5 rounded-lg border border-border">
                 18h às 21h
               </span>
             </div>
@@ -1156,7 +1156,7 @@ export default function DashboardHome({
         </Card>
 
         {/* Funil de Respostas e Automações da Agência */}
-        <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between gap-4">
+        <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" />
@@ -1183,12 +1183,12 @@ export default function DashboardHome({
                     <span className="text-muted-foreground">{step.label}</span>
                     <span className="text-foreground font-bold tabular-nums">
                       {step.val}{' '}
-                      <span className="text-muted-foreground font-normal text-[10px]">
+                      <span className="text-muted-foreground font-normal text-xs">
                         ({funnel.comments > 0 ? `${percent}%` : '—'})
                       </span>
                     </span>
                   </div>
-                  <div className="h-2 w-full bg-accent rounded-full overflow-hidden p-0.5 border border-border/60">
+                  <div className="h-2 w-full bg-accent rounded-full overflow-hidden p-0.5 border border-border">
                     <div className={`h-full ${step.color} rounded-full transition-all duration-500`} style={{ width: `${percent}%` }} />
                   </div>
                 </div>
@@ -1204,8 +1204,8 @@ export default function DashboardHome({
       {/* 6. Envios Recentes na Fila & Ranking de Automações (Operação GENS) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
         {/* Fila de Envios */}
-        <Card padding="lg" className="lg:col-span-7 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+        <Card padding="lg" className="lg:col-span-7 rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
             <div>
               <h4 className="font-bold font-display text-foreground text-base tracking-tight">Envios Recentes na Fila</h4>
               <p className="text-xs text-muted-foreground mt-0.5">Disparos de mensagens em tempo real</p>
@@ -1214,7 +1214,7 @@ export default function DashboardHome({
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left text-muted-foreground">
-              <thead className="text-[10px] uppercase text-muted-foreground font-bold border-b border-border/60">
+              <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-border">
                 <tr>
                   <th className="py-2.5 px-3">Contato</th>
                   <th className="py-2.5 px-3">Ação</th>
@@ -1222,7 +1222,7 @@ export default function DashboardHome({
                   <th className="py-2.5 px-3">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
+              <tbody className="divide-y divide-border">
                 {recentQueue.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-xs text-muted-foreground">
@@ -1255,7 +1255,7 @@ export default function DashboardHome({
                       <td className="py-2.5 px-3">
                         <Badge
                           variant={item.status === 'sent' ? 'success' : item.status === 'pending' ? 'warning' : 'destructive'}
-                          className="text-[10px] font-bold"
+                          className="text-xs font-bold"
                         >
                           {item.status === 'sent' && 'Enviado'}
                           {item.status === 'pending' && 'Pendente'}
@@ -1271,14 +1271,14 @@ export default function DashboardHome({
         </Card>
 
         {/* Ranking de Automações */}
-        <Card padding="lg" className="lg:col-span-5 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-4">
-          <div className="border-b border-border/60 pb-3">
+        <Card padding="lg" className="lg:col-span-5 rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-4">
+          <div className="border-b border-border pb-3">
             <h4 className="font-bold font-display text-foreground text-base tracking-tight">Ranking de Automações</h4>
             <p className="text-xs text-muted-foreground mt-0.5">Fluxos com maior conversão de leads</p>
           </div>
 
           {automationRanking.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6 bg-accent/20 rounded-2xl border border-dashed border-border/80">
+            <p className="text-xs text-muted-foreground text-center py-6 bg-accent/20 rounded-2xl border border-dashed border-border">
               Nenhuma automação com conversão no período.
             </p>
           ) : (
@@ -1286,13 +1286,13 @@ export default function DashboardHome({
               {automationRanking.slice(0, 4).map((auto, i) => (
                 <div
                   key={auto.id}
-                  className="flex items-center gap-3 text-xs p-3 rounded-2xl bg-accent/30 border border-border/50 hover:border-foreground/20 transition-all"
+                  className="flex items-center gap-3 text-xs p-3 rounded-2xl bg-accent/30 border border-border hover:border-foreground/20 transition-all"
                 >
-                  <span className="w-5 h-5 rounded-lg bg-foreground text-background font-bold text-[10px] flex items-center justify-center shrink-0">
+                  <span className="w-5 h-5 rounded-lg bg-foreground text-background font-bold text-xs flex items-center justify-center shrink-0">
                     {i + 1}
                   </span>
                   <span className="text-foreground font-bold flex-1 truncate">{auto.name}</span>
-                  <span className="font-bold text-lime-foreground bg-lime px-2.5 py-1 rounded-xl text-[11px] tabular-nums border border-foreground/10 shrink-0">
+                  <span className="font-bold text-lime-foreground bg-lime px-2.5 py-1 rounded-xl text-xs tabular-nums border border-foreground/10 shrink-0">
                     {auto.leads} leads
                   </span>
                 </div>

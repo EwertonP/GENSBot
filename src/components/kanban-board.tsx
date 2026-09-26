@@ -186,21 +186,21 @@ export default function KanbanBoard({ accounts, selectedAccountId, withAccount, 
         renderCard={(post) => (
           <div
             onClick={() => openEditor(post)}
-            className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-2.5 group"
+            className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-2.5 group"
           >
             {/* Topo: Tag de Formato & Username */}
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 uppercase tracking-wide">
+              <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 uppercase tracking-wide">
                 {post.media_type}
               </span>
-              <span className="text-[10px] font-bold text-muted-foreground truncate">
+              <span className="text-xs font-bold text-muted-foreground truncate">
                 @{usernameFor(post.instagram_user_id)}
               </span>
             </div>
 
             {/* Mídia & Legenda */}
             <div className="flex gap-2.5 items-center">
-              <div className="w-11 h-11 rounded-xl bg-accent shrink-0 overflow-hidden flex items-center justify-center border border-border/60">
+              <div className="w-11 h-11 rounded-xl bg-accent shrink-0 overflow-hidden flex items-center justify-center border border-border">
                 {post.media_type === 'VIDEO' || post.media_type === 'REELS' ? (
                   <Video className="w-4 h-4 text-muted-foreground" />
                 ) : (
@@ -216,12 +216,12 @@ export default function KanbanBoard({ accounts, selectedAccountId, withAccount, 
             </div>
 
             {/* Rodapé: Data & Horário */}
-            <div className="pt-1.5 border-t border-border/60 flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+            <div className="pt-1.5 border-t border-border flex items-center justify-between text-xs text-muted-foreground font-mono">
               <span className="flex items-center gap-1 font-semibold text-foreground">
                 <Calendar className="w-3 h-3 text-muted-foreground" />
                 {new Date(post.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </span>
-              <span className="text-[9px] text-muted-foreground font-bold bg-accent/60 px-1.5 py-0.5 rounded-md border border-border/40">
+              <span className="text-xs text-muted-foreground font-bold bg-accent/60 px-1.5 py-0.5 rounded-md border border-border">
                 Verificar
               </span>
             </div>

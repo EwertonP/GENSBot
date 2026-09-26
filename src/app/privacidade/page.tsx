@@ -1,7 +1,7 @@
 export default function Privacidade() {
   return (
     <div className="min-h-screen bg-background text-muted-foreground font-sans p-6 md:p-16 flex flex-col justify-center items-center">
-      <div className="max-w-2xl w-full bg-card/30 border border-border/60 rounded-3xl p-8 backdrop-blur-md">
+      <div className="max-w-2xl w-full bg-card/30 border border-border rounded-3xl p-8 backdrop-blur-md">
         <h1 className="text-2xl font-bold text-foreground mb-6">Política de Privacidade</h1>
         <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
           <p>
@@ -50,7 +50,7 @@ export default function Privacidade() {
             </p>
           </div>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-8 border-t border-border/60 pt-4">
+        <p className="text-xs text-muted-foreground mt-8 border-t border-border pt-4">
           Última atualização: Agosto de 2026.
         </p>
       </div>

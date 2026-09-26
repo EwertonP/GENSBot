@@ -38,17 +38,14 @@ export default function RootLayout({
             __html: `(function() {
               try {
                 var theme = localStorage.getItem('gensbot_theme');
-                if (theme === 'light') {
-                  document.documentElement.classList.remove('dark');
-                } else {
-                  document.documentElement.classList.add('dark');
-                }
+                var dark = theme ? theme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.classList.toggle('dark', dark);
               } catch (e) {}
             })()`,
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground selection:bg-lime selection:text-lime-foreground">
+      <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
         <MotionConfig reducedMotion="user">{children}</MotionConfig>
       </body>
     </html>

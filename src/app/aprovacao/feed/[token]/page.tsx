@@ -129,7 +129,7 @@ export default function FeedAprovacaoPage() {
       {/* 1. Barra de Topo da Agência GENS */}
       <header className="sticky top-0 z-30 bg-card text-foreground px-4 py-3 border-b border-border shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold tracking-widest uppercase bg-lime text-lime-foreground px-2 py-0.5 rounded-full font-mono">
+          <span className="text-xs font-bold tracking-widest uppercase bg-lime text-lime-foreground px-2 py-0.5 rounded-full font-mono">
             GENS APROVAÇÃO
           </span>
           <span className="text-xs font-semibold hidden sm:inline text-muted-foreground">Preview de Grade de Feed</span>
@@ -137,7 +137,7 @@ export default function FeedAprovacaoPage() {
 
         <div className="flex items-center gap-2">
           {gradeAprovada ? (
-            <div className="flex items-center gap-1 text-xs font-bold text-lime">
+            <div className="flex items-center gap-1 text-xs font-bold text-brand-text">
               <CheckCircle2 className="w-4 h-4" />
               <span>Grade Aprovada!</span>
             </div>
@@ -151,7 +151,7 @@ export default function FeedAprovacaoPage() {
               {aprovandoGrade ? 'Aprovando...' : `Aprovar Grade (${pendentesAprovacao} posts)`}
             </button>
           ) : (
-            <span className="text-xs text-lime font-semibold">Tudo Aprovado</span>
+            <span className="text-xs text-brand-text font-semibold">Tudo Aprovado</span>
           )}
         </div>
       </header>
@@ -246,7 +246,7 @@ export default function FeedAprovacaoPage() {
                     setPostSelecionado(post);
                     setSlideAtivo(0);
                   }}
-                  className="group relative aspect-square bg-card border border-border/60 overflow-hidden cursor-pointer select-none rounded-xl"
+                  className="group relative aspect-square bg-card border border-border overflow-hidden cursor-pointer select-none rounded-xl"
                 >
                   {primeiraMidia ? (
                     isVideo ? (
@@ -360,7 +360,7 @@ export default function FeedAprovacaoPage() {
             <div className="md:w-2/5 p-5 flex flex-col justify-between overflow-y-auto max-h-[500px]">
               <div className="flex flex-col gap-3">
                 {/* Header autor */}
-                <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-border">
                   <img src={avatarUrl || ''} alt="" className="w-8 h-8 rounded-full object-cover" />
                   <span className="text-xs font-bold text-foreground">{username}</span>
                 </div>
@@ -374,7 +374,7 @@ export default function FeedAprovacaoPage() {
                 {/* Roteiro / texto de cada slide — separado da legenda, que é só a legenda do Instagram */}
                 {postSelecionado.briefing && (
                   <div className="rounded-xl border border-dashed border-border bg-accent/40 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5">
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1.5">
                       📝 Roteiro / Texto dos Slides
                     </p>
                     <p className="text-xs leading-relaxed text-foreground whitespace-pre-wrap">{postSelecionado.briefing}</p>
@@ -383,7 +383,7 @@ export default function FeedAprovacaoPage() {
               </div>
 
               {/* Ação de Aprovação Individual */}
-              <div className="pt-4 border-t border-border/60 mt-4 flex flex-col gap-2">
+              <div className="pt-4 border-t border-border mt-4 flex flex-col gap-2">
                 <a
                   href={`/aprovacao/${postSelecionado.token_aprovacao}`}
                   target="_blank"

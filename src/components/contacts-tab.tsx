@@ -276,7 +276,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
             <select
               value={tagFilter}
               onChange={e => setTagFilter(e.target.value)}
-              className="bg-accent border border-border rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
+              className="bg-accent border border-input rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
             >
               <option value="">Todas as tags</option>
               {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
@@ -373,7 +373,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                         className="w-8 h-8 rounded-full object-cover border border-border"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-accent border border-border flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                      <div className="w-8 h-8 rounded-full bg-accent border border-border flex items-center justify-center text-xs font-bold text-muted-foreground">
                         {(item.name || item.username || '?').charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -391,7 +391,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                       )}
                       {item.notes && (
                         <span title={item.notes}>
-                          <StickyNote className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                          <StickyNote className="w-3 h-3 text-warning flex-shrink-0" />
                         </span>
                       )}
                     </div>
@@ -446,7 +446,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                           }}
                           onBlur={() => { setEditingTagsFor(null); setTagInputValue(''); }}
                           placeholder="nova tag..."
-                          className="w-20 bg-accent border border-border rounded-full px-2 py-0.5 text-[10px] focus:outline-none focus:border-primary"
+                          className="w-20 bg-accent border border-input rounded-full px-2 py-0.5 text-xs focus:outline-none focus:border-primary"
                         />
                       ) : (
                         <button
@@ -531,7 +531,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                 type="text"
                 value={editForm.name}
                 onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                className="bg-accent border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
               />
             </div>
 
@@ -542,7 +542,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                   type="email"
                   value={editForm.email}
                   onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                  className="bg-accent border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -551,7 +551,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                   type="text"
                   value={editForm.phone}
                   onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                  className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                  className="bg-accent border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
                 />
               </div>
             </div>
@@ -581,7 +581,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                   className="flex-1 min-w-[100px] bg-transparent text-sm focus:outline-none text-foreground placeholder-muted-foreground py-0.5"
                 />
               </div>
-              <p className="text-[9px] text-muted-foreground">Digite e use vírgula (ou Enter) pra criar cada tag.</p>
+              <p className="text-xs text-muted-foreground">Digite e use vírgula (ou Enter) pra criar cada tag.</p>
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -591,9 +591,9 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                 onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
                 rows={4}
                 placeholder='ex: "Cirurgião plástico, dor principal é captar pacientes particulares"'
-                className="bg-accent border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
+                className="bg-accent border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
               />
-              <p className="text-[9px] text-muted-foreground">Anotações livres — só você vê, não é enviado ao lead.</p>
+              <p className="text-xs text-muted-foreground">Anotações livres — só você vê, não é enviado ao lead.</p>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">

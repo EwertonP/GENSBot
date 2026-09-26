@@ -80,7 +80,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                     })
                   }
                   rows={2}
-                  className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
+                  className="bg-card border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
                 />
                 <div className="flex items-center gap-2">
                   <button
@@ -92,11 +92,11 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                         return next;
                       })
                     }
-                    className="text-[9px] font-bold text-primary hover:underline cursor-pointer"
+                    className="text-xs font-bold text-primary hover:underline cursor-pointer"
                   >
                     + Inserir nome do lead no início
                   </button>
-                  <p className="text-[9px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     (<code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> funciona em qualquer parte do texto)
                   </p>
                 </div>
@@ -108,7 +108,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-muted-foreground">Botões (até 3, opcional)</span>
                       {step.buttons.length === 0 && (
-                        <span className="text-[9px] text-muted-foreground italic">Sem botões = o lead responde em texto livre</span>
+                        <span className="text-xs text-muted-foreground italic">Sem botões = o lead responde em texto livre</span>
                       )}
                     </div>
                     {step.buttons.map((btn, bi) => (
@@ -116,7 +116,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                         <div className="flex gap-2">
                           <input
                             className={`flex-1 bg-card border rounded-xl px-3 py-2 text-sm focus:outline-none text-foreground placeholder-muted-foreground ${
-                              btn.length > 20 ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'
+                              btn.length > 20 ? 'border-destructive focus:border-destructive' : 'border-input focus:border-primary'
                             }`}
                             value={btn}
                             onChange={(e) =>
@@ -146,7 +146,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                             </button>
                           )}
                         </div>
-                        <span className={`text-[9px] font-bold ${btn.length > 20 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                        <span className={`text-xs font-bold ${btn.length > 20 ? 'text-destructive' : 'text-muted-foreground'}`}>
                           {btn.length}/20 caracteres (limite do Instagram){btn.length > 20 ? ', vai ser cortado!' : ''}
                         </span>
                       </div>
@@ -162,7 +162,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                             return next;
                           })
                         }
-                        className="self-start text-[10px] font-bold text-primary cursor-pointer"
+                        className="self-start text-xs font-bold text-primary cursor-pointer"
                       >
                         + Adicionar botão
                       </button>
@@ -181,7 +181,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                         })
                       }
                       placeholder='ex: "area_" grava a resposta como tag area_marketing_digital'
-                      className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                      className="bg-card border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -197,7 +197,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                         })
                       }
                       placeholder='ex: "email", "phone", "name", ou um nome livre como "cidade"/"idade"'
-                      className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                      className="bg-card border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -214,7 +214,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                             return next;
                           })
                         }
-                        className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                        className="bg-card border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -230,7 +230,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                           })
                         }
                         placeholder="Padrão automático se vazio"
-                        className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
+                        className="bg-card border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground"
                       />
                     </div>
                   </div>
@@ -286,7 +286,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
               value={tail.link_text || ''}
               onChange={(e) => onChange((prev) => ({ ...prev, link_text: e.target.value }))}
               rows={2}
-              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none font-medium"
+              className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none font-medium"
             />
           </div>
 
@@ -298,7 +298,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                 placeholder="https://sualandingpage.com"
                 value={tail.link_url || ''}
                 onChange={(e) => onChange((prev) => ({ ...prev, link_url: e.target.value || null }))}
-                className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground font-mono font-bold"
+                className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground font-mono font-bold"
               />
               {utmLinkPicker && (
                 <>
@@ -306,17 +306,17 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                     type="button"
                     onClick={utmLinkPicker.onGenerateTrackedLink}
                     disabled={utmLinkPicker.generatingTrackedLink}
-                    className="self-start text-[9px] font-bold text-primary hover:underline cursor-pointer disabled:opacity-50"
+                    className="self-start text-xs font-bold text-primary hover:underline cursor-pointer disabled:opacity-50"
                   >
                     {utmLinkPicker.generatingTrackedLink ? 'Gerando...' : '+ Gerar link com rastreamento de clique'}
                   </button>
                   {utmLinkPicker.utmLinks.length > 0 && (
                     <div className="flex flex-col gap-1 mt-1">
-                      <label className="text-[9px] font-bold text-muted-foreground">Ou use um link UTM já criado</label>
+                      <label className="text-xs font-bold text-muted-foreground">Ou use um link UTM já criado</label>
                       <select
                         value={utmLinkPicker.selectedUtmLinkId || utmLinkPicker.utmLinks.find((l) => l.short_url === tail.link_url || l.generated_url === tail.link_url)?.id || ''}
                         onChange={(e) => utmLinkPicker.onSelectUtmLink(e.target.value)}
-                        className="bg-accent border border-border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-primary text-foreground"
+                        className="bg-accent border border-input rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-primary text-foreground"
                       >
                         <option value="">Selecionar...</option>
                         {utmLinkPicker.utmLinks.map((l) => (
@@ -325,7 +325,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                           </option>
                         ))}
                       </select>
-                      <p className="text-[9px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Editar esse link depois na tela de Links UTM atualiza o destino aqui automaticamente.
                       </p>
                     </div>
@@ -341,13 +341,13 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                 maxLength={20}
                 value={tail.link_button_label || ''}
                 onChange={(e) => onChange((prev) => ({ ...prev, link_button_label: e.target.value || null }))}
-                className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground font-bold"
+                className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground font-bold"
               />
             </div>
           </div>
 
           <div className="border border-border rounded-xl p-4 bg-accent/50 flex flex-col gap-2.5 max-w-sm">
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Visualização do Envio</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Visualização do Envio</span>
             <div className="bg-card border border-accent rounded-2xl p-3.5 text-xs text-foreground max-w-xs break-words leading-relaxed font-medium flex flex-col gap-3">
               <p>{tail.link_text || 'Aqui está o seu link:'}</p>
               {tail.link_url && (
@@ -393,9 +393,9 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                     })
                   }
                   rows={2}
-                  className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
+                  className="bg-card border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
                 />
-                <p className="text-[9px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Use <code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> pra personalizar com o nome do lead
                 </p>
               </div>
@@ -414,7 +414,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                         return { ...prev, followups: next };
                       })
                     }
-                    className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                    className="bg-card border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -430,7 +430,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                         return { ...prev, followups: next };
                       })
                     }
-                    className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground font-mono"
+                    className="bg-card border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground font-mono"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -447,7 +447,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                         return { ...prev, followups: next };
                       })
                     }
-                    className="bg-card border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                    className="bg-card border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
                   />
                 </div>
               </div>

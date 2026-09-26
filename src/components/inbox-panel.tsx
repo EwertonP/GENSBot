@@ -108,13 +108,13 @@ export default function InboxPanel({ withAccount }: InboxPanelProps) {
               // eslint-disable-next-line @next/next/no-img-element -- URL da Meta
               <img src={c.profile_picture_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0">
+              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0">
                 {(c.name || c.username || '?')[0]?.toUpperCase()}
               </div>
             )}
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-foreground truncate">{c.name || c.username || c.contact_id}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{c.last_direction === 'outbound' ? 'Você: ' : ''}{c.last_message || '—'}</p>
+              <p className="text-xs text-muted-foreground truncate">{c.last_direction === 'outbound' ? 'Você: ' : ''}{c.last_message || '—'}</p>
             </div>
           </button>
         ))}

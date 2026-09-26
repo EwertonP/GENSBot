@@ -5,8 +5,9 @@
  * duplicar a string em cada componente novo.
  */
 export const fieldInputClass =
-  'w-full bg-card border border-border rounded-xl px-3.5 py-2 text-sm ' +
-  'focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 ' +
-  'text-foreground placeholder-muted-foreground shadow-2xs transition-all duration-150';
+  'w-full bg-card border border-input rounded-xl px-3.5 py-2 text-sm ' +
+  'focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/25 ' +
+  'text-foreground placeholder:text-muted-foreground shadow-2xs transition-[border-color,box-shadow] duration-150 ' +
+  'disabled:opacity-60 disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-destructive/20';
 
-export const fieldLabelClass = 'text-xs font-semibold text-foreground/80 tracking-tight';
+export const fieldLabelClass = 'text-label font-medium text-foreground';

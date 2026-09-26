@@ -122,15 +122,15 @@ function MetricsInline({
       .finally(() => setLoading(false));
   }, [mediaId, accountId]);
 
-  if (loading) return <p className="text-[11px] text-muted-foreground mt-2">Carregando métricas da Meta...</p>;
+  if (loading) return <p className="text-xs text-muted-foreground mt-2">Carregando métricas da Meta...</p>;
   if (!metrics || Object.keys(metrics).length === 0) {
-    return <p className="text-[11px] text-muted-foreground mt-2">Sem métricas disponíveis ainda para este post.</p>;
+    return <p className="text-xs text-muted-foreground mt-2">Sem métricas disponíveis ainda para este post.</p>;
   }
 
   return (
-    <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-border/60 text-xs">
+    <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-border text-xs">
       {Object.entries(metrics).map(([key, value]) => (
-        <div key={key} className="flex items-center gap-1.5 bg-accent/40 px-2.5 py-1 rounded-lg border border-border/50">
+        <div key={key} className="flex items-center gap-1.5 bg-accent/40 px-2.5 py-1 rounded-lg border border-border">
           <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
           <span className="font-bold text-foreground font-mono tabular-nums">{value.toLocaleString('pt-BR')}</span>
         </div>
@@ -170,7 +170,7 @@ function InstagramPhoneMockup({
   return (
     <div className="w-full max-w-[340px] mx-auto bg-card rounded-[38px] border-4 border-foreground/15 shadow-2xl overflow-hidden flex flex-col select-none relative">
       {/* Top Notch do Celular */}
-      <div className="bg-card px-6 pt-3 pb-2 flex items-center justify-between border-b border-border/40">
+      <div className="bg-card px-6 pt-3 pb-2 flex items-center justify-between border-b border-border">
         <span className="text-[10px] font-bold text-foreground font-mono">9:41</span>
         <div className="w-16 h-3.5 bg-foreground/90 rounded-full" />
         <div className="flex items-center gap-1 text-[10px] text-foreground">
@@ -180,7 +180,7 @@ function InstagramPhoneMockup({
       </div>
 
       {/* Header do Post no Instagram */}
-      <div className="p-3 flex items-center justify-between bg-card border-b border-border/40">
+      <div className="p-3 flex items-center justify-between bg-card border-b border-border">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#d8ff3c] via-[#55703a] to-[#192313] p-0.5 shadow-2xs">
             <div className="w-full h-full rounded-full bg-card flex items-center justify-center font-bold text-[10px] text-foreground">
@@ -715,10 +715,10 @@ export default function PublishPanel({
   return (
     <div className="flex flex-col gap-8 animate-fade-in pb-12">
       {/* 1. Header do Estúdio de Agendamento */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-accent px-2 py-0.5 rounded-md border border-border/60">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest bg-accent px-2 py-0.5 rounded-md border border-border">
               Creator Studio
             </span>
             <span className="text-xs text-muted-foreground font-mono">✳</span>
@@ -732,12 +732,12 @@ export default function PublishPanel({
         </div>
 
         {/* Seletor de Conta Ativa */}
-        <div className="flex items-center gap-2.5 bg-accent/60 p-1.5 rounded-2xl border border-border/80 self-start sm:self-auto shadow-2xs">
+        <div className="flex items-center gap-2.5 bg-accent/60 p-1.5 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">
           <span className="text-xs font-bold text-muted-foreground px-2">Conta:</span>
           <select
             value={targetAccount}
             onChange={(e) => setTargetAccount(e.target.value)}
-            className="h-8 text-xs font-bold bg-card border border-border/80 rounded-xl px-3 text-foreground shadow-2xs focus:outline-none"
+            className="h-8 text-xs font-bold bg-card border border-input rounded-xl px-3 text-foreground shadow-2xs focus:outline-none"
           >
             {accounts.map((acc) => (
               <option key={acc.instagram_user_id} value={acc.instagram_user_id}>
@@ -751,7 +751,7 @@ export default function PublishPanel({
       {/* 2. Grid do Estúdio: Composer (Esquerda) + Live Preview (Direita) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Lado Esquerdo: Formulário de Criação (lg:col-span-7) */}
-        <Card padding="lg" className="lg:col-span-7 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-6">
+        <Card padding="lg" className="lg:col-span-7 rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-6">
           {/* Banner de Demanda Aprovada Vinculada */}
           {prefillData && (
             <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-between gap-3 text-xs animate-fade-in">
@@ -763,7 +763,7 @@ export default function PublishPanel({
                   <p className="font-bold text-foreground truncate">
                     Demanda Aprovada: {prefillData.titulo}
                   </p>
-                  <p className="text-muted-foreground text-[11px] truncate">
+                  <p className="text-muted-foreground text-xs truncate">
                     Cliente: <span className="font-semibold text-foreground">{prefillData.clienteNome}</span> · Mídias, legenda e data preenchidos automaticamente.
                   </p>
                 </div>
@@ -787,9 +787,9 @@ export default function PublishPanel({
 
           {/* Banner de Modo de Edição de Agendamento */}
           {editingPostId && (
-            <div className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in shadow-2xs">
+            <div className="p-4 rounded-2xl bg-warning-soft border-2 border-warning-ring flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in shadow-2xs">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+                <div className="w-9 h-9 rounded-xl bg-warning-soft flex items-center justify-center shrink-0 text-warning">
                   <Pencil className="w-4.5 h-4.5" />
                 </div>
                 <div className="min-w-0">
@@ -797,7 +797,7 @@ export default function PublishPanel({
                     <p className="font-bold text-foreground text-sm">
                       Modo de Edição de Agendamento
                     </p>
-                    <Badge variant="warning" className="text-[10px] px-2 py-0.5 font-bold">
+                    <Badge variant="warning" className="text-xs px-2 py-0.5 font-bold">
                       Em Edição
                     </Badge>
                   </div>
@@ -815,7 +815,7 @@ export default function PublishPanel({
                 size="sm"
                 type="button"
                 onClick={handleCancelEdit}
-                className="text-xs h-8.5 px-3 border-amber-500/40 text-foreground hover:bg-amber-500/15 shrink-0 cursor-pointer font-bold rounded-xl"
+                className="text-xs h-8.5 px-3 border-warning-ring text-foreground hover:bg-warning-soft shrink-0 cursor-pointer font-bold rounded-xl"
               >
                 Cancelar Edição
               </Button>
@@ -846,14 +846,14 @@ export default function PublishPanel({
                     className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
                       active
                         ? 'bg-primary/20 text-primary border-primary/40 shadow-xs font-bold'
-                        : 'bg-accent/40 text-foreground border-border/70 hover:bg-accent/80'
+                        : 'bg-accent/40 text-foreground border-border hover:bg-accent/80'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
                       <Icon className={`w-3.5 h-3.5 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
                       <span className="text-xs font-bold">{opt.label}</span>
                     </div>
-                    <span className={`text-[10px] ${active ? 'text-foreground/80 dark:text-muted-foreground' : 'text-muted-foreground'}`}>
+                    <span className={`text-xs ${active ? 'text-foreground/80 dark:text-muted-foreground' : 'text-muted-foreground'}`}>
                       {opt.desc}
                     </span>
                   </button>
@@ -866,7 +866,7 @@ export default function PublishPanel({
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-foreground">Mídia da Publicação</label>
-              <span className="text-[11px] font-mono text-muted-foreground">
+              <span className="text-xs font-mono text-muted-foreground">
                 {kind === 'post' ? `${previewUrls.length}/10 itens` : `${previewUrls.length} item`}
               </span>
             </div>
@@ -880,12 +880,12 @@ export default function PublishPanel({
                 onChange={handleFilesChange}
                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
               />
-              <div className="w-10 h-10 rounded-2xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
+              <div className="w-10 h-10 rounded-2xl bg-card border border-border flex items-center justify-center text-foreground shadow-2xs">
                 <Plus className="w-5 h-5 text-primary" />
               </div>
               <div className="flex flex-col">
                 <p className="text-xs font-bold text-foreground">Clique ou arraste as fotos/vídeos aqui</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {kind === 'post'
                     ? 'JPG, PNG ou WEBP em 4:5. Selecione várias imagens para carrossel.'
                     : 'MP4 ou MOV em 9:16 em alta resolução.'}
@@ -901,20 +901,20 @@ export default function PublishPanel({
                   return (
                     <div
                       key={idx}
-                      className="relative w-16 h-20 rounded-xl overflow-hidden border border-border/80 bg-accent/60 group shadow-2xs"
+                      className="relative w-16 h-20 rounded-xl overflow-hidden border border-border bg-accent/60 group shadow-2xs"
                     >
                       {isItemVideo ? (
                         <video src={url} className="w-full h-full object-cover" muted />
                       ) : (
                         <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
                       )}
-                      <span className="absolute bottom-1 left-1 text-[9px] font-mono font-bold bg-black/70 text-white px-1 rounded">
+                      <span className="absolute bottom-1 left-1 text-[11px] font-mono font-bold bg-black/70 text-white px-1 rounded">
                         #{idx + 1}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleRemoveFile(idx)}
-                        className="absolute top-1 right-1 p-0.5 rounded-full bg-destructive text-white hover:scale-110 transition-transform"
+                        className="absolute top-1 right-1 p-0.5 rounded-full bg-destructive text-destructive-foreground hover:scale-110 transition-transform"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -929,7 +929,7 @@ export default function PublishPanel({
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-foreground">Legenda do Instagram</label>
-              <span className="text-[10px] font-mono text-muted-foreground">
+              <span className="text-xs font-mono text-muted-foreground">
                 {caption.length}/2.200 caracteres
               </span>
             </div>
@@ -953,7 +953,7 @@ export default function PublishPanel({
                 value={collaboratorsInput}
                 onChange={(e) => setCollaboratorsInput(e.target.value)}
                 placeholder="ex: perfil1, perfil2"
-                className="h-9 px-3.5 rounded-xl bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-foreground/40"
+                className="h-9 px-3.5 rounded-xl bg-card border border-input text-xs text-foreground focus:outline-none focus:border-foreground/40"
               />
             </div>
           )}
@@ -964,7 +964,7 @@ export default function PublishPanel({
               className={`p-4 rounded-2xl border transition-all ${
                 autoEnabled
                   ? 'bg-accent/40 border-primary/40 shadow-xs'
-                  : 'bg-card border-border/80 hover:border-foreground/20'
+                  : 'bg-card border-border hover:border-foreground/20'
               }`}
             >
               {/* Header com Toggle Switch */}
@@ -982,11 +982,11 @@ export default function PublishPanel({
                       <span className="text-xs font-bold text-foreground">
                         Automação de Comentários
                       </span>
-                      <Badge variant={autoEnabled ? 'info' : 'muted'} className="text-[10px] px-1.5 py-0 font-bold">
+                      <Badge variant={autoEnabled ? 'info' : 'muted'} className="text-xs px-1.5 py-0 font-bold">
                         {autoEnabled ? 'Ativada' : 'Opcional'}
                       </Badge>
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Envie uma DM instantânea com link ou material quando alguém comentar no post
                     </p>
                   </div>
@@ -1026,7 +1026,7 @@ export default function PublishPanel({
                       setAutoWelcomeDm(autoDetectedPrompt.dm);
                       setAutoPublicReply(autoDetectedPrompt.publicReply);
                     }}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer shrink-0 active:scale-[0.98]"
+                    className="text-xs font-bold px-2.5 py-1 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer shrink-0 active:scale-[0.98]"
                   >
                     ⚡ Ativar em 1 Clique
                   </button>
@@ -1035,20 +1035,20 @@ export default function PublishPanel({
 
               {/* Campos da Automação (quando ativado) */}
               {autoEnabled && (
-                <div className="mt-4 pt-4 border-t border-border/60 flex flex-col gap-3.5 animate-in fade-in zoom-in-95 duration-150">
+                <div className="mt-4 pt-4 border-t border-border flex flex-col gap-3.5 animate-in fade-in zoom-in-95 duration-150">
                   {/* Seletor de Automação Salva da Biblioteca */}
-                  <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-accent/30 border border-border/70">
+                  <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-accent/30 border border-border">
                     <label className="text-xs font-semibold text-foreground flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-primary" />
                         Usar Automação Salva
                       </span>
-                      {loadingAutomations && <span className="text-[10px] text-muted-foreground animate-pulse">Carregando...</span>}
+                      {loadingAutomations && <span className="text-xs text-muted-foreground animate-pulse">Carregando...</span>}
                     </label>
                     <select
                       value={selectedSavedId}
                       onChange={(e) => handleSelectSavedAutomation(e.target.value)}
-                      className="h-9 px-3 rounded-lg bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-primary/60 cursor-pointer font-medium"
+                      className="h-9 px-3 rounded-lg bg-card border border-input text-xs text-foreground focus:outline-none focus:border-primary/60 cursor-pointer font-medium"
                     >
                       <option value="custom">✏️ Criar / Personalizar Regra para Este Post</option>
                       {savedAutomations.map((aut) => (
@@ -1064,13 +1064,13 @@ export default function PublishPanel({
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                         <span>Palavras-chave do Comentário</span>
-                        <span className="text-[10px] text-muted-foreground font-normal">(separadas por vírgula)</span>
+                        <span className="text-xs text-muted-foreground font-normal">(separadas por vírgula)</span>
                       </label>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => setAutoMatchType('contains')}
-                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                          className={`text-xs px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
                             autoMatchType === 'contains'
                               ? 'bg-foreground text-background'
                               : 'text-muted-foreground hover:text-foreground'
@@ -1081,7 +1081,7 @@ export default function PublishPanel({
                         <button
                           type="button"
                           onClick={() => setAutoMatchType('exact')}
-                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                          className={`text-xs px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
                             autoMatchType === 'exact'
                               ? 'bg-foreground text-background'
                               : 'text-muted-foreground hover:text-foreground'
@@ -1096,11 +1096,11 @@ export default function PublishPanel({
                       value={autoKeywords}
                       onChange={(e) => setAutoKeywords(e.target.value)}
                       placeholder="QUERO, LINK, EU QUERO, VALOR"
-                      className="h-9 px-3 rounded-xl bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-primary/60 font-mono"
+                      className="h-9 px-3 rounded-xl bg-card border border-input text-xs text-foreground focus:outline-none focus:border-primary/60 font-mono"
                     />
                     {/* Chips rápidos */}
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                      <span className="text-[10px] text-muted-foreground">Adicionar rápido:</span>
+                      <span className="text-xs text-muted-foreground">Adicionar rápido:</span>
                       {['QUERO', 'LINK', 'EU QUERO', 'PREÇO', 'AULA', 'CHECKLIST'].map((chip) => {
                         const currentList = autoKeywords.split(',').map((k) => k.trim().toUpperCase());
                         const isSelected = currentList.includes(chip);
@@ -1118,10 +1118,10 @@ export default function PublishPanel({
                                 setAutoKeywords(updated.join(', '));
                               }
                             }}
-                            className={`text-[10px] font-mono px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                            className={`text-xs font-mono px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
                               isSelected
                                 ? 'bg-primary/20 border-primary text-primary font-bold'
-                                : 'bg-card border-border/70 text-muted-foreground hover:text-foreground'
+                                : 'bg-card border-border text-muted-foreground hover:text-foreground'
                             }`}
                           >
                             +{chip}
@@ -1149,7 +1149,7 @@ export default function PublishPanel({
                   {/* Botão com Link (Opcional) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
                         <Link2 className="w-3 h-3" />
                         <span>URL do Botão (Link)</span>
                       </label>
@@ -1158,11 +1158,11 @@ export default function PublishPanel({
                         value={autoLinkUrl}
                         onChange={(e) => setAutoLinkUrl(e.target.value)}
                         placeholder="https://seusite.com/conteudo"
-                        className="h-8 px-2.5 rounded-xl bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-primary/60 font-mono"
+                        className="h-8 px-2.5 rounded-xl bg-card border border-input text-xs text-foreground focus:outline-none focus:border-primary/60 font-mono"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-[11px] font-semibold text-muted-foreground">
+                      <label className="text-xs font-semibold text-muted-foreground">
                         Texto do Botão
                       </label>
                       <input
@@ -1170,14 +1170,14 @@ export default function PublishPanel({
                         value={autoLinkButtonLabel}
                         onChange={(e) => setAutoLinkButtonLabel(e.target.value)}
                         placeholder="Acessar Conteúdo 🚀"
-                        className="h-8 px-2.5 rounded-xl bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-primary/60"
+                        className="h-8 px-2.5 rounded-xl bg-card border border-input text-xs text-foreground focus:outline-none focus:border-primary/60"
                       />
                     </div>
                   </div>
 
                   {/* Resposta Pública no Comentário (Opcional) */}
                   <div className="flex flex-col gap-1 pt-1">
-                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                       <CornerDownRight className="w-3 h-3 text-muted-foreground" />
                       <span>Resposta Pública no Comentário (Opcional)</span>
                     </label>
@@ -1186,12 +1186,12 @@ export default function PublishPanel({
                       value={autoPublicReply}
                       onChange={(e) => setAutoPublicReply(e.target.value)}
                       placeholder="ex: Acabei de te enviar no Direct! 🚀 Confere lá."
-                      className="h-8 px-2.5 rounded-xl bg-card border border-border/80 text-xs text-foreground focus:outline-none focus:border-primary/60"
+                      className="h-8 px-2.5 rounded-xl bg-card border border-input text-xs text-foreground focus:outline-none focus:border-primary/60"
                     />
                   </div>
 
                   {/* Prévia do Funil */}
-                  <div className="p-3 rounded-xl bg-accent/20 border border-border/50 text-[11px] text-muted-foreground flex flex-col gap-1.5">
+                  <div className="p-3 rounded-xl bg-accent/20 border border-border text-xs text-muted-foreground flex flex-col gap-1.5">
                     <span className="font-bold text-foreground flex items-center gap-1.5">
                       <Sparkles className="w-3 h-3 text-primary" />
                       Como vai funcionar:
@@ -1230,7 +1230,7 @@ export default function PublishPanel({
           )}
 
           {/* Modo de Publicação: Imediato vs. Agendado */}
-          <div className="flex flex-col gap-3 pt-2 border-t border-border/60">
+          <div className="flex flex-col gap-3 pt-2 border-t border-border">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -1259,7 +1259,7 @@ export default function PublishPanel({
 
             {/* Agendador Inteligente com Horários de Pico */}
             {scheduleEnabled && (
-              <div className="flex flex-col gap-3 p-4 rounded-2xl bg-accent/30 border border-border/70 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex flex-col gap-3 p-4 rounded-2xl bg-accent/30 border border-border animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                   <Sparkles className="w-3.5 h-3.5 text-primary" />
                   <span>Escolha a Data e Horário</span>
@@ -1283,7 +1283,7 @@ export default function PublishPanel({
             onClick={handleOpenConfirmation}
             loading={submitting}
             disabled={(files.length === 0 && prefillRemoteUrls.length === 0) || (scheduleEnabled && !scheduledAt)}
-            className="w-full py-3.5 rounded-2xl text-xs font-bold shadow-xs text-neutral-950 dark:text-neutral-950 cursor-pointer"
+            className="w-full py-3.5 rounded-2xl text-xs font-bold shadow-xs text-lime-foreground cursor-pointer"
           >
             {!submitting && (editingPostId ? <Save className="w-4 h-4 mr-1.5" /> : <Send className="w-4 h-4 mr-1.5" />)}
             {editingPostId
@@ -1303,8 +1303,8 @@ export default function PublishPanel({
         >
           <div className="p-6 flex flex-col gap-5">
             {/* Header com Alerta de Segurança */}
-            <div className="flex items-start gap-3.5 border-b border-border/60 pb-4">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
+            <div className="flex items-start gap-3.5 border-b border-border pb-4">
+              <div className="w-10 h-10 rounded-2xl bg-warning-soft border border-warning-ring flex items-center justify-center text-warning shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
@@ -1330,23 +1330,23 @@ export default function PublishPanel({
                     </div>
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       Conta do Cliente (Destino)
                     </span>
-                    <span className="text-sm font-extrabold text-foreground truncate">
+                    <span className="text-sm font-bold text-foreground truncate">
                       @{accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || targetAccount}
                     </span>
                   </div>
                 </div>
-                <Badge variant="warning" className="text-[10px] px-2 py-0.5 font-bold shrink-0">
+                <Badge variant="warning" className="text-xs px-2 py-0.5 font-bold shrink-0">
                   ⚠️ Confirmar Perfil
                 </Badge>
               </div>
 
               {/* 2. Grid Formato + Data */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3.5 rounded-2xl bg-accent/30 border border-border/70 flex flex-col gap-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="p-3.5 rounded-2xl bg-accent/30 border border-border flex flex-col gap-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Tipo de Conteúdo
                   </span>
                   <span className="text-xs font-bold text-foreground">
@@ -1362,14 +1362,14 @@ export default function PublishPanel({
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-accent/30 border border-border/70 flex flex-col gap-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="p-3.5 rounded-2xl bg-accent/30 border border-border flex flex-col gap-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Data da Postagem
                   </span>
                   <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                     {scheduleEnabled ? (
                       <>
-                        <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <Clock className="w-3.5 h-3.5 text-warning shrink-0" />
                         <span className="truncate">
                           {scheduledAt
                             ? new Intl.DateTimeFormat('pt-BR', {
@@ -1393,9 +1393,9 @@ export default function PublishPanel({
               </div>
 
               {/* 3. Prévia da Mídia & Legenda */}
-              <div className="p-3.5 rounded-2xl bg-accent/20 border border-border/60 flex items-start gap-3">
+              <div className="p-3.5 rounded-2xl bg-accent/20 border border-border flex items-start gap-3">
                 {previewUrls[0] && (
-                  <div className="w-12 h-14 rounded-xl overflow-hidden bg-black shrink-0 border border-border/80">
+                  <div className="w-12 h-14 rounded-xl overflow-hidden bg-black shrink-0 border border-border">
                     {isVideo ? (
                       <video src={previewUrls[0]} className="w-full h-full object-cover" muted />
                     ) : (
@@ -1404,14 +1404,14 @@ export default function PublishPanel({
                   </div>
                 )}
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Legenda
                   </span>
                   <p className="text-xs text-foreground/90 line-clamp-2 mt-0.5">
                     {caption ? caption : <span className="italic text-muted-foreground">(Sem legenda)</span>}
                   </p>
                   {autoEnabled && (
-                    <span className="text-[10px] text-primary font-bold mt-1 flex items-center gap-1">
+                    <span className="text-xs text-primary font-bold mt-1 flex items-center gap-1">
                       <Zap className="w-3 h-3" /> Direct Automático Ativo ({autoKeywords})
                     </span>
                   )}
@@ -1427,7 +1427,7 @@ export default function PublishPanel({
             )}
 
             {/* Botões de Ação */}
-            <div className="flex items-center gap-3 pt-2 border-t border-border/60">
+            <div className="flex items-center gap-3 pt-2 border-t border-border">
               <Button
                 type="button"
                 variant="ghost"
@@ -1443,7 +1443,7 @@ export default function PublishPanel({
                 variant="lime"
                 loading={submitting}
                 onClick={handleSubmit}
-                className="flex-1 text-xs font-bold text-neutral-950 dark:text-neutral-950 h-11 shadow-md cursor-pointer"
+                className="flex-1 text-xs font-bold text-lime-foreground h-11 shadow-md cursor-pointer"
               >
                 {!submitting && <Check className="w-4 h-4 mr-1.5" />}
                 {editingPostId
@@ -1476,8 +1476,8 @@ export default function PublishPanel({
       </div>
 
       {/* 3. Lista e Histórico de Publicações Agendadas */}
-      <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
+      <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
           <div>
             <h4 className="font-bold font-display text-foreground text-base tracking-tight">
               Fila & Histórico de Publicações
@@ -1490,13 +1490,13 @@ export default function PublishPanel({
           {/* Filtros de Escopo de Conta e Status */}
           <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto text-xs">
             {/* Seletor de Escopo de Conta */}
-            <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border/70">
+            <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border">
               <button
                 type="button"
                 onClick={() => setFilaContaFiltro('target')}
                 className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
                   filaContaFiltro === 'target'
-                    ? 'bg-card text-foreground shadow-2xs border border-border/80'
+                    ? 'bg-card text-foreground shadow-2xs border border-border'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -1507,7 +1507,7 @@ export default function PublishPanel({
                 onClick={() => setFilaContaFiltro('all')}
                 className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
                   filaContaFiltro === 'all'
-                    ? 'bg-card text-foreground shadow-2xs border border-border/80'
+                    ? 'bg-card text-foreground shadow-2xs border border-border'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -1516,7 +1516,7 @@ export default function PublishPanel({
             </div>
 
             {/* Filtros de Status */}
-            <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border/70">
+            <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border">
               {[
                 { id: 'all' as const, label: 'Todas' },
                 { id: 'scheduled' as const, label: 'Agendadas' },
@@ -1529,7 +1529,7 @@ export default function PublishPanel({
                   onClick={() => setFiltroStatus(st.id)}
                   className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
                     filtroStatus === st.id
-                      ? 'bg-card text-foreground shadow-2xs border border-border/80'
+                      ? 'bg-card text-foreground shadow-2xs border border-border'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -1543,7 +1543,7 @@ export default function PublishPanel({
         {loadingPosts ? (
           <div className="flex flex-col gap-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 rounded-2xl bg-accent/30 animate-pulse border border-border/60" />
+              <div key={i} className="h-16 rounded-2xl bg-accent/30 animate-pulse border border-border" />
             ))}
           </div>
         ) : postsFiltrados.length === 0 ? (
@@ -1553,7 +1553,7 @@ export default function PublishPanel({
             description="Agende ou publique conteúdos acima para acompanhar a esteira em tempo real."
           />
         ) : (
-          <div className="flex flex-col divide-y divide-border/40">
+          <div className="flex flex-col divide-y divide-border">
             {postsFiltrados.map((post) => {
               const meta = STATUS_META[post.status];
               const StatusIcon = meta.icon;
@@ -1567,7 +1567,7 @@ export default function PublishPanel({
                   key={post.id}
                   className={`py-3.5 flex flex-col gap-2 transition-all rounded-2xl px-3 ${
                     isEditingThis
-                      ? 'bg-amber-500/10 border-2 border-amber-500/50 shadow-xs ring-1 ring-amber-500/20'
+                      ? 'bg-warning-soft border-2 border-warning-ring shadow-xs ring-1 ring-warning-ring'
                       : 'hover:bg-accent/25 border border-transparent'
                   }`}
                 >
@@ -1578,10 +1578,10 @@ export default function PublishPanel({
                       title={isScheduled ? 'Clique para editar esta publicação no simulador' : undefined}
                     >
                       {/* Thumbnail */}
-                      <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-accent shrink-0 border border-border/80 group-hover:border-foreground/40 transition-colors">
+                      <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-accent shrink-0 border border-border group-hover:border-foreground/40 transition-colors">
                         <img src={post.media_url} alt="" className="w-full h-full object-cover" />
                         {isCarouselPost && post.media_urls && (
-                          <span className="absolute bottom-0 right-0 bg-black/80 text-white text-[9px] font-mono font-bold px-1 rounded-tl">
+                          <span className="absolute bottom-0 right-0 bg-black/80 text-white text-[11px] font-mono font-bold px-1 rounded-tl">
                             {post.media_urls.length}
                           </span>
                         )}
@@ -1590,31 +1590,31 @@ export default function PublishPanel({
                       {/* Info */}
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono font-bold bg-accent text-foreground px-2 py-0.5 rounded-md border border-border/60 shrink-0">
+                          <span className="text-xs font-mono font-bold bg-accent text-foreground px-2 py-0.5 rounded-md border border-border shrink-0">
                             @{accounts.find((a) => a.instagram_user_id === post.instagram_user_id)?.instagram_username || 'instagram'}
                           </span>
                           <p className="text-xs font-bold text-foreground truncate max-w-md group-hover:text-primary transition-colors">
                             {post.caption || '(sem legenda)'}
                           </p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {post.media_type} · {new Date(post.status === 'published' && post.published_at ? post.published_at : post.scheduled_at).toLocaleString('pt-BR')}
                         </p>
                         {post.status === 'failed' && post.error_message && (
-                          <p className="text-[11px] text-destructive mt-0.5 font-medium">{post.error_message}</p>
+                          <p className="text-xs text-destructive mt-0.5 font-medium">{post.error_message}</p>
                         )}
                         {post.automation_config?.enabled && (
                           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                            <Badge variant="info" className="text-[10px] px-2 py-0 font-bold flex items-center gap-1">
+                            <Badge variant="info" className="text-xs px-2 py-0 font-bold flex items-center gap-1">
                               <Zap className="w-2.5 h-2.5" />
                               <span>Gatilho: {(post.automation_config.keywords || ['QUERO']).join(', ')}</span>
                             </Badge>
                             {post.created_automation_id ? (
-                              <span className="text-[10px] text-primary font-bold flex items-center gap-0.5">
+                              <span className="text-xs text-primary font-bold flex items-center gap-0.5">
                                 <Check className="w-3 h-3" /> Direct Ativo
                               </span>
                             ) : post.status === 'scheduled' ? (
-                              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                                 <Clock className="w-3 h-3" /> Ativa ao publicar
                               </span>
                             ) : null}
@@ -1625,7 +1625,7 @@ export default function PublishPanel({
 
                     {/* Ações e Badges */}
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <Badge variant={meta.variant} className="text-[10px] font-bold">
+                      <Badge variant={meta.variant} className="text-xs font-bold">
                         <StatusIcon className={`w-3 h-3 ${post.status === 'publishing' ? 'animate-spin' : ''}`} />
                         {meta.label}
                       </Badge>
@@ -1636,7 +1636,7 @@ export default function PublishPanel({
                           onClick={() => handleStartEdit(post)}
                           className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-[0.98] ${
                             isEditingThis
-                              ? 'bg-amber-400 text-amber-950 border-amber-500/40 shadow-xs'
+                              ? 'bg-warning text-warning-foreground border-warning-ring shadow-xs'
                               : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 hover:border-primary/50'
                           }`}
                           title="Editar publicação no simulador"

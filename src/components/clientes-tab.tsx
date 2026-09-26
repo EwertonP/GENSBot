@@ -282,7 +282,7 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                     setSelecionadoId(c.id);
                   }
                 }}
-                className={`group flex flex-col justify-between gap-4 p-5 bg-card hover:bg-card/95 border border-border/80 hover:border-foreground/20 rounded-2xl shadow-2xs hover:shadow-sm transition-all duration-200 ${
+                className={`group flex flex-col justify-between gap-4 p-5 bg-card hover:bg-card/95 border border-border hover:border-foreground/20 rounded-2xl shadow-2xs hover:shadow-sm transition-all duration-200 ${
                   c.ativo ? '' : 'opacity-60 bg-muted/30'
                 }`}
               >
@@ -300,13 +300,13 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                     {c.nicho ? (
                       <p className="truncate text-xs text-muted-foreground mt-0.5 font-medium">{c.nicho}</p>
                     ) : (
-                      <p className="text-[11px] text-muted-foreground/60 italic mt-0.5">Sem nicho definido</p>
+                      <p className="text-xs text-muted-foreground italic mt-0.5">Sem nicho definido</p>
                     )}
                   </div>
-                  {!c.ativo && <Badge variant="muted" className="text-[10px]">Arquivado</Badge>}
+                  {!c.ativo && <Badge variant="muted" className="text-xs">Arquivado</Badge>}
                 </div>
 
-                <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3 text-xs">
+                <div className="flex items-center justify-between gap-2 border-t border-border pt-3 text-xs">
                   <span className="flex min-w-0 items-center gap-1.5 font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
                     <InstagramGlyph className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
                     <span className="truncate">
@@ -321,12 +321,12 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                         e.stopPropagation();
                         onAbrirConta('publish', conta.instagram_user_id);
                       }}
-                      className="h-7 text-[11px] font-bold px-2.5 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all shrink-0 cursor-pointer shadow-2xs font-display"
+                      className="h-7 text-xs font-bold px-2.5 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all shrink-0 cursor-pointer shadow-2xs font-display"
                     >
                       🎯 Operar Painel
                     </Button>
                   ) : (
-                    <span className="text-[10px] text-muted-foreground/50 font-mono">Sem conta</span>
+                    <span className="text-xs text-muted-foreground font-mono">Sem conta</span>
                   )}
                 </div>
               </Card>

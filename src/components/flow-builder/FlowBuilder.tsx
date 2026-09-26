@@ -214,13 +214,13 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
         <div>
           <h2 className="text-sm font-bold text-foreground">Editor visual — {automation.name}</h2>
           {isMigrated && (
-            <p className="text-[10px] text-amber-600 flex items-center gap-1 mt-0.5">
+            <p className="text-xs text-warning flex items-center gap-1 mt-0.5">
               <AlertTriangle className="w-3 h-3" /> Automação ainda não migrada para o canvas — salvar aqui converte.
             </p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          {saveError && <span className="text-[10px] text-destructive font-bold">{saveError}</span>}
+          {saveError && <span className="text-xs text-destructive font-bold">{saveError}</span>}
           <button
             onClick={() => setShowHistory((v) => !v)}
             className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition-colors cursor-pointer border ${
@@ -247,7 +247,7 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
       {issues.length > 0 && (
         <div className="bg-destructive/10 border-b border-destructive/30 px-4 py-2 flex flex-col gap-1">
           {issues.map((issue, i) => (
-            <p key={i} className="text-[10px] text-destructive font-bold">
+            <p key={i} className="text-xs text-destructive font-bold">
               {issue.message}
             </p>
           ))}
@@ -255,16 +255,16 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
       )}
 
       {viewing && (
-        <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between">
-          <span className="text-[10px] font-bold text-amber-600">Visualizando uma versão antiga (somente leitura).</span>
+        <div className="bg-warning-soft border-b border-warning-ring px-4 py-2 flex items-center justify-between">
+          <span className="text-xs font-bold text-warning">Visualizando uma versão antiga (somente leitura).</span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleRestoreVersion(viewing.versionId)}
-              className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/90 cursor-pointer"
+              className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/90 cursor-pointer"
             >
               <RotateCcw className="w-3 h-3" /> Restaurar esta versão
             </button>
-            <button onClick={() => setViewing(null)} className="text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer">
+            <button onClick={() => setViewing(null)} className="text-xs font-bold text-muted-foreground hover:text-foreground cursor-pointer">
               Voltar para edição
             </button>
           </div>

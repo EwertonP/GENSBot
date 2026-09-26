@@ -81,9 +81,9 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
   });
 
   return (
-    <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-6">
+    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-6">
       {/* Header com Filtros de Formato (Padrão Instagram Professional) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
@@ -97,7 +97,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
         </div>
 
         {/* Abas por Formato: Todos, Reels, Posts, Stories */}
-        <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border/80 self-start sm:self-auto shadow-2xs">
+        <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">
           {[
             { id: 'all' as const, label: 'Todos' },
             { id: 'reels' as const, label: 'Reels', icon: Clapperboard },
@@ -113,7 +113,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
                 onClick={() => setActiveFormat(tab.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   active
-                    ? 'bg-card text-foreground shadow-2xs border border-border/80'
+                    ? 'bg-card text-foreground shadow-2xs border border-border'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -129,7 +129,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" aria-busy="true">
           {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="aspect-[4/5] rounded-2xl bg-accent/40 animate-pulse border border-border/60" />
+            <div key={i} className="aspect-[4/5] rounded-2xl bg-accent/40 animate-pulse border border-border" />
           ))}
         </div>
       ) : activeFormat === 'stories' ? (
@@ -145,11 +145,11 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
             {stories.map((story) => (
               <div
                 key={story.id}
-                className="group relative aspect-[9/16] rounded-2xl overflow-hidden bg-black border border-border/80 shadow-2xs hover:shadow-xs transition-all"
+                className="group relative aspect-[9/16] rounded-2xl overflow-hidden bg-black border border-border shadow-2xs hover:shadow-xs transition-all"
               >
                 <img src={story.media_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 flex flex-col justify-between p-3 pointer-events-none">
-                  <span className="self-start text-[9px] font-mono font-bold bg-white/20 backdrop-blur-md text-white px-2 py-0.5 rounded-full">
+                  <span className="self-start text-[11px] font-mono font-bold bg-white/20 backdrop-blur-md text-white px-2 py-0.5 rounded-full">
                     Story
                   </span>
                   <div className="flex items-center gap-1.5 text-white text-xs font-bold font-mono">
@@ -177,7 +177,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
             return (
               <div
                 key={pub.id}
-                className={`group relative rounded-2xl overflow-hidden bg-accent/60 border border-border/80 hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col ${
+                className={`group relative rounded-2xl overflow-hidden bg-accent/60 border border-border hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col ${
                   isReel ? 'aspect-[9/16]' : 'aspect-[4/5]'
                 }`}
               >
@@ -196,7 +196,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
 
                 {/* Badges Superiores (Formato) */}
                 <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none z-10">
-                  <span className="text-[10px] font-bold font-mono bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                  <span className="text-[11px] font-bold font-mono bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
                     {isReel ? (
                       <>
                         <Clapperboard className="w-3 h-3 text-lime" />
@@ -224,7 +224,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between text-[11px] font-mono font-bold pt-1 border-t border-white/20">
+                  <div className="flex items-center justify-between text-xs font-mono font-bold pt-1 border-t border-white/20">
                     <span className="flex items-center gap-1">
                       <Eye className="w-3 h-3 text-lime" />
                       {pub.reach.toLocaleString('pt-BR')}

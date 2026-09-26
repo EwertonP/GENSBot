@@ -744,7 +744,7 @@ export default function EsteiraTab({
   return (
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
       {/* 1. Header de Ações & Filtros em Linha Única */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border/80 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
           {/* Busca */}
           <div className="relative w-48 sm:w-56">
@@ -796,13 +796,13 @@ export default function EsteiraTab({
               type="month"
               value={mesSelecionado}
               onChange={(e) => setMesSelecionado(e.target.value)}
-              className="h-9 text-xs px-2.5 rounded-xl bg-background border border-border text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
+              className="h-9 text-xs px-2.5 rounded-xl bg-background border border-input text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
               title="Mês de referência do feed"
             />
           )}
 
           {/* Alternador Kanban / Lista / Feed 3x3 (Pill Tab em Verde GENS) */}
-          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border/70">
+          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border">
             <button
               type="button"
               onClick={() => setViewMode('kanban')}
@@ -838,7 +838,7 @@ export default function EsteiraTab({
               title="Visualização Preview de Feed 3x3"
             >
               <Grid3X3 className="w-4 h-4" />
-              <span className="hidden sm:inline text-[11px]">Feed 3x3</span>
+              <span className="hidden sm:inline text-xs">Feed 3x3</span>
             </button>
           </div>
 
@@ -904,13 +904,13 @@ export default function EsteiraTab({
             showToast={showToast}
           />
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 p-4 rounded-2xl bg-card border border-border/80 shadow-2xs">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 p-4 rounded-2xl bg-card border border-border shadow-2xs">
             <div className="flex items-center gap-3">
               <ClienteAvatar nome={clienteAtivo.nome} cor={clienteAtivo.cor} fotoUrl={clienteAtivo.foto_url} tamanho="md" />
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-foreground">{clienteAtivo.nome}</span>
-                  <span className="text-[11px] font-mono text-muted-foreground bg-accent px-2 py-0.5 rounded-md border border-border/60">
+                  <span className="text-xs font-mono text-muted-foreground bg-accent px-2 py-0.5 rounded-md border border-border">
                     {itemsFiltrados.length} {itemsFiltrados.length === 1 ? 'demanda' : 'demandas'}
                   </span>
                 </div>
@@ -1053,14 +1053,14 @@ export default function EsteiraTab({
                 className={`w-72 shrink-0 flex flex-col gap-3 p-3 rounded-2xl border transition-all duration-200 min-h-[520px] ${
                   isOver
                     ? 'bg-lime/10 border-primary ring-2 ring-primary/20 shadow-md'
-                    : 'bg-accent/25 border-border/60'
+                    : 'bg-accent/25 border-border'
                 }`}
               >
                 {/* Cabeçalho da Coluna */}
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold font-display text-foreground">{info.label}</span>
-                    <span className="text-xs font-mono font-bold bg-accent text-muted-foreground px-2 py-0.5 rounded-md border border-border/60">
+                    <span className="text-xs font-mono font-bold bg-accent text-muted-foreground px-2 py-0.5 rounded-md border border-border">
                       {itensDaColuna.length}
                     </span>
                   </div>
@@ -1110,7 +1110,7 @@ export default function EsteiraTab({
                         className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 cursor-pointer relative ${
                           temAjustes
                             ? 'border-destructive/40 bg-destructive/5'
-                            : 'border-border/80 hover:border-foreground/30'
+                            : 'border-border hover:border-foreground/30'
                         } ${isDragging ? 'opacity-50 scale-98' : 'opacity-100'} ${
                           isOverItem ? 'ring-2 ring-primary border-primary bg-primary/10' : ''
                         }`}
@@ -1129,7 +1129,7 @@ export default function EsteiraTab({
                           const isCarrossel = item.tipo === 'post';
 
                           return (
-                            <div className="relative aspect-[16/9] w-full bg-[#0d120a] rounded-xl overflow-hidden border border-border/70 shrink-0">
+                            <div className="relative aspect-[16/9] w-full bg-black rounded-xl overflow-hidden border border-border shrink-0">
                               {isReel && capaUrl.match(/\.(mp4|mov|webm)/i) ? (
                                 <video src={capaUrl} className="w-full h-full object-cover" muted />
                               ) : (
@@ -1137,10 +1137,10 @@ export default function EsteiraTab({
                               )}
                               <div className="absolute top-2 left-2">
                                 <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold font-mono border backdrop-blur-md uppercase tracking-wider ${
-                                  isReel ? 'bg-rose-500/90 text-white border-rose-400/50' :
-                                  isStory ? 'bg-blue-500/90 text-white border-blue-400/50' :
-                                  isCarrossel ? 'bg-emerald-500/90 text-white border-emerald-400/50' :
-                                  'bg-amber-500/90 text-white border-amber-400/50'
+                                  isReel ? 'bg-destructive/90 text-destructive-foreground border-destructive-ring' :
+                                  isStory ? 'bg-info/90 text-info-foreground border-info-ring' :
+                                  isCarrossel ? 'bg-success/90 text-success-foreground border-success-ring' :
+                                  'bg-warning/90 text-warning-foreground border-warning-ring'
                                 }`}>
                                   {isReel ? '🎬 Reels' : isStory ? '⚡ Story' : isCarrossel ? '🖼️ Carrossel' : '📌 Post'}
                                 </span>
@@ -1192,7 +1192,7 @@ export default function EsteiraTab({
                                 handleAbrirModalEditar(item);
                               }}
                               title="Editar Demanda"
-                              className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-accent/60 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
@@ -1209,13 +1209,13 @@ export default function EsteiraTab({
                         {/* Badges de Slides, Prazo e Responsável */}
                         <div className="flex flex-wrap items-center gap-1.5 text-xs">
                           {item.arquivos?.length > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono font-medium border border-border/50">
+                            <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono font-medium border border-border">
                               {item.arquivos.length} {item.tipo === 'reel' ? 'vídeo' : 'slides'}
                             </span>
                           )}
 
                           {item.prazo && (
-                            <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono flex items-center gap-1 border border-border/50">
+                            <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono flex items-center gap-1 border border-border">
                               <Clock className="w-3 h-3" />
                               <span>
                                 {new Date(item.prazo).toLocaleDateString('pt-BR', {
@@ -1231,7 +1231,7 @@ export default function EsteiraTab({
                               className={`px-2 py-0.5 rounded-md font-mono font-bold flex items-center gap-1 border ${
                                 temAjustes
                                   ? 'bg-destructive/15 text-destructive border-destructive/20'
-                                  : 'bg-lime/20 text-lime-700 dark:text-lime-300 border-lime-500/30'
+                                  : 'bg-brand-soft text-brand-text border-brand-ring'
                               }`}
                             >
                               <MessageSquare className="w-3 h-3" />
@@ -1242,7 +1242,7 @@ export default function EsteiraTab({
 
                         {/* Responsável */}
                         {item.responsavel && (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium pt-1 border-t border-border/40">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium pt-1 border-t border-border">
                             <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-foreground">
                               {item.responsavel.nome[0].toUpperCase()}
                             </div>
@@ -1252,9 +1252,9 @@ export default function EsteiraTab({
 
                         {/* Status de Aprovação com Cliente */}
                         {item.status === 'revisao_cliente' && (
-                          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2 text-xs">
-                            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold min-w-0">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                          <div className="p-2.5 rounded-xl bg-warning-soft border border-warning-ring flex items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-1.5 text-warning font-semibold min-w-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse shrink-0" />
                               <span className="truncate">Aguardando {item.cliente?.nome || 'Cliente'}</span>
                             </div>
                             <button
@@ -1296,8 +1296,8 @@ export default function EsteiraTab({
 
                         {/* Status de Publicado */}
                         {(colStatus === 'publicado' || item.status === 'publicado') && (
-                          <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between gap-2 text-xs">
-                            <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-semibold min-w-0">
+                          <div className="p-2 rounded-xl bg-success-soft border border-success-ring flex items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-1.5 text-success font-semibold min-w-0">
                               <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate">
                                 {item.publicado_em
@@ -1309,7 +1309,7 @@ export default function EsteiraTab({
                         )}
 
                         {/* Ações Rápidas: Link, Editar e Enviar p/ Aprovação / Agendar */}
-                        <div className="border-t border-border/60 pt-2.5 flex items-center justify-between gap-1">
+                        <div className="border-t border-border pt-2.5 flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
@@ -1318,7 +1318,7 @@ export default function EsteiraTab({
                                 handleCopiarLinkAprovacao(item.token_aprovacao);
                               }}
                               title="Copiar link público de aprovação"
-                              className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
+                              className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
                             >
                               <Share2 className="w-3 h-3" />
                               <span>Link</span>
@@ -1331,7 +1331,7 @@ export default function EsteiraTab({
                                 handleAbrirModalEditar(item);
                               }}
                               title="Editar Demanda"
-                              className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
+                              className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
                             >
                               <Edit2 className="w-3 h-3" />
                               <span>Editar</span>
@@ -1345,7 +1345,7 @@ export default function EsteiraTab({
 
                             if (isPublicado) {
                               return (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-success-soft text-success border border-success-ring">
                                   <CheckCircle2 className="w-3 h-3" />
                                   <span>Publicado</span>
                                 </span>
@@ -1362,7 +1362,7 @@ export default function EsteiraTab({
                                       handleLevarParaAgendamento(item);
                                     }}
                                     title="Ver ou reagendar publicação agendada"
-                                    className="text-[11px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 transition-all cursor-pointer"
+                                    className="text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 transition-all cursor-pointer"
                                   >
                                     <Calendar className="w-3 h-3" />
                                     <span>Agendado</span>
@@ -1377,7 +1377,7 @@ export default function EsteiraTab({
                                     handleLevarParaAgendamento(item);
                                   }}
                                   title="Levar demanda aprovada direto para a tela de Agendamento do Instagram"
-                                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-primary hover:bg-primary/85 text-primary-foreground border border-primary/40 shadow-xs transition-all cursor-pointer"
+                                  className="text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-primary hover:bg-primary/85 text-primary-foreground border border-primary/40 shadow-xs transition-all cursor-pointer"
                                 >
                                   <Sparkles className="w-3 h-3" />
                                   <span>Agendar</span>
@@ -1397,9 +1397,9 @@ export default function EsteiraTab({
                                     ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
                                     : 'Enviar para aprovação no WhatsApp Web'
                                 }
-                                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-all cursor-pointer ${
+                                className={`text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-all cursor-pointer ${
                                   item.status === 'revisao_cliente'
-                                    ? 'bg-amber-400 hover:bg-amber-300 text-amber-950 border-amber-500/30'
+                                    ? 'bg-warning hover:bg-warning/90 text-warning-foreground border-warning-ring'
                                     : 'bg-lime hover:bg-lime/90 text-lime-foreground font-bold border-foreground/15 shadow-xs active:scale-[0.98]'
                                 }`}
                               >
@@ -1422,7 +1422,7 @@ export default function EsteiraTab({
         <Card padding="lg" className="rounded-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-muted-foreground">
-              <thead className="uppercase text-xs font-bold border-b border-border/60">
+              <thead className="uppercase text-xs font-bold border-b border-border">
                 <tr>
                   <th className="py-2.5 px-3">Cliente</th>
                   <th className="py-2.5 px-3">Título / Formato</th>
@@ -1432,7 +1432,7 @@ export default function EsteiraTab({
                   <th className="py-2.5 px-3 text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
+              <tbody className="divide-y divide-border">
                 {itemsFiltrados.map((item) => (
                   <tr
                     key={item.id}
@@ -1458,7 +1458,7 @@ export default function EsteiraTab({
                       </Badge>
                     </td>
                     <td className="py-3 px-3">
-                      {item.responsavel?.nome || <span className="text-muted-foreground/60">—</span>}
+                      {item.responsavel?.nome || <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="py-3 px-3 font-mono">{item.arquivos?.length || 0} arquivos</td>
                     <td className="py-3 px-3 text-right">
@@ -1492,7 +1492,7 @@ export default function EsteiraTab({
 
                           if (isPublicado) {
                             return (
-                              <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                              <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-success-soft text-success border border-success-ring">
                                 <CheckCircle2 className="w-3 h-3" />
                                 <span>Publicado</span>
                               </span>
@@ -1546,7 +1546,7 @@ export default function EsteiraTab({
                               }
                               className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs ${
                                 item.status === 'revisao_cliente'
-                                  ? 'bg-amber-400 hover:bg-amber-300 text-amber-950 border border-amber-500/30'
+                                  ? 'bg-warning hover:bg-warning/90 text-warning-foreground border border-warning-ring'
                                   : 'bg-lime hover:bg-lime/90 text-lime-foreground border border-foreground/15 shadow-xs active:scale-[0.98]'
                               }`}
                             >
@@ -1574,7 +1574,7 @@ export default function EsteiraTab({
       >
         <form onSubmit={handleSalvarNovo} className="flex flex-col max-h-[92vh] w-full bg-card select-none">
           {/* 1. Header Slim de Linha Única (48px - Ultra Compacto) */}
-          <div className="px-4 py-2.5 border-b border-border/70 flex items-center justify-between gap-3 bg-card shrink-0">
+          <div className="px-4 py-2.5 border-b border-border flex items-center justify-between gap-3 bg-card shrink-0">
             {/* Esquerda: Tag Nova Demanda + Título Inline */}
             <div className="flex items-center gap-2.5 flex-1 min-w-0">
               <span className="text-xs font-mono font-bold text-primary uppercase px-2 py-0.5 rounded-md bg-primary/10 border border-primary/25 shrink-0">
@@ -1586,7 +1586,7 @@ export default function EsteiraTab({
                 value={formTitulo}
                 onChange={(e) => setFormTitulo(e.target.value)}
                 placeholder="Título ou Tema da Publicação..."
-                className="text-base sm:text-lg font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60 flex-1 min-w-0"
+                className="text-base sm:text-lg font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground flex-1 min-w-0"
                 required
               />
             </div>
@@ -1594,7 +1594,7 @@ export default function EsteiraTab({
             {/* Centro/Direita: Stepper de Status Inicial Compacto + Fechar */}
             <div className="flex items-center gap-2 shrink-0">
               {/* Stepper Pipeline Compacto em Linha */}
-              <div className="hidden md:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border/60">
+              <div className="hidden md:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border">
                 {ETAPAS_PIPELINE.map((etapa) => {
                   const currentStep = getEtapaIndex(formStatusInicial);
                   const isCurrent = etapa.step === currentStep;
@@ -1615,7 +1615,7 @@ export default function EsteiraTab({
                       title={`Definir etapa inicial: ${etapa.label}`}
                     >
                       <span
-                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] shrink-0 font-mono ${
+                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-xs shrink-0 font-mono ${
                           isCurrent
                             ? 'bg-primary-foreground text-primary font-bold'
                             : isDone
@@ -1662,12 +1662,12 @@ export default function EsteiraTab({
             {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Abas/Split de Redação, Legenda e Briefing */}
             <div className="lg:col-span-7 flex flex-col gap-3">
               {/* 1. Barra de Formato (28px) + Toggle Abas vs Split */}
-              <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50 shrink-0">
+              <div className="flex items-center justify-between gap-2 pb-2 border-b border-border shrink-0">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-foreground font-display shrink-0">
                   <Layers className="w-3.5 h-3.5 text-primary" />
                   <span>Formato:</span>
                 </div>
-                <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border/60 max-w-sm flex-1">
+                <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border max-w-sm flex-1">
                   {[
                     { id: 'post' as const, label: 'Carrossel (4:5)', icon: ImageIcon },
                     { id: 'reel' as const, label: 'Reels (9:16)', icon: Video },
@@ -1691,7 +1691,7 @@ export default function EsteiraTab({
                 </div>
 
                 {/* Alternador de Modo: Abas vs Dividido */}
-                <div className="hidden sm:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border/50 text-xs shrink-0">
+                <div className="hidden sm:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border text-xs shrink-0">
                   <button
                     type="button"
                     onClick={() => setFormModoVisualizacao('abas')}
@@ -1723,19 +1723,19 @@ export default function EsteiraTab({
               {formModoVisualizacao === 'abas' && (
                 <div className="flex flex-col gap-2.5 flex-1 min-h-0">
                   {/* Seletor de Abas de Conteúdo */}
-                  <div className="flex items-center gap-1 p-1 bg-accent/30 rounded-xl border border-border/60 shrink-0">
+                  <div className="flex items-center gap-1 p-1 bg-accent/30 rounded-xl border border-border shrink-0">
                     <button
                       type="button"
                       onClick={() => setFormAbaConteudo('legenda')}
                       className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
                         formAbaConteudo === 'legenda'
-                          ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                          ? 'bg-card text-foreground shadow-2xs border border-border'
                           : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
                       }`}
                     >
                       <FileText className="w-3.5 h-3.5 text-primary" />
                       <span>Legenda da Postagem</span>
-                      <span className="text-[11px] font-mono text-muted-foreground ml-1">
+                      <span className="text-xs font-mono text-muted-foreground ml-1">
                         ({formLegenda.length}/2.200)
                       </span>
                     </button>
@@ -1745,7 +1745,7 @@ export default function EsteiraTab({
                       onClick={() => setFormAbaConteudo('briefing')}
                       className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
                         formAbaConteudo === 'briefing'
-                          ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                          ? 'bg-card text-foreground shadow-2xs border border-border'
                           : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
                       }`}
                     >
@@ -1761,13 +1761,13 @@ export default function EsteiraTab({
                       onClick={() => setFormAbaConteudo('anexos')}
                       className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
                         formAbaConteudo === 'anexos'
-                          ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                          ? 'bg-card text-foreground shadow-2xs border border-border'
                           : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
                       }`}
                     >
                       <Paperclip className="w-3.5 h-3.5 text-primary" />
                       <span>Mídias & Anexos</span>
-                      <span className="text-[11px] font-mono text-muted-foreground ml-0.5">
+                      <span className="text-xs font-mono text-muted-foreground ml-0.5">
                         ({formArquivos.length})
                       </span>
                     </button>
@@ -1838,9 +1838,9 @@ export default function EsteiraTab({
                   {/* Conteúdo Aba: Briefing & Roteiro */}
                   {formAbaConteudo === 'briefing' && (
                     <div className="flex flex-col gap-2 flex-1 min-h-0">
-                      <div className="p-2.5 rounded-xl bg-accent/20 border border-border/60 text-xs text-muted-foreground flex items-center justify-between">
+                      <div className="p-2.5 rounded-xl bg-accent/20 border border-border text-xs text-muted-foreground flex items-center justify-between">
                         <span>Instruções para designer, editor de vídeo, copywriter ou roteiro cena a cena da peça.</span>
-                        <span className="font-mono text-[11px]">{formBriefing.length} caracteres</span>
+                        <span className="font-mono text-xs">{formBriefing.length} caracteres</span>
                       </div>
                       <Textarea
                         value={formBriefing}
@@ -1865,7 +1865,7 @@ export default function EsteiraTab({
                           disabled={formUploading}
                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
                         />
-                        <div className="w-8 h-8 rounded-xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
+                        <div className="w-8 h-8 rounded-xl bg-card border border-border flex items-center justify-center text-foreground shadow-2xs">
                           <UploadCloud className="w-4 h-4 text-primary" />
                         </div>
                         <p className="text-xs font-bold text-foreground">
@@ -1882,10 +1882,10 @@ export default function EsteiraTab({
                           {formArquivos.map((arq, idx) => (
                             <div
                               key={arq.id || idx}
-                              className="p-2.5 rounded-xl bg-accent/30 border border-border/70 flex items-center justify-between gap-2.5 group hover:border-foreground/30 transition-all"
+                              className="p-2.5 rounded-xl bg-accent/30 border border-border flex items-center justify-between gap-2.5 group hover:border-foreground/30 transition-all"
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-10 h-10 rounded-lg bg-black overflow-hidden shrink-0 border border-border/80 relative">
+                                <div className="w-10 h-10 rounded-lg bg-black overflow-hidden shrink-0 border border-border relative">
                                   {arq.tipo === 'video' ? (
                                     <video src={arq.url} className="w-full h-full object-cover" muted />
                                   ) : (
@@ -1898,12 +1898,12 @@ export default function EsteiraTab({
                                       {arq.nome || `Arquivo_${idx + 1}`}
                                     </span>
                                     {idx === 0 && (
-                                      <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 shrink-0">
+                                      <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 shrink-0">
                                         ⭐ Capa
                                       </span>
                                     )}
                                   </div>
-                                  <span className="text-[11px] text-muted-foreground font-mono">
+                                  <span className="text-xs text-muted-foreground font-mono">
                                     #{idx + 1} · {arq.tipo === 'video' ? 'Vídeo' : 'Imagem'}
                                   </span>
                                 </div>
@@ -1970,7 +1970,7 @@ export default function EsteiraTab({
                         <Sparkles className="w-3.5 h-3.5 text-primary" />
                         <span>Briefing & Roteiro da Peça</span>
                       </label>
-                      <span className="text-[11px] text-muted-foreground font-mono">{formBriefing.length} caracteres</span>
+                      <span className="text-xs text-muted-foreground font-mono">{formBriefing.length} caracteres</span>
                     </div>
                     <Textarea
                       value={formBriefing}
@@ -2041,9 +2041,9 @@ export default function EsteiraTab({
             {/* COLUNA DA DIREITA (5 Cols): Inspector Unificado de Propriedades */}
             <div className="lg:col-span-5 flex flex-col gap-3">
               {/* Card Unificado de Propriedades (Linear / Notion Style) */}
-              <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5">
+              <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5">
                 {/* Linha 1: Cliente */}
-                <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50">
+                <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
                   <span className="text-xs font-bold uppercase font-mono text-muted-foreground flex items-center gap-1.5 shrink-0">
                     <Users className="w-3.5 h-3.5 text-primary" />
                     Cliente: *
@@ -2075,7 +2075,7 @@ export default function EsteiraTab({
 
                 {/* Busca de Cliente (se expandido) */}
                 {trocarClienteAbertoNovo && (
-                  <div className="flex flex-col gap-1.5 pb-2 border-b border-border/50">
+                  <div className="flex flex-col gap-1.5 pb-2 border-b border-border">
                     <div className="relative">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                       <Input
@@ -2086,7 +2086,7 @@ export default function EsteiraTab({
                         autoFocus
                       />
                     </div>
-                    <div className="max-h-32 overflow-y-auto flex flex-col gap-0.5 p-1 border border-border/70 rounded-xl bg-card">
+                    <div className="max-h-32 overflow-y-auto flex flex-col gap-0.5 p-1 border border-border rounded-xl bg-card">
                       {clientesFormFiltrados.length === 0 ? (
                         <p className="text-xs text-muted-foreground p-1 text-center">Nenhum cliente encontrado.</p>
                       ) : (
@@ -2118,7 +2118,7 @@ export default function EsteiraTab({
                 )}
 
                 {/* Linha 2: Prioridade (4 Chips em 1 Linha Contínua) */}
-                <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50">
+                <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
                   <span className="text-xs font-bold uppercase font-mono text-muted-foreground shrink-0">
                     Prioridade:
                   </span>
@@ -2141,12 +2141,12 @@ export default function EsteiraTab({
                           className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-all text-xs ${
                             isSelected
                               ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs ring-1 ring-primary/20`
-                              : 'bg-card hover:bg-accent/50 border-border/80 text-foreground font-semibold hover:border-foreground/30'
+                              : 'bg-card hover:bg-accent/50 border-border text-foreground font-semibold hover:border-foreground/30'
                           }`}
                           title={p.label}
                         >
                           <span className="text-xs">{p.flag}</span>
-                          <span className="text-[11px] font-semibold">{p.label}</span>
+                          <span className="text-xs font-semibold">{p.label}</span>
                         </button>
                       );
                     })}
@@ -2154,7 +2154,7 @@ export default function EsteiraTab({
                 </div>
 
                 {/* Linha 3: Equipe (Responsável & Designer Lado a Lado) */}
-                <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border/50">
+                <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border">
                   <MemberChipSelect
                     label="Responsável Principal"
                     value={formResponsavelId}
@@ -2174,7 +2174,7 @@ export default function EsteiraTab({
                 {/* Linha 4: Prazos (Prazo Interno & Data Programada) */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col gap-0.5">
-                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
                       <Clock className="w-3 h-3 text-muted-foreground" />
                       <span>Prazo Interno</span>
                     </label>
@@ -2186,7 +2186,7 @@ export default function EsteiraTab({
                     />
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-muted-foreground" />
                       <span>Data Programada</span>
                     </label>
@@ -2288,7 +2288,7 @@ export default function EsteiraTab({
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-accent/40 border border-border/80 text-xs text-muted-foreground flex items-start gap-2.5">
+          <div className="p-3.5 rounded-xl bg-accent/40 border border-border text-xs text-muted-foreground flex items-start gap-2.5">
             <Sparkles className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
             <p>
               As cópias são criadas como demandas novas independentes. Briefings, legendas e carrosséis são preservados, e o status é resetado para o início da esteira.
@@ -2322,10 +2322,10 @@ export default function EsteiraTab({
         {itemEmEdicao && (
           <form onSubmit={handleSalvarEdicao} className="flex flex-col max-h-[92vh] w-full bg-card select-none">
             {/* 1. Header Slim de Linha Única (48px - Ultra Compacto) */}
-            <div className="px-4 py-2.5 border-b border-border/70 flex items-center justify-between gap-3 bg-card shrink-0">
+            <div className="px-4 py-2.5 border-b border-border flex items-center justify-between gap-3 bg-card shrink-0">
               {/* Esquerda: ID da Demanda + Título Inline + Chip de Capa */}
               <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <span className="text-xs font-mono font-bold text-muted-foreground uppercase px-2 py-0.5 rounded-md bg-accent/60 border border-border/70 shrink-0">
+                <span className="text-xs font-mono font-bold text-muted-foreground uppercase px-2 py-0.5 rounded-md bg-accent/60 border border-border shrink-0">
                   #{itemEmEdicao.id.slice(0, 8)}
                 </span>
 
@@ -2334,7 +2334,7 @@ export default function EsteiraTab({
                   <button
                     type="button"
                     onClick={() => setPreviewCapaLightbox(editArquivos[0].url)}
-                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-accent/60 hover:bg-accent border border-border/70 text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer group"
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-accent/60 hover:bg-accent border border-border text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer group"
                     title="Clique para ampliar a capa"
                   >
                     <div className="w-4 h-4 rounded overflow-hidden bg-black shrink-0 border border-border">
@@ -2354,7 +2354,7 @@ export default function EsteiraTab({
                   value={editTitulo}
                   onChange={(e) => setEditTitulo(e.target.value)}
                   placeholder="Título da Demanda..."
-                  className="text-base sm:text-lg font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground/60 flex-1 min-w-0"
+                  className="text-base sm:text-lg font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground flex-1 min-w-0"
                   required
                 />
               </div>
@@ -2362,7 +2362,7 @@ export default function EsteiraTab({
               {/* Centro/Direita: Stepper de Status Compacto + Ações */}
               <div className="flex items-center gap-2 shrink-0">
                 {/* Stepper Pipeline Compacto em Linha (sem scroll horizontal) */}
-                <div className="hidden md:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border/60">
+                <div className="hidden md:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border">
                   {ETAPAS_PIPELINE.map((etapa) => {
                     const currentStep = getEtapaIndex(editStatus);
                     const isCurrent = etapa.step === currentStep;
@@ -2383,7 +2383,7 @@ export default function EsteiraTab({
                         title={`Etapa: ${etapa.label}`}
                       >
                         <span
-                          className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] shrink-0 font-mono ${
+                          className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-xs shrink-0 font-mono ${
                             isCurrent
                               ? 'bg-primary-foreground text-primary font-bold'
                               : isDone
@@ -2418,7 +2418,7 @@ export default function EsteiraTab({
                 <button
                   type="button"
                   onClick={() => handleCopiarLinkAprovacao(itemEmEdicao.token_aprovacao)}
-                  className="px-2.5 py-1.5 rounded-lg bg-accent/60 hover:bg-accent border border-border/60 text-foreground font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs"
+                  className="px-2.5 py-1.5 rounded-lg bg-accent/60 hover:bg-accent border border-border text-foreground font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs"
                   title="Copiar Link de Aprovação do Cliente"
                 >
                   <Share2 className="w-3.5 h-3.5 text-primary" />
@@ -2453,12 +2453,12 @@ export default function EsteiraTab({
               {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Abas/Split de Redação, Legenda e Briefing */}
               <div className="lg:col-span-7 flex flex-col gap-3">
                 {/* 1. Barra de Formato (28px) + Toggle Abas vs Split */}
-                <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50 shrink-0">
+                <div className="flex items-center justify-between gap-2 pb-2 border-b border-border shrink-0">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground font-display shrink-0">
                     <Layers className="w-3.5 h-3.5 text-primary" />
                     <span>Formato:</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border/60 max-w-sm flex-1">
+                  <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border max-w-sm flex-1">
                     {[
                       { id: 'post' as const, label: 'Carrossel (4:5)', icon: ImageIcon },
                       { id: 'reel' as const, label: 'Reels (9:16)', icon: Video },
@@ -2482,7 +2482,7 @@ export default function EsteiraTab({
                   </div>
 
                   {/* Alternador de Modo: Abas vs Dividido */}
-                  <div className="hidden sm:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border/50 text-xs shrink-0">
+                  <div className="hidden sm:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border text-xs shrink-0">
                     <button
                       type="button"
                       onClick={() => setEditModoVisualizacao('abas')}
@@ -2514,19 +2514,19 @@ export default function EsteiraTab({
                 {editModoVisualizacao === 'abas' && (
                   <div className="flex flex-col gap-2.5 flex-1 min-h-0">
                     {/* Seletor de Abas de Conteúdo */}
-                    <div className="flex items-center gap-1 p-1 bg-accent/30 rounded-xl border border-border/60 shrink-0">
+                    <div className="flex items-center gap-1 p-1 bg-accent/30 rounded-xl border border-border shrink-0">
                       <button
                         type="button"
                         onClick={() => setEditAbaConteudo('legenda')}
                         className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
                           editAbaConteudo === 'legenda'
-                            ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                            ? 'bg-card text-foreground shadow-2xs border border-border'
                             : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
                         }`}
                       >
                         <FileText className="w-3.5 h-3.5 text-primary" />
                         <span>Legenda da Postagem</span>
-                        <span className="text-[11px] font-mono text-muted-foreground ml-1">
+                        <span className="text-xs font-mono text-muted-foreground ml-1">
                           ({editLegenda.length}/2.200)
                         </span>
                       </button>
@@ -2536,7 +2536,7 @@ export default function EsteiraTab({
                         onClick={() => setEditAbaConteudo('briefing')}
                         className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
                           editAbaConteudo === 'briefing'
-                            ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                            ? 'bg-card text-foreground shadow-2xs border border-border'
                             : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
                         }`}
                       >
@@ -2552,13 +2552,13 @@ export default function EsteiraTab({
                         onClick={() => setEditAbaConteudo('anexos')}
                         className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
                           editAbaConteudo === 'anexos'
-                            ? 'bg-card text-foreground shadow-2xs border border-border/70'
+                            ? 'bg-card text-foreground shadow-2xs border border-border'
                             : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
                         }`}
                       >
                         <Paperclip className="w-3.5 h-3.5 text-primary" />
                         <span>Mídias & Anexos</span>
-                        <span className="text-[11px] font-mono text-muted-foreground ml-0.5">
+                        <span className="text-xs font-mono text-muted-foreground ml-0.5">
                           ({editArquivos.length})
                         </span>
                       </button>
@@ -2629,9 +2629,9 @@ export default function EsteiraTab({
                     {/* Conteúdo Aba: Briefing & Roteiro */}
                     {editAbaConteudo === 'briefing' && (
                       <div className="flex flex-col gap-2 flex-1 min-h-0">
-                        <div className="p-2.5 rounded-xl bg-accent/20 border border-border/60 text-xs text-muted-foreground flex items-center justify-between">
+                        <div className="p-2.5 rounded-xl bg-accent/20 border border-border text-xs text-muted-foreground flex items-center justify-between">
                           <span>Instruções para designer, editor de vídeo, copywriter ou roteiro cena a cena da peça.</span>
-                          <span className="font-mono text-[11px]">{editBriefing.length} caracteres</span>
+                          <span className="font-mono text-xs">{editBriefing.length} caracteres</span>
                         </div>
                         <Textarea
                           value={editBriefing}
@@ -2656,7 +2656,7 @@ export default function EsteiraTab({
                             disabled={editUploading}
                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
                           />
-                          <div className="w-8 h-8 rounded-xl bg-card border border-border/80 flex items-center justify-center text-foreground shadow-2xs">
+                          <div className="w-8 h-8 rounded-xl bg-card border border-border flex items-center justify-center text-foreground shadow-2xs">
                             <UploadCloud className="w-4 h-4 text-primary" />
                           </div>
                           <p className="text-xs font-bold text-foreground">
@@ -2673,10 +2673,10 @@ export default function EsteiraTab({
                             {editArquivos.map((arq, idx) => (
                               <div
                                 key={arq.id || idx}
-                                className="p-2.5 rounded-xl bg-accent/30 border border-border/70 flex items-center justify-between gap-2.5 group hover:border-foreground/30 transition-all"
+                                className="p-2.5 rounded-xl bg-accent/30 border border-border flex items-center justify-between gap-2.5 group hover:border-foreground/30 transition-all"
                               >
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="w-10 h-10 rounded-lg bg-black overflow-hidden shrink-0 border border-border/80 relative">
+                                  <div className="w-10 h-10 rounded-lg bg-black overflow-hidden shrink-0 border border-border relative">
                                     {arq.tipo === 'video' ? (
                                       <video src={arq.url} className="w-full h-full object-cover" muted />
                                     ) : (
@@ -2689,12 +2689,12 @@ export default function EsteiraTab({
                                         {arq.nome || `Arquivo_${idx + 1}`}
                                       </span>
                                       {idx === 0 && (
-                                        <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 shrink-0">
+                                        <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 shrink-0">
                                           ⭐ Capa
                                         </span>
                                       )}
                                     </div>
-                                    <span className="text-[11px] text-muted-foreground font-mono">
+                                    <span className="text-xs text-muted-foreground font-mono">
                                       #{idx + 1} · {arq.tipo === 'video' ? 'Vídeo' : 'Imagem'}
                                     </span>
                                   </div>
@@ -2761,7 +2761,7 @@ export default function EsteiraTab({
                           <Sparkles className="w-3.5 h-3.5 text-primary" />
                           <span>Briefing & Roteiro da Criação</span>
                         </label>
-                        <span className="text-[11px] text-muted-foreground font-mono">{editBriefing.length} caracteres</span>
+                        <span className="text-xs text-muted-foreground font-mono">{editBriefing.length} caracteres</span>
                       </div>
                       <Textarea
                         value={editBriefing}
@@ -2832,9 +2832,9 @@ export default function EsteiraTab({
               {/* COLUNA DA DIREITA (5 Cols): Inspector Unificado de Propriedades + Comentários */}
               <div className="lg:col-span-5 flex flex-col gap-3">
                 {/* Card Unificado de Propriedades (Linear / Notion Style) */}
-                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2.5 shrink-0">
+                <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 shrink-0">
                   {/* Linha 1: Cliente */}
-                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50">
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
                     <span className="text-xs font-bold uppercase font-mono text-muted-foreground flex items-center gap-1.5 shrink-0">
                       <Users className="w-3.5 h-3.5 text-primary" />
                       Cliente:
@@ -2866,7 +2866,7 @@ export default function EsteiraTab({
 
                   {/* Busca de Cliente (se expandido) */}
                   {trocarClienteAbertoEdit && (
-                    <div className="flex flex-col gap-1.5 pb-2 border-b border-border/50">
+                    <div className="flex flex-col gap-1.5 pb-2 border-b border-border">
                       <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                         <Input
@@ -2877,7 +2877,7 @@ export default function EsteiraTab({
                           autoFocus
                         />
                       </div>
-                      <div className="max-h-32 overflow-y-auto flex flex-col gap-0.5 p-1 border border-border/70 rounded-xl bg-card">
+                      <div className="max-h-32 overflow-y-auto flex flex-col gap-0.5 p-1 border border-border rounded-xl bg-card">
                         {clientesEditFiltrados.length === 0 ? (
                           <p className="text-xs text-muted-foreground p-1 text-center">Nenhum cliente encontrado.</p>
                         ) : (
@@ -2909,7 +2909,7 @@ export default function EsteiraTab({
                   )}
 
                   {/* Linha 2: Prioridade (4 Chips em 1 Linha Contínua) */}
-                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/50">
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
                     <span className="text-xs font-bold uppercase font-mono text-muted-foreground shrink-0">
                       Prioridade:
                     </span>
@@ -2932,12 +2932,12 @@ export default function EsteiraTab({
                             className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-all text-xs ${
                               isSelected
                                 ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs ring-1 ring-primary/20`
-                                : 'bg-card hover:bg-accent/50 border-border/80 text-foreground font-semibold hover:border-foreground/30'
+                                : 'bg-card hover:bg-accent/50 border-border text-foreground font-semibold hover:border-foreground/30'
                             }`}
                             title={p.label}
                           >
                             <span className="text-xs">{p.flag}</span>
-                            <span className="text-[11px] font-semibold">{p.label}</span>
+                            <span className="text-xs font-semibold">{p.label}</span>
                           </button>
                         );
                       })}
@@ -2945,7 +2945,7 @@ export default function EsteiraTab({
                   </div>
 
                   {/* Linha 3: Equipe (Responsável & Designer Lado a Lado) */}
-                  <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border/50">
+                  <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border">
                     <MemberChipSelect
                       label="Responsável Principal"
                       value={editResponsavelId}
@@ -2965,7 +2965,7 @@ export default function EsteiraTab({
                   {/* Linha 4: Prazos (Prazo Interno & Data Programada) */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex flex-col gap-0.5">
-                      <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3 h-3 text-muted-foreground" />
                         <span>Prazo Interno</span>
                       </label>
@@ -2977,7 +2977,7 @@ export default function EsteiraTab({
                       />
                     </div>
                     <div className="flex flex-col gap-0.5">
-                      <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
                         <Calendar className="w-3 h-3 text-muted-foreground" />
                         <span>Data Programada</span>
                       </label>
@@ -2992,9 +2992,9 @@ export default function EsteiraTab({
 
                   {/* Miniatura da Capa com Ação de Zoom (se houver mídia) */}
                   {editArquivos[0]?.url && (
-                    <div className="pt-2 border-t border-border/50 flex items-center justify-between gap-2">
+                    <div className="pt-2 border-t border-border flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-black shrink-0 border border-border/80 relative">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-black shrink-0 border border-border relative">
                           {editArquivos[0].tipo === 'video' ? (
                             <video src={editArquivos[0].url} className="w-full h-full object-cover" muted />
                           ) : (
@@ -3003,7 +3003,7 @@ export default function EsteiraTab({
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-xs font-bold text-foreground">⭐ Capa da Postagem</span>
-                          <span className="text-[10px] text-muted-foreground font-mono">
+                          <span className="text-xs text-muted-foreground font-mono">
                             {editArquivos[0].tipo === 'video' ? 'Vídeo MP4' : 'Imagem'}
                           </span>
                         </div>
@@ -3011,7 +3011,7 @@ export default function EsteiraTab({
                       <button
                         type="button"
                         onClick={() => setPreviewCapaLightbox(editArquivos[0].url)}
-                        className="px-2 py-0.5 rounded-md bg-accent/60 hover:bg-accent border border-border/70 text-xs font-semibold text-foreground flex items-center gap-1 cursor-pointer transition-colors"
+                        className="px-2 py-0.5 rounded-md bg-accent/60 hover:bg-accent border border-border text-xs font-semibold text-foreground flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <Maximize2 className="w-3 h-3" />
                         <span>Ampliar</span>
@@ -3021,8 +3021,8 @@ export default function EsteiraTab({
                 </div>
 
                 {/* Área de Comentários & Atividades (Aproveitando a Altura Livre) */}
-                <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-2xs flex flex-col gap-2 flex-1 min-h-[160px]">
-                  <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2 flex-1 min-h-[160px]">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
                     <span className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display">
                       <MessageSquare className="w-3.5 h-3.5 text-primary" />
                       Comentários & Atividades
@@ -3037,8 +3037,8 @@ export default function EsteiraTab({
                         Ajustes do Cliente ({itemEmEdicao.comentarios_revisao.length})
                       </p>
                       {itemEmEdicao.comentarios_revisao.map((c) => (
-                        <div key={c.id} className="text-xs p-2 rounded-lg bg-card/90 border border-border/60">
-                          <span className="text-muted-foreground font-mono block text-[11px]">{c.autor || 'Cliente'}</span>
+                        <div key={c.id} className="text-xs p-2 rounded-lg bg-card/90 border border-border">
+                          <span className="text-muted-foreground font-mono block text-xs">{c.autor || 'Cliente'}</span>
                           <p className="text-foreground mt-0.5">{c.texto}</p>
                         </div>
                       ))}
@@ -3053,8 +3053,8 @@ export default function EsteiraTab({
                       </p>
                     ) : (
                       itemEmEdicao.historico_atividades.map((ev) => (
-                        <div key={ev.id} className="p-2 rounded-xl bg-accent/20 border border-border/50 text-xs flex flex-col gap-0.5">
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                        <div key={ev.id} className="p-2 rounded-xl bg-accent/20 border border-border text-xs flex flex-col gap-0.5">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
                             <span className="font-bold text-foreground">{ev.autor_nome || 'Equipe'}</span>
                             <span>{new Date(ev.criado_em).toLocaleDateString('pt-BR')}</span>
                           </div>
@@ -3065,7 +3065,7 @@ export default function EsteiraTab({
                   </div>
 
                   {/* Input Novo Comentário */}
-                  <div className="flex gap-2 pt-1.5 border-t border-border/60 shrink-0">
+                  <div className="flex gap-2 pt-1.5 border-t border-border shrink-0">
                     <Textarea
                       value={novoComentarioTexto}
                       onChange={(e) => setNovoComentarioTexto(e.target.value)}
@@ -3171,7 +3171,7 @@ export default function EsteiraTab({
             <div className="p-5 sm:p-6 border-b border-border shrink-0 flex items-start justify-between gap-4">
               <div>
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono flex items-center gap-1.5">
-                  <Send className="w-3 h-3 text-lime" />
+                  <Send className="w-3 h-3 text-brand-text" />
                   Aprovação de Conteúdo
                 </span>
                 <h3 className="text-xl font-bold font-display text-foreground tracking-tight mt-1">
@@ -3205,8 +3205,8 @@ export default function EsteiraTab({
                 </div>
 
                 {(itemParaAprovacao.arquivos || []).length === 0 ? (
-                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col gap-3 text-xs">
-                    <div className="flex items-start gap-2.5 text-amber-700 dark:text-amber-400">
+                  <div className="p-4 rounded-2xl bg-warning-soft border border-warning-ring flex flex-col gap-3 text-xs">
+                    <div className="flex items-start gap-2.5 text-warning">
                       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                       <div>
                         <p className="font-bold">Nenhuma foto ou vídeo anexado ainda!</p>
@@ -3217,7 +3217,7 @@ export default function EsteiraTab({
                     </div>
 
                     {/* Dropzone rápido dentro do modal de aprovação */}
-                    <div className="relative border-2 border-dashed border-amber-500/30 rounded-xl p-4 text-center bg-card hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5">
+                    <div className="relative border-2 border-dashed border-warning-ring rounded-xl p-4 text-center bg-card hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5">
                       <input
                         type="file"
                         multiple={itemParaAprovacao.tipo !== 'reel'}
@@ -3257,20 +3257,20 @@ export default function EsteiraTab({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3.5 rounded-2xl bg-accent/30 border border-border/70 space-y-3">
+                  <div className="p-3.5 rounded-2xl bg-accent/30 border border-border space-y-3">
                     {/* Miniaturas das Mídias */}
                     <div className="flex items-center gap-2 overflow-x-auto pb-1">
                       {itemParaAprovacao.arquivos.map((arq, idx) => (
                         <div
                           key={arq.id || idx}
-                          className="relative w-14 h-16 rounded-xl overflow-hidden border border-border/80 shrink-0 shadow-2xs"
+                          className="relative w-14 h-16 rounded-xl overflow-hidden border border-border shrink-0 shadow-2xs"
                         >
                           {arq.tipo === 'video' ? (
                             <video src={arq.url} className="w-full h-full object-cover" muted />
                           ) : (
                             <img src={arq.url} alt="" className="w-full h-full object-cover" />
                           )}
-                          <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-black/80 text-white font-mono px-1 rounded">
+                          <span className="absolute bottom-0.5 left-0.5 text-[11px] bg-black/80 text-white font-mono px-1 rounded">
                             #{idx + 1}
                           </span>
                         </div>
@@ -3278,9 +3278,9 @@ export default function EsteiraTab({
                     </div>
 
                     {/* Card de Simulação de Prévia Visual do Link no WhatsApp */}
-                    <div className="p-2.5 rounded-xl bg-card border border-border/80 flex items-center justify-between gap-3 shadow-2xs">
+                    <div className="p-2.5 rounded-xl bg-card border border-border flex items-center justify-between gap-3 shadow-2xs">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-11 h-14 rounded-lg overflow-hidden bg-black shrink-0 border border-border/60">
+                        <div className="w-11 h-14 rounded-lg overflow-hidden bg-black shrink-0 border border-border">
                           {itemParaAprovacao.arquivos[0]?.tipo === 'video' ? (
                             <video src={itemParaAprovacao.arquivos[0]?.url} className="w-full h-full object-cover" muted />
                           ) : (
@@ -3364,12 +3364,12 @@ export default function EsteiraTab({
                         className={`text-xs px-2.5 py-1 rounded-xl border flex items-center gap-1.5 cursor-pointer transition-all ${
                           telefoneAprovacaoCustom === (c.telefone || '')
                             ? 'bg-foreground text-background border-foreground font-bold'
-                            : 'bg-card text-muted-foreground hover:text-foreground border-border/80'
+                            : 'bg-card text-muted-foreground hover:text-foreground border-border'
                         }`}
                       >
                         <span>{c.nome}</span>
                         {c.e_grupo_whatsapp && (
-                          <span className="text-xs bg-lime/20 text-lime-800 dark:text-lime-300 px-1.5 py-0.5 rounded font-semibold">
+                          <span className="text-xs bg-brand-soft text-brand-text px-1.5 py-0.5 rounded font-semibold">
                             Grupo
                           </span>
                         )}
@@ -3393,7 +3393,7 @@ export default function EsteiraTab({
                   <MessageSquare className="w-3.5 h-3.5 text-primary" />
                   <span>Mensagem Formatada para Envio</span>
                 </label>
-                <div className="p-3.5 rounded-2xl bg-accent/40 border border-border/70 text-xs font-mono text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                <div className="p-3.5 rounded-2xl bg-accent/40 border border-border text-xs font-mono text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {gerarMensagemAprovacao({
                     nomeCliente: itemParaAprovacao.cliente?.nome || 'Cliente',
                     tituloPost: itemParaAprovacao.titulo || 'Publicação',

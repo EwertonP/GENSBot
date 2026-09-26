@@ -1,162 +1,182 @@
-# Design System (DESIGN.md)
+# Design System do GENSBot (DESIGN.md)
 
-Este documento atua como o contrato de design e "fonte de verdade" visual (Single Source of Truth) para o desenvolvimento do **InstaFlow (GENSBot)**. Qualquer agente de IA ou desenvolvedor deve ler e seguir estritamente estas especificações para manter a consistência visual.
+Contrato visual do **GENSBot** (Agência GENS). É a fonte de verdade para qualquer pessoa ou agente que mexa na UI. Se o código e este documento divergirem, o `src/app/globals.css` vence, e este arquivo deve ser corrigido no mesmo PR.
 
-> **Atualização (v4 — "Oat & Clay")**: o projeto migrou da identidade fintech azul (iBanko/OFSPACE) para uma linguagem inspirada na **Claude** (fundo quente, um único acento clay/terracota, cor semântica usada com moderação) e na **Apple** (tipografia confiante com bastante respiro, sombra difusa em vez de borda, cantos generosos e consistentes). Fundo off-white *quente* (não mais cinza-azulado), cards brancos elevados por sombra também quente, clay como único acento de ação, e cards de métrica com **indicador semântico pontual** em vez de fundo pastel dominando o card inteiro.
->
-> **Atualização (v4.1 — modo escuro)**: o app agora tem tema escuro de verdade, com toggle manual (`src/components/theme-toggle.tsx`) persistido em `localStorage` (`gensbot_theme`) — no primeiro acesso segue `prefers-color-scheme` do SO, depois respeita a escolha explícita do usuário. A classe `.dark` no `<html>` troca todos os tokens da seção 1 pelo par escuro (bloco `.dark` em `globals.css`); um script inline em `layout.tsx` aplica a classe antes da hidratação pra não piscar o tema errado. **Nunca** monte cor condicional a tema num componente (`theme === 'dark' ? '#fff' : '#000'`) — o token já resolve isso sozinho via CSS var.
->
-> **Atualização (v5 — paleta GENS, este documento estava desatualizado)**: a identidade "Oat & Clay" (v4, clay/terracota) descrita abaixo **não reflete mais o `globals.css` real** — o app migrou pra paleta oficial da agência GENS (lima `#DBFF69` no dark / verde-oliva `#4D8300` no light como `--primary`). A seção 1 abaixo foi corrigida pra bater com o código de verdade. Junto disso, o dark mode teve um ajuste: `--accent`/`--secondary`/`--muted`/`--border` eram verde-oliva (tingindo todo hover/badge de verde) e viraram cinza-neutro — o lima passou a ser o **único** ponto de cor saturada (CTA, aba ativa, gráfico), no espírito do dark mode do Linear. Ver seção "Referências e próximos passos" no fim do documento.
->
-> Todos os componentes (`page.tsx`, `login`, `register`, `privacidade`, `exclusao-de-dados`) já foram migrados pros tokens semânticos abaixo — não deve sobrar nenhuma classe com `#hex` fixo no código.
+**Versão atual: v6, "Fundação" (Onda 1, set/2026).**
+- O dark mode voltou para **preto neutro + lima só como destaque**, na direção Linear da v5 que tinha se perdido para um tom oliva.
+- Os status seguem o padrão de contraste do **Spectrum UI**.
+- A tipografia tem **piso de 12px**.
+- Não existe mais paleta crua do Tailwind nas telas.
 
 ---
 
-## 1. Design Tokens
+## 1. Tokens de cor
 
-Os tokens vivem como variáveis CSS em `:root` (tema claro) e `.dark` (tema escuro, ver v4.1 acima) dentro de `globals.css`, e são expostos ao Tailwind v4 via `@theme inline`. **Nunca escreva um valor de cor literal (`#hex` ou `oklch(...)`) em um componente estrutural** — sempre use a classe utilitária correspondente ao token, inclusive para verde/âmbar/vermelho semânticos (`bg-success`/`bg-warning`/`bg-destructive`), que **não** devem mais usar a paleta padrão do Tailwind (`emerald-*`, `amber-*`, `blue-*`...) — ver seção 3.
+Os tokens vivem como variáveis CSS em `:root` (claro) e `.dark` (escuro) no `globals.css` e são expostos ao Tailwind v4 via `@theme inline`. **Nunca escreva `#hex`, `oklch()` ou `emerald-*`/`amber-*` num componente de produto.** Use a classe do token, que já troca de valor com o tema.
 
-| Papel | Classe Tailwind | Variável CSS |
+Os contrastes abaixo foram medidos (WCAG 2.x) no navegador, nos dois temas.
+
+### Superfícies e texto
+
+| Papel | Classe | Claro | Escuro | Contraste |
+|---|---|---|---|---|
+| Fundo da página | `bg-background` | `#f7f8f2` (papel) | `#09090b` | — |
+| Sidebar | `bg-sidebar` | `#ffffff` | `#0c0c0e` | — |
+| Card / painel | `bg-card` | `#ffffff` | `#141417` | — |
+| Popover / menu | `bg-popover` | `#ffffff` | `#1b1b1f` | — |
+| Hover / item ativo | `bg-accent` | `#eceee4` | `#202025` | — |
+| Superfície suave | `bg-muted` / `bg-secondary` | `#eef0e7` / `#edf4d8` | `#18181b` / `#1d1d21` | — |
+| Texto principal | `text-foreground` | `#192313` (tinta) | `#f4f4f5` | 15.6 / 18.1 |
+| Texto secundário | `text-muted-foreground` | `#545c4a` | `#a1a1aa` | ≥6.1 / ≥6.3 |
+| Hairline decorativa | `border-border` | `#d9dfce` | `#2a2a30` | decorativa |
+| Divisória que precisa ser vista | `border-border-strong` | `#b9c1ab` | `#3f3f46` | — |
+| Contorno de campo | `border-input` | `#8a917e` | `#63636b` | ≥3:1 (WCAG 1.4.11) |
+| Foco | `ring-ring` | `#192313` | `#d8ff3c` | — |
+
+No escuro, a elevação vem do **degrau de tom** (`background → sidebar → card → popover`) mais um filete de luz `inset` no topo, que já está dentro das sombras. Sombra projetada quase não aparece sobre preto.
+
+### Marca
+
+| Papel | Classe | Claro | Escuro |
+|---|---|---|---|
+| Ação primária | `bg-primary text-primary-foreground` | tinta `#192313` / papel | lima `#d8ff3c` / `#12180d` |
+| Superfície de marca (CTA "Publicar", selos) | `bg-lime text-lime-foreground` | `#d8ff3c` / `#192313` | igual |
+| Verde da marca **como texto** | `text-brand-text` | `#3f6212` | `#d8ff3c` |
+| Selo de marca | `bg-brand-soft text-brand-text ring-brand-ring` | — | — |
+
+> ⚠️ **`text-lime` nunca vai sobre superfície clara.** Dá ~1.1:1, é invisível. Para verde legível use `text-brand-text`. `text-lime` só é permitido sobre overlay escuro de imagem.
+
+### Status (padrão Spectrum UI)
+
+Cada status tem quatro tokens:
+- `{s}`: cor forte, usada como texto no soft ou como fundo sólido.
+- `{s}-foreground`: texto sobre o fundo sólido.
+- `{s}-soft`: fundo a 10%, via `color-mix`.
+- `{s}-ring`: contorno a 30%.
+
+| Status | Claro | Escuro | Texto no soft (claro / escuro) |
+|---|---|---|---|
+| `success` | `#065f46` | `#34d399` | ≥6 / 7.8 |
+| `warning` | `#92400e` | `#fbbf24` | 5.7 / 8.7 |
+| `destructive` | `#be123c` | `#fb7185` | 5.1 / 5.9 |
+| `info` | `#0369a1` | `#7dd3fc` | 5.1 / 8.7 |
+
+Receita:
+- **Pill / alerta suave:** `bg-{s}-soft text-{s} border-{s}-ring` (ou `ring-1 ring-{s}-ring`).
+- **Fundo sólido:** `bg-{s} text-{s}-foreground`. Nunca `text-white`: no escuro o fundo de status é claro, e o branco some.
+
+### Gráficos
+
+`chart-1` (marca), `chart-2` (teal), `chart-3` (âmbar), `chart-4` (violeta), `chart-5` (rosa). Em SVG use `stroke="var(--chart-1)"`, nunca hex.
+
+### Paleta crua: onde ainda é permitida
+
+1. **Tags categóricas** (`src/lib/tag-colors.ts`) e **tipos de nó do flow builder** (`flow-builder/nodes.tsx`). Cor por categoria, não por significado. Padrão obrigatório: `text-{hue}-800 dark:text-{hue}-300` sobre `bg-{hue}-500/10`.
+2. **Mockups do Instagram** (`aprovacao/instagram-*-preview.tsx`, `feed-preview-grid.tsx`, o celular do `publish-panel.tsx` e o DM mock do `automations-tab.tsx`). Imitam a UI real do Instagram de propósito.
+3. **Marcas de terceiros**, como o botão do WhatsApp (`#25D366` com texto `#052e16`, nunca branco: 2:1).
+4. A **imagem OG** (`api/aprovacao/[token]/og`).
+
+---
+
+## 2. Tipografia
+
+- **Fontes:** DM Sans (corpo) e Sora (títulos, via `font-display`/`h1…h6`), pesos 400–700. `font-extrabold`/`font-black` não existem, porque o peso não é carregado.
+- **Escala:**
+
+| Classe | Tamanho/linha | Uso |
 |---|---|---|
-| Fundo principal | `bg-background` | `--background` |
-| Texto principal | `text-foreground` | `--foreground` |
-| Cards / painéis | `bg-card text-card-foreground` | `--card` / `--card-foreground` |
-| Popovers / dropdowns | `bg-popover text-popover-foreground` | `--popover` / `--popover-foreground` |
-| Ação primária (CTA) | `bg-primary text-primary-foreground` | `--primary` / `--primary-foreground` |
-| Ação secundária | `bg-secondary text-secondary-foreground` | `--secondary` / `--secondary-foreground` |
-| Texto/fundo esmaecido | `bg-muted text-muted-foreground` | `--muted` / `--muted-foreground` |
-| Destaque / hover ativo | `bg-accent text-accent-foreground` | `--accent` / `--accent-foreground` |
-| Sucesso / estado ativo positivo | `bg-success text-success-foreground` | `--success` / `--success-foreground` |
-| Atenção / pendente | `bg-warning text-warning-foreground` | `--warning` / `--warning-foreground` |
-| Erros / ações destrutivas | `bg-destructive text-destructive-foreground` | `--destructive` / `--destructive-foreground` |
-| Bordas | `border-border` | `--border` |
-| Campos de formulário | `border-input` | `--input` |
-| Anel de foco | `ring-ring` | `--ring` |
-| Gráficos (5 séries) | `text-chart-1` … `text-chart-5` | `--chart-1` … `--chart-5` |
-| Sidebar | `bg-sidebar text-sidebar-foreground` | `--sidebar` / `--sidebar-foreground` |
+| `text-caption` / `text-xs` | 12/16 | metadados, badges, legendas |
+| `text-label` | 13/18 | rótulos de campo |
+| `text-body` / `text-sm` | 14/20 | corpo |
+| `text-base` | 16/24 | corpo grande |
+| `text-title` | 20/28 | título de card/seção |
+| `text-headline` | 24/32 | título de página |
+| `text-display` | 30/36 | KPI grande |
 
-* **Cor de marca / ação primária**: verde da GENS — lima `oklch(0.946 0.179 121.3)` (`#DBFF69`) no dark, verde-oliva `oklch(0.551 0.154 132.3)` (`#4D8300`) no light — **único** acento de cor saturada usado em CTAs, links, ícone/aba ativa do menu e linha principal de gráfico. `--accent`/`--secondary`/`--muted`/`--border` são **cinza-neutro**, não devem carregar matiz de verde (correção da v5 — antes o dark mode tingia toda superfície de hover/badge de verde-oliva). `--success` (verde-sálvia) e `--warning` (ocre) são tokens *semânticos*, separados do acento de marca — usam-se em indicadores de estado (pill, badge, bolinha), nunca em botão de ação.
-* **Fontes**: `--font-sans: Inter, sans-serif` (texto geral), `--font-mono: monospace`, `--font-serif: Georgia, serif`. Uma família só carregando toda a hierarquia: a personalidade vem da escala e do peso, não de misturar fontes.
-* **Raio base**: `--radius: 0.625rem`, com escalas derivadas `rounded-sm` → `rounded-4xl` calculadas a partir dele.
-* **Sombras**: elevação existe (`--shadow-*`), mas no **dark mode** a elevação real vem mais de variação de tom entre `--background` → `--sidebar` → `--card` do que de sombra (sombra quase não aparece em fundo preto) — mesma lógica do dark mode do Linear.
-
-### Arredondamento (Border Radius Scale)
-* **Containers externos, cards principais & modais**: `rounded-2xl`
-* **Inputs, selects, textareas e tabs**: `rounded-xl`
-* **Botões de ação principais**: `rounded-xl` (o componente `Button` real usa isso, não pill — só badge/avatar/pill-tab usam `rounded-full`)
-
-### Espaçamento (Spacing)
-* Seguir estritamente a grade do Tailwind:
-  * Margens e paddings de cards: `p-6` (24px) para cards de fluxo e painéis.
-  * Distâncias internas de formulários: `gap-4` ou `gap-6`.
-  * Paddings de inputs: `px-4 py-2.5`.
+- **Piso de 12px.** Nada de `text-[9px]`, `[10px]` ou `[11px]` em UI de produto. Exceções:
+  - mockups de celular;
+  - selos de 11px sobre miniatura de mídia (`bg-black/60 text-white`);
+  - iniciais dentro de avatar pequeno (`cliente-avatar.tsx`).
+- **Peso:** bold é para títulos e números. Rótulos e corpo ficam em `font-medium`/`font-semibold`.
+- **Números:** `tabular-nums` em KPIs, tabelas, datas e contadores.
+- **Rótulo de grupo em caixa alta:** a utility `eyebrow` (12px, tracking 0.08em). Serve só para cabeçalho de grupo (sidebar, colunas), nunca como "kicker" em cima de um título.
 
 ---
 
-## 2. Componentes shadcn/ui (Base UI)
+## 3. Componentes base (`src/components/ui`)
 
-O projeto agora tem `components.json` configurado (biblioteca **Base UI**, preset customizado). Para adicionar um novo componente de UI (botão, dialog, dropdown, etc.), prefira instalar via CLI em vez de escrever do zero:
+| Componente | Notas |
+|---|---|
+| `Button` | Variantes `primary` (tinta/lima), `lime` (CTA de publicar), `secondary`, `outline`, `ghost`, `destructive`. Foco: `ring-2 ring-ring ring-offset-2`. Raio `rounded-xl`. |
+| `Badge` | Variantes `success`, `warning`, `destructive`, `info`, `brand`, `muted`, mais a prop `dot`. `STATUS_LABELS` em `lib/conteudo.ts` já mapeia cada etapa da esteira para uma variante. |
+| `Input` / `Select` / `Textarea` | Usam `fieldInputClass` de `lib/form-styles.ts` (`border-input`, foco em `ring`, `aria-invalid` vermelho). Campo cru (`<input>`) usa `border-input`, nunca `border-border`. |
+| `Card` | `bg-card border-border rounded-2xl shadow-2xs`. `interactive` só em card realmente clicável. |
+| `Sheet`, `EmptyState`, `CalendarPicker`, `MemberChipSelect`, `Board` | Ver o código. Os primitivos que faltam entram na Onda 2 (abaixo). |
 
-```bash
-npx shadcn@latest add button
-```
+`cn()` (`lib/utils.ts`) é um tailwind-merge estendido com a escala tipográfica. Sem isso, `text-label text-foreground` perderia o tamanho.
 
-Isso garante que o componente já nasce usando os tokens da tabela acima, com variantes (`variant="default" | "outline" | "ghost"`, etc.) prontas.
-
----
-
-## 3. Padrões de Componentes (com tokens)
-
-### Botão Primário (Primary Button)
-```html
-<button className="px-5 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-md transition-all cursor-pointer">
-  Texto do Botão
-</button>
-```
-
-### Campos de Entrada (Form Controls)
-```html
-<input
-  type="text"
-  className="bg-input border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring text-foreground placeholder-muted-foreground transition-all"
-/>
-```
-
-### Badge de Gatilho / Tags
-```html
-<span className="text-[9px] bg-muted text-primary font-extrabold px-1.5 py-0.5 rounded-md border border-primary/20 uppercase tracking-wider">
-  Tag
-</span>
-```
-
-### Card de Métrica (KPI cards do Dashboard)
-O card é sempre `bg-card` neutro — a cor de categoria vira só um **indicador pontual** (bolinha de 7px no canto), não um fundo pastel tomando o card inteiro. Isso evita quatro blocos de cor competindo por atenção na mesma tela; o card some no fundo e só o número/variação chamam olho:
-
-```html
-<div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col gap-3 h-40">
-  <div className="flex items-center justify-between">
-    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Leads Gerados</span>
-    <span className="w-1.75 h-1.75 rounded-full bg-primary" />
-  </div>
-  <span className="text-4xl font-bold text-foreground leading-none tabular-nums">128</span>
-  <span className="text-xs font-semibold text-success">↑ 24,5% vs. 30 dias anteriores</span>
-</div>
-```
-A cor da bolinha (`bg-primary`/`bg-success`/`bg-warning`/texto neutro) só diferencia a categoria visualmente — a variação percentual usa `text-success`/`text-destructive` semanticamente (subiu/caiu), não a cor da categoria. Números sempre com `tabular-nums` pra não "dançar" quando o valor muda.
-
-### Seletor de Conta na Sidebar
-O bloco de perfil no topo da sidebar (avatar + `@username` + contador de contas) funciona como o seletor de conta do Instagram — substitui o antigo dropdown no header. Ao clicar, abre lista de contas conectadas + "Conectar outra conta" + "Desconectar esta conta". Trocar de conta atualiza automaticamente todos os dados do dashboard (stats, automações, contatos, fila) via `handleSelectAccount`, sem precisar recarregar a página.
+Raios: card/modal `rounded-2xl`, campo/botão `rounded-xl`, pill/avatar `rounded-full`. Nada de `rounded-[38px]` fora de mockup de celular.
 
 ---
 
-## 4. Diretrizes de UX (Do's & Don'ts)
+## 4. Tema
 
-* **DO**: Use `bg-background`/`text-foreground` para as telas principais do aplicativo (nunca hex fixo).
-* **DO**: Garanta contraste suficiente usando `text-muted-foreground` para texto secundário (WCAG AA).
-* **DO**: Ao tocar em uma tela antiga (`page.tsx`, `login`, `register`) por outro motivo, aproveite para trocar as classes `bg-[#hex]`/`text-[#hex]` pelos tokens equivalentes da tabela da seção 1 — migração incremental, não é preciso reescrever tudo de uma vez.
-* **DON'T**: Não introduza cores literais (`#hex` ou `oklch(...)`) em componentes novos; sempre use a classe de token.
-* **DON'T**: A cor `primary` é reservada para sinalizar "Ação" ou "Estado Ativo" — não usar em elementos passivos. `success`/`warning` são para *estado*, não para chamar atenção pra uma ação.
-* **DON'T**: Não use bordas com cor literal; sempre `border-border`.
-* **DON'T**: Não use `emerald-*`/`blue-*`/`amber-*`/`violet-*`/`rose-*` (paleta crua do Tailwind) em componente novo — sempre `success`/`warning`/`destructive`/`primary`.
+- O script inline em `layout.tsx` aplica `.dark` antes da hidratação. Se existir preferência salva (`localStorage.gensbot_theme`), ela vale; senão, segue `prefers-color-scheme`.
+- Os toggles em `page.tsx` e na aprovação só **leem** a classe do `<html>` e gravam a escolha.
+- Nunca condicione cor ao tema no componente (`theme === 'dark' ? … : …`). O token resolve.
+- `color-scheme`, seleção de texto (lima), caret (`brand-text`), placeholder e scrollbar já são temáticos no `@layer base`.
 
 ---
 
-## 6. Referências e próximos passos (v5)
+## 5. Do's & Don'ts
 
-Inspirações trazidas pelo usuário e o que cada uma empresta especificamente
-pro GENSBot (não é pra copiar a paleta/identidade visual de nenhuma delas,
-só o princípio):
+- **DO:** status sempre por token (`Badge` ou a receita soft/ring). Se precisar de um tom novo, crie o token no `globals.css` com contraste medido nos dois temas.
+- **DO:** borda sem opacidade (`border-border`, não `border-border/60`). O token já é calibrado; opacidade derrubava a hairline para ~1.1:1 no escuro.
+- **DO:** texto secundário é `text-muted-foreground`, sem `/50` ou `/60`.
+- **DON'T:** `text-white` em fundo de status, `text-lime` em fundo claro, hex solto, paleta crua fora das exceções da seção 1.
+- **DON'T:** sombra "bloco" sem blur (`4px 4px 0`). A profundidade é sombra suave com offset e blur.
 
-* **Linear** — hierarquia de sidebar clara + cor de marca reservada só pra
-  estado/ação (é a base do ajuste de `--accent` feito na v5).
-* **Attio** (CRM moderno) — cards de lead agrupados por coluna, com
-  avatar/tag/ação que aparece só no hover — referência direta pro
-  `crm-board.tsx` (Kanban de leads).
-* **Notion Calendar** — cor a serviço de estrutura (cada tipo de
-  evento/post com sua própria cor), não decoração — referência pro
-  `calendar-view.tsx`.
+---
 
-Dívidas estruturais que tornam qualquer reskin mais caro do que
-precisaria ser:
+## 6. Roteiro (Ondas)
 
-1. ~~**Dois Kanbans quase idênticos**~~ — **resolvido**: `kanban-board.tsx`
-   e `crm-board.tsx` agora usam o `Board` genérico (`src/components/ui/board.tsx`,
-   `dnd-kit`, com `DragOverlay`/ghost card e suporte a touch). Qualquer
-   polish visual de Kanban daqui pra frente entra nesse componente único,
-   não duplicado.
-2. ~~**`src/app/page.tsx` com ~2600 linhas**~~ — **resolvido**: todas as
-   abas viraram componentes próprios (`dashboard-home.tsx`, `automations-tab.tsx`,
-   `logs-tab.tsx`, mais os que já existiam) — `page.tsx` caiu pra ~1300
-   linhas, só a casca (sidebar, header, seletor de conta, switch de abas).
-   Reagrupar a sidebar no estilo Linear agora é seguro fazer sem editar um
-   arquivo de 2600 linhas a cada mudança.
+Cada Onda é mergeada e testada antes da próxima.
+
+1. ✅ **Fundação:** tokens de contraste, piso de 12px, varredura de cores, Badge/Button/Input/Card.
+2. **Primitivos de interação:**
+   - Dialog, AlertDialog, Dropdown, Popover, Tooltip, Tabs, Skeleton e Sonner.
+   - Trocar os ~22 `confirm()`/`alert()` e o toast próprio do `page.tsx`.
+   - Desfazer em exclusões (Undo Pill do Spectrum).
+   - `Sheet` com focus trap e aviso de alterações não salvas (o padrão já existe em `cliente-ficha.tsx`).
+3. **Dados honestos e segurança:**
+   - Remover os números fixos de métricas/relatório/dashboard, com empty state no lugar.
+   - Aviso de alterações não salvas na Esteira, Publicação e Automações.
+   - Feedback e checagem de `res.ok` onde hoje falha em silêncio.
+4. **Shell e navegação:**
+   - Aba na URL (deep link e voltar).
+   - Command Palette com Ctrl+K e o Ctrl+B que já é anunciado.
+   - Sidebar reorganizada (agência × conta do Instagram).
+   - Drawer mobile que fecha ao navegar.
+   - Remover código morto: `crm-board`, `calendar-view`, `kanban-board` e `logs-tab` não são renderizados.
+5. **Telas:**
+   - Quebrar o `esteira-tab` (~3.5k linhas); o board real ainda usa drag nativo e não o `ui/board.tsx`.
+   - Calendário com arrastar para reagendar.
+   - Composer em etapas.
+   - Aprovação do cliente com nome e desfazer.
+   - KPIs no padrão Stat Cards.
+6. **Motion:** springs interrompíveis (apple-design) e `prefers-reduced-motion` em tudo.
+
+Referências de produto: **Linear** (sidebar e cor só em estado/ação), **Attio** (cards de CRM com ação no hover), **Notion Calendar** (cor como estrutura) e **Spectrum UI** (contraste de status, command palette, undo pill, stat cards).
+
+---
 
 ## 7. Histórico
 
-* v4 → v5: paleta "Oat & Clay" (clay/terracota) substituída pela paleta
-  oficial da agência GENS (lima/verde-oliva) — a v4 nunca foi corrigida
-  neste documento quando o código migrou, o que deixou a seção 1 inteira
-  desatualizada até esta correção. Dark mode também teve `--accent` e
-  tokens vizinhos neutralizados (ver nota v5 no topo do documento).
-* v3 → v4: paleta fintech azul (`iBanko/OFSPACE`) substituída pela identidade "Oat & Clay" (Claude × Apple).
-* Paleta anterior a v3 (`#121212` / `#1DB954` verde Spotify) documentada no histórico do git deste arquivo, caso seja necessário reverter ou comparar.
+- **v5 → v6:**
+  - O dark voltou ao preto neutro; o código tinha migrado para "obsidian forest" oliva sem atualizar este documento.
+  - Tokens de status passaram para o padrão soft/ring e ganharam `info`, `brand-text`, `border-strong` e `input` real.
+  - Piso de 12px e sombra suave no lugar da sombra bloco.
+  - Corrigido também: a v5 dizia que os boards estavam consolidados, mas a Esteira nunca migrou.
+- **v4 → v5:** a paleta "Oat & Clay" foi substituída pela paleta oficial GENS (lima/tinta).
+- **v3 → v4:** a paleta fintech azul foi substituída por "Oat & Clay".
+- As versões anteriores estão no histórico do git deste arquivo.

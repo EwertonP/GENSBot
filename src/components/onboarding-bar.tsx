@@ -58,7 +58,7 @@ export function OnboardingBar({ cliente, onAtualizarCliente, showToast }: Onboar
   }
 
   return (
-    <div className="w-full bg-card/70 border border-border/80 rounded-2xl p-4 flex flex-col gap-3 shadow-2xs backdrop-blur-sm transition-all select-none">
+    <div className="w-full bg-card/70 border border-border rounded-2xl p-4 flex flex-col gap-3 shadow-2xs backdrop-blur-sm transition-all select-none">
       {/* Top Header: Título, Progresso e Barra */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
@@ -70,11 +70,11 @@ export function OnboardingBar({ cliente, onAtualizarCliente, showToast }: Onboar
               <span className="text-xs font-bold uppercase tracking-wider text-foreground font-mono">
                 Etapas de Onboarding
               </span>
-              <span className="text-[11px] font-bold font-mono text-primary px-1.5 py-0.2 rounded-md bg-primary/15 border border-primary/30">
+              <span className="text-xs font-bold font-mono text-primary px-1.5 py-0.2 rounded-md bg-primary/15 border border-primary/30">
                 {concluidasCount}/{totalCount}
               </span>
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Passo a passo fundamental para ativação e alinhamento de marca do cliente
             </p>
           </div>
@@ -82,7 +82,7 @@ export function OnboardingBar({ cliente, onAtualizarCliente, showToast }: Onboar
 
         {/* Barra de Progresso */}
         <div className="flex items-center gap-3 self-end sm:self-auto min-w-[180px]">
-          <div className="flex-1 h-2 bg-accent/60 rounded-full overflow-hidden border border-border/60">
+          <div className="flex-1 h-2 bg-accent/60 rounded-full overflow-hidden border border-border">
             <div
               className="h-full bg-primary transition-all duration-300 rounded-full shadow-[0_0_8px_rgba(216,255,60,0.5)]"
               style={{ width: `${percent}%` }}
@@ -107,7 +107,7 @@ export function OnboardingBar({ cliente, onAtualizarCliente, showToast }: Onboar
               className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
                 isDone
                   ? 'bg-primary/15 border-primary/45 text-foreground hover:bg-primary/20 shadow-2xs'
-                  : 'bg-accent/25 border-border/70 text-muted-foreground hover:text-foreground hover:border-foreground/30'
+                  : 'bg-accent/25 border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
               }`}
             >
               {isSaving ? (
@@ -117,7 +117,7 @@ export function OnboardingBar({ cliente, onAtualizarCliente, showToast }: Onboar
                   <Check className="w-2.5 h-2.5 stroke-[3]" />
                 </div>
               ) : (
-                <Circle className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground/80 shrink-0 transition-colors" />
+                <Circle className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground/80 shrink-0 transition-colors" />
               )}
               <span className={`transition-all ${isDone ? 'font-bold text-foreground' : ''}`}>
                 {etapa.label}

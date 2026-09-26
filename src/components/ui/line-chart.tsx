@@ -97,7 +97,7 @@ export function LineChart({ series, height = 160, emptyMessage = 'Sem dados para
 
         {hover && (
           <div
-            className="absolute z-10 pointer-events-none bg-card border border-border rounded-lg shadow-lg px-2.5 py-1.5 text-[11px] whitespace-nowrap"
+            className="absolute z-10 pointer-events-none bg-card border border-border rounded-lg shadow-lg px-2.5 py-1.5 text-xs whitespace-nowrap"
             style={{
               left: `${(hover.x / WIDTH) * 100}%`,
               top: 0,
@@ -119,7 +119,7 @@ export function LineChart({ series, height = 160, emptyMessage = 'Sem dados para
 
       <div className="flex items-center gap-4">
         {series.map((s) => (
-          <div key={s.name} className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+          <div key={s.name} className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
             {s.name}
           </div>

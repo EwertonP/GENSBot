@@ -2,16 +2,20 @@ import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
+// Padrão de status inspirado no Spectrum UI: fundo soft (10%) + texto no tom
+// forte do tema (700-800 no claro / 300-400 no escuro) + ring de 30%. Todas as
+// cores vêm dos tokens do globals.css — contraste do texto ≥4.5:1 nos dois temas.
 const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap transition-colors',
+  'inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ring-1 ring-inset transition-colors',
   {
     variants: {
       variant: {
-        success: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 dark:border-emerald-500/40',
-        warning: 'bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-500/30 dark:border-amber-500/40',
-        destructive: 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30 dark:border-rose-500/40',
-        info: 'bg-sky-500/15 text-sky-800 dark:text-sky-300 border border-sky-500/30 dark:border-sky-500/40',
-        muted: 'bg-accent/80 text-foreground/80 border border-border/80',
+        success: 'bg-success-soft text-success ring-success-ring',
+        warning: 'bg-warning-soft text-warning ring-warning-ring',
+        destructive: 'bg-destructive-soft text-destructive ring-destructive-ring',
+        info: 'bg-info-soft text-info ring-info-ring',
+        brand: 'bg-brand-soft text-brand-text ring-brand-ring',
+        muted: 'bg-muted text-muted-foreground ring-border-strong',
       },
     },
     defaultVariants: {
@@ -24,12 +28,15 @@ export interface BadgeProps
   extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {
   icon?: React.ElementType;
+  /** Ponto de status à esquerda (herda a cor do texto). */
+  dot?: boolean;
 }
 
-export function Badge({ className, variant, icon: Icon, children, ...props }: BadgeProps) {
+export function Badge({ className, variant, icon: Icon, dot, children, ...props }: BadgeProps) {
   return (
     <span className={cn(badgeVariants({ variant }), className)} {...props}>
-      {Icon && <Icon className="w-3 h-3" />}
+      {dot && <span aria-hidden className="size-1.5 rounded-full bg-current" />}
+      {Icon && <Icon aria-hidden className="w-3 h-3" />}
       {children}
     </span>
   );
