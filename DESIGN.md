@@ -118,7 +118,8 @@ Receita:
 | `Tip` (`ui/tooltip.tsx`) | Tooltip acessível (hover + foco), com `shortcut` opcional. Substitui `title=`. Botão só de ícone continua precisando de `aria-label`. |
 | `Skeleton` / `SkeletonRows` | Carregamento com o formato do conteúdo, no lugar de spinner ou texto solto. |
 | `EmptyState` | Ícone, título, descrição, `action` (próximo passo) e `secondaryAction`. `size="compact"` para colunas e painéis. |
-| `CalendarPicker`, `MemberChipSelect`, `Board` | Ver o código. |
+| `CalendarPicker`, `MemberChipSelect` | Ver o código. |
+| `CommandPalette` | Busca rápida (Ctrl/⌘+K), com itens `{ label, grupo, icon, keywords, run }`. A busca ignora acentos. |
 
 `cn()` (`lib/utils.ts`) é um tailwind-merge estendido com a escala tipográfica. Sem isso, `text-label text-foreground` perderia o tamanho.
 
@@ -163,12 +164,15 @@ Cada Onda é mergeada e testada antes da próxima.
    - Aviso de alterações não salvas na Esteira (criar/editar), na Publicação (trocar o rascunho), nas Automações (sair do editor) e no FlowBuilder.
    - Feedback real na Publicação e na exclusão em massa de contatos.
    - Ficou para depois: histórico de relatórios no banco (hoje fica no localStorage) e demografia via `follower_demographics`.
-4. **Shell e navegação:**
-   - Aba na URL (deep link e voltar).
-   - Command Palette com Ctrl+K e o Ctrl+B que já é anunciado.
-   - Sidebar reorganizada (agência × conta do Instagram).
-   - Drawer mobile que fecha ao navegar.
-   - Remover código morto: `crm-board`, `calendar-view`, `kanban-board` e `logs-tab` não são renderizados.
+4. ✅ **Shell e navegação:**
+   - `components/nav-config.tsx` é a fonte única das telas (rótulo, título, subtítulo, ícone, grupo). Tela nova entra ali, e menu, cabeçalho, barra do celular e busca rápida se atualizam juntos.
+   - `navegarPara(tela, { item })` no `page.tsx` é a única porta de navegação: confere edição não salva, fecha o menu do celular e grava `?tab=…&item=…` na URL. Recarregar mantém a tela e o voltar do navegador funciona.
+   - Busca rápida (`components/command-palette.tsx`) com Ctrl/⌘+K: telas, trocar de conta, nova demanda, agendar, nova automação e tema.
+   - O menu tem dois grupos, "Agência" e "Instagram · @conta". A tela ativa é marcada com um filete na cor de marca. Equipe ficou no menu do perfil.
+   - Celular: o menu fecha ao navegar, tem botão de fechar e abre sempre expandido; a barra do topo mostra o título da tela.
+   - Trocar de conta mostra uma barra de progresso em vez do esqueleto de tela inteira.
+   - Removidos `crm-board`, `calendar-view`, `kanban-board`, `logs-tab`, `sequence-manager`, `ui/board` e o chat antigo do `page.tsx`.
+   - Ficou para depois: tirar o estado das automações do `page.tsx` (~50 props para o `AutomationsTab`).
 5. **Telas:**
    - Quebrar o `esteira-tab` (~3.5k linhas); o board real ainda usa drag nativo e não o `ui/board.tsx`.
    - Calendário com arrastar para reagendar.
