@@ -503,6 +503,22 @@ export default function PublishPanel({
   const isCarousel = kind === 'post' && (files.length > 1 || previewUrls.length > 1);
   const usernameLabel = `@${accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || 'agenciagens'}`;
 
+  // Composer em passos (só um visível; os campos dos outros continuam montados).
+  type PassoId = 'midia' | 'legenda' | 'automacao' | 'publicar';
+  const PASSOS: { id: PassoId; label: string }[] = [
+    { id: 'midia', label: 'Formato e mídia' },
+    { id: 'legenda', label: 'Legenda' },
+    { id: 'automacao', label: 'Automação' },
+    { id: 'publicar', label: 'Publicar' },
+  ];
+  const [passo, setPasso] = useState<PassoId>('midia');
+  const passoCompleto = (id: PassoId) => {
+    if (id === 'midia') return files.length > 0 || prefillRemoteUrls.length > 0;
+    if (id === 'legenda') return caption.trim().length > 0;
+    if (id === 'automacao') return autoEnabled;
+    return scheduleEnabled ? !!scheduledAt : false;
+  };
+
   const handleSubmit = async () => {
     if ((files.length === 0 && prefillRemoteUrls.length === 0) || !targetAccount) {
       setError('Selecione uma conta e adicione pelo menos uma imagem ou vídeo.');
@@ -867,6 +883,32 @@ export default function PublishPanel({
             </div>
           )}
 
+          {/* Passos do composer — tudo continua montado, só um passo aparece por vez */}
+          <div role="tablist" aria-label="Etapas da publicação" className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-2xl bg-muted border border-border">
+            {PASSOS.map((pa, i) => {
+              const ativo = passo === pa.id;
+              const ok = passoCompleto(pa.id);
+              return (
+                <button
+                  key={pa.id}
+                  id={`aba-${pa.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={ativo}
+                  aria-controls={`passo-${pa.id}`}
+                  onClick={() => setPasso(pa.id)}
+                  className={`flex items-center gap-2 h-10 px-3 rounded-xl text-sm font-medium transition-colors cursor-pointer ${ativo ? 'bg-card text-foreground shadow-xs ring-1 ring-border-strong' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <span className={`grid place-items-center size-5 rounded-full text-[11px] font-semibold shrink-0 ${ok ? 'bg-success-soft text-success ring-1 ring-success-ring' : ativo ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground ring-1 ring-border-strong'}`}>
+                    {ok ? <Check aria-hidden className="size-3" /> : i + 1}
+                  </span>
+                  <span className="truncate">{pa.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div id="passo-midia" role="tabpanel" aria-labelledby="aba-midia" hidden={passo !== 'midia'} className="flex flex-col gap-6">
           {/* Seletor de Formato: Post, Reels, Story */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold text-foreground">Formato da Publicação</label>
@@ -970,6 +1012,9 @@ export default function PublishPanel({
             )}
           </div>
 
+          </div>
+
+          <div id="passo-legenda" role="tabpanel" aria-labelledby="aba-legenda" hidden={passo !== 'legenda'} className="flex flex-col gap-6">
           {/* Legenda & Copy com Contadores */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
@@ -1003,6 +1048,9 @@ export default function PublishPanel({
             </div>
           )}
 
+          </div>
+
+          <div id="passo-automacao" role="tabpanel" aria-labelledby="aba-automacao" hidden={passo !== 'automacao'} className="flex flex-col gap-6">
           {/* Seção: Automação de Comentários (Direct Automático) */}
           {kind !== 'story' && (
             <div
@@ -1274,6 +1322,9 @@ export default function PublishPanel({
             </div>
           )}
 
+          </div>
+
+          <div id="passo-publicar" role="tabpanel" aria-labelledby="aba-publicar" hidden={passo !== 'publicar'} className="flex flex-col gap-6">
           {/* Modo de Publicação: Imediato vs. Agendado */}
           <div className="flex flex-col gap-3 pt-2 border-t border-border">
             <div className="flex items-center gap-2">
@@ -1337,6 +1388,18 @@ export default function PublishPanel({
               ? 'Agendar Publicação Oficial'
               : 'Publicar Agora no Instagram'}
           </Button>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <Button type="button" variant="ghost" size="sm" disabled={passo === PASSOS[0].id} onClick={() => setPasso(PASSOS[Math.max(0, PASSOS.findIndex((x) => x.id === passo) - 1)].id)}>
+              Voltar
+            </Button>
+            {passo !== PASSOS[PASSOS.length - 1].id && (
+              <Button type="button" variant="secondary" size="sm" onClick={() => setPasso(PASSOS[PASSOS.findIndex((x) => x.id === passo) + 1].id)}>
+                Próximo: {PASSOS[PASSOS.findIndex((x) => x.id === passo) + 1].label}
+              </Button>
+            )}
+          </div>
         </Card>
 
         {/* Modal / Dialog de Confirmação Obrigatória Antes de Enviar ao Instagram */}
