@@ -156,10 +156,13 @@ Cada Onda é mergeada e testada antes da próxima.
    - `Sheet` com focus trap e `dirty`; os lightboxes e modais feitos à mão viraram Dialog.
    - Skeletons, Ctrl+B e tooltips no shell.
    - Ficou para depois: o FlowBuilder (entra com o aviso de alterações não salvas na Onda 3), os ~110 `title=` fora do shell (trocar ao mexer em cada tela) e o "Desfazer" nas outras exclusões.
-3. **Dados honestos e segurança:**
-   - Remover os números fixos de métricas/relatório/dashboard, com empty state no lugar.
-   - Aviso de alterações não salvas na Esteira, Publicação e Automações.
-   - Feedback e checagem de `res.ok` onde hoje falha em silêncio.
+3. ✅ **Dados honestos e segurança:**
+   - **Regra permanente: nenhum número inventado na UI.** Sem dado, a tela mostra 0, "—" ou um EmptyState que explica o motivo. Nada de fallback `|| 12450`, `Math.random()` ou valor "de exemplo".
+   - Métricas, Dashboard e relatório (interno e público) usam só dados da Meta, via `lib/instagram-insights.ts` e `lib/content-performance.ts`. O comparativo mês a mês saiu até existir backend para ele.
+   - O link público de relatório é assinado com HMAC (`lib/relatorio-token.ts`) e só é gerado no servidor (`POST /api/relatorio/link`). Links antigos `rel_` são recusados.
+   - Aviso de alterações não salvas na Esteira (criar/editar), na Publicação (trocar o rascunho), nas Automações (sair do editor) e no FlowBuilder.
+   - Feedback real na Publicação e na exclusão em massa de contatos.
+   - Ficou para depois: histórico de relatórios no banco (hoje fica no localStorage) e demografia via `follower_demographics`.
 4. **Shell e navegação:**
    - Aba na URL (deep link e voltar).
    - Command Palette com Ctrl+K e o Ctrl+B que já é anunciado.

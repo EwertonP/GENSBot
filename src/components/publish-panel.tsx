@@ -50,6 +50,7 @@ import { detectarGatilhosDaLegenda, type PublishAutomationConfig } from '@/lib/p
 import type { Automation } from '@/types/automation';
 import { uploadMediaFile } from '@/lib/storage-upload';
 import { confirmDialog } from '@/components/ui/dialog';
+import { toast } from '@/components/ui/toast';
 
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
@@ -509,6 +510,10 @@ export default function PublishPanel({
     }
     setError(null);
     setSubmitting(true);
+    // Retrato do que o usuário pediu, pro aviso final (o form é limpo antes dele).
+    const foiEdicao = !!editingPostId;
+    const foiAgendado = scheduleEnabled && !!scheduledAt;
+    const scheduledAtSnapshot = scheduledAt;
 
     try {
       let uploadedUrls: string[] = [...prefillRemoteUrls];
@@ -585,6 +590,7 @@ export default function PublishPanel({
       }
 
       if (autoEnabled && saveToLibrary && automationPayload) {
+        // Em segundo plano: o post já saiu; se a cópia na biblioteca falhar, avisa em vez de engolir o erro.
         fetch(withAccount('/api/automations', targetAccount), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -598,7 +604,15 @@ export default function PublishPanel({
             public_replies: automationPayload.public_replies,
             status: 'active',
           }),
-        }).catch(() => {});
+        })
+          .then((r) => {
+            if (!r.ok) throw new Error();
+          })
+          .catch(() =>
+            toast.warning('Automação não foi salva na biblioteca', {
+              description: 'O post e a automação dele estão ativos; só a cópia reutilizável falhou.',
+            })
+          );
       }
 
       setFiles([]);
@@ -620,14 +634,38 @@ export default function PublishPanel({
       onClearPrefill?.();
       setShowConfirmModal(false);
       loadPosts(targetAccount, filaContaFiltro);
+      toast.success(
+        foiEdicao ? 'Agendamento atualizado' : foiAgendado ? 'Publicação agendada' : 'Publicado no Instagram',
+        foiAgendado && scheduledAtSnapshot
+          ? { description: `Sai em ${scheduledAtSnapshot.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.` }
+          : undefined
+      );
     } catch (err: any) {
       setError(err.message);
+      toast.error(editingPostId ? 'Não foi possível atualizar o agendamento' : 'Não foi possível publicar', { description: err.message });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleStartEdit = (post: ScheduledPost) => {
+  // Há algo digitado/anexado no composer que ainda não foi publicado?
+  const composerSujo =
+    files.length > 0 || caption.trim() !== '' || collaboratorsInput.trim() !== '' || userTagsInput.trim() !== '' || (autoEnabled && !editingPostId);
+
+  const handleStartEdit = async (post: ScheduledPost) => {
+    if (editingPostId === post.id) return;
+    if (composerSujo) {
+      const ok = await confirmDialog({
+        title: 'Trocar o rascunho por este agendamento?',
+        description: editingPostId
+          ? 'As alterações no agendamento que você está editando ainda não foram salvas e serão descartadas.'
+          : 'O post que está no composer ainda não foi publicado — legenda e mídias serão descartadas.',
+        confirmLabel: 'Descartar e editar',
+        cancelLabel: 'Continuar no rascunho',
+        tone: 'destructive',
+      });
+      if (!ok) return;
+    }
     setEditingPostId(post.id);
     setEditingPostScheduledAt(post.scheduled_at);
     setTargetAccount(post.instagram_user_id);
@@ -704,7 +742,13 @@ export default function PublishPanel({
     if (editingPostId === id) {
       handleCancelEdit();
     }
-    await fetch(withAccount(`/api/instagram/publish/${id}`), { method: 'DELETE' });
+    try {
+      const res = await fetch(withAccount(`/api/instagram/publish/${id}`), { method: 'DELETE' });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Tente novamente.');
+      toast.success('Agendamento cancelado');
+    } catch (err) {
+      toast.error('Não foi possível cancelar o agendamento', { description: err instanceof Error ? err.message : undefined });
+    }
     loadPosts();
   };
 

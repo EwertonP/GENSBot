@@ -596,6 +596,66 @@ export default function EsteiraTab({
     }
   }
 
+  // Alterações não salvas — o Sheet pergunta antes de descartar (Esc, clique
+  // fora, X ou "Cancelar"). Fechar depois de salvar continua direto.
+  const novoSujo =
+    modalNovoAberto &&
+    (formTitulo.trim() !== '' ||
+      formBriefing.trim() !== '' ||
+      formLegenda.trim() !== '' ||
+      formUrls.trim() !== '' ||
+      formArquivos.length > 0 ||
+      formDataProgramada !== '' ||
+      formPrazoInterno !== '');
+
+  const editSujo =
+    !!itemEmEdicao &&
+    (editTitulo !== (itemEmEdicao.titulo || '') ||
+      editBriefing !== (itemEmEdicao.briefing || '') ||
+      editLegenda !== (itemEmEdicao.legenda || '') ||
+      editStatus !== itemEmEdicao.status ||
+      editTipo !== itemEmEdicao.tipo ||
+      editPrioridade !== (itemEmEdicao.prioridade || 'media') ||
+      editResponsavelId !== (itemEmEdicao.responsavel_id || '') ||
+      editEditorId !== (itemEmEdicao.editor_id || '') ||
+      editDataProgramada !== (itemEmEdicao.data_programada ? itemEmEdicao.data_programada.slice(0, 10) : '') ||
+      editPrazoInterno !== (itemEmEdicao.prazo ? itemEmEdicao.prazo.slice(0, 10) : '') ||
+      editClienteId !== itemEmEdicao.cliente_id ||
+      editUrls.trim() !== '' ||
+      editArquivos.map((a) => a.url).join('|') !== (itemEmEdicao.arquivos || []).map((a) => a.url).join('|'));
+
+  async function confirmarDescarte() {
+    return confirmDialog({
+      title: 'Descartar alterações?',
+      description: 'Você tem alterações nesta demanda que ainda não foram salvas.',
+      confirmLabel: 'Descartar',
+      cancelLabel: 'Continuar editando',
+      tone: 'destructive',
+    });
+  }
+
+  async function fecharNovo() {
+    if (novoSujo && !(await confirmarDescarte())) return;
+    setModalNovoAberto(false);
+  }
+
+  async function fecharEdicao() {
+    if (editSujo && !(await confirmarDescarte())) return;
+    setItemEmEdicao(null);
+  }
+
+  /** Demanda com o que está no formulário de edição (salvo ou não). */
+  function itemComEdicoes(item: ConteudoItem): ConteudoItem {
+    return {
+      ...item,
+      titulo: editTitulo,
+      legenda: editLegenda,
+      tipo: editTipo,
+      arquivos: editArquivos,
+      data_programada: editDataProgramada || item.data_programada,
+    };
+  }
+
   function handleAbrirModalEditar(item: ConteudoItem) {
     setItemEmEdicao(item);
     setExpandirCapaEdit(false);
@@ -1596,6 +1656,7 @@ export default function EsteiraTab({
       <Sheet
         open={modalNovoAberto}
         onClose={() => setModalNovoAberto(false)}
+        dirty={novoSujo}
         aria-label="Nova Demanda"
         className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden"
       >
@@ -1675,7 +1736,7 @@ export default function EsteiraTab({
 
               <button
                 type="button"
-                onClick={() => setModalNovoAberto(false)}
+                onClick={fecharNovo}
                 className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
                 title="Fechar"
               >
@@ -2235,7 +2296,7 @@ export default function EsteiraTab({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setModalNovoAberto(false)}
+              onClick={fecharNovo}
               className="rounded-xl text-xs font-semibold"
             >
               Cancelar
@@ -2346,6 +2407,7 @@ export default function EsteiraTab({
       <Sheet
         open={!!itemEmEdicao}
         onClose={() => setItemEmEdicao(null)}
+        dirty={editSujo}
         aria-label="Editar Demanda"
         className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden"
       >
@@ -2458,7 +2520,7 @@ export default function EsteiraTab({
                 {(editStatus === 'agendamento' || editStatus === 'pronto_publicar') && onIrParaAgendamento && (
                   <button
                     type="button"
-                    onClick={() => handleLevarParaAgendamento(itemEmEdicao)}
+                    onClick={() => handleLevarParaAgendamento(itemComEdicoes(itemEmEdicao))}
                     className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer text-xs"
                     title="Agendar Postagem"
                   >
@@ -2469,7 +2531,7 @@ export default function EsteiraTab({
 
                 <button
                   type="button"
-                  onClick={() => setItemEmEdicao(null)}
+                  onClick={fecharEdicao}
                   className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
                   title="Fechar"
                 >
@@ -3144,7 +3206,7 @@ export default function EsteiraTab({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setItemEmEdicao(null)}
+                  onClick={fecharEdicao}
                   className="rounded-xl text-xs font-semibold"
                 >
                   Cancelar

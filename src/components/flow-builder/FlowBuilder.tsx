@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -16,6 +16,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { X, Save, AlertTriangle, History, RotateCcw } from 'lucide-react';
 import type { Automation } from '@/types/automation';
+import { confirmDialog } from '@/components/ui/dialog';
 import type { FlowDefinition, FlowNode, FlowNodeType, FlowNodeConfig } from '@/types/flow';
 import { nodeTypes } from './nodes';
 import NodePalette from './NodePalette';
@@ -160,6 +161,42 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
     };
   }, [nodes, edges]);
 
+  // Retrato do fluxo salvo — fechar com mudanças pede confirmação.
+  const fluxoSalvoRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (fluxoSalvoRef.current === null) fluxoSalvoRef.current = JSON.stringify(buildFlowDefinition());
+    // só no primeiro render com os nós montados
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pedirParaFechar = useCallback(async () => {
+    const atual = JSON.stringify(buildFlowDefinition());
+    if (!viewing && fluxoSalvoRef.current !== null && atual !== fluxoSalvoRef.current) {
+      const ok = await confirmDialog({
+        title: 'Fechar sem salvar o fluxo?',
+        description: 'As mudanças feitas no editor visual ainda não foram salvas e serão perdidas.',
+        confirmLabel: 'Fechar sem salvar',
+        cancelLabel: 'Continuar editando',
+        tone: 'destructive',
+      });
+      if (!ok) return;
+    }
+    onClose();
+  }, [buildFlowDefinition, onClose, viewing]);
+
+  // Esc: fecha primeiro o painel lateral aberto; sem painel, pede pra sair.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (document.querySelector('[role="alertdialog"]')) return;
+      if (selectedId) setSelectedId(null);
+      else if (showHistory) setShowHistory(false);
+      else void pedirParaFechar();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId, showHistory, pedirParaFechar]);
+
   const handleSave = useCallback(async () => {
     const flow = buildFlowDefinition();
     const problems = validateFlow(flow);
@@ -177,6 +214,7 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar o fluxo.');
       setCurrentAutomation(data);
+      fluxoSalvoRef.current = JSON.stringify(flow);
       onSaved(data);
     } catch (err: any) {
       setSaveError(err.message || 'Erro ao salvar o fluxo.');
@@ -201,15 +239,20 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
         setNodes(toRfNodes(data.flow_definition));
         setEdges(toRfEdges(data.flow_definition));
         setViewing(null);
+        // o retrato passa a ser a versão restaurada (já salva no servidor)
+        fluxoSalvoRef.current = null;
+        requestAnimationFrame(() => {
+          fluxoSalvoRef.current = JSON.stringify(buildFlowDefinition());
+        });
       } catch (err: any) {
         setSaveError(err.message || 'Erro ao restaurar versão.');
       }
     },
-    [currentAutomation.id, setNodes, setEdges],
+    [currentAutomation.id, setNodes, setEdges, buildFlowDefinition],
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div role="dialog" aria-modal="true" aria-label={`Editor visual — ${automation.name}`} className="fixed inset-0 z-50 bg-background flex flex-col">
       <div className="flex items-center justify-between border-b border-border px-4 py-3 shrink-0">
         <div>
           <h2 className="text-sm font-bold text-foreground">Editor visual — {automation.name}</h2>
@@ -238,7 +281,7 @@ export default function FlowBuilder({ automation, onClose, onSaved }: FlowBuilde
             <Save className="w-3.5 h-3.5" />
             {saving ? 'Salvando...' : 'Salvar'}
           </button>
-          <button onClick={onClose} className="p-2 hover:bg-accent rounded-lg text-muted-foreground cursor-pointer" aria-label="Fechar editor visual">
+          <button onClick={pedirParaFechar} className="p-2 hover:bg-accent rounded-lg text-muted-foreground cursor-pointer" aria-label="Fechar editor visual">
             <X className="w-4 h-4" />
           </button>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 import Logo, { LogoMark } from '@/components/logo';
@@ -142,6 +142,7 @@ export default function Dashboard() {
   // `qualificationSteps`, cada ramo é independente). null = fluxo linear normal.
   const [wizardCondition, setWizardCondition] = useState<WizardCondition | null>(null);
   const [activeBranchTab, setActiveBranchTab] = useState<'true' | 'false'>('true');
+
   const [utmLinks, setUtmLinks] = useState<any[]>([]);
   const [selectedUtmLinkId, setSelectedUtmLinkId] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rotina' | 'clientes' | 'esteira' | 'calendario_geral' | 'equipe' | 'automations' | 'utm' | 'metrics' | 'publish' | 'contacts' | 'inbox'>('dashboard');
@@ -227,6 +228,35 @@ export default function Dashboard() {
   // Estado para inputs auxiliares
   const [keywordInput, setKeywordInput] = useState('');
   const [publicReplyInput, setPublicReplyInput] = useState('');
+
+  // Retrato do formulário de automação ao entrar na edição — sair (menu,
+  // perfil, "Voltar") com mudanças pede confirmação em vez de descartar.
+  const serializarAutomacao = () =>
+    JSON.stringify([form, keywordInput, publicReplyInput, qualificationSteps, wizardCondition]);
+  const retratoAutomacaoRef = useRef<string | null>(null);
+  useEffect(() => {
+    retratoAutomacaoRef.current = isEditing ? serializarAutomacao() : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing]);
+
+  /** true = pode sair do editor (sem mudanças, ou o usuário confirmou descartar). */
+  const podeSairDaEdicao = async () => {
+    if (!isEditing || retratoAutomacaoRef.current === null) return true;
+    if (serializarAutomacao() === retratoAutomacaoRef.current) return true;
+    return confirmDialog({
+      title: 'Sair sem salvar a automação?',
+      description: 'As alterações neste fluxo ainda não foram salvas e serão perdidas.',
+      confirmLabel: 'Sair sem salvar',
+      cancelLabel: 'Continuar editando',
+      tone: 'destructive',
+    });
+  };
+
+  // Versão protegida do setter para quem está fora do fluxo de salvar.
+  const setIsEditingProtegido = async (v: boolean) => {
+    if (!v && !(await podeSairDaEdicao())) return;
+    setIsEditing(v);
+  };
 
   // Mensagens de alerta/sucesso
 
@@ -1116,7 +1146,8 @@ export default function Dashboard() {
                     type="button"
                     aria-current={active ? 'page' : undefined}
                     aria-label={isSidebarCollapsed ? item.label : undefined}
-                    onClick={() => {
+                    onClick={async () => {
+                      if (!(await podeSairDaEdicao())) return;
                       setActiveTab(item.id as any);
                       setIsEditing(false);
                     }}
@@ -1144,7 +1175,8 @@ export default function Dashboard() {
               userEmail={currentUser?.email || 'contato@agenciagens.com'}
               userRole="Diretor de Conteúdo"
               avatarUrl={currentUser?.user_metadata?.avatar_url}
-              onNavigate={(tab) => {
+              onNavigate={async (tab) => {
+                if (!(await podeSairDaEdicao())) return;
                 setActiveTab(tab as any);
                 setIsEditing(false);
               }}
@@ -1304,7 +1336,7 @@ export default function Dashboard() {
               automations={automations}
               setAutomations={setAutomations}
               isEditing={isEditing}
-              setIsEditing={setIsEditing}
+              setIsEditing={setIsEditingProtegido}
               resetForm={resetForm}
               handleEditAutomation={handleEditAutomation}
               handleDeleteAutomation={handleDeleteAutomation}

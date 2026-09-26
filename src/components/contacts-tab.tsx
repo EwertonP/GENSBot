@@ -146,16 +146,29 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
   const handleDeleteSelected = async () => {
     if (selectedContacts.length === 0) return;
     if (!(await confirmDialog({ title: `Excluir ${selectedContacts.length} contato${selectedContacts.length > 1 ? 's' : ''}?`, description: 'Eles saem da audiência e das automações. Essa ação não pode ser desfeita.', confirmLabel: 'Excluir', tone: 'destructive' }))) return;
-    for (const c of selectedContacts) {
-      try {
-        await fetch(withAccount(`/api/contacts/${c.instagram_id}`), { method: 'DELETE' });
-      } catch (err) {
-        console.error('Erro ao excluir contato:', err);
-      }
-    }
-    setSelectedContactIds(new Set());
+    // Em paralelo, contando o que de fato foi excluído — antes o aviso dizia
+    // "excluídos" mesmo quando o servidor recusava.
+    const results = await Promise.allSettled(
+      selectedContacts.map(async (c) => {
+        const res = await fetch(withAccount(`/api/contacts/${c.instagram_id}`), { method: 'DELETE' });
+        if (!res.ok) throw new Error(c.instagram_id);
+        return c.instagram_id;
+      })
+    );
+    const falharam = new Set(
+      results.flatMap((r, i) => (r.status === 'rejected' ? [selectedContacts[i].instagram_id] : []))
+    );
+    const ok = results.length - falharam.size;
+    // Mantém selecionados só os que falharam, pra tentar de novo com um clique.
+    setSelectedContactIds(new Set(selectedContacts.filter((c) => falharam.has(c.instagram_id)).map((c) => c.instagram_id)));
     await fetchContacts();
-    showToast('Contatos excluídos.', 'success');
+    if (falharam.size === 0) {
+      showToast(ok === 1 ? 'Contato excluído.' : `${ok} contatos excluídos.`, 'success');
+    } else if (ok === 0) {
+      showToast('Nenhum contato foi excluído. Tente novamente.', 'error');
+    } else {
+      showToast(`${ok} excluídos, ${falharam.size} falharam — eles continuam selecionados.`, 'error');
+    }
   };
 
   const patchTags = async (contactId: string, nextTags: string[]) => {
