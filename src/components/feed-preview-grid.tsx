@@ -125,7 +125,7 @@ export function FeedPreviewGrid({
   return (
     <div className="w-full flex flex-col gap-6">
       {/* Topo de Ações da Grade de Feed (idêntico à Imagem 3 de referência) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card/60 p-4 rounded-3xl border border-border/80 shadow-2xs backdrop-blur-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card/60 p-4 rounded-3xl border border-border shadow-2xs backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#d8ff3c] via-[#55703a] to-[#192313] p-0.5 shadow-2xs">
             <div className="w-full h-full rounded-2xl bg-card flex items-center justify-center text-foreground font-bold font-mono">
@@ -176,7 +176,7 @@ export function FeedPreviewGrid({
       {/* Grade 3x3 do Instagram */}
       {postsDoMes.length === 0 ? (
         <Card padding="lg" className="rounded-3xl border-dashed border-border p-12 text-center flex flex-col items-center gap-3">
-          <Grid3X3 className="w-10 h-10 text-muted-foreground/40" />
+          <Grid3X3 className="w-10 h-10 text-muted-foreground" />
           <p className="text-sm font-bold text-foreground">Nenhuma postagem cadastrada para {mesSelecionado}</p>
           <p className="text-xs text-muted-foreground max-w-md">
             Crie demandas na esteira com fotos ou vídeos para montar a grade estética de 9 publicações do mês.
@@ -184,7 +184,7 @@ export function FeedPreviewGrid({
         </Card>
       ) : (
         <div className="max-w-3xl mx-auto w-full">
-          <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 bg-black/40 p-2 sm:p-3.5 rounded-3xl border border-border/80 shadow-2xl">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 bg-black/40 p-2 sm:p-3.5 rounded-3xl border border-border shadow-2xl">
             {postsDoMes.map((post, idx) => {
               const primeiraMidia = post.arquivos?.[0]?.url || null;
               const isVideo = post.tipo === 'reel' || post.arquivos?.[0]?.tipo === 'video';
@@ -199,7 +199,7 @@ export function FeedPreviewGrid({
                     setPostAtivo(post);
                     setSlideIndex(0);
                   }}
-                  className="group relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-card/80 border border-border/60 hover:border-primary/60 transition-all cursor-pointer select-none"
+                  className="group relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-card/80 border border-border hover:border-primary/60 transition-all cursor-pointer select-none"
                 >
                   {/* Imagem / Vídeo de Capa */}
                   {primeiraMidia ? (
@@ -268,7 +268,7 @@ export function FeedPreviewGrid({
       {/* Modal: COMPARTILHAR PREVIEW (idêntico à Imagem 3 de referência) */}
       {modalShareAberto && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-card border border-border/80 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md bg-card border border-border rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative animate-in zoom-in-95 duration-200">
             <button
               type="button"
               onClick={() => setModalShareAberto(false)}
@@ -288,7 +288,7 @@ export function FeedPreviewGrid({
             </div>
 
             {/* Input com Link e Botão Copiar */}
-            <div className="flex items-center gap-2 p-1.5 bg-accent/40 rounded-2xl border border-border/80">
+            <div className="flex items-center gap-2 p-1.5 bg-accent/40 rounded-2xl border border-border">
               <input
                 type="text"
                 readOnly
@@ -320,7 +320,7 @@ export function FeedPreviewGrid({
             </a>
 
             {/* Ação de Revogar / Gerar Novo Link */}
-            <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs">
+            <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
               <button
                 type="button"
                 disabled={renovandoToken}
@@ -340,7 +340,7 @@ export function FeedPreviewGrid({
             </div>
 
             {/* Descrição Explicativa */}
-            <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
               Link fixo — não muda de mês pra mês, sempre mostra as publicações do cliente. Quem tiver o link pode navegar pelos carrosséis e deixar comentários e aprovações.
             </p>
           </div>
@@ -350,7 +350,7 @@ export function FeedPreviewGrid({
       {/* Modal / Drawer do Post Ativo (Navegação Fiel ao Portal do Cliente) */}
       {postAtivo && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-4xl bg-card border border-border/80 rounded-3xl overflow-hidden shadow-2xl grid grid-cols-1 lg:grid-cols-12 max-h-[90vh] relative animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-4xl bg-card border border-border rounded-3xl overflow-hidden shadow-2xl grid grid-cols-1 lg:grid-cols-12 max-h-[90vh] relative animate-in zoom-in-95 duration-200">
             <button
               type="button"
               onClick={() => setPostAtivo(null)}
@@ -413,7 +413,7 @@ export function FeedPreviewGrid({
             {/* Lado Direito: Informações, Legenda e Ações (lg:col-span-5) */}
             <div className="lg:col-span-5 p-6 flex flex-col justify-between overflow-y-auto max-h-[500px] gap-4 bg-card">
               <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+                <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
                   <div>
                     <span className="text-[10px] font-mono text-primary font-bold uppercase tracking-wider">
                       {postAtivo.tipo.toUpperCase()}
@@ -436,14 +436,14 @@ export function FeedPreviewGrid({
                 {/* Legenda */}
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-bold text-foreground">Legenda da Postagem:</span>
-                  <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto p-2.5 rounded-xl bg-accent/20 border border-border/60 font-sans">
+                  <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto p-2.5 rounded-xl bg-accent/20 border border-border font-sans">
                     {postAtivo.legenda || '(sem legenda cadastrada)'}
                   </p>
                 </div>
               </div>
 
               {/* Botões do Rodapé */}
-              <div className="flex items-center gap-2 pt-3 border-t border-border/60">
+              <div className="flex items-center gap-2 pt-3 border-t border-border">
                 <Button
                   type="button"
                   variant="outline"

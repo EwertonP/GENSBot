@@ -182,7 +182,7 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
         <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">
           Operação Diária · TELAS §5.3
         </span>
-        <h2 className="text-xl sm:text-2xl font-black font-display text-foreground tracking-tight flex items-center gap-2.5">
+        <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight flex items-center gap-2.5">
           <span>Rotina da Agência</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-foreground font-mono font-bold">
             {pendentesCount} pendentes
@@ -194,7 +194,7 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
       </div>
 
       {/* Caixa de Entrada Rápida (Quick Add) */}
-      <Card className="p-4 rounded-2xl border border-border/80 bg-card shadow-2xs">
+      <Card className="p-4 rounded-2xl border border-border bg-card shadow-2xs">
         <form onSubmit={handleCriarTarefa} className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <Input
@@ -271,7 +271,7 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
       {/* Barra de Filtros & Abas */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Abas: Pendentes vs Concluídas */}
-        <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border/70 text-xs">
+        <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border text-xs">
           <button
             type="button"
             onClick={() => setTabAtiva('pendente')}
@@ -341,8 +341,8 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
           }
         />
       ) : (
-        <Card padding="none" className="rounded-2xl border border-border/80 overflow-hidden shadow-2xs bg-card">
-          <ul className="divide-y divide-border/60">
+        <Card padding="none" className="rounded-2xl border border-border overflow-hidden shadow-2xs bg-card">
+          <ul className="divide-y divide-border">
             {tarefasFiltradas.map((t) => {
               const isConcluida = t.status === 'concluido';
               const prio = PRIORIDADE_LABELS[t.prioridade] || PRIORIDADE_LABELS.normal;
@@ -364,7 +364,7 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
                       {isConcluida ? (
                         <CheckCircle2 className="w-5 h-5 text-success fill-success/10" />
                       ) : (
-                        <Square className="w-5 h-5 text-muted-foreground/60 hover:text-primary" />
+                        <Square className="w-5 h-5 text-muted-foreground hover:text-primary" />
                       )}
                     </button>
 
@@ -386,7 +386,7 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
 
                         {/* Cliente vinculado */}
                         {t.cliente && (
-                          <span className="flex items-center gap-1 font-medium text-foreground bg-accent/60 px-1.5 py-0.5 rounded-md border border-border/50">
+                          <span className="flex items-center gap-1 font-medium text-foreground bg-accent/60 px-1.5 py-0.5 rounded-md border border-border">
                             <ClienteAvatar nome={t.cliente.nome} cor={t.cliente.cor} tamanho="xs" />
                             <span className="truncate max-w-[120px]">{t.cliente.nome}</span>
                           </span>
@@ -421,7 +421,7 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
                     <button
                       type="button"
                       onClick={() => handleExcluir(t.id)}
-                      className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                       title="Excluir afazer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />

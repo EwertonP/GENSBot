@@ -170,7 +170,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                       {wizardIncompatibleReason && (
                         <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-4 flex flex-col gap-2">
                           <p className="text-xs font-bold text-destructive">Esta automação só pode ser editada pelo Canvas</p>
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {wizardIncompatibleReason} Os campos abaixo mostram o estado anterior à edição e não refletem o fluxo real — salvar por aqui está bloqueado pra não substituir o que já existe por uma versão simplificada.
                           </p>
                           {form.id && (
@@ -194,14 +194,14 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                             value={form.name}
                             onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                             placeholder="Nome do Fluxo (ex: Capturar Leads)"
-                            className="font-extrabold text-foreground text-lg focus:outline-none border-b border-border focus:border-primary pb-1 w-full max-w-sm transition-all bg-transparent"
+                            className="font-bold text-foreground text-lg focus:outline-none border-b border-input focus:border-primary pb-1 w-full max-w-sm transition-all bg-transparent"
                           />
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1.5">Configuração do Sequenciamento</p>
+                          <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-1.5">Configuração do Sequenciamento</p>
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-4 flex-shrink-0 w-full md:w-auto">
                           {/* Active toggle */}
-                          <label className="flex items-center gap-2.5 cursor-pointer select-none p-1.5 px-3 rounded-2xl bg-accent/40 border border-border/80 hover:border-foreground/30 transition-all">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none p-1.5 px-3 rounded-2xl bg-accent/40 border border-border hover:border-foreground/30 transition-all">
                             <input
                               type="checkbox"
                               checked={form.active}
@@ -231,7 +231,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                           <button
                             type="submit"
                             disabled={!!wizardIncompatibleReason}
-                            className="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Salvar Fluxo
                           </button>
@@ -304,7 +304,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                               placeholder="ex: quero, cupom, info"
                               value={keywordInput}
                               onChange={handleKeywordsChange}
-                              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all font-mono"
+                              className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all font-mono"
                             />
                           </div>
 
@@ -313,7 +313,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                             <select
                               value={form.match_type}
                               onChange={e => setForm(prev => ({ ...prev, match_type: e.target.value as any }))}
-                              className="bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground font-semibold cursor-pointer transition-all"
+                              className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground font-semibold cursor-pointer transition-all"
                             >
                               <option value="contains">Contém a palavra-chave</option>
                               <option value="exact">Exato (Palavra-chave exata)</option>
@@ -348,11 +348,11 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                                     </div>
                                   )}
                                   <div className="flex flex-col min-w-0">
-                                    <span className="text-[10px] font-bold text-muted-foreground font-mono truncate max-w-[150px]">
+                                    <span className="text-xs font-bold text-muted-foreground font-mono truncate max-w-[150px]">
                                       ID: {form.specific_post_id}
                                     </span>
                                     {selectedMedia?.caption && (
-                                      <span className="text-[9px] text-muted-foreground truncate max-w-[180px]">
+                                      <span className="text-xs text-muted-foreground truncate max-w-[180px]">
                                         {selectedMedia.caption}
                                       </span>
                                     )}
@@ -417,7 +417,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                                       />
                                     </div>
                                   )}
-                                  <span className="text-[10px] font-bold text-muted-foreground font-mono truncate max-w-[150px]">
+                                  <span className="text-xs font-bold text-muted-foreground font-mono truncate max-w-[150px]">
                                     ID: {form.specific_story_id}
                                   </span>
                                   <button
@@ -431,7 +431,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                               );
                             })()}
 
-                            <p className="text-[10px] text-muted-foreground">
+                            <p className="text-xs text-muted-foreground">
                               {form.specific_story_id
                                 ? 'A API só lista pra escolher as stories publicadas nas últimas 24h.'
                                 : 'Responde a respostas de qualquer story seu — hoje e nos próximos dias, sem precisar trocar a seleção a cada story novo.'}
@@ -457,12 +457,12 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                               placeholder="ex: Te chamei no direct! Dá uma olhada lá."
                               value={publicReplyInput}
                               onChange={e => setPublicReplyInput(e.target.value)}
-                              className="flex-1 bg-accent border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground"
+                              className="flex-1 bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground"
                             />
                             <button
                               type="button"
                               onClick={handleAddPublicReply}
-                              className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-extrabold text-xs hover:bg-primary/90 transition-colors cursor-pointer"
+                              className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-colors cursor-pointer"
                             >
                               Adicionar
                             </button>
@@ -487,7 +487,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                                     showToast('Essa resposta já foi adicionada!', 'error');
                                   }
                                 }}
-                                className="text-[10px] bg-accent text-muted-foreground hover:bg-border hover:text-foreground px-3 py-1.5 rounded-full border border-border transition-colors cursor-pointer select-none"
+                                className="text-xs bg-accent text-muted-foreground hover:bg-border hover:text-foreground px-3 py-1.5 rounded-full border border-border transition-colors cursor-pointer select-none"
                               >
                                 + {preset}
                               </button>
@@ -504,7 +504,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                                 <button
                                   type="button"
                                   onClick={() => handleRemovePublicReply(index)}
-                                  className="text-muted-foreground hover:text-destructive font-bold flex-shrink-0 cursor-pointer text-[10px]"
+                                  className="text-muted-foreground hover:text-destructive font-bold flex-shrink-0 cursor-pointer text-xs"
                                 >
                                   Remover
                                 </button>
@@ -597,7 +597,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
 
                   {/* Right Column: Phone Simulator Mockup */}
                   <div className="lg:col-span-4 sticky top-6 flex flex-col items-center gap-3">
-                    <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest bg-card border border-accent px-3 py-1.5 rounded-full shadow-xs">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest bg-card border border-accent px-3 py-1.5 rounded-full shadow-xs">
                       Visualização em Tempo Real (Direct)
                     </span>
 
@@ -825,7 +825,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
                         />
                         <div className="absolute top-2 right-2 bg-background/70 backdrop-blur-md border border-foreground/10 px-2 py-0.5 rounded-lg">
-                          <span className="text-[9px] text-primary font-extrabold uppercase tracking-widest">
+                          <span className="text-xs text-primary font-bold uppercase tracking-widest">
                             {media.media_type === 'CAROUSEL_ALBUM' ? 'CARROSSEL' : media.media_type === 'VIDEO' ? 'REELS' : 'FOTO'}
                           </span>
                         </div>
@@ -833,7 +833,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
 
                       {/* Direita: Detalhes e Legenda */}
                       <div className="flex-1 flex flex-col gap-2 min-w-0 py-1">
-                        <span className="text-[10px] text-muted-foreground font-mono">ID: {media.id}</span>
+                        <span className="text-xs text-muted-foreground font-mono">ID: {media.id}</span>
                         <p className="text-sm text-foreground/90 line-clamp-4 sm:line-clamp-5 leading-relaxed">
                           {media.caption || 'Sem legenda'}
                         </p>
@@ -897,7 +897,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                         />
                       </div>
                       <div className="px-2.5 py-2">
-                        <span className="text-[9px] text-muted-foreground font-mono">
+                        <span className="text-xs text-muted-foreground font-mono">
                           {new Date(story.timestamp).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>

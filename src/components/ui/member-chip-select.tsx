@@ -67,7 +67,7 @@ export function MemberChipSelect({
   return (
     <div className={`relative flex flex-col gap-0.5 ${className}`} ref={containerRef}>
       {label && (
-        <span className="text-[11px] font-semibold text-muted-foreground">{label}</span>
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
       )}
 
       {/* Trigger: Chip / Tag Minimalista */}
@@ -76,8 +76,8 @@ export function MemberChipSelect({
         onClick={() => setOpen((prev) => !prev)}
         className={`h-8 w-full px-2.5 rounded-xl border text-xs transition-all flex items-center justify-between gap-1.5 cursor-pointer shadow-2xs group text-left ${
           membroSelecionado
-            ? 'bg-accent/40 border-border/80 hover:bg-accent/70 hover:border-foreground/30 text-foreground font-semibold'
-            : 'bg-background/80 border-border/70 hover:bg-accent/40 hover:border-foreground/30 text-muted-foreground'
+            ? 'bg-accent/40 border-border hover:bg-accent/70 hover:border-foreground/30 text-foreground font-semibold'
+            : 'bg-background/80 border-border hover:bg-accent/40 hover:border-foreground/30 text-muted-foreground'
         } ${open ? 'ring-2 ring-primary/20 border-primary/50' : ''}`}
         title={membroSelecionado ? `Responsável: ${membroSelecionado.nome}` : placeholder}
       >
@@ -85,7 +85,7 @@ export function MemberChipSelect({
           {membroSelecionado ? (
             <>
               {/* Mini Avatar com Iniciais */}
-              <div className="w-4.5 h-4.5 rounded-full bg-primary/20 text-primary font-bold text-[10px] flex items-center justify-center shrink-0 border border-primary/30">
+              <div className="w-4.5 h-4.5 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0 border border-primary/30">
                 {getIniciais(membroSelecionado.nome)}
               </div>
               <span className="truncate text-xs font-semibold text-foreground">
@@ -111,7 +111,7 @@ export function MemberChipSelect({
 
       {/* Popover Ultra-Enxuto com Membros */}
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-full min-w-[210px] rounded-xl border border-border/80 bg-card/98 backdrop-blur-md shadow-xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-0.5">
+        <div className="absolute top-full left-0 mt-1 w-full min-w-[210px] rounded-xl border border-border bg-card/98 backdrop-blur-md shadow-xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-0.5">
           {/* Opção: Desatribuir / Nenhum */}
           <button
             type="button"
@@ -153,13 +153,13 @@ export function MemberChipSelect({
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="w-5 h-5 rounded-full bg-accent text-foreground font-bold text-[10px] flex items-center justify-center shrink-0 border border-border/80">
+                    <div className="w-5 h-5 rounded-full bg-accent text-foreground font-bold text-xs flex items-center justify-center shrink-0 border border-border">
                       {getIniciais(m.nome)}
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="truncate text-xs font-semibold leading-tight">{m.nome}</span>
                       {m.cargo && (
-                        <span className="truncate text-[10px] text-muted-foreground font-mono leading-tight">
+                        <span className="truncate text-xs text-muted-foreground font-mono leading-tight">
                           {m.cargo}
                         </span>
                       )}

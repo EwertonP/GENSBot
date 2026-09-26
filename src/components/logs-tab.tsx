@@ -57,14 +57,14 @@ export default function LogsTab({ recentEvents, recentQueue, showToast }: LogsTa
             recentEvents.map(evt => (
               <div key={evt.id} className="bg-accent border border-border p-4 rounded-xl flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] bg-card border border-border text-muted-foreground px-2 py-0.5 rounded font-mono">
+                  <span className="text-xs bg-card border border-border text-muted-foreground px-2 py-0.5 rounded font-mono">
                     ID: {evt.id.substring(0, 8)}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {new Date(evt.created_at).toLocaleString('pt-BR')}
                   </span>
                 </div>
-                <pre className="text-[10px] text-foreground font-mono bg-card p-2.5 rounded-lg border border-border overflow-x-auto max-h-[120px]">
+                <pre className="text-xs text-foreground font-mono bg-card p-2.5 rounded-lg border border-border overflow-x-auto max-h-[120px]">
                   {JSON.stringify(evt.payload, null, 2)}
                 </pre>
               </div>
@@ -108,10 +108,10 @@ export default function LogsTab({ recentEvents, recentQueue, showToast }: LogsTa
             recentQueue.map(item => (
               <div key={item.id} className="bg-accent border border-border p-4 rounded-xl flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] bg-card border border-border text-muted-foreground px-2 py-0.5 rounded font-mono">
+                  <span className="text-xs bg-card border border-border text-muted-foreground px-2 py-0.5 rounded font-mono">
                     Destino ID: {item.contact_id.substring(0, 10)}...
                   </span>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {new Date(item.created_at).toLocaleTimeString('pt-BR')}
                   </span>
                 </div>
@@ -123,7 +123,7 @@ export default function LogsTab({ recentEvents, recentQueue, showToast }: LogsTa
                   </span>
                   <Badge
                     variant={item.status === 'sent' ? 'success' : item.status === 'pending' ? 'muted' : 'destructive'}
-                    className="text-[9px]"
+                    className="text-xs"
                   >
                     {item.status === 'sent' && 'Enviado'}
                     {item.status === 'pending' && 'Pendente'}
@@ -131,7 +131,7 @@ export default function LogsTab({ recentEvents, recentQueue, showToast }: LogsTa
                   </Badge>
                 </div>
                 {item.error_message && (
-                  <div className="text-[10px] text-destructive bg-card p-2 rounded-lg border border-destructive/25 font-mono mt-1">
+                  <div className="text-xs text-destructive bg-card p-2 rounded-lg border border-destructive/25 font-mono mt-1">
                     Erro: {item.error_message}
                   </div>
                 )}

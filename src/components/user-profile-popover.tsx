@@ -98,7 +98,7 @@ export default function UserProfilePopover({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2.5 p-2 rounded-xl bg-accent/40 hover:bg-accent border border-border/60 hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group"
+        className="w-full flex items-center justify-between gap-2.5 p-2 rounded-xl bg-accent/40 hover:bg-accent border border-border hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group"
         aria-label="Menu do usuário master"
       >
         <div className="flex items-center gap-2.5 min-w-0">
@@ -113,7 +113,7 @@ export default function UserProfilePopover({
           </div>
           <div className="flex flex-col min-w-0 leading-tight">
             <span className="text-xs font-bold text-foreground truncate">{userName}</span>
-            <span className="text-[10px] text-muted-foreground truncate">{userEmail}</span>
+            <span className="text-xs text-muted-foreground truncate">{userEmail}</span>
           </div>
         </div>
         <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} />
@@ -127,7 +127,7 @@ export default function UserProfilePopover({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: direction === 'up' ? -8 : 8 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className={`absolute left-0 w-64 rounded-2xl bg-card border border-border/80 shadow-2xl p-2 z-50 overflow-hidden text-foreground ${
+            className={`absolute left-0 w-64 rounded-2xl bg-card border border-border shadow-2xl p-2 z-50 overflow-hidden text-foreground ${
               direction === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'
             }`}
           >
@@ -135,9 +135,9 @@ export default function UserProfilePopover({
             <div className="px-3 py-2.5 bg-primary/10 rounded-xl border border-primary/30 mb-1.5 flex items-center justify-between">
               <div className="flex flex-col overflow-hidden">
                 <span className="text-xs font-bold text-foreground truncate">{userName}</span>
-                <span className="text-[10px] text-muted-foreground truncate">{userRole}</span>
+                <span className="text-xs text-muted-foreground truncate">{userRole}</span>
               </div>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground shadow-2xs shrink-0">
+              <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground shadow-2xs shrink-0">
                 <Zap className="w-2.5 h-2.5 fill-current" />
                 MASTER
               </span>
@@ -172,7 +172,7 @@ export default function UserProfilePopover({
               )}
             </div>
 
-            <div className="my-1.5 border-t border-border/60" />
+            <div className="my-1.5 border-t border-border" />
 
             {/* Suporte & Logout */}
             <div className="flex flex-col gap-0.5">
@@ -211,7 +211,7 @@ export default function UserProfilePopover({
       >
         <form onSubmit={handleSaveProfile} className="p-6 flex flex-col gap-5">
           <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">
               Perfil da Conta Master
             </span>
             <h3 className="text-lg font-bold font-display text-foreground mt-0.5">
@@ -223,7 +223,7 @@ export default function UserProfilePopover({
           </div>
 
           {/* Preview da Foto de Perfil */}
-          <div className="flex items-center gap-4 p-4 rounded-2xl bg-accent/30 border border-border/60">
+          <div className="flex items-center gap-4 p-4 rounded-2xl bg-accent/30 border border-border">
             <div className="relative group cursor-pointer">
               <ClienteAvatar
                 nome={editName}
@@ -253,7 +253,7 @@ export default function UserProfilePopover({
                 <UploadCloud className="w-4 h-4" />
                 {uploading ? 'Carregando foto...' : 'Fazer Upload de Nova Foto'}
               </label>
-              <span className="text-[11px] text-muted-foreground">PNG, JPG ou WEBP até 5MB</span>
+              <span className="text-xs text-muted-foreground">PNG, JPG ou WEBP até 5MB</span>
             </div>
           </div>
 

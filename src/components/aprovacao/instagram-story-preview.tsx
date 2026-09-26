@@ -209,7 +209,7 @@ export function InstagramStoryPreview({
           <button
             type="button"
             onClick={() => onPedirAjuste(slideValido + 1)}
-            className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-card border border-border text-foreground hover:bg-accent flex items-center gap-1.5 shadow-2xs cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-primary" />
             <span>Sugerir Ajuste no Story #{slideValido + 1}</span>

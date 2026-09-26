@@ -46,9 +46,9 @@ export default function VersionHistoryPanel({ automationId, onClose, onView, onR
         </button>
       </div>
 
-      {loading && <p className="text-[11px] text-muted-foreground">Carregando...</p>}
+      {loading && <p className="text-xs text-muted-foreground">Carregando...</p>}
       {!loading && versions.length === 0 && (
-        <p className="text-[11px] text-muted-foreground">Nenhuma versão anterior ainda — o histórico começa a partir do próximo save.</p>
+        <p className="text-xs text-muted-foreground">Nenhuma versão anterior ainda — o histórico começa a partir do próximo save.</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -60,14 +60,14 @@ export default function VersionHistoryPanel({ automationId, onClose, onView, onR
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-foreground">Versão {v.version_number}</span>
-              <span className="text-[9px] text-muted-foreground">{new Date(v.created_at).toLocaleString('pt-BR')}</span>
+              <span className="text-xs font-bold text-foreground">Versão {v.version_number}</span>
+              <span className="text-xs text-muted-foreground">{new Date(v.created_at).toLocaleString('pt-BR')}</span>
             </div>
-            {v.label && <span className="text-[10px] text-muted-foreground">{v.label}</span>}
+            {v.label && <span className="text-xs text-muted-foreground">{v.label}</span>}
             <div className="flex gap-1.5">
               <button
                 onClick={() => handleView(v.id)}
-                className="flex items-center gap-1 text-[10px] font-bold text-foreground bg-background hover:bg-accent border border-border rounded px-2 py-1 cursor-pointer"
+                className="flex items-center gap-1 text-xs font-bold text-foreground bg-background hover:bg-accent border border-border rounded px-2 py-1 cursor-pointer"
               >
                 <Eye className="w-3 h-3" /> Ver
               </button>
@@ -77,7 +77,7 @@ export default function VersionHistoryPanel({ automationId, onClose, onView, onR
                     onRestore(v.id);
                   }
                 }}
-                className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/90 bg-background hover:bg-accent border border-border rounded px-2 py-1 cursor-pointer"
+                className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/90 bg-background hover:bg-accent border border-border rounded px-2 py-1 cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" /> Restaurar
               </button>

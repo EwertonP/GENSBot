@@ -65,7 +65,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
@@ -78,7 +78,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
@@ -92,7 +92,7 @@ export default function LoginPage() {
               id="login-submit"
               type="submit"
               disabled={loading}
-              className="mt-2 w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:bg-accent disabled:text-muted-foreground text-primary-foreground font-extrabold text-sm shadow-md cursor-pointer transition-all"
+              className="mt-2 w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:bg-accent disabled:text-muted-foreground text-primary-foreground font-bold text-sm shadow-md cursor-pointer transition-all"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>

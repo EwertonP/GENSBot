@@ -57,7 +57,7 @@ function TriggerPanel({ data, onChange }: { data: TriggerNodeConfig; onChange: (
               key={t}
               type="button"
               onClick={() => toggle(t)}
-              className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+              className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${
                 data.triggerTypes.includes(t) ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
               }`}
             >
@@ -187,7 +187,7 @@ function SendMessagePanel({
     <div className="flex flex-col gap-4">
       <Field label="Texto da mensagem">
         <textarea rows={4} className={inputCls} value={data.text} onChange={(e) => onChange({ ...data, text: e.target.value })} />
-        <p className="text-[10px] text-muted-foreground -mt-1">
+        <p className="text-xs text-muted-foreground -mt-1">
           Use <code className="bg-accent px-1 rounded">{'{{primeiro_nome}}'}</code> pra personalizar com o nome do lead (ex: "Olá, {'{{primeiro_nome}}'}!")
         </p>
       </Field>
@@ -218,7 +218,7 @@ function SendMessagePanel({
             <button
               type="button"
               onClick={() => onChange({ ...data, quick_reply_buttons: [...(data.quick_reply_buttons || []), ''] })}
-              className="self-start text-[10px] font-bold text-primary cursor-pointer"
+              className="self-start text-xs font-bold text-primary cursor-pointer"
             >
               + Adicionar botão
             </button>
@@ -232,14 +232,14 @@ function SendMessagePanel({
             type="button"
             onClick={handleGenerateTrackedLink}
             disabled={generatingTrackedLink}
-            className="self-start text-[9px] font-bold text-primary hover:underline cursor-pointer disabled:opacity-50"
+            className="self-start text-xs font-bold text-primary hover:underline cursor-pointer disabled:opacity-50"
           >
             {generatingTrackedLink ? 'Gerando...' : '+ Gerar link com rastreamento de clique'}
           </button>
         )}
         {utmLinks.length > 0 && (
           <div className="flex flex-col gap-1 mt-1">
-            <span className="text-[9px] font-bold text-muted-foreground">Ou use um link UTM já criado</span>
+            <span className="text-xs font-bold text-muted-foreground">Ou use um link UTM já criado</span>
             <select
               value={selectedUtmLinkId || utmLinks.find((l) => l.short_url === data.link_url || l.generated_url === data.link_url)?.id || ''}
               onChange={(e) => handleSelectUtmLink(e.target.value)}
@@ -369,7 +369,7 @@ function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; o
   const savesTag = data.saveReplyAsTagPrefix !== null && data.saveReplyAsTagPrefix !== undefined;
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[10px] text-muted-foreground leading-relaxed">
+      <p className="text-xs text-muted-foreground leading-relaxed">
         O fluxo pausa aqui até a pessoa responder. Conecte a saída de cima ("resposta") pro
         que acontece quando ela responde, e a de baixo ("sem resposta") pro que acontece se
         expirar sem resposta — assim ninguém fica esperando pra sempre.
@@ -379,7 +379,7 @@ function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; o
           <button
             type="button"
             onClick={() => onChange({ ...data, timeoutMinutes: 720 })}
-            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+            className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${
               hasTimeout ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
             }`}
           >
@@ -388,7 +388,7 @@ function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; o
           <button
             type="button"
             onClick={() => onChange({ ...data, timeoutMinutes: null })}
-            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+            className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${
               !hasTimeout ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
             }`}
           >
@@ -412,7 +412,7 @@ function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; o
           <button
             type="button"
             onClick={() => onChange({ ...data, saveReplyAsTagPrefix: data.saveReplyAsTagPrefix || '' })}
-            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+            className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${
               savesTag ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
             }`}
           >
@@ -421,7 +421,7 @@ function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; o
           <button
             type="button"
             onClick={() => onChange({ ...data, saveReplyAsTagPrefix: null })}
-            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+            className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${
               !savesTag ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
             }`}
           >

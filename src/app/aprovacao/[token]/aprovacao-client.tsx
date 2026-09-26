@@ -58,16 +58,9 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('gensbot_theme');
-      if (saved === 'light') {
-        setTheme('light');
-        document.documentElement.classList.remove('dark');
-      } else {
-        setTheme('dark');
-        document.documentElement.classList.add('dark');
-      }
-    }
+    // O script inline do layout já aplicou o tema (preferência salva ou do SO);
+    // aqui só sincronizamos o estado do toggle com a classe real do <html>.
+    setTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
   }, []);
 
   const toggleTheme = () => {
@@ -229,7 +222,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           </span>
           <Badge
             variant={sucessoAprovado ? 'success' : item.status === 'travado' ? 'destructive' : 'warning'}
-            className="text-[10px] sm:text-xs font-bold px-2.5 py-1"
+            className="text-xs font-bold px-2.5 py-1"
           >
             {sucessoAprovado ? 'Aprovado' : item.status === 'travado' ? 'Ajustes Solicitados' : 'Aguardando Aprovação'}
           </Badge>
@@ -238,7 +231,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
             aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
-            className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border/80 text-foreground transition-all duration-150 cursor-pointer shadow-2xs flex items-center justify-center ml-1 active:scale-[0.98]"
+            className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-all duration-150 cursor-pointer shadow-2xs flex items-center justify-center ml-1 active:scale-[0.98]"
           >
             {theme === 'dark' ? (
               <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
@@ -290,27 +283,27 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
         {/* Histórico de Comentários / Ajustes já pontuados */}
         {comentarios.length > 0 && (
-          <div className="w-full max-w-[420px] bg-card rounded-2xl border border-border/70 p-3.5 flex flex-col gap-2 shadow-sm">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+          <div className="w-full max-w-[420px] bg-card rounded-2xl border border-border p-3.5 flex flex-col gap-2 shadow-sm">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Ajustes Registrados ({comentarios.length})
             </p>
             <div className="flex flex-col gap-2 max-h-40 overflow-y-auto">
               {comentarios.map((c) => (
-                <div key={c.id} className="p-2.5 rounded-xl bg-accent/40 border border-border/60 text-xs flex flex-col gap-1">
+                <div key={c.id} className="p-2.5 rounded-xl bg-accent/40 border border-border text-xs flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-foreground">{c.autor}</span>
                     {c.slide_index != null && (
-                      <span className="text-[10px] font-mono font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
+                      <span className="text-xs font-mono font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
                         Slide {c.slide_index}
                       </span>
                     )}
                     {c.timestamp_seconds != null && (
-                      <span className="text-[10px] font-mono font-bold bg-lime text-lime-foreground px-1.5 py-0.5 rounded flex items-center gap-1 border border-foreground/10">
+                      <span className="text-xs font-mono font-bold bg-lime text-lime-foreground px-1.5 py-0.5 rounded flex items-center gap-1 border border-foreground/10">
                         ⏱ {formatarTimecode(c.timestamp_seconds)}
                       </span>
                     )}
                   </div>
-                  <p className="text-muted-foreground text-[11px] leading-relaxed">{c.texto}</p>
+                  <p className="text-muted-foreground text-xs leading-relaxed">{c.texto}</p>
                 </div>
               ))}
             </div>
@@ -318,7 +311,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
         )}
 
         {/* Barra de Ação de Decisão do Cliente (Aprovar / Solicitar Ajustes) */}
-        <div className="w-full max-w-[420px] bg-card rounded-2xl border border-border/80 p-3.5 shadow-md flex flex-col gap-2.5">
+        <div className="w-full max-w-[420px] bg-card rounded-2xl border border-border p-3.5 shadow-md flex flex-col gap-2.5">
           {sucessoAprovado ? (
             <div className="p-3.5 rounded-xl bg-success/15 border border-success/30 text-success flex items-center justify-center gap-2 font-bold text-xs">
               <CheckCircle2 className="w-4 h-4" />
@@ -352,7 +345,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                 variant="lime"
                 onClick={handleAprovar}
                 loading={enviando}
-                className="rounded-xl text-xs font-bold shadow-xs h-10 text-neutral-950 dark:text-neutral-950 active:scale-[0.98]"
+                className="rounded-xl text-xs font-bold shadow-xs h-10 text-lime-foreground active:scale-[0.98]"
               >
                 <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                 Aprovar Post
@@ -363,9 +356,9 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       </main>
 
       {/* --- VISÃO DESKTOP (>= lg) estilo Instagram Web Native Modal --- */}
-      <main className="hidden lg:flex w-full max-w-5xl h-[660px] rounded-2xl bg-card border border-border/80 shadow-2xl overflow-hidden my-auto">
+      <main className="hidden lg:flex w-full max-w-5xl h-[660px] rounded-2xl bg-card border border-border shadow-2xl overflow-hidden my-auto">
         {/* Coluna da Esquerda (60%): Estágio Visual de Mídia (Carrossel / Reels / Story) */}
-        <div className="w-7/12 bg-neutral-100 dark:bg-black/90 flex items-center justify-center relative overflow-hidden border-r border-border/60 p-4">
+        <div className="w-7/12 bg-muted dark:bg-black flex items-center justify-center relative overflow-hidden border-r border-border p-4">
           {isStory ? (
             <InstagramStoryPreview
               clienteNome={clienteNome}
@@ -407,7 +400,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
         <div className="w-5/12 bg-card flex flex-col justify-between overflow-hidden text-foreground">
           
           {/* Header Superior Nativo */}
-          <div className="px-4 py-3.5 border-b border-border/60 flex items-center justify-between shrink-0 bg-card">
+          <div className="px-4 py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-card">
             <div className="flex items-center gap-3">
               <div className="p-[2px] rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600">
                 <ClienteAvatar
@@ -421,15 +414,15 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-bold text-foreground tracking-tight leading-tight">{clienteNome}</span>
-                  <span className="w-4 h-4 bg-sky-500 text-white rounded-full inline-flex items-center justify-center text-[9px] font-bold" title="Perfil Verificado">✓</span>
+                  <span className="w-4 h-4 bg-info text-info-foreground rounded-full inline-flex items-center justify-center text-xs font-bold" title="Perfil Verificado">✓</span>
                 </div>
-                <span className="text-[11px] text-muted-foreground font-medium">Agência GENS • Central de Aprovação</span>
+                <span className="text-xs text-muted-foreground font-medium">Agência GENS • Central de Aprovação</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Badge
                 variant={sucessoAprovado ? 'success' : item.status === 'travado' ? 'destructive' : 'warning'}
-                className="text-[10px] font-bold px-2 py-0.5"
+                className="text-xs font-bold px-2 py-0.5"
               >
                 {sucessoAprovado ? 'Aprovado' : item.status === 'travado' ? 'Ajustes Solicitados' : 'Pendente'}
               </Badge>
@@ -459,7 +452,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                     {item.legenda || 'Nenhuma legenda informada para este post.'}
                   </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground font-medium tracking-wide uppercase pt-1">
+                <span className="text-xs text-muted-foreground font-medium tracking-wide uppercase pt-1">
                   2 h • {isStory ? 'Story' : isReel ? 'Reels' : isCarrossel ? `Carrossel (${arquivos.length} fotos)` : 'Feed'}
                 </span>
               </div>
@@ -467,8 +460,8 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
             {/* Roteiro / texto de cada slide — separado da legenda, que é só a legenda do Instagram */}
             {item.briefing && (
-              <div className="rounded-lg border border-dashed border-border/70 bg-muted/30 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5">
+              <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1.5">
                   📝 Roteiro / Texto dos Slides
                 </p>
                 <p className="text-xs leading-relaxed text-foreground/90 whitespace-pre-line">{item.briefing}</p>
@@ -476,37 +469,37 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             )}
 
             {/* Separador sutil */}
-            {comentarios.length > 0 && <div className="border-t border-border/60 my-2" />}
+            {comentarios.length > 0 && <div className="border-t border-border my-2" />}
 
             {/* Seção de Comentários / Histórico de Ajustes */}
             {comentarios.length > 0 && (
               <div className="space-y-3">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">
                   Ajustes & Comentários ({comentarios.length})
                 </span>
                 {comentarios.map((c) => (
                   <div key={c.id} className="flex items-start gap-3 group">
-                    <div className="w-7 h-7 rounded-full bg-accent text-accent-foreground border border-border flex items-center justify-center font-bold text-[10px] shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-accent text-accent-foreground border border-border flex items-center justify-center font-bold text-xs shrink-0">
                       {c.autor ? c.autor.substring(0, 2).toUpperCase() : 'CL'}
                     </div>
                     <div className="flex flex-col text-xs flex-1">
-                      <div className="bg-accent/40 rounded-xl p-2.5 border border-border/60 space-y-1">
+                      <div className="bg-accent/40 rounded-xl p-2.5 border border-border space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-foreground text-[11px]">{c.autor}</span>
+                          <span className="font-bold text-foreground text-xs">{c.autor}</span>
                           {c.slide_index != null && (
-                            <span className="text-[9px] font-mono font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
+                            <span className="text-xs font-mono font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
                               Slide {c.slide_index}
                             </span>
                           )}
                           {c.timestamp_seconds != null && (
-                            <span className="text-[9px] font-mono font-bold bg-lime/20 text-lime-700 dark:text-lime-300 px-1.5 py-0.5 rounded border border-lime-500/20">
+                            <span className="text-xs font-mono font-bold bg-brand-soft text-brand-text px-1.5 py-0.5 rounded border border-brand-ring">
                               ⏱ {formatarTimecode(c.timestamp_seconds)}
                             </span>
                           )}
                         </div>
-                        <p className="text-muted-foreground text-[11px] leading-snug">{c.texto}</p>
+                        <p className="text-muted-foreground text-xs leading-snug">{c.texto}</p>
                       </div>
-                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground px-1 mt-1">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground px-1 mt-1">
                         <span>1 h</span>
                         <button type="button" className="hover:text-foreground font-semibold transition-colors">Responder</button>
                       </div>
@@ -518,7 +511,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           </div>
 
           {/* Footer do Painel Nativo do Instagram Web */}
-          <div className="border-t border-border/60 bg-card shrink-0">
+          <div className="border-t border-border bg-card shrink-0">
             {/* Barra de Ações Ícones (Curtir, Comentar, Compartilhar, Salvar) */}
             <div className="px-4 pt-3 pb-2 flex items-center justify-between text-foreground">
               <div className="flex items-center gap-4">
@@ -528,7 +521,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                   className="hover:text-muted-foreground transition-transform active:scale-125"
                   title="Curtir"
                 >
-                  <Heart className={`w-6 h-6 ${curtido ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  <Heart className={`w-6 h-6 ${curtido ? 'fill-destructive text-destructive' : ''}`} />
                 </button>
                 <button
                   type="button"
@@ -560,11 +553,11 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               <p className="text-xs font-semibold text-foreground">
                 Curtido por <span className="font-bold">agenciagens</span> e <span className="font-bold">outras pessoas</span>
               </p>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wide block mt-0.5">HÁ 2 HORAS</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wide block mt-0.5">HÁ 2 HORAS</span>
             </div>
 
             {/* Decision Bar para Aprovação ou Solicitação de Ajustes */}
-            <div className="p-3 border-t border-border/60 bg-accent/30">
+            <div className="p-3 border-t border-border bg-accent/30">
               {sucessoAprovado ? (
                 <div className="p-3 rounded-xl bg-success/15 border border-success/30 text-success flex items-center justify-center gap-2 font-bold text-xs">
                   <CheckCircle2 className="w-4 h-4" />
@@ -598,7 +591,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                     variant="lime"
                     onClick={handleAprovar}
                     loading={enviando}
-                    className="rounded-xl text-xs font-bold shadow-xs h-10 text-neutral-950 dark:text-neutral-950 active:scale-[0.98] transition-all"
+                    className="rounded-xl text-xs font-bold shadow-xs h-10 text-lime-foreground active:scale-[0.98] transition-all"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                     Aprovar Post
@@ -613,7 +606,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       </main>
 
       {/* Footer discreto */}
-      <footer className="mt-8 mb-2 text-center text-[11px] text-muted-foreground">
+      <footer className="mt-8 mb-2 text-center text-xs text-muted-foreground">
         Visualizador nativo de Instagram powered by <strong className="font-semibold text-foreground">Agência GENS</strong>
       </footer>
 
@@ -621,7 +614,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       <Sheet open={modalAjusteAberto} onClose={() => setModalAjusteAberto(false)} aria-label="Solicitar Ajuste">
         <form onSubmit={handleEnviarAjuste} className="p-6 flex flex-col gap-4">
           <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Ajuste de Conteúdo</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ajuste de Conteúdo</span>
             <h3 className="text-lg font-bold font-display text-foreground mt-0.5">
               {ajusteTimestamp != null
                 ? `Solicitar alteração aos ${formatarTimecode(ajusteTimestamp)}`
@@ -631,7 +624,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             </h3>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-accent/60 border border-border/70 text-xs flex items-center gap-2">
+          <div className="p-2.5 rounded-xl bg-accent/60 border border-border text-xs flex items-center gap-2">
             {ajusteTimestamp != null ? (
               <>
                 <Clock className="w-4 h-4 text-primary" />
@@ -657,7 +650,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               placeholder="Ex.: Dr. Paulo / Mariana"
               value={autorNome}
               onChange={(e) => setAutorNome(e.target.value)}
-              className="w-full bg-card border border-border rounded-xl px-3.5 py-2 text-xs text-foreground focus:outline-hidden focus:border-foreground/50"
+              className="w-full bg-card border border-input rounded-xl px-3.5 py-2 text-xs text-foreground focus:outline-hidden focus:border-foreground/50"
             />
           </div>
 

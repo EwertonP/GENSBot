@@ -163,19 +163,9 @@ export default function Dashboard() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('gensbot_theme') as 'dark' | 'light' | null;
-      if (saved) {
-        setTheme(saved);
-        if (saved === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      } else {
-        document.documentElement.classList.add('dark');
-      }
-    }
+    // O script inline do layout já aplicou o tema (preferência salva ou do SO);
+    // aqui só sincronizamos o estado do toggle com a classe real do <html>.
+    setTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
   }, []);
 
   const toggleTheme = () => {
@@ -911,7 +901,7 @@ export default function Dashboard() {
               ) : (
                 <>
                   <Logo className="h-6.5 w-auto" />
-                  <span className="text-[10px] font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded border border-border">
+                  <span className="text-xs font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded border border-border">
                     2.0
                   </span>
                 </>
@@ -939,7 +929,7 @@ export default function Dashboard() {
                 aria-haspopup="listbox"
                 aria-expanded={accountMenuOpen}
                 title={selectedAccountId === 'all' ? 'Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}
-                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 p-2'} rounded-xl bg-accent/60 hover:bg-accent border border-border/70 hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group`}
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 p-2'} rounded-xl bg-accent/60 hover:bg-accent border border-border hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group`}
               >
                 {selectedAccountId === 'all' ? (
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 border border-primary/40">
@@ -963,7 +953,7 @@ export default function Dashboard() {
                       <p className="text-xs font-bold text-foreground truncate">
                         {selectedAccountId === 'all' ? '🌐 Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}
                       </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
+                      <p className="text-xs text-muted-foreground truncate">
                         {selectedAccountId === 'all' ? `Consolidado (${accounts.length} clientes)` : accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conta ativa'}
                       </p>
                     </div>
@@ -1108,7 +1098,7 @@ export default function Dashboard() {
             <div key={gi} className="flex flex-col gap-1">
               {!isSidebarCollapsed ? (
                 group.label && (
-                  <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-widest px-3 mb-0.5">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-3 mb-0.5">
                     {group.label}
                   </span>
                 )
@@ -1183,7 +1173,7 @@ export default function Dashboard() {
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
               aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
-              className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border/80 text-foreground transition-all duration-150 cursor-pointer shadow-2xs flex items-center justify-center"
+              className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-all duration-150 cursor-pointer shadow-2xs flex items-center justify-center"
             >
               {theme === 'dark' ? (
                 <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
@@ -1198,7 +1188,7 @@ export default function Dashboard() {
         </div>
 
         {/* Top Header Bar — Com Respiro Padronizado e Altura Otimizada para 1080p */}
-        <header className="hidden md:flex sticky top-0 z-30 min-h-[64px] py-3 px-6 sm:px-8 items-center justify-between flex-shrink-0 bg-background/90 backdrop-blur-md border-b border-border/70 shadow-2xs">
+        <header className="hidden md:flex sticky top-0 z-30 min-h-[64px] py-3 px-6 sm:px-8 items-center justify-between flex-shrink-0 bg-background/90 backdrop-blur-md border-b border-border shadow-2xs">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold font-display text-foreground tracking-tight">
@@ -1240,7 +1230,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => handleSelectAccount('all')}
-                  className="ml-1 text-[11px] px-2 py-0.5 rounded-md bg-card hover:bg-accent border border-border/80 text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                  className="ml-1 text-xs px-2 py-0.5 rounded-md bg-card hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-all cursor-pointer"
                   title="Voltar para a Visão Geral da Agência"
                 >
                   ✕ Visão Agência
@@ -1254,7 +1244,7 @@ export default function Dashboard() {
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
               aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
-              className="p-2 rounded-xl bg-card hover:bg-accent border border-border/80 text-foreground transition-all duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 flex items-center justify-center"
+              className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-all duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 flex items-center justify-center"
             >
               {theme === 'dark' ? (
                 <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />

@@ -137,7 +137,7 @@ export default function AutomationTable({
                         </Badge>
                       ))}
                       {auto.keywords.length > 2 && (
-                        <span className="text-[9px] text-muted-foreground font-bold">
+                        <span className="text-xs text-muted-foreground font-bold">
                           +{auto.keywords.length - 2}
                         </span>
                       )}
@@ -149,7 +149,7 @@ export default function AutomationTable({
 
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex items-center gap-1.5 text-[10px] font-bold ${
+                      className={`inline-flex items-center gap-1.5 text-xs font-bold ${
                         auto.active ? 'text-success' : 'text-muted-foreground'
                       }`}
                     >

@@ -115,7 +115,7 @@ export function CalendarPicker({ value, onChange, suggestions, className }: Cale
           >
             {suggestions && suggestions.length > 0 && (
               <div className="mb-3 pb-3 border-b border-border flex flex-col gap-1.5">
-                <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
+                <p className="text-xs font-bold text-muted-foreground flex items-center gap-1">
                   <Sparkles className="w-3 h-3" /> Melhores horários (baseado nos seus posts)
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -124,7 +124,7 @@ export function CalendarPicker({ value, onChange, suggestions, className }: Cale
                       key={`${s.weekday}-${s.hourStart}`}
                       type="button"
                       onClick={() => applySuggestion(s)}
-                      className="text-[11px] px-2 py-1 rounded-lg bg-accent text-accent-foreground hover:bg-accent/70 transition-all font-medium"
+                      className="text-xs px-2 py-1 rounded-lg bg-accent text-accent-foreground hover:bg-accent/70 transition-all font-medium"
                     >
                       {s.weekdayLabel} {String(s.hourStart).padStart(2, '0')}h–{String(s.hourEnd).padStart(2, '0')}h
                     </button>
@@ -153,7 +153,7 @@ export function CalendarPicker({ value, onChange, suggestions, className }: Cale
 
             <div className="grid grid-cols-7 gap-1 mb-2">
               {WEEKDAY_HEADERS.map((w, i) => (
-                <div key={i} className="text-center text-[10px] text-muted-foreground font-bold py-1">
+                <div key={i} className="text-center text-xs text-muted-foreground font-bold py-1">
                   {w}
                 </div>
               ))}
@@ -181,7 +181,7 @@ export function CalendarPicker({ value, onChange, suggestions, className }: Cale
               type="time"
               value={timeStr}
               onChange={(e) => handleTimeChange(e.target.value)}
-              className="w-full bg-accent border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+              className="w-full bg-accent border border-input rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
             />
           </motion.div>
         )}

@@ -150,7 +150,7 @@ function SmoothAreaChart({
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-44 w-full flex items-center justify-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border/80">
+      <div className="h-44 w-full flex items-center justify-center text-xs text-muted-foreground bg-accent/20 rounded-2xl border border-dashed border-border">
         Sem dados de alcance para o período selecionado.
       </div>
     );
@@ -223,9 +223,9 @@ function SmoothAreaChart({
         >
           <defs>
             <linearGradient id="metrics-spline-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#d8ff3c" stopOpacity="0.55" />
-              <stop offset="65%" stopColor="#d8ff3c" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#d8ff3c" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.55" />
+              <stop offset="65%" stopColor="var(--chart-1)" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0.0" />
             </linearGradient>
           </defs>
 
@@ -236,7 +236,7 @@ function SmoothAreaChart({
           <path d={areaA} fill="url(#metrics-spline-grad)" />
 
           <path d={lineA} fill="none" stroke="var(--foreground)" strokeWidth={2.5} vectorEffect="non-scaling-stroke" strokeLinecap="round" />
-          <path d={lineB} fill="none" stroke="#10b981" strokeWidth={2} strokeDasharray="4,4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+          <path d={lineB} fill="none" stroke="var(--chart-2)" strokeWidth={2} strokeDasharray="4,4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
 
           {hoverIndex !== null && pointsA[hoverIndex] && (
             <>
@@ -251,7 +251,7 @@ function SmoothAreaChart({
                 strokeOpacity={0.4}
               />
               <circle cx={pointsA[hoverIndex].x} cy={pointsA[hoverIndex].y} r={5} fill="var(--foreground)" stroke="var(--primary)" strokeWidth={2.5} />
-              {pointsB[hoverIndex] && <circle cx={pointsB[hoverIndex].x} cy={pointsB[hoverIndex].y} r={4} fill="#10b981" stroke="var(--card)" strokeWidth={1.5} />}
+              {pointsB[hoverIndex] && <circle cx={pointsB[hoverIndex].x} cy={pointsB[hoverIndex].y} r={4} fill="var(--chart-2)" stroke="var(--card)" strokeWidth={1.5} />}
             </>
           )}
 
@@ -260,7 +260,7 @@ function SmoothAreaChart({
 
         {hoverIndex !== null && pointsA[hoverIndex] && (
           <div
-            className="absolute top-2 z-30 pointer-events-none -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border/80 px-3 py-2 rounded-2xl shadow-xl text-xs flex flex-col gap-1 min-w-[160px]"
+            className="absolute top-2 z-30 pointer-events-none -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border px-3 py-2 rounded-2xl shadow-xl text-xs flex flex-col gap-1 min-w-[160px]"
             style={{ left: `${(pointsA[hoverIndex].x / width) * 100}%` }}
           >
             <span className="text-xs text-muted-foreground font-mono font-bold">
@@ -274,9 +274,9 @@ function SmoothAreaChart({
               <span className="font-mono">{pointsA[hoverIndex].val.toLocaleString('pt-BR')}</span>
             </div>
             {pointsB[hoverIndex] && (
-              <div className="flex items-center justify-between gap-3 text-emerald-600 font-bold">
+              <div className="flex items-center justify-between gap-3 text-success font-bold">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="w-2 h-2 rounded-full bg-success" />
                   {labelB}:
                 </span>
                 <span className="font-mono">{pointsB[hoverIndex].val.toLocaleString('pt-BR')}</span>
@@ -286,14 +286,14 @@ function SmoothAreaChart({
         )}
       </div>
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
+      <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-1 bg-foreground rounded-full" />
             <span className="font-semibold text-foreground">{labelA}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-1 bg-emerald-500 border-dashed rounded-full" />
+            <div className="w-3 h-1 bg-success border-dashed rounded-full" />
             <span className="font-medium text-muted-foreground">{labelB}</span>
           </div>
         </div>
@@ -306,17 +306,17 @@ function SmoothAreaChart({
 /** 2. Seção de Visualizações por Formato de Conteúdo */
 function ContentFormatBreakdownCard() {
   const formats = [
-    { name: 'Stories', views: 159210, followersPct: 82, nonFollowersPct: 18, color: 'bg-emerald-500', icon: Sparkles },
-    { name: 'Reels', views: 31450, followersPct: 12, nonFollowersPct: 88, color: 'bg-purple-500', icon: Video },
-    { name: 'Publicações no Feed', views: 14300, followersPct: 45, nonFollowersPct: 55, color: 'bg-blue-500', icon: ImageIcon },
-    { name: 'Vídeos ao Vivo', views: 0, followersPct: 0, nonFollowersPct: 0, color: 'bg-slate-400', icon: Clock },
+    { name: 'Stories', views: 159210, followersPct: 82, nonFollowersPct: 18, color: 'bg-success', icon: Sparkles },
+    { name: 'Reels', views: 31450, followersPct: 12, nonFollowersPct: 88, color: 'bg-chart-4', icon: Video },
+    { name: 'Publicações no Feed', views: 14300, followersPct: 45, nonFollowersPct: 55, color: 'bg-info', icon: ImageIcon },
+    { name: 'Vídeos ao Vivo', views: 0, followersPct: 0, nonFollowersPct: 0, color: 'bg-muted-foreground', icon: Clock },
   ];
 
   const totalViews = formats.reduce((acc, f) => acc + f.views, 0);
 
   return (
-    <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-4">
+    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-primary" />
@@ -339,7 +339,7 @@ function ContentFormatBreakdownCard() {
           const pctOfTotal = totalViews > 0 ? ((f.views / totalViews) * 100).toFixed(1) : '0';
 
           return (
-            <div key={f.name} className="p-4 rounded-2xl bg-accent/25 border border-border/60 flex flex-col gap-3">
+            <div key={f.name} className="p-4 rounded-2xl bg-accent/25 border border-border flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className={`w-8 h-8 rounded-xl ${f.color}/15 text-foreground flex items-center justify-center font-bold`}>
@@ -359,15 +359,15 @@ function ContentFormatBreakdownCard() {
               {f.views > 0 ? (
                 <div className="flex flex-col gap-1.5 pt-1">
                   <div className="h-2 w-full bg-accent rounded-full overflow-hidden flex">
-                    <div style={{ width: `${f.followersPct}%` }} className="bg-[#192313] dark:bg-emerald-600 h-full" title={`Seguidores: ${f.followersPct}%`} />
-                    <div style={{ width: `${f.nonFollowersPct}%` }} className="bg-[#d8ff3c] h-full" title={`Não-Seguidores: ${f.nonFollowersPct}%`} />
+                    <div style={{ width: `${f.followersPct}%` }} className="bg-chart-1 h-full" title={`Seguidores: ${f.followersPct}%`} />
+                    <div style={{ width: `${f.nonFollowersPct}%` }} className="bg-chart-2 h-full" title={`Não-Seguidores: ${f.nonFollowersPct}%`} />
                   </div>
                   <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-[#192313] dark:bg-emerald-600" /> Seguidores ({f.followersPct}%)
+                      <span className="w-2 h-2 rounded-full bg-chart-1" /> Seguidores ({f.followersPct}%)
                     </span>
                     <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-[#d8ff3c]" /> Não-Seguidores ({f.nonFollowersPct}%)
+                      <span className="w-2 h-2 rounded-full bg-chart-2" /> Não-Seguidores ({f.nonFollowersPct}%)
                     </span>
                   </div>
                 </div>
@@ -385,11 +385,11 @@ function ContentFormatBreakdownCard() {
 /** 3. Interações Detalhadas do Perfil */
 function DetailedInteractionsCard() {
   const interactions = [
-    { label: 'Curtidas', total: 565, ig: 539, fb: 26, icon: Heart, color: 'text-rose-500 bg-rose-500/10' },
-    { label: 'Comentários', total: 34, ig: 33, fb: 1, icon: MessageCircle, color: 'text-blue-500 bg-blue-500/10' },
-    { label: 'Compartilhamentos', total: 290, ig: 290, fb: 0, icon: Share2, color: 'text-emerald-600 bg-emerald-500/10' },
-    { label: 'Republicações (Reposts)', total: 31, ig: 31, fb: 0, icon: Repeat, color: 'text-purple-600 bg-purple-500/10' },
-    { label: 'Salvamentos', total: 6, ig: 6, fb: 0, icon: Bookmark, color: 'text-amber-600 bg-amber-500/10' },
+    { label: 'Curtidas', total: 565, ig: 539, fb: 26, icon: Heart, color: 'text-destructive bg-destructive-soft' },
+    { label: 'Comentários', total: 34, ig: 33, fb: 1, icon: MessageCircle, color: 'text-info bg-info-soft' },
+    { label: 'Compartilhamentos', total: 290, ig: 290, fb: 0, icon: Share2, color: 'text-success bg-success-soft' },
+    { label: 'Republicações (Reposts)', total: 31, ig: 31, fb: 0, icon: Repeat, color: 'text-chart-4 bg-chart-4/10' },
+    { label: 'Salvamentos', total: 6, ig: 6, fb: 0, icon: Bookmark, color: 'text-warning bg-warning-soft' },
   ];
 
   const profileActions = [
@@ -400,11 +400,11 @@ function DetailedInteractionsCard() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <Card padding="lg" className="lg:col-span-2 rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-5">
-        <div className="flex items-center justify-between border-b border-border/60 pb-4">
+      <Card padding="lg" className="lg:col-span-2 rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
+        <div className="flex items-center justify-between border-b border-border pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <Heart className="w-4 h-4 text-rose-500" />
+              <Heart className="w-4 h-4 text-destructive" />
               <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
                 Interações Detalhadas por Canal
               </h3>
@@ -419,7 +419,7 @@ function DetailedInteractionsCard() {
           {interactions.map((item) => {
             const IconComponent = item.icon;
             return (
-              <div key={item.label} className="p-3.5 rounded-2xl bg-accent/25 border border-border/60 flex items-center justify-between">
+              <div key={item.label} className="p-3.5 rounded-2xl bg-accent/25 border border-border flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-9 h-9 rounded-xl ${item.color} flex items-center justify-center shrink-0`}>
                     <IconComponent className="w-4 h-4" />
@@ -440,9 +440,9 @@ function DetailedInteractionsCard() {
         </div>
       </Card>
 
-      <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between gap-4">
+      <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 border-b border-border/60 pb-4">
+          <div className="flex items-center gap-2 border-b border-border pb-4">
             <Link2 className="w-4 h-4 text-primary" />
             <h3 className="text-base font-bold font-display text-foreground">
               Ações no Perfil
@@ -456,7 +456,7 @@ function DetailedInteractionsCard() {
             {profileActions.map((act) => {
               const IconComponent = act.icon;
               return (
-                <div key={act.label} className="flex items-center justify-between p-3 rounded-2xl bg-accent/30 border border-border/50">
+                <div key={act.label} className="flex items-center justify-between p-3 rounded-2xl bg-accent/30 border border-border">
                   <div className="flex items-center gap-2.5">
                     <IconComponent className="w-4 h-4 text-muted-foreground" />
                     <span className="text-xs font-semibold text-foreground">{act.label}</span>
@@ -470,7 +470,7 @@ function DetailedInteractionsCard() {
           </div>
         </div>
 
-        <div className="p-3 rounded-2xl bg-primary/10 border border-primary/30 text-[11px] text-foreground font-medium leading-relaxed">
+        <div className="p-3 rounded-2xl bg-primary/10 border border-primary/30 text-xs text-foreground font-medium leading-relaxed">
           ⚡ <strong>Dica de Conversão GENS:</strong> Adicione uma Call-to-Action direta na bio para impulsionar a conversão dos {profileActions[0].count.toLocaleString('pt-BR')} visitantes.
         </div>
       </Card>
@@ -497,8 +497,8 @@ function AudienceDemographicsCard() {
   ];
 
   return (
-    <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-4">
+    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2">
             <PieChart className="w-4 h-4 text-primary" />
@@ -529,7 +529,7 @@ function AudienceDemographicsCard() {
                 </div>
                 <div className="h-2 w-full bg-accent/50 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[#192313] to-[#d8ff3c] rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-brand-text/50 to-brand-text rounded-full transition-all duration-500"
                     style={{ width: `${age.pct * 2.5}%` }}
                   />
                 </div>
@@ -544,7 +544,7 @@ function AudienceDemographicsCard() {
           </h4>
           <div className="flex flex-col gap-2">
             {cities.map((city) => (
-              <div key={city.name} className="flex items-center justify-between p-2.5 rounded-xl bg-accent/30 border border-border/50 text-xs">
+              <div key={city.name} className="flex items-center justify-between p-2.5 rounded-xl bg-accent/30 border border-border text-xs">
                 <span className="font-medium text-foreground flex items-center gap-2">
                   <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
                   {city.name}
@@ -609,7 +609,7 @@ function AudienceActivityCard({
       : null;
 
   return (
-    <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-4">
+    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
@@ -624,7 +624,7 @@ function AudienceActivityCard({
         </div>
 
         {peakHour && (
-          <Badge variant="info" className="text-[11px] font-bold self-start sm:self-auto py-1 px-3 bg-primary/15 text-primary border-primary/30">
+          <Badge variant="info" className="text-xs font-bold self-start sm:self-auto py-1 px-3 bg-primary/15 text-primary border-primary/30">
             Pico: {peakHour.hour}:00h ({peakHour.followersOnline.toLocaleString('pt-BR')} online)
           </Badge>
         )}
@@ -655,7 +655,7 @@ function AudienceActivityCard({
           })}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border/50">
+        <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border">
           <span className="font-semibold text-foreground flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-primary" /> Dias de Pico: Seg, Ter e Qui
           </span>
@@ -677,11 +677,11 @@ function FollowerConvertingContentCard({ publications }: { publications: Publica
   if (topConverters.length === 0) return null;
 
   return (
-    <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-4">
+    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <Award className="w-4 h-4 text-amber-500" />
+            <Award className="w-4 h-4 text-warning" />
             <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
               Top Conteúdos que mais Geraram Seguidores
             </h3>
@@ -690,7 +690,7 @@ function FollowerConvertingContentCard({ publications }: { publications: Publica
             Mídias ranqueadas por conversão direta de novos seguidores e retenção de audiência
           </p>
         </div>
-        <Badge variant="muted" className="font-mono text-xs bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30">
+        <Badge variant="muted" className="font-mono text-xs bg-warning-soft text-warning border-warning-ring">
           Ranking Oficial Meta
         </Badge>
       </div>
@@ -702,7 +702,7 @@ function FollowerConvertingContentCard({ publications }: { publications: Publica
           const uniqueViews = pub.unique_viewers || (pub.reach ? Math.round(pub.reach * 0.7) : 5900);
 
           return (
-            <div key={pub.id} className="group rounded-2xl border border-border/70 bg-card overflow-hidden flex flex-col hover:border-foreground/40 transition-all duration-200">
+            <div key={pub.id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-foreground/40 transition-all duration-200">
               <div className="relative aspect-square w-full bg-accent overflow-hidden">
                 {pub.media_url || pub.thumbnail_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -718,7 +718,7 @@ function FollowerConvertingContentCard({ publications }: { publications: Publica
                 )}
 
                 <div className="absolute top-2 left-2">
-                  <span className="px-2.5 py-1 rounded-lg bg-[#192313] text-[#d8ff3c] text-xs font-bold font-mono shadow-md flex items-center gap-1 border border-[#d8ff3c]/40">
+                  <span className="px-2.5 py-1 rounded-lg bg-lime text-lime-foreground text-xs font-bold font-mono shadow-xs flex items-center gap-1 border border-black/10">
                     <UserPlus className="w-3.5 h-3.5" /> +{gained} seg
                   </span>
                 </div>
@@ -735,7 +735,7 @@ function FollowerConvertingContentCard({ publications }: { publications: Publica
                   {pub.caption || 'Sem legenda'}
                 </p>
 
-                <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border/50 text-xs font-mono text-muted-foreground">
+                <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border text-xs font-mono text-muted-foreground">
                   <div>
                     <span>Views Únicas:</span>
                     <p className="font-bold text-foreground text-xs">{uniqueViews.toLocaleString('pt-BR')}</p>
@@ -761,7 +761,7 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
   const engRate = item.reach > 0 ? ((item.interactions / item.reach) * 100).toFixed(1) : null;
 
   return (
-    <div className="group rounded-2xl border border-border/70 bg-card overflow-hidden flex flex-col hover:border-foreground/30 hover:shadow-md transition-all duration-200">
+    <div className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-foreground/30 hover:shadow-md transition-all duration-200">
       <div className="relative aspect-square w-full bg-accent overflow-hidden">
         {item.media_url || item.thumbnail_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -785,7 +785,7 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
 
         {engRate && (
           <div className="absolute top-2 right-2">
-            <span className="px-2 py-0.5 rounded-md bg-[#d8ff3c] text-[#192313] text-xs font-bold font-mono shadow-xs border border-[#192313]/20">
+            <span className="px-2 py-0.5 rounded-md bg-lime text-lime-foreground text-xs font-bold font-mono shadow-xs border border-black/10">
               {engRate}% engaj.
             </span>
           </div>
@@ -807,7 +807,7 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-xs">
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border text-xs">
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground font-medium uppercase">Alcance</span>
             <span className="font-bold text-foreground font-mono">{item.reach.toLocaleString('pt-BR')}</span>
@@ -898,8 +898,8 @@ function MonthlyComparisonCard({
   ];
 
   return (
-    <Card padding="lg" className="rounded-3xl border border-border/80 dark:border-primary/40 bg-card shadow-xs flex flex-col gap-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
+    <Card padding="lg" className="rounded-3xl border border-border dark:border-primary/40 bg-card shadow-xs flex flex-col gap-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" />
@@ -920,7 +920,7 @@ function MonthlyComparisonCard({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-border/60 text-[#59614f] font-mono text-[11px] uppercase">
+            <tr className="border-b border-border text-muted-foreground font-mono text-xs uppercase">
               <th className="py-2.5 px-3">Métrica Chave</th>
               <th className="py-2.5 px-3">{mainMonthLabel} (Principal)</th>
               <th className="py-2.5 px-3">{compMonthLabel} (Comparativo)</th>
@@ -928,16 +928,16 @@ function MonthlyComparisonCard({
               <th className="py-2.5 px-3 text-right">Variação %</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/40 font-medium">
+          <tbody className="divide-y divide-border font-medium">
             {comparisonItems.map((item, i) => (
               <tr key={i} className="hover:bg-accent/40 transition-colors">
                 <td className="py-3 px-3 font-bold text-foreground">{item.metric}</td>
                 <td className="py-3 px-3 font-mono font-bold text-foreground">{item.mainVal}</td>
                 <td className="py-3 px-3 font-mono text-muted-foreground">{item.compVal}</td>
-                <td className="py-3 px-3 font-mono text-emerald-600 font-semibold">{item.diff}</td>
+                <td className="py-3 px-3 font-mono text-success font-semibold">{item.diff}</td>
                 <td className="py-3 px-3 text-right">
-                  <span className="inline-flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-md bg-[#192313] text-[#d8ff3c]">
-                    <ArrowUpRight className="w-3 h-3 text-[#d8ff3c]" />
+                  <span className="inline-flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-md bg-lime text-lime-foreground">
+                    <ArrowUpRight className="w-3 h-3" />
                     {item.pct}
                   </span>
                 </td>
@@ -1141,7 +1141,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
   return (
     <div className="flex flex-col gap-6 pb-12 animate-fade-in">
       {/* Header do Painel Profissional com Seleção de Mês e Comparativo */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/70 pb-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-white shadow-md">
             <InstagramIcon className="w-5 h-5 text-white" />
@@ -1159,7 +1159,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
         {/* Controles de Período e Exportação em PDF */}
         <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
           {/* Seletor de Modo: Dias vs Mês a Mês */}
-          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border/80 shadow-2xs">
+          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border shadow-2xs">
             <button
               type="button"
               onClick={() => setFilterMode('preset')}
@@ -1187,7 +1187,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
 
           {/* Opções de Período Pré-definido */}
           {filterMode === 'preset' && (
-            <div className="flex items-center gap-1 bg-card p-1 rounded-2xl border border-border/80 shadow-2xs">
+            <div className="flex items-center gap-1 bg-card p-1 rounded-2xl border border-border shadow-2xs">
               {PERIOD_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
@@ -1208,14 +1208,14 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           {/* Seleção de Mês Principal vs Mês Comparativo & Copiar Link */}
           {filterMode === 'month_comparison' && (
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border/80 shadow-2xs text-xs">
+              <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border shadow-2xs text-xs">
                 <div className="flex items-center gap-1">
                   <span className="text-xs font-bold text-muted-foreground uppercase">Mês:</span>
                   <input
                     type="month"
                     value={mainMonth}
                     onChange={(e) => setMainMonth(e.target.value)}
-                    className="h-8 text-xs px-2 rounded-xl bg-background border border-border font-mono font-bold text-foreground"
+                    className="h-8 text-xs px-2 rounded-xl bg-background border border-input font-mono font-bold text-foreground"
                   />
                 </div>
 
@@ -1227,7 +1227,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                     type="month"
                     value={compMonth}
                     onChange={(e) => setCompMonth(e.target.value)}
-                    className="h-8 text-xs px-2 rounded-xl bg-background border border-border font-mono text-muted-foreground"
+                    className="h-8 text-xs px-2 rounded-xl bg-background border border-input font-mono text-muted-foreground"
                   />
                 </div>
               </div>
@@ -1251,7 +1251,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
         </div>
 
         {/* Alternador de Visão: Métricas Globais x Histórico de Relatórios Salvos */}
-        <div className="flex items-center gap-2 border-b border-border/60 pb-2 pt-1">
+        <div className="flex items-center gap-2 border-b border-border pb-2 pt-1">
           <button
             type="button"
             onClick={() => setAbaSub('metricas')}
@@ -1283,8 +1283,8 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
       </div>
 
       {abaSub === 'historico_relatorios' ? (
-        <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
+        <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
             <div>
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5 text-primary" />
@@ -1311,7 +1311,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-border/60 text-muted-foreground font-mono text-xs uppercase">
+                  <tr className="border-b border-border text-muted-foreground font-mono text-xs uppercase">
                     <th className="py-2.5 px-3">Cliente / Perfil</th>
                     <th className="py-2.5 px-3">Período Comparado</th>
                     <th className="py-2.5 px-3">Data de Geração</th>
@@ -1319,7 +1319,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                     <th className="py-2.5 px-3 text-right">Ações Rápidas</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/40 font-sans">
+                <tbody className="divide-y divide-border font-sans">
                   {relatoriosSalvos.map((rel) => (
                     <tr key={rel.id} className="hover:bg-accent/30 transition-colors">
                       <td className="py-3 px-3 font-bold text-foreground">
@@ -1332,7 +1332,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                         {new Date(rel.criadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="py-3 px-3">
-                        <span className="inline-flex items-center gap-1 text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-success-soft text-success border border-success-ring">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Ativo (Sem Expiração)
                         </span>
                       </td>
@@ -1349,7 +1349,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                           <button
                             type="button"
                             onClick={() => handleCopiarMensagemWhatsapp(rel)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 cursor-pointer transition-colors"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-success hover:bg-success-soft cursor-pointer transition-colors"
                             title="Copiar mensagem para WhatsApp"
                           >
                             <MessageSquare className="w-4 h-4" />
@@ -1357,10 +1357,10 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                           <button
                             type="button"
                             onClick={() => handleEnviarWhatsapp(rel)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 cursor-pointer transition-colors"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-success hover:bg-success-soft cursor-pointer transition-colors"
                             title="Enviar diretamente no WhatsApp Web"
                           >
-                            <Send className="w-4 h-4 text-emerald-600" />
+                            <Send className="w-4 h-4 text-success" />
                           </button>
                           <button
                             type="button"
@@ -1404,9 +1404,9 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           {/* 1. Bento KPI Grid (4 Métricas Principais do Instagram) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* KPI 1: Contas Alcançadas */}
-            <Card padding="md" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+            <Card padding="md" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
                   Contas Alcançadas
                 </span>
                 <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold border border-primary/30">
@@ -1417,20 +1417,20 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
                   {(isSingleAccount ? activeAccount?.reach_total : totalReach)?.toLocaleString('pt-BR') || '209.432'}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 font-medium">
-                  <span className="text-emerald-600 font-bold font-mono">+14.2%</span>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
+                  <span className="text-success font-bold font-mono">+14.2%</span>
                   <span>vs. período anterior</span>
                 </p>
               </div>
             </Card>
 
             {/* KPI 2: Interações Totais */}
-            <Card padding="md" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+            <Card padding="md" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
                   Interações Totais
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-destructive-soft text-destructive flex items-center justify-center">
                   <Heart className="w-4 h-4" />
                 </div>
               </div>
@@ -1438,7 +1438,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
                   {totalInteractions.toLocaleString('pt-BR')}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 font-medium">
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
                   <span className="text-foreground font-semibold">
                     {contentPerf?.summary?.engagementRate ? `${contentPerf.summary.engagementRate.toFixed(1)}%` : '4.8%'}
                   </span>
@@ -1448,12 +1448,12 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </Card>
 
             {/* KPI 3: Total de Seguidores */}
-            <Card padding="md" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+            <Card padding="md" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
                   Total de Seguidores
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-info-soft text-info flex items-center justify-center">
                   <Users className="w-4 h-4" />
                 </div>
               </div>
@@ -1461,20 +1461,20 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
                   {(isSingleAccount ? activeAccount?.followers_count : totalFollowers)?.toLocaleString('pt-BR') || '14.850'}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 font-medium">
-                  <span className="text-emerald-600 font-bold font-mono">+137 net</span>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
+                  <span className="text-success font-bold font-mono">+137 net</span>
                   <span>crescimento líquido</span>
                 </p>
               </div>
             </Card>
 
             {/* KPI 4: Visitas ao Perfil */}
-            <Card padding="md" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between">
+            <Card padding="md" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
                   Visitas ao Perfil
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-chart-4/10 text-chart-4 flex items-center justify-center">
                   <Eye className="w-4 h-4" />
                 </div>
               </div>
@@ -1482,7 +1482,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
                   {(isSingleAccount ? activeAccount?.profile_views_total : totalProfileViews)?.toLocaleString('pt-BR') || '2.624'}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 font-medium">
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
                   <span className="text-foreground font-semibold">35 toques</span>
                   <span>no link da bio</span>
                 </p>
@@ -1492,8 +1492,8 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
 
           {/* 2. Gráfico Bézier Suave de Alcance e Visitas ao Perfil */}
           {activeAccount && (
-            <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
+            <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-primary" />
@@ -1541,8 +1541,8 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           </div>
 
           {/* 7. Conteúdo Compartilhado no Período (Galeria Completa) */}
-          <Card padding="lg" className="rounded-3xl border border-border/80 bg-card shadow-2xs flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
+          <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
               <div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-primary" />
@@ -1555,7 +1555,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 </p>
               </div>
 
-              <div className="flex items-center gap-1 bg-accent/50 p-1 rounded-2xl border border-border/80 self-start sm:self-auto shadow-2xs">
+              <div className="flex items-center gap-1 bg-accent/50 p-1 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">
                 {[
                   { id: 'all' as const, label: 'Todas as Mídias' },
                   { id: 'reels' as const, label: 'Reels' },
@@ -1602,7 +1602,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
       >
         <div className="p-4 sm:p-6 flex flex-col gap-6 max-w-5xl 2xl:max-w-[1600px] mx-auto w-full">
           {/* Header do Relatório */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0 border border-primary/30">
                 ✳
@@ -1633,12 +1633,12 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           {/* Área do Relatório Pronta para Impressão */}
           <div id="executive-report-print-area" className="flex flex-col gap-6 text-foreground">
             {/* Banner de Apresentação ao Cliente */}
-            <div className="p-5 rounded-2xl bg-[#edf4d8] dark:bg-card border border-[#d8ff3c] dark:border-primary/40 text-[#192313] dark:text-foreground">
+            <div className="p-5 rounded-2xl bg-secondary border border-brand-ring text-foreground">
               <span className="text-xs font-bold uppercase tracking-wider font-mono">Relatório Oficial de Desempenho</span>
               <h4 className="text-lg sm:text-xl font-bold font-display mt-0.5">
                 Desempenho Estratégico no Instagram · @{activeAccount?.username || selectedAccountId || 'geral'}
               </h4>
-              <p className="text-xs mt-1 leading-relaxed text-[#59614f] dark:text-muted-foreground">
+              <p className="text-xs mt-1 leading-relaxed text-muted-foreground">
                 Este documento apresenta a análise comparativa oficial dos resultados obtidos no período de <strong className="capitalize">{formatMonthLabel(mainMonth)}</strong> em relação ao período de <strong className="capitalize">{formatMonthLabel(compMonth)}</strong>.
               </p>
             </div>
@@ -1648,22 +1648,22 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
               <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
                 <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Contas Alcançadas</span>
                 <span className="text-xl font-bold font-display text-foreground mt-1">209.432</span>
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-0.5">+14.2% vs mês anterior</span>
+                <span className="text-xs text-success font-bold font-mono mt-0.5">+14.2% vs mês anterior</span>
               </div>
               <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
                 <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Interações Totais</span>
                 <span className="text-xl font-bold font-display text-foreground mt-1">926</span>
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-0.5">+18.7% vs mês anterior</span>
+                <span className="text-xs text-success font-bold font-mono mt-0.5">+18.7% vs mês anterior</span>
               </div>
               <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
                 <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Total de Seguidores</span>
                 <span className="text-xl font-bold font-display text-foreground mt-1">14.850</span>
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-0.5">+137 novos net</span>
+                <span className="text-xs text-success font-bold font-mono mt-0.5">+137 novos net</span>
               </div>
               <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
                 <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Visitas ao Perfil (Bio)</span>
                 <span className="text-xl font-bold font-display text-foreground mt-1">2.624</span>
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-mono mt-0.5">+24.4% vs mês anterior</span>
+                <span className="text-xs text-success font-bold font-mono mt-0.5">+24.4% vs mês anterior</span>
               </div>
             </div>
 

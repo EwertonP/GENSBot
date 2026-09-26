@@ -54,9 +54,9 @@ export function InstagramCarrosselPreview({
   }
 
   return (
-    <div className="w-full max-w-[420px] mx-auto bg-card rounded-3xl border border-border/80 shadow-xl overflow-hidden flex flex-col transition-all">
+    <div className="w-full max-w-[420px] mx-auto bg-card rounded-3xl border border-border shadow-xl overflow-hidden flex flex-col transition-all">
       {/* 1. Header do Post Estilo Instagram */}
-      <div className="px-3.5 py-3 flex items-center justify-between border-b border-border/50 bg-card">
+      <div className="px-3.5 py-3 flex items-center justify-between border-b border-border bg-card">
         <div className="flex items-center gap-2.5">
           <div className="p-[2px] rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600">
             <ClienteAvatar
@@ -80,7 +80,7 @@ export function InstagramCarrosselPreview({
         </div>
 
         <div className="flex items-center gap-2 text-muted-foreground">
-          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-accent/70 border border-border/60 text-muted-foreground">
+          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-accent/70 border border-border text-muted-foreground">
             4:5 Portrait
           </span>
           <button type="button" className="p-1 hover:text-foreground text-muted-foreground" aria-label="Opções">
@@ -163,7 +163,7 @@ export function InstagramCarrosselPreview({
       </div>
 
       {/* 3. Barra de Ações Oficiais do Instagram */}
-      <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-border/40 bg-card text-foreground">
+      <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-border bg-card text-foreground">
         <div className="flex items-center gap-4">
           <button
             type="button"

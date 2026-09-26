@@ -67,7 +67,7 @@ export default function SequenceManager() {
           </button>
         </div>
 
-        {error && <p className="text-[11px] text-destructive font-bold">{error}</p>}
+        {error && <p className="text-xs text-destructive font-bold">{error}</p>}
 
         <div className="flex flex-col gap-1.5">
           <label className={fieldLabelClass}>Nome</label>
@@ -79,7 +79,7 @@ export default function SequenceManager() {
             <label className={fieldLabelClass}>Passos</label>
             <button
               onClick={() => setEditing({ ...editing, steps: [...editing.steps, emptyStep()] })}
-              className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/90 cursor-pointer"
+              className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/90 cursor-pointer"
             >
               <Plus className="w-3 h-3" /> Adicionar passo
             </button>
@@ -88,7 +88,7 @@ export default function SequenceManager() {
           {editing.steps.map((step, i) => (
             <div key={step.id} className="border border-border rounded-lg p-3 flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground">Passo {i + 1}</span>
+                <span className="text-xs font-bold text-muted-foreground">Passo {i + 1}</span>
                 <button
                   onClick={() => setEditing({ ...editing, steps: editing.steps.filter((s) => s.id !== step.id) })}
                   className="text-muted-foreground hover:text-destructive cursor-pointer"
@@ -127,7 +127,7 @@ export default function SequenceManager() {
             </div>
           ))}
 
-          {editing.steps.length === 0 && <p className="text-[11px] text-muted-foreground">Nenhum passo ainda — adicione o primeiro acima.</p>}
+          {editing.steps.length === 0 && <p className="text-xs text-muted-foreground">Nenhum passo ainda — adicione o primeiro acima.</p>}
         </div>
 
         <button
@@ -171,7 +171,7 @@ export default function SequenceManager() {
             <div key={seq.id} className="flex items-center justify-between px-4 py-3 hover:bg-accent/50 transition-colors">
               <button onClick={() => setEditing(seq)} className="text-left cursor-pointer flex-1">
                 <p className="text-xs font-bold text-foreground">{seq.name}</p>
-                <p className="text-[10px] text-muted-foreground">{seq.steps.length} passo(s)</p>
+                <p className="text-xs text-muted-foreground">{seq.steps.length} passo(s)</p>
               </button>
               <button
                 onClick={() => seq.id && handleDelete(seq.id)}

@@ -49,12 +49,12 @@ interface PresetCanal {
 }
 
 const PRESETS: PresetCanal[] = [
-  { id: 'bio', label: 'Instagram Bio', source: 'instagram', medium: 'bio', icon: Instagram, color: 'text-pink-500' },
-  { id: 'reels', label: 'Reels DM', source: 'instagram', medium: 'dm_automation', icon: Instagram, color: 'text-purple-500' },
-  { id: 'story', label: 'Stories', source: 'instagram', medium: 'story', icon: Instagram, color: 'text-amber-500' },
-  { id: 'whatsapp', label: 'WhatsApp Chat', source: 'whatsapp', medium: 'chat', icon: Phone, color: 'text-emerald-500' },
-  { id: 'ads', label: 'Meta Ads (Tráfego)', source: 'facebook_ads', medium: 'cpc', icon: Megaphone, color: 'text-blue-500' },
-  { id: 'email', label: 'E-mail Marketing', source: 'email', medium: 'newsletter', icon: Mail, color: 'text-indigo-500' },
+  { id: 'bio', label: 'Instagram Bio', source: 'instagram', medium: 'bio', icon: Instagram, color: 'text-pink-700 dark:text-pink-300' },
+  { id: 'reels', label: 'Reels DM', source: 'instagram', medium: 'dm_automation', icon: Instagram, color: 'text-chart-4' },
+  { id: 'story', label: 'Stories', source: 'instagram', medium: 'story', icon: Instagram, color: 'text-warning' },
+  { id: 'whatsapp', label: 'WhatsApp Chat', source: 'whatsapp', medium: 'chat', icon: Phone, color: 'text-success' },
+  { id: 'ads', label: 'Meta Ads (Tráfego)', source: 'facebook_ads', medium: 'cpc', icon: Megaphone, color: 'text-info' },
+  { id: 'email', label: 'E-mail Marketing', source: 'email', medium: 'newsletter', icon: Mail, color: 'text-indigo-700 dark:text-indigo-300' },
 ];
 
 export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
@@ -220,10 +220,10 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
       {/* 1. Header & KPIs */}
       <div className="flex flex-col gap-4">
         <div>
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest font-mono">
             Rastreamento de Conversões · GENSBot
           </span>
-          <h2 className="text-xl sm:text-2xl font-black font-display text-foreground tracking-tight flex items-center gap-2.5 mt-0.5">
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight flex items-center gap-2.5 mt-0.5">
             <span>Links UTM & Campanhas</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-foreground font-mono font-bold">
               {links.length} links
@@ -236,12 +236,12 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
 
         {/* Top KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card className="p-4 rounded-2xl border border-border/80 bg-card shadow-2xs flex items-center justify-between">
+          <Card className="p-4 rounded-2xl border border-border bg-card shadow-2xs flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Total de Cliques
               </p>
-              <h3 className="text-2xl font-black font-display text-foreground mt-0.5 font-mono">
+              <h3 className="text-2xl font-bold font-display text-foreground mt-0.5 font-mono">
                 {totalCliques}
               </h3>
             </div>
@@ -250,12 +250,12 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
             </div>
           </Card>
 
-          <Card className="p-4 rounded-2xl border border-border/80 bg-card shadow-2xs flex items-center justify-between">
+          <Card className="p-4 rounded-2xl border border-border bg-card shadow-2xs flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Links Criados
               </p>
-              <h3 className="text-2xl font-black font-display text-foreground mt-0.5 font-mono">
+              <h3 className="text-2xl font-bold font-display text-foreground mt-0.5 font-mono">
                 {links.length}
               </h3>
             </div>
@@ -264,9 +264,9 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
             </div>
           </Card>
 
-          <Card className="p-4 rounded-2xl border border-border/80 bg-card shadow-2xs flex items-center justify-between">
+          <Card className="p-4 rounded-2xl border border-border bg-card shadow-2xs flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Canal Principal
               </p>
               <h3 className="text-sm font-bold font-display text-foreground mt-1 truncate">
@@ -283,7 +283,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
       {/* 2. Layout em 2 Colunas: Construtor + Live Preview com QR Code */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Formulário Construtor */}
-        <Card className="lg:col-span-7 p-6 rounded-2xl border border-border/80 bg-card shadow-2xs flex flex-col gap-4">
+        <Card className="lg:col-span-7 p-6 rounded-2xl border border-border bg-card shadow-2xs flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold font-display text-foreground">
               {editingId ? 'Editar Link UTM' : 'Criar Novo Link UTM'}
@@ -319,7 +319,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                       className={`text-xs px-2.5 py-1 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-card border-foreground/30 shadow-2xs font-bold text-foreground ring-1 ring-foreground/20'
-                          : 'border-border/70 hover:bg-accent/60 text-muted-foreground'
+                          : 'border-border hover:bg-accent/60 text-muted-foreground'
                       }`}
                     >
                       <Icon className={`w-3.5 h-3.5 ${p.color}`} />
@@ -359,7 +359,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-foreground">
-                  Origem (<span className="font-mono text-[10px]">utm_source</span>)
+                  Origem (<span className="font-mono text-xs">utm_source</span>)
                 </label>
                 <Input
                   placeholder="instagram, whatsapp, email..."
@@ -371,7 +371,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-foreground">
-                  Meio (<span className="font-mono text-[10px]">utm_medium</span>)
+                  Meio (<span className="font-mono text-xs">utm_medium</span>)
                 </label>
                 <Input
                   placeholder="bio, story, dm_automation, cpc..."
@@ -385,7 +385,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
             {/* Campanha */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-foreground">
-                Nome da Campanha (<span className="font-mono text-[10px]">utm_campaign</span>)
+                Nome da Campanha (<span className="font-mono text-xs">utm_campaign</span>)
               </label>
               <Input
                 placeholder="Ex.: lancamento_outubro / clareamento_2026"
@@ -425,10 +425,10 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
             </button>
 
             {showAdvanced && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border/60">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">
-                    Termo (<span className="font-mono text-[10px]">utm_term</span>)
+                    Termo (<span className="font-mono text-xs">utm_term</span>)
                   </label>
                   <Input
                     placeholder="Palavra-chave ou público"
@@ -438,7 +438,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-foreground">
-                    Conteúdo (<span className="font-mono text-[10px]">utm_content</span>)
+                    Conteúdo (<span className="font-mono text-xs">utm_content</span>)
                   </label>
                   <Input
                     placeholder="Variante de criativo (ex: video1)"
@@ -458,12 +458,12 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
         </Card>
 
         {/* Live Preview Card com QR Code */}
-        <Card className="lg:col-span-5 p-6 rounded-2xl border border-border/80 bg-card shadow-2xs flex flex-col gap-4 sticky top-6">
+        <Card className="lg:col-span-5 p-6 rounded-2xl border border-border bg-card shadow-2xs flex flex-col gap-4 sticky top-6">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">
               Preview em Tempo Real
             </span>
-            <Badge variant="success" className="text-[9px] font-bold">
+            <Badge variant="success" className="text-xs font-bold">
               Rastreamento Ativo
             </Badge>
           </div>
@@ -471,11 +471,11 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
           {preview && preview !== 'invalid' ? (
             <div className="flex flex-col gap-4">
               {/* URL Gerada */}
-              <div className="p-3.5 rounded-xl bg-accent/40 border border-border/80 flex flex-col gap-2">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="p-3.5 rounded-xl bg-accent/40 border border-border flex flex-col gap-2">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   URL Final com Parâmetros
                 </span>
-                <p className="text-xs font-mono text-foreground break-all leading-relaxed bg-background/60 p-2 rounded-lg border border-border/60">
+                <p className="text-xs font-mono text-foreground break-all leading-relaxed bg-background/60 p-2 rounded-lg border border-border">
                   {preview}
                 </p>
                 <div className="flex items-center justify-between pt-1">
@@ -508,8 +508,8 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
               </div>
 
               {/* QR Code */}
-              <div className="p-4 rounded-xl bg-accent/30 border border-border/80 flex flex-col items-center justify-center text-center gap-2.5">
-                <div className="p-2 bg-white rounded-xl shadow-xs border border-border/60">
+              <div className="p-4 rounded-xl bg-accent/30 border border-border flex flex-col items-center justify-center text-center gap-2.5">
+                <div className="p-2 bg-white rounded-xl shadow-xs border border-border">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(
                       preview
@@ -520,7 +520,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                 </div>
                 <div className="leading-tight">
                   <p className="text-xs font-bold text-foreground">QR Code Dinâmico</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Aponte a câmera para testar ou use em artes e stories.
                   </p>
                 </div>
@@ -528,7 +528,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
             </div>
           ) : (
             <div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground gap-2">
-              <QrCode className="w-10 h-10 text-muted-foreground/40" />
+              <QrCode className="w-10 h-10 text-muted-foreground" />
               <p className="text-xs">
                 Preencha a URL de destino para visualizar o link gerado e o QR Code.
               </p>
@@ -538,7 +538,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
       </div>
 
       {/* 3. Tabela de Links Cadastrados com Ranking de Cliques */}
-      <Card padding="lg" className="rounded-2xl border border-border/80 bg-card shadow-2xs">
+      <Card padding="lg" className="rounded-2xl border border-border bg-card shadow-2xs">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold font-display text-foreground">
@@ -562,7 +562,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-muted-foreground">
-                <thead className="uppercase text-[10px] font-bold border-b border-border/60">
+                <thead className="uppercase text-xs font-bold border-b border-border">
                   <tr>
                     <th className="py-2.5 px-3">Campanha / Nome</th>
                     <th className="py-2.5 px-3">Canal</th>
@@ -572,7 +572,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                     <th className="py-2.5 px-3 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/40">
+                <tbody className="divide-y divide-border">
                   {linksOrdenados.map((l) => {
                     const shortUrl = l.short_url || `${typeof window !== 'undefined' ? window.location.origin : ''}/r/${l.short_code}`;
                     const isCopied = copiedId === l.id;
@@ -582,20 +582,20 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                         <td className="py-3 px-3 font-semibold text-foreground">
                           <p className="font-bold truncate max-w-xs">{l.name || 'Sem nome'}</p>
                           {l.utm_campaign && (
-                            <span className="text-[10px] text-muted-foreground font-mono">
+                            <span className="text-xs text-muted-foreground font-mono">
                               {l.utm_campaign}
                             </span>
                           )}
                         </td>
 
                         <td className="py-3 px-3">
-                          <Badge variant="muted" className="text-[10px] font-bold">
+                          <Badge variant="muted" className="text-xs font-bold">
                             {l.utm_source || 'link'} / {l.utm_medium || 'geral'}
                           </Badge>
                         </td>
 
                         <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-md bg-lime/20 text-lime-700 dark:text-lime-300 font-mono font-bold border border-lime-500/30">
+                          <span className="px-2 py-0.5 rounded-md bg-brand-soft text-brand-text font-mono font-bold border border-brand-ring">
                             {l.click_count || 0} cliques
                           </span>
                         </td>
@@ -616,11 +616,11 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                               )}
                             </button>
                           ) : (
-                            <span className="text-muted-foreground/60">—</span>
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </td>
 
-                        <td className="py-3 px-3 truncate max-w-xs font-mono text-[11px]">
+                        <td className="py-3 px-3 truncate max-w-xs font-mono text-xs">
                           <a
                             href={l.generated_url}
                             target="_blank"

@@ -8,7 +8,7 @@ import type { FlowNodeType } from '@/types/flow';
 export default function NodePalette({ onAdd }: { onAdd: (type: FlowNodeType) => void }) {
   return (
     <div className="w-44 shrink-0 border-r border-border bg-card p-3 flex flex-col gap-2 overflow-y-auto">
-      <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">Adicionar nó</h3>
+      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Adicionar nó</h3>
       {NODE_PALETTE_ITEMS.map(({ type, label, icon: Icon }) => (
         <button
           key={type}

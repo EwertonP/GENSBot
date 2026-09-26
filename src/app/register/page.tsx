@@ -75,13 +75,13 @@ export default function RegisterPage() {
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor"/>
             </svg>
           </div>
-          <h2 className="text-xl font-black text-foreground mb-3">Conta criada com sucesso!</h2>
+          <h2 className="text-xl font-bold text-foreground mb-3">Conta criada com sucesso!</h2>
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
             Verifique seu e-mail <strong className="text-foreground">{email}</strong> e clique no link de confirmação para ativar sua conta.
           </p>
           <a
             href="/login"
-            className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-sm shadow-md transition-all"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-md transition-all"
           >
             Ir para o Login
           </a>
@@ -119,7 +119,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
-                className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
@@ -133,7 +133,7 @@ export default function RegisterPage() {
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   required
-                  className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono"
+                  className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono"
                 />
               </div>
 
@@ -145,7 +145,7 @@ export default function RegisterPage() {
                   placeholder="ex: Designer / Copywriter"
                   value={cargo}
                   onChange={e => setCargo(e.target.value)}
-                  className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                  className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
                 />
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
@@ -172,7 +172,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
@@ -185,7 +185,7 @@ export default function RegisterPage() {
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 required
-                className="bg-accent border border-border text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
               />
             </div>
 
@@ -199,7 +199,7 @@ export default function RegisterPage() {
               id="register-submit"
               type="submit"
               disabled={loading}
-              className="mt-2 w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:bg-accent disabled:text-muted-foreground text-primary-foreground font-extrabold text-sm shadow-md cursor-pointer transition-all"
+              className="mt-2 w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:bg-accent disabled:text-muted-foreground text-primary-foreground font-bold text-sm shadow-md cursor-pointer transition-all"
             >
               {loading ? 'Criando conta...' : 'Criar Conta Gratuita'}
             </button>
