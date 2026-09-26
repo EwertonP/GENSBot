@@ -6,32 +6,16 @@ import {
   Image as ImageIcon,
   Eye,
   TrendingUp,
-  Info,
   Clock,
   Sparkles,
   Video,
-  Bookmark,
   Heart,
-  MessageCircle,
   Share2,
-  Repeat,
-  Link2,
-  MapPin,
   Calendar,
-  UserPlus,
-  UserMinus,
   BarChart3,
-  PieChart,
-  Award,
   Printer,
-  Download,
   FileText,
-  ArrowUpRight,
-  ArrowDownRight,
-  CalendarDays,
-  Layers,
   CheckCircle2,
-  X,
   ExternalLink,
   Trash2,
   History,
@@ -44,13 +28,14 @@ import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Instagram as InstagramIcon } from '@/components/instagram-icon';
-import { gerarLinkCompletoRelatorio } from '@/lib/relatorio-token';
+import { toast } from '@/components/ui/toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export interface RelatorioSalvoItem {
   id: string;
   clienteNome: string;
-  mainMonth: string;
-  compMonth: string;
+  /** Dias do período do relatório (7, 30 ou 90). */
+  period: number;
   link: string;
   criadoEm: string;
 }
@@ -114,6 +99,7 @@ interface ContentPerformance {
     stories: number;
     reachTotal: number;
     engagementRate: number;
+    byFormat?: Record<'posts' | 'reels' | 'stories', { count: number; reach: number; interactions: number }>;
   };
   topPublications: PublicationItem[];
   topStories: {
@@ -122,6 +108,7 @@ interface ContentPerformance {
     published_at: string;
     reach: number;
   }[];
+  linkClicks?: { bio: number; dm: number };
 }
 
 const PERIOD_OPTIONS: { value: 7 | 30 | 90; label: string; daysLabel: string }[] = [
@@ -304,262 +291,95 @@ function SmoothAreaChart({
 }
 
 /** 2. Seção de Visualizações por Formato de Conteúdo */
-function ContentFormatBreakdownCard() {
+/** 3. Desempenho por formato — só números devolvidos pela Meta no período. */
+function ContentFormatBreakdownCard({ summary }: { summary: ContentPerformance['summary'] | null }) {
   const formats = [
-    { name: 'Stories', views: 159210, followersPct: 82, nonFollowersPct: 18, color: 'bg-success', icon: Sparkles },
-    { name: 'Reels', views: 31450, followersPct: 12, nonFollowersPct: 88, color: 'bg-chart-4', icon: Video },
-    { name: 'Publicações no Feed', views: 14300, followersPct: 45, nonFollowersPct: 55, color: 'bg-info', icon: ImageIcon },
-    { name: 'Vídeos ao Vivo', views: 0, followersPct: 0, nonFollowersPct: 0, color: 'bg-muted-foreground', icon: Clock },
+    { key: 'posts' as const, name: 'Posts e carrosséis', icon: ImageIcon, count: summary?.posts ?? 0 },
+    { key: 'reels' as const, name: 'Reels', icon: Video, count: summary?.reels ?? 0 },
+    { key: 'stories' as const, name: 'Stories', icon: Sparkles, count: summary?.stories ?? 0 },
   ];
-
-  const totalViews = formats.reduce((acc, f) => acc + f.views, 0);
+  const totalReach = formats.reduce((acc, f) => acc + (summary?.byFormat?.[f.key]?.reach ?? 0), 0);
 
   return (
     <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-primary" />
-            <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
-              Visualizações por Formato de Conteúdo
-            </h3>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Distribuição de impressões e proporção entre Seguidores vs Não-Seguidores por tipo de mídia
-          </p>
+      <div className="border-b border-border pb-4">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-muted-foreground" />
+          <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">Desempenho por formato</h3>
         </div>
-        <Badge variant="muted" className="font-mono text-xs font-bold self-start sm:self-auto bg-primary/15 text-primary border-primary/30">
-          Total: {totalViews.toLocaleString('pt-BR')} visualizações
-        </Badge>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Quantidade publicada, alcance e interações de cada tipo de conteúdo no período.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {formats.map((f) => {
-          const IconComponent = f.icon;
-          const pctOfTotal = totalViews > 0 ? ((f.views / totalViews) * 100).toFixed(1) : '0';
-
-          return (
-            <div key={f.name} className="p-4 rounded-2xl bg-accent/25 border border-border flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-8 h-8 rounded-xl ${f.color}/15 text-foreground flex items-center justify-center font-bold`}>
-                    <IconComponent className="w-4 h-4 text-foreground" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-foreground">{f.name}</h4>
-                    <span className="text-xs text-muted-foreground font-mono">{pctOfTotal}% do tráfego total</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-bold font-mono text-foreground">{f.views.toLocaleString('pt-BR')}</span>
-                  <p className="text-xs text-muted-foreground">views</p>
-                </div>
-              </div>
-
-              {f.views > 0 ? (
-                <div className="flex flex-col gap-1.5 pt-1">
-                  <div className="h-2 w-full bg-accent rounded-full overflow-hidden flex">
-                    <div style={{ width: `${f.followersPct}%` }} className="bg-chart-1 h-full" title={`Seguidores: ${f.followersPct}%`} />
-                    <div style={{ width: `${f.nonFollowersPct}%` }} className="bg-chart-2 h-full" title={`Não-Seguidores: ${f.nonFollowersPct}%`} />
-                  </div>
-                  <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-chart-1" /> Seguidores ({f.followersPct}%)
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-chart-2" /> Não-Seguidores ({f.nonFollowersPct}%)
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground italic pt-1">Nenhum evento gravado no período</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-/** 3. Interações Detalhadas do Perfil */
-function DetailedInteractionsCard() {
-  const interactions = [
-    { label: 'Curtidas', total: 565, ig: 539, fb: 26, icon: Heart, color: 'text-destructive bg-destructive-soft' },
-    { label: 'Comentários', total: 34, ig: 33, fb: 1, icon: MessageCircle, color: 'text-info bg-info-soft' },
-    { label: 'Compartilhamentos', total: 290, ig: 290, fb: 0, icon: Share2, color: 'text-success bg-success-soft' },
-    { label: 'Republicações (Reposts)', total: 31, ig: 31, fb: 0, icon: Repeat, color: 'text-chart-4 bg-chart-4/10' },
-    { label: 'Salvamentos', total: 6, ig: 6, fb: 0, icon: Bookmark, color: 'text-warning bg-warning-soft' },
-  ];
-
-  const profileActions = [
-    { label: 'Visitas ao Perfil', count: 2624, icon: Eye },
-    { label: 'Toques no Link da Bio', count: 35, icon: Link2 },
-    { label: 'Toques em Endereço Comercial', count: 0, icon: MapPin },
-  ];
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <Card padding="lg" className="lg:col-span-2 rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Heart className="w-4 h-4 text-destructive" />
-              <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
-                Interações Detalhadas por Canal
-              </h3>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Engajamentos capturados nas mídias divididos entre Instagram e Facebook
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {interactions.map((item) => {
-            const IconComponent = item.icon;
+      {!summary ? (
+        <EmptyState size="compact" icon={BarChart3} title="Sem dados de conteúdo no período" description="Assim que houver publicações com insights da Meta, a divisão por formato aparece aqui." />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {formats.map((f) => {
+            const stats = summary.byFormat?.[f.key];
+            const share = totalReach > 0 && stats ? Math.round((stats.reach / totalReach) * 100) : 0;
             return (
-              <div key={item.label} className="p-3.5 rounded-2xl bg-accent/25 border border-border flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl ${item.color} flex items-center justify-center shrink-0`}>
-                    <IconComponent className="w-4 h-4" />
+              <div key={f.key} className="p-4 rounded-2xl border border-border bg-background flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <f.icon aria-hidden className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-semibold text-foreground">{f.name}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 tabular-nums">
+                  <div>
+                    <div className="text-title font-semibold text-foreground">{f.count.toLocaleString('pt-BR')}</div>
+                    <div className="text-xs text-muted-foreground">publicados</div>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-foreground">{item.label}</h4>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {item.ig} IG • {item.fb} FB
-                    </span>
+                    <div className="text-title font-semibold text-foreground">{(stats?.reach ?? 0).toLocaleString('pt-BR')}</div>
+                    <div className="text-xs text-muted-foreground">alcance</div>
+                  </div>
+                  <div>
+                    <div className="text-title font-semibold text-foreground">{(stats?.interactions ?? 0).toLocaleString('pt-BR')}</div>
+                    <div className="text-xs text-muted-foreground">interações</div>
                   </div>
                 </div>
-                <div className="text-right font-mono font-bold text-sm text-foreground">
-                  {item.total.toLocaleString('pt-BR')}
+                <div className="flex flex-col gap-1">
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-chart-1" style={{ width: `${share}%` }} />
+                  </div>
+                  <span className="text-xs text-muted-foreground">{share}% do alcance do período</span>
                 </div>
+                {f.key === 'stories' && (
+                  <p className="text-xs text-muted-foreground">Só stories publicados pelo GENSBot — a Meta não guarda histórico de stories.</p>
+                )}
               </div>
             );
           })}
         </div>
-      </Card>
-
-      <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 border-b border-border pb-4">
-            <Link2 className="w-4 h-4 text-primary" />
-            <h3 className="text-base font-bold font-display text-foreground">
-              Ações no Perfil
-            </h3>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            Atividade de usuários que acessaram a bio da sua marca no período
-          </p>
-
-          <div className="flex flex-col gap-3 mt-4">
-            {profileActions.map((act) => {
-              const IconComponent = act.icon;
-              return (
-                <div key={act.label} className="flex items-center justify-between p-3 rounded-2xl bg-accent/30 border border-border">
-                  <div className="flex items-center gap-2.5">
-                    <IconComponent className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-xs font-semibold text-foreground">{act.label}</span>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-foreground">
-                    {act.count.toLocaleString('pt-BR')}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="p-3 rounded-2xl bg-primary/10 border border-primary/30 text-xs text-foreground font-medium leading-relaxed">
-          ⚡ <strong>Dica de Conversão GENS:</strong> Adicione uma Call-to-Action direta na bio para impulsionar a conversão dos {profileActions[0].count.toLocaleString('pt-BR')} visitantes.
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-/** 4. Dados Demográficos do Público */
-function AudienceDemographicsCard() {
-  const ageRanges = [
-    { label: '18-24 anos', pct: 7.9 },
-    { label: '25-34 anos', pct: 34.2 },
-    { label: '35-44 anos', pct: 34.5 },
-    { label: '45-54 anos', pct: 16.1 },
-    { label: '55+ anos', pct: 7.3 },
-  ];
-
-  const cities = [
-    { name: 'São Paulo, SP', pct: 28.4 },
-    { name: 'Rio de Janeiro, RJ', pct: 12.1 },
-    { name: 'Belo Horizonte, MG', pct: 8.3 },
-    { name: 'Curitiba, PR', pct: 6.5 },
-    { name: 'Salvador, BA', pct: 4.8 },
-  ];
-
-  return (
-    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <PieChart className="w-4 h-4 text-primary" />
-            <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
-              Demografia do Público Alcançado
-            </h3>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Distribuição por faixa etária, gênero e localização geográfica oficial da Meta
-          </p>
-        </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-mono font-bold text-foreground">
-          <span>62% Mulheres</span> • <span className="text-muted-foreground">38% Homens</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="flex flex-col gap-3">
-          <h4 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-wider">
-            Faixa Etária Predominante
-          </h4>
-          <div className="flex flex-col gap-2.5">
-            {ageRanges.map((age) => (
-              <div key={age.label} className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-foreground">{age.label}</span>
-                  <span className="font-mono font-bold text-foreground">{age.pct}%</span>
-                </div>
-                <div className="h-2 w-full bg-accent/50 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-brand-text/50 to-brand-text rounded-full transition-all duration-500"
-                    style={{ width: `${age.pct * 2.5}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <h4 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-wider">
-            Principais Localizações (Brasil 94.2%)
-          </h4>
-          <div className="flex flex-col gap-2">
-            {cities.map((city) => (
-              <div key={city.name} className="flex items-center justify-between p-2.5 rounded-xl bg-accent/30 border border-border text-xs">
-                <span className="font-medium text-foreground flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                  {city.name}
-                </span>
-                <span className="font-mono font-bold text-foreground">{city.pct}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
     </Card>
   );
 }
 
-/** 5. Horários Mais Ativos */
+/**
+ * Demografia do público. A Graph API tem `follower_demographics` (idade,
+ * cidade, gênero), mas o GENSBot ainda não busca essa métrica — em vez de
+ * números ilustrativos, o card diz isso com clareza.
+ */
+function AudienceDemographicsCard() {
+  return (
+    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <Users className="w-4 h-4 text-muted-foreground" />
+        <h3 className="text-base font-semibold font-display text-foreground">Demografia do público</h3>
+      </div>
+      <EmptyState
+        size="compact"
+        icon={Users}
+        title="Demografia ainda não conectada"
+        description="Idade, cidade e gênero dos seguidores ainda não são importados da Meta. Quando forem, aparecem aqui."
+        className="border-dashed"
+      />
+    </Card>
+  );
+}
+
 function AudienceActivityCard({
   instagramUserId,
   withAccount,
@@ -571,36 +391,31 @@ function AudienceActivityCard({
     loading: boolean;
     available: boolean;
     byHour: { hour: number; followersOnline: number }[];
+    reason: string | null;
   }>({
     loading: true,
     available: false,
     byHour: [],
+    reason: null,
   });
 
   useEffect(() => {
-    setState((s) => ({ ...s, loading: true }));
+    let ativo = true;
     fetch(withAccount(`/api/instagram/audience-activity?account=${instagramUserId}`, instagramUserId))
       .then((res) => res.json())
-      .then((data) =>
-        setState({
-          loading: false,
-          available: true,
-          byHour: data.byHour || Array.from({ length: 24 }, (_, i) => ({
-            hour: i,
-            followersOnline: Math.floor(200 + Math.sin(i / 3) * 150 + (i >= 18 && i <= 21 ? 450 : 0)),
-          })),
-        })
-      )
-      .catch(() =>
-        setState({
-          loading: false,
-          available: true,
-          byHour: Array.from({ length: 24 }, (_, i) => ({
-            hour: i,
-            followersOnline: Math.floor(250 + Math.sin(i / 3) * 180 + (i >= 18 && i <= 21 ? 520 : 0)),
-          })),
-        })
-      );
+      .then((data) => {
+        if (!ativo) return;
+        setState(
+          data?.available && Array.isArray(data.byHour)
+            ? { loading: false, available: true, byHour: data.byHour, reason: null }
+            : { loading: false, available: false, byHour: [], reason: data?.reason || data?.error || 'A Meta não devolveu esse dado para esta conta.' }
+        );
+      })
+      .catch(() => ativo && setState({ loading: false, available: false, byHour: [], reason: 'Não foi possível consultar a Meta agora.' }));
+    return () => {
+      ativo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instagramUserId]);
 
   const peakHour =
@@ -614,12 +429,12 @@ function AudienceActivityCard({
         <div>
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" />
-            <h4 className="text-sm font-bold font-display text-foreground">
-              Horários e Dias de Maior Atividade
+            <h4 className="text-sm font-semibold font-display text-foreground">
+              Horários de maior atividade
             </h4>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Pico de seguidores online por hora do dia e dias mais engajados (Segunda, Terça, Quinta)
+            Seguidores online por hora do dia (média da Meta, sem divisão por dia da semana).
           </p>
         </div>
 
@@ -630,6 +445,11 @@ function AudienceActivityCard({
         )}
       </div>
 
+      {state.loading ? (
+        <Skeleton className="h-28 w-full" />
+      ) : !state.available ? (
+        <EmptyState size="compact" icon={Clock} title="Horários ainda indisponíveis" description={state.reason || undefined} className="border-dashed" />
+      ) : (
       <div className="flex flex-col gap-2 pt-2">
         <div className="flex items-end gap-1 sm:gap-1.5 h-28 w-full pt-4">
           {state.byHour.map((h) => {
@@ -662,99 +482,12 @@ function AudienceActivityCard({
           <span className="font-mono text-xs">Janela recomendada: 18h às 21h</span>
         </div>
       </div>
+      )}
     </Card>
   );
 }
 
 /** 6. Top Conteúdos Conversores */
-function FollowerConvertingContentCard({ publications }: { publications: PublicationItem[] }) {
-  const topConverters = useMemo(() => {
-    return [...publications]
-      .sort((a, b) => (b.new_followers || b.interactions || 0) - (a.new_followers || a.interactions || 0))
-      .slice(0, 4);
-  }, [publications]);
-
-  if (topConverters.length === 0) return null;
-
-  return (
-    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Award className="w-4 h-4 text-warning" />
-            <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
-              Top Conteúdos que mais Geraram Seguidores
-            </h3>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Mídias ranqueadas por conversão direta de novos seguidores e retenção de audiência
-          </p>
-        </div>
-        <Badge variant="muted" className="font-mono text-xs bg-warning-soft text-warning border-warning-ring">
-          Ranking Oficial Meta
-        </Badge>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
-        {topConverters.map((pub, i) => {
-          const gained = pub.new_followers || [38, 18, 12, 4][i] || 5;
-          const avgWatch = pub.avg_watch_time || '0:30s';
-          const uniqueViews = pub.unique_viewers || (pub.reach ? Math.round(pub.reach * 0.7) : 5900);
-
-          return (
-            <div key={pub.id} className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-foreground/40 transition-all duration-200">
-              <div className="relative aspect-square w-full bg-accent overflow-hidden">
-                {pub.media_url || pub.thumbnail_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={pub.thumbnail_url || pub.media_url}
-                    alt={pub.caption || 'Mídia'}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    <ImageIcon className="w-8 h-8 opacity-40" />
-                  </div>
-                )}
-
-                <div className="absolute top-2 left-2">
-                  <span className="px-2.5 py-1 rounded-lg bg-lime text-lime-foreground text-xs font-bold font-mono shadow-xs flex items-center gap-1 border border-black/10">
-                    <UserPlus className="w-3.5 h-3.5" /> +{gained} seg
-                  </span>
-                </div>
-
-                <div className="absolute top-2 right-2">
-                  <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-xs font-bold font-mono">
-                    #{i + 1}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-3 flex flex-col justify-between gap-2.5 flex-1 text-xs">
-                <p className="font-semibold text-foreground line-clamp-2 leading-snug">
-                  {pub.caption || 'Sem legenda'}
-                </p>
-
-                <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border text-xs font-mono text-muted-foreground">
-                  <div>
-                    <span>Views Únicas:</span>
-                    <p className="font-bold text-foreground text-xs">{uniqueViews.toLocaleString('pt-BR')}</p>
-                  </div>
-                  <div>
-                    <span>Retenção Média:</span>
-                    <p className="font-bold text-foreground text-xs">{avgWatch}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-/** 7. Card de Publicação no Grid */
 function PerformanceMediaCard({ item }: { item: PublicationItem }) {
   const isVideo = item.media_type === 'VIDEO' || item.media_type === 'REELS';
   const isCarousel = item.media_type === 'CAROUSEL' || item.media_type === 'CAROUSEL_ALBUM';
@@ -822,134 +555,6 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
   );
 }
 
-/** 8. Componente de Tabela Comparativa de Mês a Mês */
-function MonthlyComparisonCard({
-  mainMonthLabel,
-  compMonthLabel,
-}: {
-  mainMonthLabel: string;
-  compMonthLabel: string;
-}) {
-  const comparisonItems = [
-    {
-      metric: 'Postagens (Volume de Mídias)',
-      mainVal: '24 mídias',
-      compVal: '18 mídias',
-      diff: '+6 mídias',
-      pct: '+33.3%',
-      positive: true,
-    },
-    {
-      metric: 'Engajamento & Interações',
-      mainVal: '926 interações',
-      compVal: '780 interações',
-      diff: '+146 interações',
-      pct: '+18.7%',
-      positive: true,
-    },
-    {
-      metric: 'Taxa Média de Engajamento',
-      mainVal: '4.8%',
-      compVal: '4.1%',
-      diff: '+0.7%',
-      pct: '+17.0%',
-      positive: true,
-    },
-    {
-      metric: 'Público & Contas Alcançadas',
-      mainVal: '209.432 contas',
-      compVal: '183.350 contas',
-      diff: '+26.082 contas',
-      pct: '+14.2%',
-      positive: true,
-    },
-    {
-      metric: 'Visitas ao Perfil (Bio)',
-      mainVal: '2.624 visitas',
-      compVal: '2.110 visitas',
-      diff: '+514 visitas',
-      pct: '+24.4%',
-      positive: true,
-    },
-    {
-      metric: 'Novos Seguidores Líquidos',
-      mainVal: '+137 seg',
-      compVal: '+85 seg',
-      diff: '+52 seg',
-      pct: '+61.2%',
-      positive: true,
-    },
-    {
-      metric: 'Visualizações de Stories',
-      mainVal: '159.210 views',
-      compVal: '135.000 views',
-      diff: '+24.210 views',
-      pct: '+17.9%',
-      positive: true,
-    },
-    {
-      metric: 'Visualizações de Reels',
-      mainVal: '31.450 views',
-      compVal: '22.100 views',
-      diff: '+9.350 views',
-      pct: '+42.3%',
-      positive: true,
-    },
-  ];
-
-  return (
-    <Card padding="lg" className="rounded-3xl border border-border dark:border-primary/40 bg-card shadow-xs flex flex-col gap-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-primary" />
-            <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
-              Relatório Comparativo: {mainMonthLabel} vs {compMonthLabel}
-            </h3>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Evolução de desempenho, engajamento e aquisição de audiência comparada mês a mês
-          </p>
-        </div>
-
-        <Badge variant="info" className="bg-primary/20 text-primary font-bold text-xs border border-primary/30 py-1 px-3">
-          ⚡ Período Comparativo Selecionado
-        </Badge>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-border text-muted-foreground font-mono text-xs uppercase">
-              <th className="py-2.5 px-3">Métrica Chave</th>
-              <th className="py-2.5 px-3">{mainMonthLabel} (Principal)</th>
-              <th className="py-2.5 px-3">{compMonthLabel} (Comparativo)</th>
-              <th className="py-2.5 px-3">Diferença Absoluta</th>
-              <th className="py-2.5 px-3 text-right">Variação %</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border font-medium">
-            {comparisonItems.map((item, i) => (
-              <tr key={i} className="hover:bg-accent/40 transition-colors">
-                <td className="py-3 px-3 font-bold text-foreground">{item.metric}</td>
-                <td className="py-3 px-3 font-mono font-bold text-foreground">{item.mainVal}</td>
-                <td className="py-3 px-3 font-mono text-muted-foreground">{item.compVal}</td>
-                <td className="py-3 px-3 font-mono text-success font-semibold">{item.diff}</td>
-                <td className="py-3 px-3 text-right">
-                  <span className="inline-flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-md bg-lime text-lime-foreground">
-                    <ArrowUpRight className="w-3 h-3" />
-                    {item.pct}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  );
-}
-
 interface MetricsPanelProps {
   selectedAccountId: string | null;
   withAccount: (url: string, accountIdOverride?: string | null) => string;
@@ -961,11 +566,11 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
   const [contentPerf, setContentPerf] = useState<ContentPerformance | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Estado do Filtro de Período
-  const [filterMode, setFilterMode] = useState<'preset' | 'month_comparison'>('preset');
+  const activeAccount = metrics[0] || null;
+
+  // Período dos insights (7/30/90 — 90 dias é o limite de retenção da Meta)
   const [period, setPeriod] = useState<7 | 30 | 90>(30);
-  const [mainMonth, setMainMonth] = useState('2026-08');
-  const [compMonth, setCompMonth] = useState('2026-07');
+  const [gerandoLink, setGerandoLink] = useState(false);
 
   const [contentFilter, setContentFilter] = useState<'all' | 'reels' | 'posts'>('all');
   const [showReportModal, setShowReportModal] = useState(false);
@@ -974,35 +579,29 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
 
   // Aba principal de visão: Métricas x Histórico de Relatórios Enviados
   const [abaSub, setAbaSub] = useState<'metricas' | 'historico_relatorios'>('metricas');
-  const [relatoriosSalvos, setRelatoriosSalvos] = useState<RelatorioSalvoItem[]>([]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('gens_relatorios_salvos');
-      if (saved) {
-        try {
-          setRelatoriosSalvos(JSON.parse(saved));
-        } catch {}
-      }
+  // Histórico local de links gerados. O painel só monta no cliente (depois do
+  // login), então dá pra ler o localStorage já no estado inicial. Links antigos
+  // (sem assinatura) deixaram de funcionar e são descartados.
+  const [relatoriosSalvos, setRelatoriosSalvos] = useState<RelatorioSalvoItem[]>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('gens_relatorios_salvos') : null;
+      return saved ? (JSON.parse(saved) as RelatorioSalvoItem[]).filter((r) => r.link?.includes('/relatorio/r2_')) : [];
+    } catch {
+      return [];
     }
-  }, []);
+  });
 
-  const salvarRelatorioNoHistorico = (cNome: string, mMain: string, mComp: string, urlLink: string) => {
+  const persistirHistorico = (lista: RelatorioSalvoItem[]) => {
+    try {
+      localStorage.setItem('gens_relatorios_salvos', JSON.stringify(lista));
+    } catch {}
+  };
+
+  const salvarRelatorioNoHistorico = (cNome: string, dias: number, urlLink: string) => {
     setRelatoriosSalvos((prev) => {
-      const jaExiste = prev.some((r) => r.link === urlLink);
-      if (jaExiste) return prev;
-      const novo: RelatorioSalvoItem = {
-        id: `rel_${Date.now()}`,
-        clienteNome: cNome,
-        mainMonth: mMain,
-        compMonth: mComp,
-        link: urlLink,
-        criadoEm: new Date().toISOString(),
-      };
-      const updated = [novo, ...prev];
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('gens_relatorios_salvos', JSON.stringify(updated));
-      }
+      if (prev.some((r) => r.link === urlLink)) return prev;
+      const updated = [{ id: `rel_${Date.now()}`, clienteNome: cNome, period: dias, link: urlLink, criadoEm: new Date().toISOString() }, ...prev];
+      persistirHistorico(updated);
       return updated;
     });
   };
@@ -1010,74 +609,71 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
   const handleExcluirRelatorio = (id: string) => {
     setRelatoriosSalvos((prev) => {
       const updated = prev.filter((r) => r.id !== id);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('gens_relatorios_salvos', JSON.stringify(updated));
-      }
+      persistirHistorico(updated);
       return updated;
     });
   };
 
-  const isSingleAccount = selectedAccountId && selectedAccountId !== 'all';
+  const isSingleAccount = !!selectedAccountId && selectedAccountId !== 'all';
 
-  const gerarMensagemWhatsapp = (cNome: string, mMain: string, mComp: string, urlLink: string) => {
-    const mainLabel = formatMonthLabel(mMain);
-    const compLabel = formatMonthLabel(mComp);
-    return `Olá! 👋 Aqui é da Agência GENS.\n\nSeu Relatório Executivo de Performance no Instagram do período de *${mainLabel} vs ${compLabel}* (${cNome}) está disponível!\n\n📊 *Acesse o relatório interativo completo no link below:*\n${urlLink}\n\nQualquer dúvida, estamos à disposição! 🚀`;
+  /** Gera (no servidor) o link assinado do relatório da conta selecionada. */
+  const gerarLinkRelatorio = async (): Promise<{ url: string; clienteNome: string } | null> => {
+    if (!isSingleAccount) {
+      toast.warning('Escolha uma conta', { description: 'O relatório é gerado por conta do Instagram — selecione uma no menu lateral.' });
+      return null;
+    }
+    const clienteNome = activeAccount?.username ? `@${activeAccount.username}` : 'Cliente';
+    setGerandoLink(true);
+    try {
+      const res = await fetch('/api/relatorio/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId: selectedAccountId, period, clienteNome }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) throw new Error(data.error || 'Não foi possível gerar o link.');
+      salvarRelatorioNoHistorico(clienteNome, period, data.url);
+      return { url: data.url, clienteNome };
+    } catch (err) {
+      toast.error('Não foi possível gerar o link do relatório', { description: err instanceof Error ? err.message : undefined });
+      return null;
+    } finally {
+      setGerandoLink(false);
+    }
   };
 
-  const handleCopiarMensagemWhatsapp = (relItem?: RelatorioSalvoItem) => {
-    const cNome = relItem ? relItem.clienteNome : (activeAccount?.username ? `@${activeAccount.username}` : 'Cliente');
-    const mM = relItem ? relItem.mainMonth : mainMonth;
-    const cM = relItem ? relItem.compMonth : compMonth;
-    const url = relItem ? relItem.link : gerarLinkCompletoRelatorio({ accountId: selectedAccountId || 'all', mainMonth: mM, compMonth: cM, clienteNome: cNome });
+  const gerarMensagemWhatsapp = (cNome: string, dias: number, urlLink: string) =>
+    `Olá! 👋 Aqui é da Agência GENS.\n\nO relatório de desempenho no Instagram de *${cNome}* (últimos ${dias} dias) está pronto:\n${urlLink}\n\nQualquer dúvida, estamos à disposição! 🚀`;
 
-    const msg = gerarMensagemWhatsapp(cNome, mM, cM, url);
-    navigator.clipboard.writeText(msg);
+  const handleCopiarMensagemWhatsapp = async (relItem?: RelatorioSalvoItem) => {
+    const alvo = relItem ? { url: relItem.link, clienteNome: relItem.clienteNome, dias: relItem.period } : await gerarLinkRelatorio().then((r) => r && { ...r, dias: period });
+    if (!alvo) return;
+    await navigator.clipboard.writeText(gerarMensagemWhatsapp(alvo.clienteNome, alvo.dias, alvo.url));
     setMsgWhatsCopiada(true);
     setTimeout(() => setMsgWhatsCopiada(false), 2500);
-
-    salvarRelatorioNoHistorico(cNome, mM, cM, url);
+    toast.success('Mensagem copiada', { description: 'Cole no WhatsApp do cliente.' });
   };
 
-  const handleEnviarWhatsapp = (relItem?: RelatorioSalvoItem) => {
-    const cNome = relItem ? relItem.clienteNome : (activeAccount?.username ? `@${activeAccount.username}` : 'Cliente');
-    const mM = relItem ? relItem.mainMonth : mainMonth;
-    const cM = relItem ? relItem.compMonth : compMonth;
-    const url = relItem ? relItem.link : gerarLinkCompletoRelatorio({ accountId: selectedAccountId || 'all', mainMonth: mM, compMonth: cM, clienteNome: cNome });
-
-    const msg = gerarMensagemWhatsapp(cNome, mM, cM, url);
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
-    window.open(whatsappUrl, '_blank');
-
-    salvarRelatorioNoHistorico(cNome, mM, cM, url);
+  const handleEnviarWhatsapp = async (relItem?: RelatorioSalvoItem) => {
+    // Abre a aba já no clique (antes do await) para o navegador não bloquear o pop-up.
+    const aba = window.open('about:blank', '_blank');
+    const alvo = relItem ? { url: relItem.link, clienteNome: relItem.clienteNome, dias: relItem.period } : await gerarLinkRelatorio().then((r) => r && { ...r, dias: period });
+    if (!alvo) {
+      aba?.close();
+      return;
+    }
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(gerarMensagemWhatsapp(alvo.clienteNome, alvo.dias, alvo.url))}`;
+    if (aba) aba.location.href = url;
+    else window.open(url, '_blank');
   };
 
-  const handleCopiarLinkRelatorio = () => {
-    const clienteNome = activeAccount?.username ? `@${activeAccount.username}` : 'Cliente';
-    const link = gerarLinkCompletoRelatorio({
-      accountId: selectedAccountId || 'all',
-      mainMonth,
-      compMonth,
-      clienteNome,
-    });
-    navigator.clipboard.writeText(link);
+  const handleCopiarLinkRelatorio = async () => {
+    const r = await gerarLinkRelatorio();
+    if (!r) return;
+    await navigator.clipboard.writeText(r.url);
     setLinkCopiado(true);
     setTimeout(() => setLinkCopiado(false), 2500);
-
-    salvarRelatorioNoHistorico(clienteNome, mainMonth, compMonth, link);
-  };
-
-  const handleAbrirRelatorioInterativo = () => {
-    const clienteNome = activeAccount?.username ? `@${activeAccount.username}` : 'Cliente';
-    const link = gerarLinkCompletoRelatorio({
-      accountId: selectedAccountId || 'all',
-      mainMonth,
-      compMonth,
-      clienteNome,
-    });
-    window.open(link, '_blank');
-
-    salvarRelatorioNoHistorico(clienteNome, mainMonth, compMonth, link);
+    toast.success('Link do relatório copiado');
   };
 
   useEffect(() => {
@@ -1105,7 +701,6 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
     loadData();
   }, [selectedAccountId, period]);
 
-  const activeAccount = metrics[0] || null;
 
   const filteredPublications = useMemo(() => {
     const list = contentPerf?.topPublications || [];
@@ -1118,21 +713,22 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
     return list;
   }, [contentPerf, contentFilter]);
 
-  const totalReach = useMemo(() => metrics.reduce((acc, m) => acc + (m.reach_total || 209432), 0), [metrics]);
-  const totalProfileViews = useMemo(() => metrics.reduce((acc, m) => acc + (m.profile_views_total || 2624), 0), [metrics]);
-  const totalFollowers = useMemo(() => metrics.reduce((acc, m) => acc + (m.followers_count || 14850), 0), [metrics]);
+  const totalReach = useMemo(() => metrics.reduce((acc, m) => acc + (m.reach_total || 0), 0), [metrics]);
+  const totalProfileViews = useMemo(() => metrics.reduce((acc, m) => acc + (m.profile_views_total || 0), 0), [metrics]);
+  const totalFollowers = useMemo(() => metrics.reduce((acc, m) => acc + (m.followers_count || 0), 0), [metrics]);
+  // Interações de TODAS as publicações do período (posts + reels), não só do top 8.
   const totalInteractions = useMemo(() => {
-    const fromList = (contentPerf?.topPublications || []).reduce((acc, p) => acc + (p.interactions || 0), 0);
-    return fromList || 926;
+    const bf = contentPerf?.summary?.byFormat;
+    if (bf) return bf.posts.interactions + bf.reels.interactions;
+    return (contentPerf?.topPublications || []).reduce((acc, p) => acc + (p.interactions || 0), 0);
   }, [contentPerf]);
-
-  const formatMonthLabel = (yyyyMm: string) => {
-    if (!yyyyMm) return '';
-    const [year, month] = yyyyMm.split('-');
-    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    const idx = parseInt(month, 10) - 1;
-    return `${months[idx] || month} ${year}`;
-  };
+  // Crescimento líquido real (só conta única com ≥100 seguidores — regra da Meta).
+  const followerNet = useMemo(() => {
+    const g = activeAccount?.followerGrowth || [];
+    if (!isSingleAccount || activeAccount?.followerGrowthUnavailable || g.length < 2) return null;
+    return g[g.length - 1].followers - g[0].followers;
+  }, [activeAccount, isSingleAccount]);
+  const bioClicks = contentPerf?.linkClicks?.bio ?? null;
 
   function handlePrintReport() {
     window.print();
@@ -1151,103 +747,33 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
               Painel Profissional de Insights
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Métricas oficiais Meta: selecione meses específicos, analise comparativos e exporte relatórios para clientes
+              Números oficiais da Meta dos últimos {period} dias — e o relatório pronto para enviar ao cliente
             </p>
           </div>
         </div>
 
         {/* Controles de Período e Exportação em PDF */}
         <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
-          {/* Seletor de Modo: Dias vs Mês a Mês */}
-          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setFilterMode('preset')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                filterMode === 'preset'
-                  ? 'bg-primary text-primary-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Dias Rápidos
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterMode('month_comparison')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                filterMode === 'month_comparison'
-                  ? 'bg-primary text-primary-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <CalendarDays className="w-3.5 h-3.5" />
-              Comparativo Mês a Mês
-            </button>
+          <div className="flex items-center gap-1 bg-card p-1 rounded-2xl border border-border shadow-2xs" role="group" aria-label="Período">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={period === opt.value}
+                onClick={() => setPeriod(opt.value)}
+                className={`px-3 py-1 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                  period === opt.value ? 'bg-accent text-foreground ring-1 ring-inset ring-border-strong' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
 
-          {/* Opções de Período Pré-definido */}
-          {filterMode === 'preset' && (
-            <div className="flex items-center gap-1 bg-card p-1 rounded-2xl border border-border shadow-2xs">
-              {PERIOD_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setPeriod(opt.value)}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    period === opt.value
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Seleção de Mês Principal vs Mês Comparativo & Copiar Link */}
-          {filterMode === 'month_comparison' && (
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border shadow-2xs text-xs">
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-bold text-muted-foreground uppercase">Mês:</span>
-                  <input
-                    type="month"
-                    value={mainMonth}
-                    onChange={(e) => setMainMonth(e.target.value)}
-                    className="h-8 text-xs px-2 rounded-xl bg-background border border-input font-mono font-bold text-foreground"
-                  />
-                </div>
-
-                <span className="text-muted-foreground font-bold">vs</span>
-
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-bold text-muted-foreground uppercase">Base:</span>
-                  <input
-                    type="month"
-                    value={compMonth}
-                    onChange={(e) => setCompMonth(e.target.value)}
-                    className="h-8 text-xs px-2 rounded-xl bg-background border border-input font-mono text-muted-foreground"
-                  />
-                </div>
-              </div>
-
-              <Button
-                onClick={handleCopiarLinkRelatorio}
-                variant="outline"
-                size="sm"
-                className="rounded-2xl shadow-2xs h-9 text-xs font-bold bg-primary/15 text-primary hover:bg-primary hover:text-primary-foreground border border-primary/30 cursor-pointer transition-all"
-                title="Copiar link interativo do relatório para enviar ao cliente"
-              >
-                {linkCopiado ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-primary" />
-                ) : (
-                  <Share2 className="w-3.5 h-3.5 mr-1.5 text-primary" />
-                )}
-                {linkCopiado ? 'Link Copiado!' : 'Copiar link do relatório'}
-              </Button>
-            </div>
-          )}
+          <Button onClick={handleCopiarLinkRelatorio} variant="secondary" size="sm" loading={gerandoLink} disabled={!isSingleAccount}>
+            {linkCopiado ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <Share2 className="w-3.5 h-3.5" />}
+            {linkCopiado ? 'Link copiado' : 'Copiar link do relatório'}
+          </Button>
         </div>
 
         {/* Alternador de Visão: Métricas Globais x Histórico de Relatórios Salvos */}
@@ -1293,12 +819,10 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 </h3>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Todos os links públicos gerados ficam salvos com acesso perpétuo (sem expiração) para enviar aos clientes.
+                Links gerados neste navegador. Continuam válidos enquanto a conta estiver conectada ao GENSBot.
               </p>
             </div>
-            <Badge variant="info" className="bg-primary/15 text-primary border-primary/30 font-bold text-xs self-start sm:self-auto">
-              Links Perpétuos & Sem Limite de Acesso ♾️
-            </Badge>
+            <Badge variant="brand" className="self-start sm:self-auto">Links protegidos</Badge>
           </div>
 
           {relatoriosSalvos.length === 0 ? (
@@ -1313,7 +837,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <thead>
                   <tr className="border-b border-border text-muted-foreground font-mono text-xs uppercase">
                     <th className="py-2.5 px-3">Cliente / Perfil</th>
-                    <th className="py-2.5 px-3">Período Comparado</th>
+                    <th className="py-2.5 px-3">Período</th>
                     <th className="py-2.5 px-3">Data de Geração</th>
                     <th className="py-2.5 px-3">Status de Validade</th>
                     <th className="py-2.5 px-3 text-right">Ações Rápidas</th>
@@ -1326,14 +850,14 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                         {rel.clienteNome}
                       </td>
                       <td className="py-3 px-3 text-muted-foreground capitalize">
-                        {formatMonthLabel(rel.mainMonth)} <span className="text-xs font-mono text-muted-foreground">vs</span> {formatMonthLabel(rel.compMonth)}
+                        Últimos {rel.period} dias
                       </td>
                       <td className="py-3 px-3 text-muted-foreground font-mono text-xs">
                         {new Date(rel.criadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="py-3 px-3">
                         <span className="inline-flex items-center gap-1 text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-success-soft text-success border border-success-ring">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Ativo (Sem Expiração)
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Ativo
                         </span>
                       </td>
                       <td className="py-3 px-3 text-right">
@@ -1393,14 +917,6 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
         />
       ) : (
         <>
-          {/* Tabela Comparativa de Mês a Mês quando ativada */}
-          {filterMode === 'month_comparison' && (
-            <MonthlyComparisonCard
-              mainMonthLabel={formatMonthLabel(mainMonth)}
-              compMonthLabel={formatMonthLabel(compMonth)}
-            />
-          )}
-
           {/* 1. Bento KPI Grid (4 Métricas Principais do Instagram) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* KPI 1: Contas Alcançadas */}
@@ -1415,12 +931,9 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
               </div>
               <div className="mt-3">
                 <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-                  {(isSingleAccount ? activeAccount?.reach_total : totalReach)?.toLocaleString('pt-BR') || '209.432'}
+                  {((isSingleAccount ? activeAccount?.reach_total : totalReach) ?? 0).toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
-                  <span className="text-success font-bold font-mono">+14.2%</span>
-                  <span>vs. período anterior</span>
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Soma diária dos últimos {period} dias</p>
               </div>
             </Card>
 
@@ -1440,7 +953,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
                   <span className="text-foreground font-semibold">
-                    {contentPerf?.summary?.engagementRate ? `${contentPerf.summary.engagementRate.toFixed(1)}%` : '4.8%'}
+                    {contentPerf?.summary?.reachTotal ? `${contentPerf.summary.engagementRate.toFixed(1)}%` : '—'}
                   </span>
                   <span>taxa média de engajamento</span>
                 </p>
@@ -1459,11 +972,17 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
               </div>
               <div className="mt-3">
                 <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-                  {(isSingleAccount ? activeAccount?.followers_count : totalFollowers)?.toLocaleString('pt-BR') || '14.850'}
+                  {((isSingleAccount ? activeAccount?.followers_count : totalFollowers) ?? 0).toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
-                  <span className="text-success font-bold font-mono">+137 net</span>
-                  <span>crescimento líquido</span>
+                <p className="text-xs mt-1">
+                  {followerNet === null ? (
+                    <span className="text-muted-foreground">{isSingleAccount ? 'Evolução indisponível para esta conta' : 'Soma das contas conectadas'}</span>
+                  ) : (
+                    <span className={followerNet >= 0 ? 'text-success font-semibold' : 'text-destructive font-semibold'}>
+                      {followerNet >= 0 ? '+' : ''}
+                      {followerNet.toLocaleString('pt-BR')} no período
+                    </span>
+                  )}
                 </p>
               </div>
             </Card>
@@ -1480,11 +999,10 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
               </div>
               <div className="mt-3">
                 <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-                  {(isSingleAccount ? activeAccount?.profile_views_total : totalProfileViews)?.toLocaleString('pt-BR') || '2.624'}
+                  {((isSingleAccount ? activeAccount?.profile_views_total : totalProfileViews) ?? 0).toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
-                  <span className="text-foreground font-semibold">35 toques</span>
-                  <span>no link da bio</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {bioClicks === null ? 'Visualizações do perfil' : `${bioClicks.toLocaleString('pt-BR')} cliques no link da bio (UTM)`}
                 </p>
               </div>
             </Card>
@@ -1502,7 +1020,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                     </h3>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Curva diária de alcance orgânico e tráfego direcionado à bio ({filterMode === 'month_comparison' ? formatMonthLabel(mainMonth) : `${period} dias`})
+                    Curva diária de alcance orgânico e tráfego direcionado à bio (últimos {period} dias)
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1523,14 +1041,8 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </Card>
           )}
 
-          {/* 3. Visualizações por Formato de Conteúdo */}
-          <ContentFormatBreakdownCard />
-
-          {/* 4. Interações Detalhadas & Ações no Perfil */}
-          <DetailedInteractionsCard />
-
-          {/* 5. Top Conteúdos Conversores de Seguidores */}
-          <FollowerConvertingContentCard publications={contentPerf?.topPublications || []} />
+          {/* 3. Desempenho por formato (real) */}
+          <ContentFormatBreakdownCard summary={contentPerf?.summary ?? null} />
 
           {/* 6. Demografia do Público & Horários / Dias de Pico */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1547,11 +1059,11 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-primary" />
                   <h3 className="font-bold font-display text-foreground text-lg tracking-tight">
-                    Todas as Mídias Compartilhadas
+                    Publicações com melhor desempenho
                   </h3>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Publicações no Instagram no período com dados oficiais Meta
+                  As 8 publicações com mais alcance + interações no período
                 </p>
               </div>
 
@@ -1611,9 +1123,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
                   Relatório Executivo de Performance
                 </h3>
-                <p className="text-xs text-muted-foreground">
-                  Agência GENS · <span className="capitalize">{formatMonthLabel(mainMonth)}</span> vs <span className="capitalize">{formatMonthLabel(compMonth)}</span>
-                </p>
+                <p className="text-xs text-muted-foreground">Agência GENS · últimos {period} dias</p>
               </div>
             </div>
 
@@ -1630,62 +1140,41 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </div>
           </div>
 
-          {/* Área do Relatório Pronta para Impressão */}
+          {/* Área do Relatório Pronta para Impressão — só números reais do período */}
           <div id="executive-report-print-area" className="flex flex-col gap-6 text-foreground">
-            {/* Banner de Apresentação ao Cliente */}
             <div className="p-5 rounded-2xl bg-secondary border border-brand-ring text-foreground">
-              <span className="text-xs font-bold uppercase tracking-wider font-mono">Relatório Oficial de Desempenho</span>
-              <h4 className="text-lg sm:text-xl font-bold font-display mt-0.5">
-                Desempenho Estratégico no Instagram · @{activeAccount?.username || selectedAccountId || 'geral'}
+              <h4 className="text-lg sm:text-xl font-semibold font-display">
+                Desempenho no Instagram · @{activeAccount?.username || 'conta'}
               </h4>
               <p className="text-xs mt-1 leading-relaxed text-muted-foreground">
-                Este documento apresenta a análise comparativa oficial dos resultados obtidos no período de <strong className="capitalize">{formatMonthLabel(mainMonth)}</strong> em relação ao período de <strong className="capitalize">{formatMonthLabel(compMonth)}</strong>.
+                Resultados dos últimos {period} dias, consultados na Meta em {new Date().toLocaleDateString('pt-BR')}.
               </p>
             </div>
 
-            {/* Quadro de Métricas Chave do Comparativo */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Contas Alcançadas</span>
-                <span className="text-xl font-bold font-display text-foreground mt-1">209.432</span>
-                <span className="text-xs text-success font-bold font-mono mt-0.5">+14.2% vs mês anterior</span>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Interações Totais</span>
-                <span className="text-xl font-bold font-display text-foreground mt-1">926</span>
-                <span className="text-xs text-success font-bold font-mono mt-0.5">+18.7% vs mês anterior</span>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Total de Seguidores</span>
-                <span className="text-xl font-bold font-display text-foreground mt-1">14.850</span>
-                <span className="text-xs text-success font-bold font-mono mt-0.5">+137 novos net</span>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-col justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase font-mono">Visitas ao Perfil (Bio)</span>
-                <span className="text-xl font-bold font-display text-foreground mt-1">2.624</span>
-                <span className="text-xs text-success font-bold font-mono mt-0.5">+24.4% vs mês anterior</span>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 tabular-nums">
+              {[
+                { label: 'Contas alcançadas', valor: (activeAccount?.reach_total ?? 0).toLocaleString('pt-BR') },
+                { label: 'Interações', valor: totalInteractions.toLocaleString('pt-BR') },
+                { label: 'Seguidores', valor: (activeAccount?.followers_count ?? 0).toLocaleString('pt-BR'), nota: followerNet === null ? undefined : `${followerNet >= 0 ? '+' : ''}${followerNet.toLocaleString('pt-BR')} no período` },
+                { label: 'Visitas ao perfil', valor: (activeAccount?.profile_views_total ?? 0).toLocaleString('pt-BR') },
+              ].map((k) => (
+                <div key={k.label} className="p-3.5 rounded-2xl bg-card border border-border flex flex-col gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">{k.label}</span>
+                  <span className="text-xl font-semibold font-display text-foreground">{k.valor}</span>
+                  {k.nota && <span className="text-xs text-success font-semibold">{k.nota}</span>}
+                </div>
+              ))}
             </div>
 
-            {/* Visualizações por Formato & Interações Detalhadas */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <ContentFormatBreakdownCard />
-              <DetailedInteractionsCard />
-            </div>
+            <ContentFormatBreakdownCard summary={contentPerf?.summary ?? null} />
 
-            {/* Destaque das Mídias com Melhor Performance */}
-            <FollowerConvertingContentCard publications={contentPerf?.topPublications || []} />
-
-            {/* Tabela Completa para o Cliente */}
-            <div className="rounded-2xl border border-border bg-card overflow-hidden">
-              <div className="p-4 bg-accent/40 border-b border-border">
-                <h4 className="text-xs font-bold font-display text-foreground">Detalhamento Comparativo Mês a Mês</h4>
+            {(contentPerf?.topPublications?.length ?? 0) > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {contentPerf!.topPublications.slice(0, 4).map((item) => (
+                  <PerformanceMediaCard key={item.id} item={item} />
+                ))}
               </div>
-              <MonthlyComparisonCard
-                mainMonthLabel={formatMonthLabel(mainMonth)}
-                compMonthLabel={formatMonthLabel(compMonth)}
-              />
-            </div>
+            )}
           </div>
         </div>
       </Sheet>

@@ -78,14 +78,26 @@ function SmoothAreaChart({
   metricB,
   labelA,
   labelB,
+  loading = false,
 }: {
   data: DailyInsight[];
   metricA: keyof DailyInsight;
   metricB: keyof DailyInsight;
   labelA: string;
   labelB: string;
+  loading?: boolean;
 }) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  if (!loading && (!data || data.length === 0)) {
+    return (
+      <div className="h-48 w-full grid place-items-center rounded-2xl border border-dashed border-border px-6 text-center">
+        <p className="text-sm text-muted-foreground max-w-sm">
+          A Meta ainda não devolveu insights diários desta conta para o período. Contas novas ou com pouco alcance podem levar alguns dias.
+        </p>
+      </div>
+    );
+  }
 
   if (!data || data.length === 0) {
     return (
@@ -402,30 +414,16 @@ export default function DashboardHome({
     };
   }, [selectedAccountId, periodDays]);
 
-  // Métricas extraídas ou calculadas
-  const alcanceTotal = insightsData?.reach_total || (stats.events * 14) || 12450;
-  const visitasPerfil = insightsData?.profile_views_total || (stats.events * 2.8) || 1840;
-  const cliquesBio = funnel.clicks || (stats.leadsGenerated * 3) || 390;
-  const contasEngajadas = funnel.comments + funnel.welcomeDms || (stats.automationsTriggered * 1.5) || 890;
-  const seguidoresTotal = insightsData?.followers_count || 4820;
+  // Só números reais: Meta (insights) e o funil das automações. Sem estimativa
+  // nem valor "de exemplo" — conta sem dado mostra 0 e o gráfico explica o porquê.
+  const alcanceTotal = insightsData?.reach_total ?? 0;
+  const visitasPerfil = insightsData?.profile_views_total ?? 0;
+  const cliquesBio = funnel.clicks ?? 0;
+  const contasEngajadas = (funnel.comments ?? 0) + (funnel.welcomeDms ?? 0);
+  const seguidoresTotal = insightsData?.followers_count ?? 0;
 
-  // Dados diários do gráfico
-  const dailyInsights: DailyInsight[] = insightsData?.daily?.length > 0
-    ? insightsData.daily
-    : (weeklyChart.length > 0
-        ? weeklyChart.map((w) => ({
-            date: w.day,
-            reach: (w.comments * 8) + (w.dms * 12) + 200,
-            profile_views: Math.round((w.comments * 2.5) + 30),
-          }))
-        : Array.from({ length: 7 }, (_, i) => {
-            const d = new Date(Date.now() - (6 - i) * 86400000);
-            return {
-              date: d.toISOString().slice(0, 10),
-              reach: 350 + i * 80 + (i % 2 === 0 ? 120 : -40),
-              profile_views: 45 + i * 12 + (i % 2 === 0 ? 15 : -8),
-            };
-          }));
+  // Dados diários do gráfico (vazio = sem insight da Meta no período)
+  const dailyInsights: DailyInsight[] = insightsData?.daily ?? [];
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in pb-12">
@@ -1035,6 +1033,7 @@ export default function DashboardHome({
         </div>
 
         <SmoothAreaChart
+          loading={carregandoInsights}
           data={dailyInsights}
           metricA="reach"
           metricB="profile_views"

@@ -1,590 +1,393 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Users,
-  Image as ImageIcon,
   Eye,
   TrendingUp,
-  Clock,
-  Sparkles,
-  Video,
-  Bookmark,
+  Users,
   Heart,
-  MessageCircle,
-  Share2,
-  Repeat,
-  Link2,
-  MapPin,
-  Calendar,
-  UserPlus,
-  BarChart3,
-  PieChart,
-  Award,
   Printer,
   Share,
   CheckCircle2,
-  ArrowUpRight,
-  ChevronRight,
-  ShieldCheck,
-  Zap,
-  Smartphone,
+  Video,
+  Image as ImageIcon,
+  Sparkles,
+  Link2Off,
+  AlertTriangle,
+  BarChart3,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { decodificarTokenRelatorio } from '@/lib/relatorio-token';
+import { Skeleton } from '@/components/ui/skeleton';
+import { LineChart } from '@/components/ui/line-chart';
+
+interface FormatStats {
+  count: number;
+  reach: number;
+  interactions: number;
+}
+
+interface RelatorioDados {
+  cliente: string;
+  period: number;
+  geradoEm: string;
+  account: { username: string | null; profile_picture_url: string | null; followers_count: number | null };
+  metrics: {
+    reach_total: number;
+    profile_views_total: number;
+    daily: { date: string; reach: number; profile_views: number }[];
+    followerGrowth: { date: string; followers: number }[];
+    followerGrowthUnavailable: boolean;
+    error: string | null;
+  };
+  content: {
+    summary: {
+      posts: number;
+      reels: number;
+      stories: number;
+      reachTotal: number;
+      engagementRate: number;
+      byFormat?: { posts: FormatStats; reels: FormatStats; stories: FormatStats };
+    };
+    topPublications: {
+      id: string;
+      media_type: string;
+      media_url: string;
+      caption: string | null;
+      published_at: string;
+      reach: number;
+      interactions: number;
+    }[];
+  };
+}
 
 interface RelatorioClientProps {
   token: string;
+  valido: boolean;
+  clienteNome: string;
+  period: number;
 }
 
-export default function PaginaRelatorioClient({ token }: RelatorioClientProps) {
-  const tokenData = decodificarTokenRelatorio(token);
+const nf = new Intl.NumberFormat('pt-BR');
+const fmt = (n: number | null | undefined) => (n === null || n === undefined ? '—' : nf.format(n));
+const dataCurta = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+
+function tipoLabel(mediaType: string) {
+  if (mediaType === 'REELS' || mediaType === 'VIDEO') return 'Reels';
+  if (mediaType === 'CAROUSEL_ALBUM') return 'Carrossel';
+  if (mediaType === 'STORIES') return 'Story';
+  return 'Post';
+}
+
+export default function PaginaRelatorioClient({ token, valido, clienteNome, period }: RelatorioClientProps) {
+  const [dados, setDados] = useState<RelatorioDados | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
+  // Momento de abertura da página — base do intervalo "últimos N dias".
+  const [agora] = useState(() => Date.now());
 
-  const mainMonthLabel = tokenData.mainMonth
-    ? tokenData.mainMonth.includes('-')
-      ? new Date(`${tokenData.mainMonth}-01T00:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-      : tokenData.mainMonth
-    : 'Agosto 2026';
-
-  const compMonthLabel = tokenData.compMonth
-    ? tokenData.compMonth.includes('-')
-      ? new Date(`${tokenData.compMonth}-01T00:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-      : tokenData.compMonth
-    : 'Julho 2026';
-
-  const clienteNome = tokenData.clienteNome || 'Cliente Agência GENS';
+  useEffect(() => {
+    if (!valido) return;
+    let ativo = true;
+    fetch(`/api/relatorio/dados?token=${encodeURIComponent(token)}`)
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || 'Não foi possível carregar o relatório.');
+        return body as RelatorioDados;
+      })
+      .then((d) => ativo && setDados(d))
+      .catch((e: Error) => ativo && setErro(e.message));
+    return () => {
+      ativo = false;
+    };
+  }, [token, valido]);
 
   function handleCopiarLink() {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2500);
-    }
+    navigator.clipboard.writeText(window.location.href);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2500);
   }
 
-  function handleImprimir() {
-    if (typeof window !== 'undefined') {
-      window.print();
-    }
+  if (!valido) {
+    return (
+      <EstadoTela
+        icon={Link2Off}
+        titulo="Este link de relatório não é mais válido"
+        texto="Os links de relatório passaram a ser protegidos. Peça à Agência GENS um link novo — leva só alguns segundos."
+      />
+    );
   }
 
-  const [postsDestaque, setPostsDestaque] = useState<any[]>([]);
-  const [carregandoPosts, setCarregandoPosts] = useState(true);
+  const inicio = new Date(agora - period * 24 * 60 * 60 * 1000);
+  const intervalo = `${inicio.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} – ${new Date(agora).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+  const nome = dados?.cliente || clienteNome;
 
-  React.useEffect(() => {
-    fetch(`/api/relatorio/posts?token=${token}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.success && Array.isArray(data.posts)) {
-          setPostsDestaque(data.posts);
-        }
-      })
-      .catch((err) => console.error('Erro ao carregar mídias do relatório:', err))
-      .finally(() => setCarregandoPosts(false));
-  }, [token]);
+  const growth = dados?.metrics.followerGrowth ?? [];
+  const ganhoSeguidores =
+    !dados?.metrics.followerGrowthUnavailable && growth.length > 1 ? growth[growth.length - 1].followers - growth[0].followers : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans antialiased pb-16">
-      {/* Estilos de Impressão Nativa sem cortes */}
       <style>{`
         @media print {
-          body {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          .print-container {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .print-card {
-            break-inside: avoid !important;
-            border: 1px solid #e2e8f0 !important;
-            box-shadow: none !important;
-            background: #ffffff !important;
-            margin-bottom: 1.5rem !important;
-          }
-          .page-break {
-            page-break-before: always !important;
-          }
+          body { background-color: #ffffff !important; color: #000000 !important; }
+          .no-print { display: none !important; }
+          .print-card { break-inside: avoid !important; box-shadow: none !important; }
         }
       `}</style>
 
-      {/* Header Fixo de Navegação para o Cliente (no-print) */}
-      <header className="no-print sticky top-0 z-40 bg-card/90 backdrop-blur-xl border-b border-border py-3 px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="w-8 h-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shadow-xs shrink-0 border border-primary/30">
-            ✳
+      <header className="no-print sticky top-0 z-40 bg-card/90 backdrop-blur-xl border-b border-border py-3 px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="min-w-0 w-full sm:w-auto">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-sm sm:text-base font-semibold font-display leading-tight truncate">Relatório de desempenho no Instagram</h1>
+            <Badge variant="brand">Agência GENS</Badge>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-sm sm:text-base font-bold font-display text-foreground leading-tight truncate">
-                Relatório de Performance Instagram
-              </h1>
-              <Badge variant="info" className="bg-primary/15 text-primary border-primary/30 text-xs font-bold shrink-0">
-                Agência GENS
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground truncate">
-              {clienteNome} · <span className="capitalize">{mainMonthLabel}</span> vs <span className="capitalize">{compMonthLabel}</span>
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground truncate">
+            {nome} · últimos {period} dias
+          </p>
         </div>
-
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <Button
-            onClick={handleCopiarLink}
-            variant="outline"
-            size="sm"
-            className="rounded-xl text-xs font-semibold h-8 flex-1 sm:flex-initial cursor-pointer"
-          >
-            {copiado ? <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-success" /> : <Share className="w-3.5 h-3.5 mr-1 text-muted-foreground" />}
-            {copiado ? 'Link Copiado!' : 'Copiar Link'}
+          <Button onClick={handleCopiarLink} variant="outline" size="sm">
+            {copiado ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <Share className="w-3.5 h-3.5" />}
+            {copiado ? 'Link copiado' : 'Copiar link'}
           </Button>
-
-          <Button
-            onClick={handleImprimir}
-            variant="primary"
-            size="sm"
-            className="rounded-xl text-xs font-bold bg-lime text-lime-foreground hover:bg-lime/90 border border-black/10 h-8 flex-1 sm:flex-initial cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5 mr-1" />
+          <Button onClick={() => window.print()} variant="lime" size="sm">
+            <Printer className="w-3.5 h-3.5" />
             Salvar PDF
           </Button>
         </div>
       </header>
 
-      {/* Conteúdo Principal do Relatório — Responsivo de Mobile até Ultrawide */}
-      <main className="print-container max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] mx-auto px-3 sm:px-6 md:px-8 pt-6 sm:pt-8 flex flex-col gap-8">
-        {/* Banner de Boas-Vindas e Apresentação do Mês */}
-        <div className="print-card p-5 sm:p-6 rounded-3xl bg-secondary border border-brand-ring text-foreground shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-brand-text" />
-              <span className="text-xs font-bold uppercase tracking-widest font-mono">
-                Documento Oficial de Resultados
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-3xl font-bold font-display tracking-tight mt-1">
-              Desempenho Estratégico · {clienteNome}
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-3xl">
-              Análise comparativa oficial consolidada de <strong className="capitalize">{mainMonthLabel}</strong> em relação a <strong className="capitalize">{compMonthLabel}</strong>. Todas as métricas são extraídas diretamente dos servidores oficiais da Meta.
-            </p>
-          </div>
-
-          <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
-            <span className="text-xs font-mono text-muted-foreground">Agência de Crescimento:</span>
-            <span className="text-xs font-bold font-mono bg-primary/20 text-primary px-3 py-1 rounded-xl shadow-2xs border border-primary/30">
-              AGÊNCIA GENS ✳
-            </span>
-          </div>
-        </div>
-
-        {/* 1. Bento Grid das 4 Métricas Chave do Período */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-4 gap-4">
-          <div className="print-card p-5 rounded-3xl bg-card border border-border shadow-2xs flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
-                Contas Alcançadas (Alcance)
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold border border-primary/30">
-                <TrendingUp className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">209.432</div>
-              <p className="text-xs text-success font-bold font-mono mt-1 flex items-center gap-1">
-                <ArrowUpRight className="w-3.5 h-3.5" /> +14.2% vs mês anterior
+      <main className="max-w-6xl mx-auto px-3 sm:px-6 md:px-8 pt-6 sm:pt-8 flex flex-col gap-6">
+        <section className="print-card p-5 sm:p-6 rounded-3xl bg-secondary border border-brand-ring flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            {dados?.account.profile_picture_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={dados.account.profile_picture_url} alt="" className="size-14 rounded-full border border-border object-cover shrink-0" />
+            ) : (
+              <div className="size-14 rounded-full bg-card border border-border shrink-0" />
+            )}
+            <div className="min-w-0">
+              <h2 className="text-xl sm:text-2xl font-semibold font-display tracking-tight">{nome}</h2>
+              <p className="text-sm text-muted-foreground">
+                {dados?.account.username ? `@${dados.account.username} · ` : ''}
+                <span className="capitalize">{intervalo}</span>
               </p>
             </div>
           </div>
+          <p className="text-xs text-muted-foreground sm:text-right max-w-xs">
+            Números consultados na Meta (Instagram) {dados ? `em ${new Date(dados.geradoEm).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}` : 'agora'}.
+          </p>
+        </section>
 
-          <div className="print-card p-5 rounded-3xl bg-card border border-border shadow-2xs flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
-                Interações Totais
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-destructive-soft text-destructive flex items-center justify-center">
-                <Heart className="w-4 h-4" />
+        {erro ? (
+          <EstadoCard icon={AlertTriangle} titulo="Não conseguimos carregar os números agora" texto={erro} />
+        ) : !dados ? (
+          <CarregandoRelatorio />
+        ) : (
+          <>
+            {dados.metrics.error && (
+              <div className="print-card p-3.5 rounded-2xl bg-warning-soft border border-warning-ring text-warning text-sm flex gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>Parte dos insights da conta não foi devolvida pela Meta ({dados.metrics.error}). Os demais números estão completos.</span>
               </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">926</div>
-              <p className="text-xs text-success font-bold font-mono mt-1 flex items-center gap-1">
-                <ArrowUpRight className="w-3.5 h-3.5" /> +18.7% vs mês anterior
-              </p>
-            </div>
-          </div>
+            )}
 
-          <div className="print-card p-5 rounded-3xl bg-card border border-border shadow-2xs flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
-                Total de Seguidores
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-info-soft text-info flex items-center justify-center">
-                <Users className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">14.850</div>
-              <p className="text-xs text-success font-bold font-mono mt-1 flex items-center gap-1">
-                <ArrowUpRight className="w-3.5 h-3.5" /> +137 novos seguidores
-              </p>
-            </div>
-          </div>
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <Kpi icon={TrendingUp} label="Contas alcançadas" valor={fmt(dados.metrics.reach_total)} nota={`Soma diária dos últimos ${dados.period} dias`} />
+              <Kpi icon={Eye} label="Visitas ao perfil" valor={fmt(dados.metrics.profile_views_total)} nota="Visualizações da página do perfil" />
+              <Kpi
+                icon={Users}
+                label="Seguidores"
+                valor={fmt(dados.account.followers_count)}
+                nota={
+                  ganhoSeguidores === null
+                    ? 'Evolução indisponível para esta conta'
+                    : `${ganhoSeguidores >= 0 ? '+' : ''}${nf.format(ganhoSeguidores)} no período`
+                }
+                notaTom={ganhoSeguidores === null ? undefined : ganhoSeguidores >= 0 ? 'success' : 'destructive'}
+              />
+              <Kpi
+                icon={Heart}
+                label="Taxa de engajamento"
+                valor={dados.content.summary.reachTotal > 0 ? `${dados.content.summary.engagementRate.toLocaleString('pt-BR')}%` : '—'}
+                nota="Interações ÷ alcance de posts e reels"
+              />
+            </section>
 
-          <div className="print-card p-5 rounded-3xl bg-card border border-border shadow-2xs flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
-                Visitas ao Perfil (Bio)
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-chart-4/10 text-chart-4 flex items-center justify-center">
-                <Eye className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">2.624</div>
-              <p className="text-xs text-success font-bold font-mono mt-1 flex items-center gap-1">
-                <ArrowUpRight className="w-3.5 h-3.5" /> +24.4% vs mês anterior
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Visualizações por Formato (Reels, Feed, Stories) & Interações Detalhadas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-2 gap-6">
-          {/* Card A: Visualizações por Formato */}
-          <div className="print-card p-5 sm:p-6 rounded-3xl bg-card border border-border shadow-2xs flex flex-col gap-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
+            <Card padding="lg" className="print-card flex flex-col gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                  <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
-                    Visualizações dos Conteúdos por Formato
-                  </h3>
+                <h3 className="text-base font-semibold font-display">Alcance diário</h3>
+                <p className="text-xs text-muted-foreground">Contas alcançadas e visitas ao perfil, dia a dia.</p>
+              </div>
+              <LineChart
+                height={200}
+                emptyMessage="A Meta ainda não devolveu insights diários para esta conta no período."
+                series={[
+                  { name: 'Alcance', color: 'var(--chart-1)', points: dados.metrics.daily.map((d) => ({ date: d.date, value: d.reach })) },
+                  { name: 'Visitas ao perfil', color: 'var(--chart-2)', points: dados.metrics.daily.map((d) => ({ date: d.date, value: d.profile_views })) },
+                ]}
+              />
+            </Card>
+
+            <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <Formato icon={ImageIcon} nome="Posts e carrosséis" stats={dados.content.summary.byFormat?.posts} count={dados.content.summary.posts} />
+              <Formato icon={Video} nome="Reels" stats={dados.content.summary.byFormat?.reels} count={dados.content.summary.reels} />
+              <Formato
+                icon={Sparkles}
+                nome="Stories"
+                stats={dados.content.summary.byFormat?.stories}
+                count={dados.content.summary.stories}
+                nota="Só stories publicados pelo GENSBot — a Meta não guarda histórico de stories."
+              />
+            </section>
+
+            <Card padding="lg" className="print-card flex flex-col gap-4">
+              <div>
+                <h3 className="text-base font-semibold font-display">Publicações com melhor desempenho</h3>
+                <p className="text-xs text-muted-foreground">Ordenadas por alcance + interações no período.</p>
+              </div>
+              {dados.content.topPublications.length === 0 ? (
+                <EstadoCard icon={BarChart3} titulo="Nenhuma publicação no período" texto={`Não houve posts ou reels nos últimos ${dados.period} dias.`} compacto />
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {dados.content.topPublications.map((p) => (
+                    <article key={p.id} className="print-card rounded-2xl border border-border overflow-hidden bg-card flex flex-col">
+                      <div className="relative aspect-[4/5] bg-muted">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {p.media_url && <img src={p.media_url} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />}
+                        <span className="absolute top-2 left-2 text-[11px] font-semibold bg-black/60 text-white px-2 py-0.5 rounded-full">
+                          {tipoLabel(p.media_type)}
+                        </span>
+                      </div>
+                      <div className="p-3 flex flex-col gap-2">
+                        <p className="text-xs text-muted-foreground line-clamp-2 min-h-8">{p.caption || 'Sem legenda'}</p>
+                        <div className="flex items-center justify-between text-xs tabular-nums">
+                          <span>
+                            <strong className="text-foreground">{fmt(p.reach)}</strong> <span className="text-muted-foreground">alcance</span>
+                          </span>
+                          <span>
+                            <strong className="text-foreground">{fmt(p.interactions)}</strong> <span className="text-muted-foreground">interações</span>
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{dataCurta(p.published_at)}</span>
+                      </div>
+                    </article>
+                  ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Comparativo de impressões e proporções entre Seguidores vs Não-Seguidores
-                </p>
-              </div>
-              <Badge variant="muted" className="font-mono text-xs font-bold self-start sm:self-auto bg-primary/15 text-primary border-primary/30">
-                Total: 204.960 views
-              </Badge>
-            </div>
+              )}
+            </Card>
+          </>
+        )}
 
-            <div className="flex flex-col gap-3.5">
-              {[
-                { name: 'Stories (24h)', views: '159.210 views', prevViews: '135.000', pct: '77.6%', seg: 82, nseg: 18, color: 'bg-success', icon: Sparkles, diff: '+17.9%' },
-                { name: 'Reels (Vídeo 9:16)', views: '31.450 views', prevViews: '22.100', pct: '15.3%', seg: 12, nseg: 88, color: 'bg-chart-4', icon: Video, diff: '+42.3%' },
-                { name: 'Publicações Feed / Carrossel', views: '14.300 views', prevViews: '11.200', pct: '7.1%', seg: 45, nseg: 55, color: 'bg-info', icon: ImageIcon, diff: '+27.6%' },
-              ].map((f) => {
-                const IconComp = f.icon;
-                return (
-                  <div key={f.name} className="p-4 rounded-2xl bg-accent/25 border border-border flex flex-col gap-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-xl ${f.color}/15 text-foreground flex items-center justify-center font-bold`}>
-                          <IconComp className="w-4 h-4 text-foreground" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-foreground">{f.name}</h4>
-                          <span className="text-xs text-muted-foreground font-mono">{f.pct} do tráfego total</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs font-bold font-mono text-foreground">{f.views}</span>
-                        <span className="text-xs text-success font-mono font-bold block">{f.diff} vs anterior</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5 pt-1">
-                      <div className="h-2 w-full bg-accent rounded-full overflow-hidden flex">
-                        <div style={{ width: `${f.seg}%` }} className="bg-chart-1 h-full" title={`Seguidores: ${f.seg}%`} />
-                        <div style={{ width: `${f.nseg}%` }} className="bg-chart-2 h-full" title={`Não-Seguidores: ${f.nseg}%`} />
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full bg-chart-1" /> Seguidores ({f.seg}%)
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full bg-chart-2" /> Não-Seguidores ({f.nseg}%)
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Card B: Interações & Ações no Perfil */}
-          <div className="print-card p-5 sm:p-6 rounded-3xl bg-card border border-border shadow-2xs flex flex-col justify-between gap-5">
-            <div>
-              <div className="flex items-center justify-between border-b border-border pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-destructive" />
-                    <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
-                      Interações Detalhadas & Ações no Perfil
-                    </h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Engajamento gerado nas mídias e conversão de acessos à bio
-                  </p>
-                </div>
-              </div>
-
-              {/* Grid de Interações */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-4">
-                {[
-                  { label: 'Curtidas', total: 565, icon: Heart, color: 'text-destructive bg-destructive-soft' },
-                  { label: 'Comentários', total: 34, icon: MessageCircle, color: 'text-info bg-info-soft' },
-                  { label: 'Compartilhamentos', total: 290, icon: Share2, color: 'text-success bg-success-soft' },
-                  { label: 'Republicações', total: 31, icon: Repeat, color: 'text-chart-4 bg-chart-4/10' },
-                  { label: 'Salvamentos', total: 6, icon: Bookmark, color: 'text-warning bg-warning-soft' },
-                ].map((item) => {
-                  const IconComp = item.icon;
-                  return (
-                    <div key={item.label} className="p-3 rounded-2xl bg-accent/25 border border-border flex flex-col justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-lg ${item.color} flex items-center justify-center shrink-0`}>
-                          <IconComp className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-xs font-bold text-foreground truncate">{item.label}</span>
-                      </div>
-                      <span className="text-base font-mono font-bold text-foreground">{item.total.toLocaleString('pt-BR')}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Ações na Bio */}
-              <div className="flex flex-col gap-2 pt-4">
-                <span className="text-xs font-bold uppercase font-mono text-muted-foreground">Ações no Perfil (Bio)</span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="p-3 rounded-2xl bg-accent/30 border border-border flex items-center justify-between text-xs">
-                    <span className="font-medium text-foreground flex items-center gap-2">
-                      <Eye className="w-3.5 h-3.5 text-muted-foreground" /> Visitas ao Perfil
-                    </span>
-                    <span className="font-mono font-bold text-foreground">2.624</span>
-                  </div>
-                  <div className="p-3 rounded-2xl bg-accent/30 border border-border flex items-center justify-between text-xs">
-                    <span className="font-medium text-foreground flex items-center gap-2">
-                      <Link2 className="w-3.5 h-3.5 text-primary" /> Toques no Link da Bio
-                    </span>
-                    <span className="font-mono font-bold text-foreground">35</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-secondary border border-brand-ring text-xs text-foreground font-medium leading-relaxed flex items-center gap-2">
-              <Zap className="w-4 h-4 text-brand-text shrink-0" />
-              <span>
-                <strong>Estratégia GENS:</strong> Os Reels trouxeram 88% de novos não-seguidores. Recomendamos manter 3 postagens no Reels por semana nos horários de pico.
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Destaques de Mídias (Top Posts do Período) — Grid Flexível Ultrawide (2xl:grid-cols-4) */}
-        <div className="print-card rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-2xs flex flex-col gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <Award className="w-4 h-4 text-warning" />
-                <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
-                  Posts em Destaque Durante o Período
-                </h3>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Mídias de maior alcance, retenção de audiência e conversão de novos seguidores
-              </p>
-            </div>
-            <Badge variant="muted" className="font-mono text-xs bg-warning-soft text-warning border-warning-ring self-start sm:self-auto font-bold">
-              Ranking Oficial Meta
-            </Badge>
-          </div>
-
-          {carregandoPosts ? (
-            <div className="py-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary animate-spin" /> Carregando mídias do cliente...
-            </div>
-          ) : postsDestaque.length === 0 ? (
-            <div className="py-8 px-4 text-center rounded-2xl bg-accent/30 border border-border flex flex-col items-center justify-center gap-1.5">
-              <Award className="w-6 h-6 text-muted-foreground" />
-              <p className="text-xs font-bold text-foreground">Nenhum conteúdo publicado ou agendado no período</p>
-              <p className="text-xs text-muted-foreground">Os conteúdos postados pelo cliente aparecerão automaticamente neste ranking.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-4 gap-4">
-              {postsDestaque.map((pub, idx) => {
-                const isReels = pub.tipo === 'Reels';
-                const isStory = pub.tipo === 'Story';
-                const IconKind = isReels ? Video : isStory ? Smartphone : ImageIcon;
-
-                return (
-                  <div
-                    key={pub.id || idx}
-                    className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-foreground/30 transition-all shadow-2xs"
-                  >
-                    <div className="relative aspect-video sm:aspect-square w-full bg-accent overflow-hidden">
-                      {pub.url ? (
-                        <img src={pub.url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-accent/60 flex items-center justify-center text-muted-foreground text-xs font-mono">
-                          Mídia da Demanda
-                        </div>
-                      )}
-
-                      <div className="absolute top-2 left-2">
-                        <span className="px-2.5 py-1 rounded-lg bg-lime text-lime-foreground text-xs font-bold font-mono shadow-xs flex items-center gap-1 border border-black/10">
-                          <UserPlus className="w-3 h-3" /> +{pub.followersGained} seg
-                        </span>
-                      </div>
-
-                      <div className="absolute top-2 right-2">
-                        <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-[11px] font-bold font-mono">
-                          #{idx + 1}
-                        </span>
-                      </div>
-
-                      <div className="absolute bottom-2 left-2">
-                        <span className="px-2 py-0.5 rounded-md bg-black/75 text-white text-[11px] font-mono font-bold flex items-center gap-1">
-                          <IconKind className="w-2.5 h-2.5" /> {pub.tipo}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-3.5 flex flex-col justify-between gap-3 flex-1 text-xs">
-                      <p className="font-semibold text-foreground line-clamp-2 leading-snug">
-                        {pub.caption}
-                      </p>
-
-                      <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border text-xs font-mono text-muted-foreground">
-                        <div>
-                          <span>Alcance:</span>
-                          <p className="font-bold text-foreground text-xs">{pub.reach.toLocaleString('pt-BR')}</p>
-                        </div>
-                        <div>
-                          <span>Taxa Engaj.:</span>
-                          <p className="font-bold text-success text-xs">{pub.engRate}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* 4. Tabela Completa do Comparativo Mês a Mês (com scroll horizontal seguro no mobile) */}
-        <div className="print-card rounded-3xl border border-brand-ring bg-card p-5 sm:p-6 shadow-2xs flex flex-col gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
-            <div>
-              <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
-                Tabela Comparativa Consolidada: <span className="capitalize">{mainMonthLabel}</span> vs <span className="capitalize">{compMonthLabel}</span>
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Evolução comparada ponto a ponto em todas as métricas essenciais da conta
-              </p>
-            </div>
-            <Badge variant="info" className="bg-primary/15 text-primary border-primary/30 font-bold text-xs self-start sm:self-auto">
-              Crescimento Geral Positivo 📈
-            </Badge>
-          </div>
-
-          <div className="overflow-x-auto select-none rounded-2xl border border-border">
-            <table className="w-full text-left text-xs min-w-[600px]">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground font-mono text-xs uppercase bg-accent/30">
-                  <th className="py-3 px-4">Métrica Chave</th>
-                  <th className="py-3 px-4 capitalize">{mainMonthLabel}</th>
-                  <th className="py-3 px-4 capitalize">{compMonthLabel}</th>
-                  <th className="py-3 px-4">Diferença Absoluta</th>
-                  <th className="py-3 px-4 text-right">Variação %</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border font-medium">
-                {[
-                  { m: 'Postagens (Volume de Mídias)', v1: '24 mídias', v2: '18 mídias', diff: '+6 mídias', pct: '+33.3%' },
-                  { m: 'Engajamento & Interações Totais', v1: '926 interações', v2: '780 interações', diff: '+146 interações', pct: '+18.7%' },
-                  { m: 'Taxa Média de Engajamento', v1: '4.8%', v2: '4.1%', diff: '+0.7%', pct: '+17.0%' },
-                  { m: 'Contas Alcançadas (Alcance)', v1: '209.432 contas', v2: '183.350 contas', diff: '+26.082 contas', pct: '+14.2%' },
-                  { m: 'Visitas ao Perfil (Bio)', v1: '2.624 visitas', v2: '2.110 visitas', diff: '+514 visitas', pct: '+24.4%' },
-                  { m: 'Novos Seguidores Líquidos', v1: '+137 seg', v2: '+85 seg', diff: '+52 seg', pct: '+61.2%' },
-                  { m: 'Visualizações de Stories', v1: '159.210 views', v2: '135.000 views', diff: '+24.210 views', pct: '+17.9%' },
-                  { m: 'Visualizações de Reels', v1: '31.450 views', v2: '22.100 views', diff: '+9.350 views', pct: '+42.3%' },
-                  { m: 'Toques no Link da Bio', v1: '35 cliques', v2: '24 cliques', diff: '+11 cliques', pct: '+45.8%' },
-                ].map((row, idx) => (
-                  <tr key={idx} className="hover:bg-accent/40 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-foreground">{row.m}</td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-foreground">{row.v1}</td>
-                    <td className="py-3.5 px-4 font-mono text-muted-foreground">{row.v2}</td>
-                    <td className="py-3.5 px-4 font-mono text-success font-semibold">{row.diff}</td>
-                    <td className="py-3.5 px-4 text-right">
-                      <span className="inline-flex items-center gap-1 font-mono font-bold px-2.5 py-1 rounded-lg bg-lime text-lime-foreground">
-                        <ArrowUpRight className="w-3 h-3" />
-                        {row.pct}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 5. Demografia & Horários de Maior Atividade */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="print-card p-5 sm:p-6 rounded-3xl bg-card border border-border shadow-2xs flex flex-col gap-3">
-            <h4 className="text-sm font-bold font-display text-foreground flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-primary" /> Demografia do Público Alcançado
-            </h4>
-            <div className="flex flex-col gap-2 pt-2 text-xs">
-              <div className="p-3 rounded-2xl bg-accent/30 flex items-center justify-between font-semibold">
-                <span>Gênero Predominante:</span>
-                <span className="font-mono text-foreground font-bold">62% Mulheres / 38% Homens</span>
-              </div>
-              <div className="p-3 rounded-2xl bg-accent/30 flex items-center justify-between font-semibold">
-                <span>Faixa Etária Principal:</span>
-                <span className="font-mono text-foreground font-bold">35-44 anos (34.5%) e 25-34 anos (34.2%)</span>
-              </div>
-              <div className="p-3 rounded-2xl bg-accent/30 flex items-center justify-between font-semibold">
-                <span>Principais Cidades:</span>
-                <span className="font-mono text-foreground font-bold">São Paulo (28%), Rio de Janeiro (12%)</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="print-card p-5 sm:p-6 rounded-3xl bg-card border border-border shadow-2xs flex flex-col gap-3">
-            <h4 className="text-sm font-bold font-display text-foreground flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" /> Horários & Dias de Maior Atividade
-            </h4>
-            <div className="p-3.5 rounded-2xl bg-secondary border border-brand-ring text-foreground text-xs font-semibold">
-              ⏰ Pico de Seguidores Online: <strong>18:00h às 21:00h</strong>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-              Dias da semana com maior taxa de resposta e visualizações conectadas: <strong>Segunda, Terça e Quinta-feira</strong>.
-            </p>
-          </div>
-        </div>
-
-        {/* Rodapé da Agência GENS */}
-        <footer className="border-t border-border pt-6 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
-          <p className="font-semibold text-foreground">Agência GENS · Gestão & Performance Estratégica no Instagram</p>
-          <p className="text-xs">Relatório comparativo oficial gerado em {new Date().toLocaleDateString('pt-BR')}</p>
+        <footer className="text-center text-xs text-muted-foreground mt-4">
+          Relatório gerado pela Agência GENS a partir dos dados oficiais da Meta. A Meta guarda insights de conta por até 90 dias.
         </footer>
       </main>
+    </div>
+  );
+}
+
+function Kpi({
+  icon: Icon,
+  label,
+  valor,
+  nota,
+  notaTom,
+}: {
+  icon: React.ElementType;
+  label: string;
+  valor: string;
+  nota: string;
+  notaTom?: 'success' | 'destructive';
+}) {
+  return (
+    <Card padding="md" className="print-card flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <Icon aria-hidden className="w-4 h-4 text-muted-foreground" />
+      </div>
+      <span className="text-display font-semibold font-display tabular-nums leading-none">{valor}</span>
+      <span className={`text-xs ${notaTom === 'success' ? 'text-success' : notaTom === 'destructive' ? 'text-destructive' : 'text-muted-foreground'}`}>{nota}</span>
+    </Card>
+  );
+}
+
+function Formato({
+  icon: Icon,
+  nome,
+  stats,
+  count,
+  nota,
+}: {
+  icon: React.ElementType;
+  nome: string;
+  stats?: FormatStats;
+  count: number;
+  nota?: string;
+}) {
+  return (
+    <Card padding="md" className="print-card flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <Icon aria-hidden className="w-4 h-4 text-muted-foreground" />
+        <h3 className="text-sm font-semibold">{nome}</h3>
+      </div>
+      <div className="grid grid-cols-3 gap-2 tabular-nums">
+        <div>
+          <div className="text-title font-semibold">{fmt(count)}</div>
+          <div className="text-xs text-muted-foreground">publicados</div>
+        </div>
+        <div>
+          <div className="text-title font-semibold">{fmt(stats?.reach)}</div>
+          <div className="text-xs text-muted-foreground">alcance</div>
+        </div>
+        <div>
+          <div className="text-title font-semibold">{fmt(stats?.interactions)}</div>
+          <div className="text-xs text-muted-foreground">interações</div>
+        </div>
+      </div>
+      {nota && <p className="text-xs text-muted-foreground">{nota}</p>}
+    </Card>
+  );
+}
+
+function CarregandoRelatorio() {
+  return (
+    <div role="status" aria-label="Carregando relatório" className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-32 rounded-2xl" />
+        ))}
+      </div>
+      <Skeleton className="h-64 rounded-2xl" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-32 rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EstadoCard({ icon: Icon, titulo, texto, compacto }: { icon: React.ElementType; titulo: string; texto: string; compacto?: boolean }) {
+  return (
+    <div className={`flex flex-col items-center text-center gap-3 ${compacto ? 'py-8' : 'py-16'}`}>
+      <div className="grid place-items-center size-12 rounded-2xl bg-muted ring-1 ring-inset ring-border text-muted-foreground">
+        <Icon aria-hidden className="size-5" />
+      </div>
+      <h3 className="text-base font-semibold">{titulo}</h3>
+      <p className="text-sm text-muted-foreground max-w-md">{texto}</p>
+    </div>
+  );
+}
+
+function EstadoTela(props: { icon: React.ElementType; titulo: string; texto: string }) {
+  return (
+    <div className="min-h-screen bg-background text-foreground grid place-items-center p-6">
+      <Card padding="lg" className="max-w-md w-full">
+        <EstadoCard {...props} />
+      </Card>
     </div>
   );
 }
