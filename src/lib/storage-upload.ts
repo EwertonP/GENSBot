@@ -35,6 +35,13 @@ export async function uploadMediaFile(
   file: File,
   folder: string = 'uploads'
 ): Promise<UploadResult> {
+  if (file.size > 50 * 1024 * 1024) {
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    throw new Error(
+      `O arquivo "${file.name}" tem ${sizeMb} MB e excede o limite de 50 MB do Supabase. Use o "Comprimir_Reels.bat" na Área de Trabalho para otimizar o vídeo antes de enviar.`
+    );
+  }
+
   const supabase = createSupabaseBrowserClient();
   const isVideo = file.type.startsWith('video') || /\.(mp4|mov|webm|avi|mkv)$/i.test(file.name);
   const cleanName = sanitizeFileName(file.name);
@@ -59,3 +66,40 @@ export async function uploadMediaFile(
     tamanho: file.size,
   };
 }
+
+/**
+ * Remove arquivos do Supabase Storage bucket 'post-media' a partir da lista de arquivos da demanda.
+ * Libera espaço no plano Free assim que o post é publicado.
+ */
+export async function cleanupStorageMedia(
+  supabaseClient: any,
+  arquivos: any[] | null | undefined
+): Promise<string[]> {
+  if (!arquivos || !Array.isArray(arquivos) || arquivos.length === 0) return [];
+
+  const pathsToDelete: string[] = [];
+  for (const item of arquivos) {
+    if (!item?.url || typeof item.url !== 'string') continue;
+    // URL ex.: https://ecahlegiaqikxnkdifhn.supabase.co/storage/v1/object/public/post-media/uploads/123.png
+    const match = item.url.match(/\/post-media\/(.+)$/);
+    if (match && match[1]) {
+      pathsToDelete.push(decodeURIComponent(match[1]));
+    }
+  }
+
+  if (pathsToDelete.length > 0) {
+    try {
+      const { error } = await supabaseClient.storage.from('post-media').remove(pathsToDelete);
+      if (error) {
+        console.error('Erro ao remover mídias do storage:', error);
+      } else {
+        console.log(`[Storage Cleanup] ${pathsToDelete.length} arquivo(s) removido(s) do bucket post-media:`, pathsToDelete);
+      }
+    } catch (err) {
+      console.error('Exceção ao limpar mídias do storage:', err);
+    }
+  }
+
+  return pathsToDelete;
+}
+

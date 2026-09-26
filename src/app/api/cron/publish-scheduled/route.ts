@@ -132,13 +132,24 @@ async function handlePublishScheduled(req: Request) {
             atualizado_em: publishedAt,
           })
           .eq('scheduled_post_id', post.id)
-          .select('id, notion_page_id');
+          .select('id, notion_page_id, arquivos');
 
         if (updatedConteudo && updatedConteudo.length > 0) {
-          const { updateNotionPageStatus } = await import('@/lib/notion');
+          const { updateNotionPageStatus, archiveNotionPage } = await import('@/lib/notion');
+          const { cleanupStorageMedia } = await import('@/lib/storage-upload');
+
           for (const item of updatedConteudo) {
+            if (item.arquivos) {
+              await cleanupStorageMedia(supabase, item.arquivos).catch(() => {});
+            }
             if (item.notion_page_id) {
               await updateNotionPageStatus(item.notion_page_id, ['Publicado', 'Postado', 'Concluído']).catch(() => {});
+              await archiveNotionPage(item.notion_page_id).catch(() => {});
+            }
+            try {
+              await supabase.from('conteudo_items').update({ arquivos: [] }).eq('id', item.id);
+            } catch {
+              // ignora erro silencioso
             }
           }
         }
