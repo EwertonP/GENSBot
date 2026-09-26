@@ -30,11 +30,14 @@ import {
   Palette,
   Bell,
   HelpCircle,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import type { Form, FormField, FormFieldType, FormTemaConfig } from '@/types/form';
 import FormPlayer from './form-player';
 import { toast } from '@/components/ui/toast';
 import { confirmDialog } from '@/components/ui/dialog';
+import { isColorDark, getOptimalTextColor } from '@/lib/form-engine';
 
 interface FormBuilderProps {
   formId: string;
@@ -44,31 +47,76 @@ interface FormBuilderProps {
 
 const LETRAS_OPCOES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 
-const TEMA_PRESETS = [
+const TEMA_PRESETS: {
+  nome: string;
+  config: FormTemaConfig;
+  badge: string;
+}[] = [
   {
-    nome: 'Esmeralda Clínico',
-    config: { cor_primaria: '#059669', cor_fundo: '#ffffff', cor_texto: '#09090b', cor_card: '#f4f4f5' },
+    nome: 'Esmeralda Clínico (Claro)',
+    config: {
+      cor_primaria: '#059669',
+      cor_fundo: '#ffffff',
+      cor_texto: '#09090b',
+      cor_card: '#f4f4f5',
+      modo: 'light',
+    },
     badge: 'bg-emerald-600',
   },
   {
-    nome: 'Obsidian Dark',
-    config: { cor_primaria: '#10b981', cor_fundo: '#09090b', cor_texto: '#fafafa', cor_card: '#18181b' },
-    badge: 'bg-zinc-900 border border-zinc-700',
+    nome: 'Obsidian Pro (Escuro)',
+    config: {
+      cor_primaria: '#10b981',
+      cor_fundo: '#09090b',
+      cor_texto: '#f4f4f5',
+      cor_card: '#18181b',
+      modo: 'dark',
+    },
+    badge: 'bg-zinc-950 border border-emerald-500/40',
   },
   {
-    nome: 'Rose Gold / Dermato',
-    config: { cor_primaria: '#e11d48', cor_fundo: '#fff1f2', cor_texto: '#881337', cor_card: '#ffe4e6' },
+    nome: 'Rose Gold / Dermato (Claro)',
+    config: {
+      cor_primaria: '#e11d48',
+      cor_fundo: '#fff1f2',
+      cor_texto: '#881337',
+      cor_card: '#ffe4e6',
+      modo: 'light',
+    },
     badge: 'bg-rose-500',
   },
   {
-    nome: 'Champagne Nude',
-    config: { cor_primaria: '#d97706', cor_fundo: '#fefce8', cor_texto: '#451a03', cor_card: '#fef9c3' },
+    nome: 'Cyberpunk Neon (Escuro)',
+    config: {
+      cor_primaria: '#06b6d4',
+      cor_fundo: '#0a0f1d',
+      cor_texto: '#f0fdfa',
+      cor_card: '#111827',
+      modo: 'dark',
+    },
+    badge: 'bg-cyan-500 border border-cyan-400',
+  },
+  {
+    nome: 'Champagne Nude (Claro)',
+    config: {
+      cor_primaria: '#d97706',
+      cor_fundo: '#fefce8',
+      cor_texto: '#451a03',
+      cor_card: '#fef9c3',
+      modo: 'light',
+    },
     badge: 'bg-amber-600',
   },
   {
-    nome: 'Lavanda Tech',
-    config: { cor_primaria: '#7c3aed', cor_fundo: '#faf5ff', cor_texto: '#3b0764', cor_card: '#f3e8ff' },
-    badge: 'bg-purple-600',
+    nome: 'Midnight Lavanda (Escuro)',
+    config: {
+      cor_primaria: '#a855f7',
+      cor_fundo: '#0f0c1b',
+      cor_texto: '#faf5ff',
+      cor_card: '#1e1933',
+      modo: 'dark',
+    },
+    badge: 'bg-purple-600 border border-purple-400',
   },
 ];
 
@@ -481,7 +529,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                 </div>
                 <div className="w-10" />
               </div>
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto" style={{ backgroundColor: form.tema_config?.cor_fundo || '#ffffff' }}>
                 <FormPlayer form={previewForm} isPreview={true} />
               </div>
             </div>
@@ -492,7 +540,10 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
               <div className="w-24 h-5 rounded-full bg-black mx-auto mb-2 shrink-0 flex items-center justify-center">
                 <div className="w-2 h-2 rounded-full bg-zinc-900 mr-2" />
               </div>
-              <div className="flex-1 rounded-[38px] overflow-hidden bg-white dark:bg-zinc-900 flex flex-col">
+              <div
+                className="flex-1 rounded-[38px] overflow-hidden flex flex-col"
+                style={{ backgroundColor: form.tema_config?.cor_fundo || '#ffffff' }}
+              >
                 <FormPlayer form={previewForm} isPreview={true} />
               </div>
             </div>
@@ -650,6 +701,73 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
             {/* ABA 2: TEMA & PALETAS LUXURY */}
             {activeTab === 'tema' && (
               <div className="space-y-5">
+                {/* Seletor de Modo de Contraste */}
+                <div>
+                  <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-2">
+                    Modo de Contraste
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          tema_config: { ...form.tema_config, modo: 'auto' },
+                        })
+                      }
+                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        !form.tema_config?.modo || form.tema_config.modo === 'auto'
+                          ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
+                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                      }`}
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span>Auto</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          tema_config: { ...form.tema_config, modo: 'light' },
+                        })
+                      }
+                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        form.tema_config?.modo === 'light'
+                          ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
+                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                      }`}
+                    >
+                      <Sun className="w-3 h-3" />
+                      <span>Claro</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          tema_config: { ...form.tema_config, modo: 'dark' },
+                        })
+                      }
+                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        form.tema_config?.modo === 'dark'
+                          ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
+                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                      }`}
+                    >
+                      <Moon className="w-3 h-3" />
+                      <span>Escuro</span>
+                    </button>
+                  </div>
+                  <span className="text-3xs text-zinc-400 mt-1 block px-1">
+                    {!form.tema_config?.modo || form.tema_config.modo === 'auto'
+                      ? 'Calcula contraste WCAG automaticamente pela luminância da cor de fundo.'
+                      : form.tema_config.modo === 'light'
+                      ? 'Força interface clara para este formulário.'
+                      : 'Força interface escura para este formulário.'}
+                  </span>
+                </div>
+
                 <div>
                   <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-2">
                     Paletas Predefinidas
@@ -682,7 +800,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                 <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-3">
                   <div>
                     <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
-                      Cor Primária
+                      Cor Primária (Destaques & Botão)
                     </label>
                     <div className="flex items-center gap-2">
                       <input
@@ -718,21 +836,71 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                       <input
                         type="color"
                         value={form.tema_config?.cor_fundo || '#ffffff'}
+                        onChange={(e) => {
+                          const newBg = e.target.value;
+                          const currentModo = form.tema_config?.modo;
+                          const autoTextColor =
+                            !currentModo || currentModo === 'auto'
+                              ? getOptimalTextColor(newBg)
+                              : form.tema_config?.cor_texto;
+                          setForm({
+                            ...form,
+                            tema_config: {
+                              ...form.tema_config,
+                              cor_fundo: newBg,
+                              cor_texto: autoTextColor || '#09090b',
+                            },
+                          });
+                        }}
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-zinc-200"
+                      />
+                      <input
+                        type="text"
+                        value={form.tema_config?.cor_fundo || '#ffffff'}
+                        onChange={(e) => {
+                          const newBg = e.target.value;
+                          const currentModo = form.tema_config?.modo;
+                          const autoTextColor =
+                            !currentModo || currentModo === 'auto'
+                              ? getOptimalTextColor(newBg)
+                              : form.tema_config?.cor_texto;
+                          setForm({
+                            ...form,
+                            tema_config: {
+                              ...form.tema_config,
+                              cor_fundo: newBg,
+                              cor_texto: autoTextColor || '#09090b',
+                            },
+                          });
+                        }}
+                        className="flex-1 text-xs font-mono uppercase p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+                      Cor do Texto Principal
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={form.tema_config?.cor_texto || '#09090b'}
                         onChange={(e) =>
                           setForm({
                             ...form,
-                            tema_config: { ...form.tema_config, cor_fundo: e.target.value },
+                            tema_config: { ...form.tema_config, cor_texto: e.target.value },
                           })
                         }
                         className="w-8 h-8 rounded-lg cursor-pointer border border-zinc-200"
                       />
                       <input
                         type="text"
-                        value={form.tema_config?.cor_fundo || '#ffffff'}
+                        value={form.tema_config?.cor_texto || '#09090b'}
                         onChange={(e) =>
                           setForm({
                             ...form,
-                            tema_config: { ...form.tema_config, cor_fundo: e.target.value },
+                            tema_config: { ...form.tema_config, cor_texto: e.target.value },
                           })
                         }
                         className="flex-1 text-xs font-mono uppercase p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent"

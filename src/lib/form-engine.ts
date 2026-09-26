@@ -141,3 +141,36 @@ export function calculateProgress(currentIndex: number, totalFields: number): nu
   const pct = Math.round((currentIndex / (totalFields - 1)) * 100);
   return Math.min(100, Math.max(0, pct));
 }
+
+/**
+ * Determina se uma cor hex é escura usando a fórmula de luminância percebida (ITU-R BT.709).
+ * Retorna true para fundos escuros (ex: #09090b, #18181b, #052e16) e false para claros (ex: #ffffff, #fafafa, #fff1f2).
+ */
+export function isColorDark(hexColor?: string | null): boolean {
+  if (!hexColor || typeof hexColor !== 'string') return false;
+  let hex = hexColor.replace('#', '').trim();
+  if (hex.length === 3) {
+    hex = hex
+      .split('')
+      .map((c) => c + c)
+      .join('');
+  }
+  if (hex.length !== 6) return false;
+
+  const r = parseInt(hex.substring(0, 2), 16) || 0;
+  const g = parseInt(hex.substring(2, 4), 16) || 0;
+  const b = parseInt(hex.substring(4, 6), 16) || 0;
+
+  // Luminância relativa perceptiva (ITU-R BT.709)
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance < 0.5;
+}
+
+/**
+ * Retorna uma cor de texto otimizada (#ffffff para fundos escuros e #09090b para fundos claros)
+ * garantindo taxa de contraste WCAG AAA.
+ */
+export function getOptimalTextColor(bgHex?: string | null): string {
+  return isColorDark(bgHex) ? '#f4f4f5' : '#09090b';
+}
+

@@ -22,6 +22,7 @@ import {
   formatWhatsAppMask,
   getNextFieldIndex,
   calculateProgress,
+  isColorDark,
 } from '@/lib/form-engine';
 import { uploadMediaFile } from '@/lib/storage-upload';
 
@@ -219,6 +220,12 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
     cor_card: '#f4f4f5',
   };
 
+  const isDark = useMemo(() => {
+    if (tema.modo === 'dark') return true;
+    if (tema.modo === 'light') return false;
+    return isColorDark(tema.cor_fundo);
+  }, [tema.modo, tema.cor_fundo]);
+
   const variants: any = {
     enter: (dir: 'forward' | 'backward') => ({
       y: dir === 'forward' ? 32 : -32,
@@ -249,14 +256,18 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
 
   return (
     <div
-      className="min-h-screen flex flex-col justify-between select-none relative font-sans transition-colors duration-500 overflow-x-hidden"
+      data-theme={isDark ? 'dark' : 'light'}
+      className={`min-h-screen flex flex-col justify-between select-none relative font-sans transition-colors duration-500 overflow-x-hidden ${
+        isDark ? 'dark bg-zinc-950 text-zinc-100' : 'bg-white text-zinc-900'
+      }`}
       style={{
-        backgroundColor: tema.cor_fundo || '#ffffff',
-        color: tema.cor_texto || '#09090b',
+        backgroundColor: tema.cor_fundo || (isDark ? '#09090b' : '#ffffff'),
+        color: tema.cor_texto || (isDark ? '#f4f4f5' : '#09090b'),
+        colorScheme: isDark ? 'dark' : 'light',
       }}
     >
       {/* Barra de Progresso Superior com Gradiente Suave */}
-      <div className="fixed top-0 left-0 right-0 h-1 bg-zinc-200/50 dark:bg-zinc-800/40 z-50 overflow-hidden">
+      <div className={`fixed top-0 left-0 right-0 h-1 z-50 overflow-hidden ${isDark ? 'bg-white/10' : 'bg-black/10'}`}>
         <motion.div
           className="h-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
           style={{ backgroundColor: tema.cor_primaria || '#10b981' }}
@@ -271,7 +282,9 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
           {tema.logo_url ? (
             <img src={tema.logo_url} alt="Logo" className="h-9 max-w-[160px] object-contain" />
           ) : form.cliente_nome ? (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/70 dark:border-zinc-700/60 shadow-2xs">
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border shadow-2xs ${
+              isDark ? 'bg-zinc-800/80 border-zinc-700/60 text-zinc-200' : 'bg-zinc-100/90 border-zinc-200/80 text-zinc-800'
+            }`}>
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tema.cor_primaria || '#10b981' }} />
               <span className="text-xs font-semibold tracking-wide uppercase opacity-80">
                 {form.cliente_nome}
@@ -281,7 +294,9 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
         </div>
 
         {currentField.tipo !== 'welcome' && currentField.tipo !== 'thank_you' && (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100/80 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/50 text-xs font-mono font-medium opacity-70">
+          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-mono font-medium opacity-80 ${
+            isDark ? 'bg-zinc-800/80 border-zinc-700/60 text-zinc-300' : 'bg-zinc-100/90 border-zinc-200/80 text-zinc-700'
+          }`}>
             <span>{currentIndex}</span>
             <span className="opacity-40">/</span>
             <span>{fields.length - 2 > 0 ? fields.length - 2 : fields.length}</span>
@@ -304,7 +319,9 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
             {/* 1. TELA DE BOAS-VINDAS */}
             {currentField.tipo === 'welcome' && (
               <div className="space-y-8 w-full py-4">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-xs font-bold uppercase tracking-wider">
+                <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider ${
+                  isDark ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/25'
+                }`}>
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Formulário Exclusivo</span>
                 </div>
@@ -320,7 +337,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs opacity-50 font-medium">
+                <div className="flex items-center gap-3 text-xs opacity-60 font-medium">
                   <Clock className="w-4 h-4" />
                   <span>Leva aproximadamente 1 a 2 minutos</span>
                 </div>
@@ -339,9 +356,11 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                     </div>
                   </button>
 
-                  <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-50 font-mono">
+                  <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-60 font-mono">
                     <span>pressione</span>
-                    <kbd className="px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700 font-bold shadow-2xs">
+                    <kbd className={`px-2 py-1 rounded-md border font-bold shadow-2xs ${
+                      isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'
+                    }`}>
                       Enter ↵
                     </kbd>
                   </div>
@@ -357,7 +376,9 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                   initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', damping: 15, stiffness: 250 }}
-                  className="inline-flex p-4 rounded-3xl bg-emerald-500/15 text-emerald-600 border border-emerald-500/25 shadow-inner"
+                  className={`inline-flex p-4 rounded-3xl border shadow-inner ${
+                    isDark ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-500/15 text-emerald-600 border-emerald-500/25'
+                  }`}
                 >
                   <Check className="w-10 h-10 stroke-[2.75]" />
                 </motion.div>
@@ -397,13 +418,15 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-2">
                     <span
-                      className="text-xs font-mono font-bold tracking-wider uppercase opacity-50"
+                      className="text-xs font-mono font-bold tracking-wider uppercase opacity-70"
                       style={{ color: tema.cor_primaria || '#10b981' }}
                     >
                       {String(currentIndex).padStart(2, '0')} →
                     </span>
                     {currentField.obrigatorio && (
-                      <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                      <span className={`text-2xs font-semibold px-2 py-0.5 rounded-full border ${
+                        isDark ? 'bg-rose-500/15 text-rose-400 border-rose-500/30' : 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                      }`}>
                         Obrigatório
                       </span>
                     )}
@@ -414,7 +437,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                   </h2>
 
                   {currentField.descricao && (
-                    <p className="text-sm sm:text-base opacity-65 leading-relaxed max-w-xl">
+                    <p className="text-sm sm:text-base opacity-70 leading-relaxed max-w-xl">
                       {currentField.descricao}
                     </p>
                   )}
@@ -430,7 +453,11 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                         value={currentAnswer || ''}
                         onChange={(e) => handleSetAnswer(e.target.value)}
                         placeholder={currentField.placeholder || 'Digite sua resposta...'}
-                        className="w-full text-xl sm:text-2xl font-medium bg-transparent border-b-2 border-zinc-200 dark:border-zinc-700/80 focus:border-emerald-500 focus:outline-none pb-3 transition-colors placeholder:text-zinc-400/50"
+                        className={`w-full text-xl sm:text-2xl font-medium bg-transparent border-b-2 pb-3 transition-colors focus:outline-none ${
+                          isDark
+                            ? 'border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-400'
+                            : 'border-zinc-300 text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600'
+                        }`}
                       />
                     </div>
                   </div>
@@ -439,19 +466,27 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                 {/* Input: TEXTAREA */}
                 {currentField.tipo === 'textarea' && (
                   <div className="pt-2 space-y-2">
-                    <div className="p-1 rounded-3xl bg-black/5 dark:bg-white/5 border border-zinc-200/80 dark:border-zinc-700/80 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]">
+                    <div className={`p-1 rounded-3xl border shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] ${
+                      isDark ? 'bg-white/5 border-zinc-800' : 'bg-black/5 border-zinc-200'
+                    }`}>
                       <textarea
                         ref={inputRef}
                         rows={4}
                         value={currentAnswer || ''}
                         onChange={(e) => handleSetAnswer(e.target.value)}
                         placeholder={currentField.placeholder || 'Descreva em detalhes aqui...'}
-                        className="w-full text-base sm:text-lg font-medium bg-white dark:bg-zinc-900 rounded-[calc(1.5rem-4px)] p-4 focus:outline-none placeholder:text-zinc-400/50 resize-none transition-all"
+                        className={`w-full text-base sm:text-lg font-medium rounded-[calc(1.5rem-4px)] p-4 focus:outline-none resize-none transition-all ${
+                          isDark
+                            ? 'bg-zinc-900 text-zinc-100 placeholder:text-zinc-500'
+                            : 'bg-white text-zinc-900 placeholder:text-zinc-400'
+                        }`}
                       />
                     </div>
-                    <div className="flex items-center gap-1.5 text-2xs opacity-40 font-mono">
+                    <div className="flex items-center gap-1.5 text-2xs opacity-50 font-mono">
                       <span>Dica: Use</span>
-                      <kbd className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border">Shift + Enter</kbd>
+                      <kbd className={`px-1.5 py-0.5 rounded border ${
+                        isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'
+                      }`}>Shift + Enter</kbd>
                       <span>para pular linha</span>
                     </div>
                   </div>
@@ -460,8 +495,12 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                 {/* Input: WHATSAPP COM MÁSCARA & FLAG */}
                 {currentField.tipo === 'whatsapp' && (
                   <div className="pt-2">
-                    <div className="flex items-center gap-3 border-b-2 border-zinc-200 dark:border-zinc-700/80 focus-within:border-emerald-500 pb-3 transition-colors">
-                      <span className="text-base sm:text-lg font-bold opacity-70 flex items-center gap-1.5">
+                    <div className={`flex items-center gap-3 border-b-2 pb-3 transition-colors ${
+                      isDark
+                        ? 'border-zinc-700 focus-within:border-emerald-400'
+                        : 'border-zinc-300 focus-within:border-emerald-600'
+                    }`}>
+                      <span className="text-base sm:text-lg font-bold opacity-75 flex items-center gap-1.5">
                         <span className="text-xl">🇧🇷</span> +55
                       </span>
                       <input
@@ -470,7 +509,11 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                         value={currentAnswer || ''}
                         onChange={(e) => handleSetAnswer(formatWhatsAppMask(e.target.value))}
                         placeholder={currentField.placeholder || '(11) 99999-9999'}
-                        className="w-full text-xl sm:text-2xl font-medium bg-transparent focus:outline-none placeholder:text-zinc-400/50 tracking-wide"
+                        className={`w-full text-xl sm:text-2xl font-medium bg-transparent focus:outline-none tracking-wide ${
+                          isDark
+                            ? 'text-zinc-100 placeholder:text-zinc-500'
+                            : 'text-zinc-900 placeholder:text-zinc-400'
+                        }`}
                       />
                     </div>
                   </div>
@@ -485,7 +528,11 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                       value={currentAnswer || ''}
                       onChange={(e) => handleSetAnswer(e.target.value)}
                       placeholder={currentField.placeholder || 'seuemail@exemplo.com'}
-                      className="w-full text-xl sm:text-2xl font-medium bg-transparent border-b-2 border-zinc-200 dark:border-zinc-700/80 focus:border-emerald-500 focus:outline-none pb-3 transition-colors placeholder:text-zinc-400/50"
+                      className={`w-full text-xl sm:text-2xl font-medium bg-transparent border-b-2 pb-3 transition-colors focus:outline-none ${
+                        isDark
+                          ? 'border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-400'
+                          : 'border-zinc-300 text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600'
+                      }`}
                     />
                   </div>
                 )}
@@ -515,7 +562,9 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                           className={`w-full p-4 rounded-2xl border-2 text-left font-medium text-base sm:text-lg flex items-center justify-between cursor-pointer transition-all active:scale-[0.985] ${
                             isSelected || isPulsing
                               ? 'border-emerald-500 bg-emerald-500/10 shadow-sm'
-                              : 'border-zinc-200/90 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50/80'
+                              : isDark
+                              ? 'border-zinc-800 bg-zinc-900/80 hover:border-zinc-700 hover:bg-zinc-800/80 text-zinc-100'
+                              : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 text-zinc-900'
                           }`}
                         >
                           <div className="flex items-center gap-3.5">
@@ -524,12 +573,16 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                               className={`w-8 h-8 rounded-lg text-xs font-mono font-bold flex items-center justify-center transition-all ${
                                 isSelected || isPulsing
                                   ? 'bg-emerald-500 text-white shadow-sm'
-                                  : 'bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 shadow-[0_2px_0_rgba(0,0,0,0.06)]'
+                                  : isDark
+                                  ? 'bg-zinc-800 border border-zinc-700 text-zinc-300 shadow-[0_2px_0_rgba(0,0,0,0.2)]'
+                                  : 'bg-zinc-100 border border-zinc-200 text-zinc-600 shadow-[0_2px_0_rgba(0,0,0,0.06)]'
                               }`}
                             >
                               {letra}
                             </span>
-                            <span className="font-semibold text-zinc-900 dark:text-zinc-100">{opt.label}</span>
+                            <span className={`font-semibold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                              {opt.label}
+                            </span>
                           </div>
 
                           {isSelected && (
@@ -560,7 +613,9 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                             className={`h-13 rounded-xl border-2 font-mono font-bold text-base flex items-center justify-center cursor-pointer transition-all active:scale-95 ${
                               isSelected
                                 ? 'border-emerald-500 bg-emerald-500 text-white shadow-md scale-105'
-                                : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 bg-white/60 dark:bg-zinc-900/60'
+                                : isDark
+                                ? 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800 bg-zinc-900/80 text-zinc-200'
+                                : 'border-zinc-200 hover:border-zinc-400 hover:bg-zinc-100 bg-white text-zinc-800'
                             }`}
                           >
                             {n}
@@ -568,7 +623,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                         );
                       })}
                     </div>
-                    <div className="flex justify-between text-xs opacity-50 px-1 font-medium">
+                    <div className={`flex justify-between text-xs px-1 font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                       <span>0 - Pouco provável</span>
                       <span>10 - Altamente provável</span>
                     </div>
@@ -594,7 +649,9 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                             className={`w-11 h-11 transition-all ${
                               isFilled
                                 ? 'text-amber-400 fill-amber-400 drop-shadow-[0_2px_8px_rgba(251,191,36,0.5)]'
-                                : 'text-zinc-300 dark:text-zinc-700'
+                                : isDark
+                                ? 'text-zinc-700 fill-transparent'
+                                : 'text-zinc-300 fill-transparent'
                             }`}
                           />
                         </button>
@@ -606,7 +663,11 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                 {/* Input: UPLOAD DE ARQUIVO (Cloudflare R2) */}
                 {currentField.tipo === 'file' && (
                   <div className="pt-2">
-                    <label className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-emerald-500 rounded-3xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all bg-zinc-50/60 dark:bg-zinc-900/50 hover:bg-zinc-50 group">
+                    <label className={`border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all group ${
+                      isDark
+                        ? 'border-zinc-700 bg-zinc-900/50 hover:bg-zinc-900/80 hover:border-emerald-500 text-zinc-200'
+                        : 'border-zinc-300 bg-zinc-50/80 hover:bg-zinc-100/80 hover:border-emerald-600 text-zinc-800'
+                    }`}>
                       <input
                         type="file"
                         className="hidden"
@@ -627,11 +688,13 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                         </div>
                       ) : (
                         <>
-                          <div className="p-3.5 rounded-2xl bg-zinc-200/80 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 group-hover:scale-110 transition-transform">
+                          <div className={`p-3.5 rounded-2xl group-hover:scale-110 transition-transform ${
+                            isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-200/80 text-zinc-600'
+                          }`}>
                             <UploadCloud className="w-8 h-8" />
                           </div>
                           <span className="font-semibold text-base">Clique ou arraste um arquivo aqui</span>
-                          <span className="text-xs opacity-50">Fotos, vídeos ou documentos sem limite de tamanho</span>
+                          <span className="text-xs opacity-60">Fotos, vídeos ou documentos sem limite de tamanho</span>
                         </>
                       )}
                     </label>
@@ -641,14 +704,18 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                 {/* Input: TERMOS / LGPD */}
                 {currentField.tipo === 'terms' && (
                   <div className="pt-2">
-                    <label className="p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 flex items-start gap-3.5 cursor-pointer hover:border-zinc-300 transition-all">
+                    <label className={`p-4 rounded-2xl border flex items-start gap-3.5 cursor-pointer transition-all ${
+                      isDark
+                        ? 'border-zinc-800 bg-zinc-900/80 hover:border-zinc-700 text-zinc-200'
+                        : 'border-zinc-200 bg-white hover:border-zinc-300 text-zinc-800'
+                    }`}>
                       <input
                         type="checkbox"
                         checked={currentAnswer === true}
                         onChange={(e) => handleSetAnswer(e.target.checked)}
                         className="mt-1 w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300 cursor-pointer"
                       />
-                      <span className="text-sm sm:text-base font-normal leading-relaxed opacity-85">
+                      <span className="text-sm sm:text-base font-normal leading-relaxed opacity-90">
                         {currentField.placeholder || 'Concordo com os termos de privacidade e autorizo o contato via WhatsApp.'}
                       </span>
                     </label>
@@ -676,9 +743,11 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                     <Check className="w-4 h-4 stroke-[3]" />
                   </button>
 
-                  <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-50 font-mono">
+                  <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-60 font-mono">
                     <span>pressione</span>
-                    <kbd className="px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-bold shadow-2xs">
+                    <kbd className={`px-2 py-1 rounded-md border font-bold shadow-2xs ${
+                      isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'
+                    }`}>
                       Enter ↵
                     </kbd>
                   </div>
@@ -690,30 +759,38 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
       </main>
 
       {/* Rodapé Flutuante: Navegação & Dock */}
-      <footer className="px-6 sm:px-12 py-5 max-w-4xl w-full mx-auto flex items-center justify-between z-10 border-t border-zinc-200/60 dark:border-zinc-800/60">
+      <footer className={`px-6 sm:px-12 py-5 max-w-4xl w-full mx-auto flex items-center justify-between z-10 border-t ${
+        isDark ? 'border-zinc-800/80' : 'border-zinc-200/80'
+      }`}>
         <div className="flex items-center gap-2">
-          <span className="text-2xs font-semibold opacity-40 uppercase tracking-widest">Tecnologia</span>
+          <span className="text-2xs font-semibold opacity-50 uppercase tracking-widest">Tecnologia</span>
           <span className="text-xs font-bold tracking-tight text-emerald-600">GENSBot</span>
         </div>
 
         {/* Botões Chevron Tipo Dock */}
-        <div className="flex items-center gap-1 bg-zinc-100/90 dark:bg-zinc-800/90 border border-zinc-200/60 dark:border-zinc-700/60 p-1 rounded-xl shadow-2xs">
+        <div className={`flex items-center gap-1 p-1 rounded-xl shadow-2xs border ${
+          isDark ? 'bg-zinc-800/90 border-zinc-700/80' : 'bg-zinc-100/90 border-zinc-200/80'
+        }`}>
           <button
             type="button"
             onClick={handleBack}
             disabled={history.length <= 1}
             title="Pergunta anterior (Shift + Enter ou ↑)"
-            className="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
+            className={`p-2 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors ${
+              isDark ? 'hover:bg-zinc-700 text-zinc-200' : 'hover:bg-white text-zinc-700'
+            }`}
           >
             <ChevronUp className="w-4 h-4" />
           </button>
-          <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700" />
+          <div className={`w-px h-4 ${isDark ? 'bg-zinc-700' : 'bg-zinc-200'}`} />
           <button
             type="button"
             onClick={handleNext}
             disabled={currentIndex >= fields.length - 1}
             title="Próxima pergunta (Enter ou ↓)"
-            className="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
+            className={`p-2 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors ${
+              isDark ? 'hover:bg-zinc-700 text-zinc-200' : 'hover:bg-white text-zinc-700'
+            }`}
           >
             <ChevronDown className="w-4 h-4" />
           </button>

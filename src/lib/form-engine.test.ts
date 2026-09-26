@@ -4,6 +4,8 @@ import {
   formatWhatsAppMask,
   getNextFieldIndex,
   calculateProgress,
+  isColorDark,
+  getOptimalTextColor,
 } from './form-engine';
 import type { FormField } from '@/types/form';
 
@@ -123,4 +125,33 @@ describe('Form Engine', () => {
       expect(calculateProgress(4, 5)).toBe(100);
     });
   });
+
+  describe('isColorDark and getOptimalTextColor', () => {
+    it('identifica cores claras com precisão', () => {
+      expect(isColorDark('#ffffff')).toBe(false);
+      expect(isColorDark('#fff')).toBe(false);
+      expect(isColorDark('#fafafa')).toBe(false);
+      expect(isColorDark('#f4f4f5')).toBe(false);
+      expect(isColorDark('#fff1f2')).toBe(false);
+      expect(isColorDark('#fefce8')).toBe(false);
+      expect(getOptimalTextColor('#ffffff')).toBe('#09090b');
+    });
+
+    it('identifica cores escuras com precisão', () => {
+      expect(isColorDark('#000000')).toBe(true);
+      expect(isColorDark('#000')).toBe(true);
+      expect(isColorDark('#09090b')).toBe(true);
+      expect(isColorDark('#18181b')).toBe(true);
+      expect(isColorDark('#052e16')).toBe(true);
+      expect(getOptimalTextColor('#09090b')).toBe('#f4f4f5');
+    });
+
+    it('trata valores inválidos ou nulos sem quebrar', () => {
+      expect(isColorDark(null)).toBe(false);
+      expect(isColorDark(undefined)).toBe(false);
+      expect(isColorDark('')).toBe(false);
+      expect(isColorDark('invalid')).toBe(false);
+    });
+  });
 });
+

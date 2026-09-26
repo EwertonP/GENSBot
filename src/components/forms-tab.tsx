@@ -444,7 +444,7 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
                   value={novoTitulo}
                   onChange={(e) => setNovoTitulo(e.target.value)}
                   placeholder="Ex: Avaliação de Estética Facial"
-                  className="w-full text-xs font-medium p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:border-emerald-500 bg-transparent"
+                  className="w-full text-xs font-medium p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:border-emerald-500 bg-transparent text-zinc-900 dark:text-zinc-100"
                 />
               </div>
 

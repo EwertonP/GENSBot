@@ -51,6 +51,7 @@ export interface FormTemaConfig {
   cor_fundo: string;
   cor_texto: string;
   cor_card: string;
+  modo?: 'auto' | 'light' | 'dark';
   logo_url?: string | null;
   fonte?: 'inter' | 'jakarta' | 'playfair' | 'outfit';
   bg_imagem_url?: string | null;
