@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Link2,
   Users2,
+  FileQuestion,
 } from 'lucide-react';
 
 /**
@@ -54,6 +55,13 @@ export const TELAS = {
     titulo: 'Calendário de postagens',
     subtitulo: 'Todos os posts de todos os clientes, com conflitos de horário em destaque.',
     icon: CalendarDays,
+    grupo: 'agencia',
+  },
+  forms: {
+    label: 'Formulários',
+    titulo: 'Construtor de Formulários',
+    subtitulo: 'Formulários conversacionais estilo Typeform para captação e qualificação de leads.',
+    icon: FileQuestion,
     grupo: 'agencia',
   },
   publish: {
