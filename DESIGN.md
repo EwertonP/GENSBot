@@ -183,7 +183,15 @@ Cada Onda é mergeada e testada antes da próxima.
        - Cards focáveis: Enter abre, e Alt + ←/→ muda de etapa.
        - Menu "Mover para…" (`mover-etapa-menu.tsx`) para teclado e toque.
        - Um só vocabulário de etapas: Planejamento, Criação, Revisão interna, Aprovação do cliente, Agendamento, Publicado.
-   - **5b:** Calendário com arrastar para reagendar e busca; KPIs do Dashboard no padrão Stat Cards.
+   - ✅ **5b:**
+     - **Calendário:**
+       - Arrastar um post para outro dia reagenda, mantendo o horário, com "Desfazer".
+       - "Mudar data" no detalhe do post, para quem não usa mouse.
+       - Busca por título, legenda ou cliente.
+       - "+N outros" abre a visão do dia.
+     - **Dashboard:** KPIs em `StatCard` (`ui/stat-card.tsx`), com valor, frase explicativa e `Sparkline` de dado real.
+       - Saíram os deltas fixos que sobraram (+24,8%, +17,4%, +148, +31,2%, +19,4%), as barras de horário inventadas e o "18h às 21h" fixo.
+       - O melhor horário passa a ser calculado pela janela de 3h com mais seguidores online.
    - **5c:** Publicação em etapas; tirar o estado das automações do `page.tsx`; quebrar o `esteira-tab` (~3.5k linhas).
 6. **Motion:** springs interrompíveis (apple-design) e `prefers-reduced-motion` em tudo.
 

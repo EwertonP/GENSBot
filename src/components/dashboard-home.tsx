@@ -11,7 +11,6 @@ import {
   MessageCircle,
   Calendar,
   Clock,
-  ArrowUpRight,
   ArrowDownRight,
   ExternalLink,
   Sparkles,
@@ -39,6 +38,7 @@ import { STATUS_LABELS, type ConteudoItem, type StatusConteudo } from '@/lib/con
 import type { MembroEquipe } from '@/components/equipe-tab';
 import type { TarefaRotina } from '@/app/api/rotina/route';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatCard } from '@/components/ui/stat-card';
 
 interface DailyInsight {
   date: string;
@@ -427,6 +427,26 @@ export default function DashboardHome({
 
   // Dados diários do gráfico (vazio = sem insight da Meta no período)
   const dailyInsights: DailyInsight[] = insightsData?.daily ?? [];
+  const crescimentoSeguidores: { date: string; followers: number }[] =
+    insightsData?.followerGrowthUnavailable ? [] : insightsData?.followerGrowth ?? [];
+  const saldoSeguidores =
+    crescimentoSeguidores.length > 1
+      ? crescimentoSeguidores[crescimentoSeguidores.length - 1].followers - crescimentoSeguidores[0].followers
+      : null;
+  // Melhor janela de 3h pelos seguidores online (dado real da Meta).
+  const melhorJanela = (() => {
+    if (audienceHours.length < 24) return null;
+    let melhor = 0;
+    let soma = -1;
+    for (let h = 0; h < 24; h++) {
+      const t = [0, 1, 2].reduce((acc, k) => acc + (audienceHours[(h + k) % 24]?.followersOnline ?? 0), 0);
+      if (t > soma) {
+        soma = t;
+        melhor = h;
+      }
+    }
+    return soma > 0 ? `${melhor}h às ${(melhor + 3) % 24}h` : null;
+  })();
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in pb-12">
@@ -558,75 +578,12 @@ export default function DashboardHome({
             </div>
           </div>
 
-          {/* 4 Bento KPIs Operacionais (Niond Style em Verde GENS) */}
+          {/* KPIs operacionais (Stat Cards) */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-5 rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Demandas Ativas</span>
-                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary shadow-2xs">
-                  <Layers className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
-                  {demandasAtivas.length}
-                </span>
-                <span className="text-muted-foreground text-xs font-medium mt-1">
-                  em produção ou aprovação
-                </span>
-              </div>
-            </Card>
-
-            <Card className="p-5 rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Entregas da Semana</span>
-                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 text-primary flex items-center justify-center">
-                  <Calendar className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
-                  {entregasSemana.length}
-                </span>
-                <span className="text-muted-foreground text-xs font-medium mt-1">
-                  agendadas de Seg a Dom
-                </span>
-              </div>
-            </Card>
-
-            <Card className="p-5 rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Rotina Pendente</span>
-                <div className="w-8 h-8 rounded-xl bg-success-soft border border-success-ring flex items-center justify-center text-success">
-                  <CheckSquare className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
-                  {tarefasFiltradas.length}
-                </span>
-                <span className="text-muted-foreground text-xs font-medium mt-1">
-                  afazeres internos da equipe
-                </span>
-              </div>
-            </Card>
-
-            <Card className="p-5 rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Finalizadas no Mês</span>
-                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 text-primary flex items-center justify-center font-bold">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3 flex flex-col">
-                <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
-                  {demandasConcluidasMes.length}
-                </span>
-                <span className="text-muted-foreground text-xs font-medium mt-1">
-                  conteúdos entregues e publicados
-                </span>
-              </div>
-            </Card>
+            <StatCard label="Demandas ativas" icon={Layers} value={demandasAtivas.length} sentence="em produção ou esperando aprovação" />
+            <StatCard label="Entregas da semana" icon={Calendar} value={entregasSemana.length} sentence="posts programados de segunda a domingo" />
+            <StatCard label="Rotina pendente" icon={CheckSquare} value={tarefasFiltradas.length} sentence="tarefas internas ainda abertas" />
+            <StatCard label="Publicadas no mês" icon={CheckCircle2} value={demandasConcluidasMes.length} sentence="conteúdos entregues e publicados" />
           </section>
 
           {/* Seção Minha Semana (Grade 7 Dias Seg a Dom) */}
@@ -922,91 +879,39 @@ export default function DashboardHome({
         </div>
       </div>
 
-      {/* 2. Bento Grid do Painel Profissional (4 Top KPIs) */}
+      {/* 2. KPIs do Instagram (Stat Cards) — só números reais do período */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Contas Alcançadas */}
-        <Card className="p-5 rounded-3xl border border-border bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Contas Alcançadas</span>
-            <div className="w-8 h-8 rounded-xl bg-lime/40 border border-foreground/10 flex items-center justify-center text-foreground">
-              <Eye className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4 flex flex-col">
-            <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
-              {Math.round(alcanceTotal).toLocaleString('pt-BR')}
-            </span>
-            <div className="flex items-center gap-1.5 mt-2.5 text-xs">
-              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-xs text-success bg-success/10 px-2 py-0.5 rounded-md">
-                <ArrowUpRight className="w-3 h-3" /> +24.8%
-              </span>
-              <span className="text-muted-foreground text-xs font-medium">vs período anterior</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Card 2: Contas com Engajamento */}
-        <Card className="p-5 rounded-3xl border border-border bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Contas Engajadas</span>
-            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-              <Heart className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4 flex flex-col">
-            <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
-              {Math.round(contasEngajadas).toLocaleString('pt-BR')}
-            </span>
-            <div className="flex items-center gap-1.5 mt-2.5 text-xs">
-              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-xs text-success bg-success/10 px-2 py-0.5 rounded-md">
-                <ArrowUpRight className="w-3 h-3" /> +17.4%
-              </span>
-              <span className="text-muted-foreground text-xs font-medium">comentários e DMs</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Card 3: Total de Seguidores */}
-        <Card className="p-5 rounded-3xl border border-border bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total de Seguidores</span>
-            <div className="w-8 h-8 rounded-xl bg-secondary/60 border border-border flex items-center justify-center text-foreground">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4 flex flex-col">
-            <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
-              {seguidoresTotal.toLocaleString('pt-BR')}
-            </span>
-            <div className="flex items-center gap-1.5 mt-2.5 text-xs">
-              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-xs text-foreground bg-accent px-2 py-0.5 rounded-md border border-border">
-                +148 líquidos
-              </span>
-              <span className="text-muted-foreground text-xs font-medium">neste período</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Card 4: Toques no Link da Bio */}
-        <Card className="p-5 rounded-3xl border border-border bg-card hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Cliques no Link da Bio</span>
-            <div className="w-8 h-8 rounded-xl bg-lime/60 border border-foreground/15 flex items-center justify-center text-foreground">
-              <Link2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4 flex flex-col">
-            <span className="text-3xl font-bold font-display text-foreground tracking-tight tabular-nums">
-              {cliquesBio.toLocaleString('pt-BR')}
-            </span>
-            <div className="flex items-center gap-1.5 mt-2.5 text-xs">
-              <span className="inline-flex items-center gap-0.5 font-bold tabular-nums text-xs text-success bg-success/10 px-2 py-0.5 rounded-md">
-                <ArrowUpRight className="w-3 h-3" /> +31.2%
-              </span>
-              <span className="text-muted-foreground text-xs font-medium">conversão para o site</span>
-            </div>
-          </div>
-        </Card>
+        <StatCard
+          label="Contas alcançadas"
+          icon={Eye}
+          value={Math.round(alcanceTotal).toLocaleString('pt-BR')}
+          series={dailyInsights.map((d) => d.reach)}
+          sentence={`soma diária dos últimos ${periodDays} dias`}
+        />
+        <StatCard
+          label="Contas engajadas"
+          icon={Heart}
+          value={Math.round(contasEngajadas).toLocaleString('pt-BR')}
+          sentence="comentários e DMs tratados pelas automações"
+        />
+        <StatCard
+          label="Seguidores"
+          icon={Users}
+          value={seguidoresTotal.toLocaleString('pt-BR')}
+          series={crescimentoSeguidores.map((p) => p.followers)}
+          sentence={
+            saldoSeguidores === null
+              ? 'evolução ainda indisponível para esta conta'
+              : `${saldoSeguidores >= 0 ? '+' : ''}${saldoSeguidores.toLocaleString('pt-BR')} no período`
+          }
+          sentenceTone={saldoSeguidores === null ? 'muted' : saldoSeguidores >= 0 ? 'success' : 'destructive'}
+        />
+        <StatCard
+          label="Cliques no link"
+          icon={Link2}
+          value={cliquesBio.toLocaleString('pt-BR')}
+          sentence="cliques rastreados pelos links das automações"
+        />
       </section>
 
       {/* 3. Gráfico Principal de Área: Tendência de Alcance & Visitas ao Perfil */}
@@ -1067,9 +972,7 @@ export default function DashboardHome({
                   {Math.round(visitasPerfil).toLocaleString('pt-BR')}
                 </p>
               </div>
-              <span className="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded-lg">
-                +19.4%
-              </span>
+
             </div>
 
             <div className="p-3.5 rounded-2xl bg-accent/40 border border-border flex items-center justify-between">
@@ -1079,9 +982,7 @@ export default function DashboardHome({
                   {cliquesBio.toLocaleString('pt-BR')}
                 </p>
               </div>
-              <span className="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded-lg">
-                +31.2%
-              </span>
+
             </div>
 
             <div className="p-3.5 rounded-2xl bg-accent/40 border border-border flex items-center justify-between">
@@ -1138,23 +1039,15 @@ export default function DashboardHome({
                 })}
               </div>
             ) : (
-              <div className="flex items-end gap-1.5 h-32 pt-4 px-1">
-                {[12, 18, 25, 30, 22, 40, 60, 85, 95, 88, 70, 50].map((val, idx) => (
-                  <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full">
-                    <div
-                      className={`w-full rounded-t-sm ${val >= 85 ? 'bg-foreground' : 'bg-accent'}`}
-                      style={{ height: `${val}%` }}
-                    />
-                    {idx % 3 === 0 && <span className="text-xs font-mono text-muted-foreground mt-1.5">{idx * 2}h</span>}
-                  </div>
-                ))}
-              </div>
+              <p className="h-32 grid place-items-center text-center text-xs text-muted-foreground px-4">
+                A Meta ainda não devolveu os horários de atividade desta conta (contas pequenas ou novas não recebem esse dado).
+              </p>
             )}
 
             <div className="p-3 rounded-2xl bg-accent/40 border border-border text-xs flex items-center justify-between">
               <span className="text-muted-foreground font-medium">Melhor momento p/ publicar:</span>
               <span className="font-bold text-foreground font-mono bg-card px-2 py-0.5 rounded-lg border border-border">
-                18h às 21h
+                {melhorJanela ?? 'ainda sem dados'}
               </span>
             </div>
           </div>
