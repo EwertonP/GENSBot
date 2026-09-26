@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Save,
   Globe,
-  Eye,
   Plus,
   Trash2,
   ChevronUp,
@@ -29,15 +28,20 @@ import {
   Settings,
   Palette,
   Bell,
-  HelpCircle,
   Sun,
   Moon,
+  X,
 } from 'lucide-react';
 import type { Form, FormField, FormFieldType, FormTemaConfig } from '@/types/form';
 import FormPlayer from './form-player';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { DialogShell, confirmDialog } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/toast';
-import { confirmDialog } from '@/components/ui/dialog';
 import { isColorDark, getOptimalTextColor } from '@/lib/form-engine';
+import { fieldInputClass } from '@/lib/form-styles';
 
 interface FormBuilderProps {
   formId: string;
@@ -53,70 +57,70 @@ const TEMA_PRESETS: {
   badge: string;
 }[] = [
   {
-    nome: 'Esmeralda Clínico (Claro)',
+    nome: 'GENS Assinatura (Escuro)',
     config: {
-      cor_primaria: '#059669',
-      cor_fundo: '#ffffff',
-      cor_texto: '#09090b',
-      cor_card: '#f4f4f5',
-      modo: 'light',
+      cor_primaria: '#d8ff3c',
+      cor_fundo: '#09090b',
+      cor_texto: '#f4f4f5',
+      cor_card: '#141417',
+      modo: 'dark',
     },
-    badge: 'bg-emerald-600',
+    badge: 'bg-[#d8ff3c] border border-black/20',
   },
   {
-    nome: 'Obsidian Pro (Escuro)',
+    nome: 'GENS Papel Warm (Claro)',
     config: {
-      cor_primaria: '#10b981',
-      cor_fundo: '#09090b',
+      cor_primaria: '#192313',
+      cor_fundo: '#f7f8f2',
+      cor_texto: '#192313',
+      cor_card: '#ffffff',
+      modo: 'light',
+    },
+    badge: 'bg-[#192313]',
+  },
+  {
+    nome: 'Clínica Pure (Claro)',
+    config: {
+      cor_primaria: '#0f766e',
+      cor_fundo: '#ffffff',
+      cor_texto: '#192313',
+      cor_card: '#f7f8f2',
+      modo: 'light',
+    },
+    badge: 'bg-teal-600',
+  },
+  {
+    nome: 'Obsidian Minimal (Escuro)',
+    config: {
+      cor_primaria: '#ffffff',
+      cor_fundo: '#0c0c0e',
       cor_texto: '#f4f4f5',
       cor_card: '#18181b',
       modo: 'dark',
     },
-    badge: 'bg-zinc-950 border border-emerald-500/40',
+    badge: 'bg-zinc-800 border border-zinc-700',
   },
   {
-    nome: 'Rose Gold / Dermato (Claro)',
+    nome: 'Rosé / Dermato (Claro)',
     config: {
-      cor_primaria: '#e11d48',
-      cor_fundo: '#fff1f2',
-      cor_texto: '#881337',
-      cor_card: '#ffe4e6',
+      cor_primaria: '#be123c',
+      cor_fundo: '#faf7f5',
+      cor_texto: '#291816',
+      cor_card: '#ffffff',
       modo: 'light',
     },
     badge: 'bg-rose-500',
   },
   {
-    nome: 'Cyberpunk Neon (Escuro)',
-    config: {
-      cor_primaria: '#06b6d4',
-      cor_fundo: '#0a0f1d',
-      cor_texto: '#f0fdfa',
-      cor_card: '#111827',
-      modo: 'dark',
-    },
-    badge: 'bg-cyan-500 border border-cyan-400',
-  },
-  {
     nome: 'Champagne Nude (Claro)',
     config: {
-      cor_primaria: '#d97706',
+      cor_primaria: '#b45309',
       cor_fundo: '#fefce8',
       cor_texto: '#451a03',
-      cor_card: '#fef9c3',
+      cor_card: '#ffffff',
       modo: 'light',
     },
     badge: 'bg-amber-600',
-  },
-  {
-    nome: 'Midnight Lavanda (Escuro)',
-    config: {
-      cor_primaria: '#a855f7',
-      cor_fundo: '#0f0c1b',
-      cor_texto: '#faf5ff',
-      cor_card: '#1e1933',
-      modo: 'dark',
-    },
-    badge: 'bg-purple-600 border border-purple-400',
   },
 ];
 
@@ -181,7 +185,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
       id: crypto.randomUUID(),
       form_id: form.id,
       tipo,
-      label: tipo === 'thank_you' ? 'Obrigado!' : `Pergunta sobre ${info.label.toLowerCase()}`,
+      label: tipo === 'thank_you' ? 'Muito obrigado!' : `Pergunta sobre ${info.label.toLowerCase()}`,
       descricao: null,
       placeholder: null,
       obrigatorio: tipo !== 'thank_you' && tipo !== 'welcome',
@@ -293,8 +297,8 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
   if (loading || !form) {
     return (
       <div className="min-h-[500px] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-zinc-500 font-medium text-xs">
-          <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center gap-2.5 text-muted-foreground text-xs font-medium">
+          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <span>Carregando construtor de formulários...</span>
         </div>
       </div>
@@ -309,37 +313,39 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-68px)] bg-zinc-50 dark:bg-zinc-950 overflow-hidden font-sans">
+    <div className="flex flex-col h-[calc(100vh-68px)] bg-background overflow-hidden font-sans">
       {/* Topo do Construtor */}
-      <header className="h-14 border-b border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 flex items-center justify-between shrink-0 z-20">
+      <header className="h-14 border-b border-border bg-card px-4 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-3">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onBack}
-            className="p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+            className="p-2 h-8 w-8"
             title="Voltar para a lista"
           >
             <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
+          </Button>
+          <div className="h-4 w-px bg-border" />
           <input
             type="text"
             value={form.titulo}
             onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-            className="font-bold text-sm text-zinc-900 dark:text-white bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800 focus:bg-white dark:focus:bg-zinc-900 focus:ring-1 focus:ring-emerald-500 px-2 py-1 rounded-lg transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
+            className="font-display font-bold text-sm text-foreground bg-transparent hover:bg-accent px-2 py-1 rounded-lg transition-ui border border-transparent hover:border-border focus:border-input focus:bg-card focus:outline-none"
             placeholder="Título do Formulário"
           />
         </div>
 
         {/* Alternador Desktop / Celular */}
-        <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl">
           <button
             type="button"
             onClick={() => setPreviewDevice('desktop')}
-            className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-ui cursor-pointer ${
               previewDevice === 'desktop'
-                ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
-                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                ? 'bg-card text-foreground shadow-2xs'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Monitor className="w-3.5 h-3.5" />
@@ -348,10 +354,10 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
           <button
             type="button"
             onClick={() => setPreviewDevice('mobile')}
-            className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-ui cursor-pointer ${
               previewDevice === 'mobile'
-                ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
-                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                ? 'bg-card text-foreground shadow-2xs'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
@@ -364,60 +370,61 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
           <button
             type="button"
             onClick={handleTogglePublicado}
-            className={`text-xs font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 cursor-pointer transition-all ${
-              form.publicado
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
-                : 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700'
-            }`}
+            className="cursor-pointer"
           >
-            <span className={`w-2 h-2 rounded-full ${form.publicado ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400'}`} />
-            <span>{form.publicado ? 'Publicado' : 'Rascunho'}</span>
+            <Badge variant={form.publicado ? 'brand' : 'muted'} dot>
+              {form.publicado ? 'Publicado' : 'Rascunho'}
+            </Badge>
           </button>
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={() => setShowShareModal(true)}
-            className="text-xs font-bold px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 cursor-pointer transition-all"
           >
-            <Share2 className="w-3.5 h-3.5" />
+            <Share2 className="w-3.5 h-3.5 mr-1.5" />
             <span>Compartilhar</span>
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={handleSave}
-            disabled={saving}
-            className="text-xs font-bold px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 shadow-sm active:scale-98 cursor-pointer transition-all disabled:opacity-50"
+            loading={saving}
+            className="shadow-xs"
           >
-            <Save className="w-3.5 h-3.5" />
-            <span>{saving ? 'Salvando...' : 'Salvar'}</span>
-          </button>
+            <Save className="w-3.5 h-3.5 mr-1.5" />
+            <span>Salvar</span>
+          </Button>
         </div>
       </header>
 
       {/* Grid com 3 Colunas */}
       <div className="flex-1 flex overflow-hidden">
         {/* COLUNA 1: Lista Estruturada de Perguntas */}
-        <aside className="w-68 border-r border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col shrink-0">
-          <div className="p-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-            <span className="text-2xs font-mono font-bold uppercase tracking-widest text-zinc-400">
+        <aside className="w-68 border-r border-border bg-card flex flex-col shrink-0">
+          <div className="p-3 border-b border-border flex items-center justify-between">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
               Etapas ({fields.length})
             </span>
             <div className="relative">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => setShowAddMenu((v) => !v)}
-                className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                title="Adicionar pergunta"
+                className="h-7 px-2 text-xs"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 mr-1" />
                 <span>Adicionar</span>
-              </button>
+              </Button>
 
               {showAddMenu && (
-                <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-2 z-50 grid gap-1 max-h-80 overflow-y-auto">
-                  <span className="text-2xs font-bold uppercase tracking-wider text-zinc-400 px-2 py-1">
-                    Escolha o tipo
+                <div className="absolute left-0 mt-2 w-64 bg-popover border border-border rounded-xl shadow-lg p-1.5 z-50 grid gap-0.5 max-h-80 overflow-y-auto">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-2 py-1">
+                    Tipo do Bloco
                   </span>
                   {(Object.keys(FIELD_TYPE_INFO) as FormFieldType[]).map((tipo) => {
                     const info = FIELD_TYPE_INFO[tipo];
@@ -427,14 +434,14 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         key={tipo}
                         type="button"
                         onClick={() => handleAddField(tipo)}
-                        className="w-full p-2 rounded-xl text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 cursor-pointer transition-colors"
+                        className="w-full p-2 rounded-lg text-left hover:bg-accent flex items-center gap-2.5 cursor-pointer transition-colors"
                       >
-                        <div className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-                          <Icon className="w-4 h-4" />
+                        <div className="p-1.5 rounded-md bg-muted text-foreground">
+                          <Icon className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-100">{info.label}</span>
-                          <span className="text-2xs text-zinc-400 leading-tight">{info.description}</span>
+                          <span className="text-xs font-semibold text-foreground">{info.label}</span>
+                          <span className="text-caption text-muted-foreground leading-tight">{info.description}</span>
                         </div>
                       </button>
                     );
@@ -457,15 +464,15 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                     setSelectedFieldId(f.id);
                     setActiveTab('pergunta');
                   }}
-                  className={`group p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                  className={`group p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-ui ${
                     isSelected
-                      ? 'bg-emerald-500/10 border-emerald-500 text-emerald-950 dark:text-emerald-300 font-semibold shadow-2xs'
-                      : 'border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300'
+                      ? 'bg-secondary text-foreground font-semibold border-border-strong shadow-2xs'
+                      : 'border-transparent hover:bg-accent text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-2xs font-mono text-zinc-400 w-3.5 text-center">{idx + 1}</span>
-                    <Icon className="w-3.5 h-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-800 dark:group-hover:text-zinc-200" />
+                    <span className="text-xs font-mono text-muted-foreground w-4 text-center">{idx + 1}</span>
+                    <Icon className="w-3.5 h-3.5 shrink-0 text-muted-foreground group-hover:text-foreground" />
                     <span className="text-xs truncate">{f.label || 'Pergunta sem título'}</span>
                   </div>
 
@@ -477,7 +484,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         e.stopPropagation();
                         handleMoveField(idx, 'up');
                       }}
-                      className="p-1 hover:text-emerald-600 disabled:opacity-20"
+                      className="p-1 hover:text-foreground disabled:opacity-20 transition-colors"
                       title="Mover para cima"
                     >
                       <ChevronUp className="w-3 h-3" />
@@ -489,7 +496,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         e.stopPropagation();
                         handleMoveField(idx, 'down');
                       }}
-                      className="p-1 hover:text-emerald-600 disabled:opacity-20"
+                      className="p-1 hover:text-foreground disabled:opacity-20 transition-colors"
                       title="Mover para baixo"
                     >
                       <ChevronDown className="w-3 h-3" />
@@ -500,7 +507,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         e.stopPropagation();
                         handleDeleteField(f.id);
                       }}
-                      className="p-1 hover:text-rose-600 text-zinc-400 transition-colors"
+                      className="p-1 text-muted-foreground hover:text-destructive transition-colors"
                       title="Excluir pergunta"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -512,36 +519,35 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
           </div>
         </aside>
 
-        {/* COLUNA 2: Canvas com Molduras de Dispositivo (Apple / Linear Tier) */}
-        <main className="flex-1 flex flex-col items-center justify-center p-6 overflow-hidden bg-zinc-100/70 dark:bg-zinc-950/70">
+        {/* COLUNA 2: Canvas com Moldura macOS / Mobile */}
+        <main className="flex-1 flex flex-col items-center justify-center p-6 overflow-hidden bg-background">
           {previewDevice === 'desktop' ? (
-            /* Moldura Estilo Janela macOS */
-            <div className="w-full max-w-4xl h-full flex flex-col rounded-2xl shadow-2xl overflow-hidden border border-zinc-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-all">
-              <div className="h-10 bg-zinc-100/90 dark:bg-zinc-800/90 border-b border-zinc-200/80 dark:border-zinc-700/80 px-4 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-black/10" />
-                  <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-black/10" />
-                  <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-black/10" />
+            /* Moldura Janela macOS */
+            <div className="w-full max-w-4xl h-full flex flex-col rounded-2xl shadow-sm overflow-hidden border border-border bg-card transition-ui">
+              <div className="h-9 bg-muted/50 border-b border-border px-4 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
                 </div>
-                <div className="max-w-md w-full h-6 rounded-lg bg-white/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center px-3 gap-1.5 text-2xs text-zinc-500 font-mono">
-                  <span className="text-emerald-600">🔒</span>
+                <div className="max-w-xs w-full h-5 rounded-md bg-card border border-border flex items-center justify-center px-3 gap-1.5 text-caption text-muted-foreground font-mono">
+                  <span>🔒</span>
                   <span className="truncate">gensbot.com/f/{form.slug}</span>
                 </div>
-                <div className="w-10" />
+                <div className="w-8" />
               </div>
               <div className="flex-1 overflow-y-auto" style={{ backgroundColor: form.tema_config?.cor_fundo || '#ffffff' }}>
                 <FormPlayer form={previewForm} isPreview={true} />
               </div>
             </div>
           ) : (
-            /* Moldura Estilo iPhone 16 Pro com Dynamic Island */
-            <div className="w-[360px] max-h-[720px] h-full flex flex-col rounded-[50px] p-3 bg-zinc-950 shadow-[0_30px_70px_-15px_rgba(0,0,0,0.35)] border-4 border-zinc-800 shrink-0 transition-all">
-              {/* Dynamic Island */}
-              <div className="w-24 h-5 rounded-full bg-black mx-auto mb-2 shrink-0 flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-zinc-900 mr-2" />
+            /* Moldura Celular */
+            <div className="w-[360px] max-h-[700px] h-full flex flex-col rounded-2xl p-2 bg-card shadow-sm border border-border shrink-0 transition-ui">
+              <div className="h-6 flex items-center justify-center shrink-0">
+                <div className="w-16 h-1 rounded-full bg-muted-foreground/30" />
               </div>
               <div
-                className="flex-1 rounded-[38px] overflow-hidden flex flex-col"
+                className="flex-1 rounded-xl overflow-hidden flex flex-col border border-border"
                 style={{ backgroundColor: form.tema_config?.cor_fundo || '#ffffff' }}
               >
                 <FormPlayer form={previewForm} isPreview={true} />
@@ -551,15 +557,15 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
         </main>
 
         {/* COLUNA 3: Inspetor de Propriedades */}
-        <aside className="w-80 border-l border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col shrink-0">
-          <div className="h-12 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-around px-2 shrink-0">
+        <aside className="w-80 border-l border-border bg-card flex flex-col shrink-0">
+          <div className="h-12 border-b border-border flex items-center justify-around px-2 shrink-0">
             <button
               type="button"
               onClick={() => setActiveTab('pergunta')}
-              className={`flex-1 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-bold border-b-2 transition-ui cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'pergunta'
-                  ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                  : 'border-transparent text-zinc-400 hover:text-zinc-700'
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               <Settings className="w-3.5 h-3.5" />
@@ -568,10 +574,10 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
             <button
               type="button"
               onClick={() => setActiveTab('tema')}
-              className={`flex-1 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-bold border-b-2 transition-ui cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'tema'
-                  ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                  : 'border-transparent text-zinc-400 hover:text-zinc-700'
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               <Palette className="w-3.5 h-3.5" />
@@ -580,10 +586,10 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
             <button
               type="button"
               onClick={() => setActiveTab('ajustes')}
-              className={`flex-1 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-bold border-b-2 transition-ui cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === 'ajustes'
-                  ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                  : 'border-transparent text-zinc-400 hover:text-zinc-700'
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               <Bell className="w-3.5 h-3.5" />
@@ -596,68 +602,85 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
             {activeTab === 'pergunta' && selectedField && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
                     Tipo do Bloco
                   </label>
-                  <div className="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 flex items-center gap-2">
+                  <div className="p-2.5 rounded-xl border border-border bg-accent/40 flex items-center gap-2">
                     {React.createElement(FIELD_TYPE_INFO[selectedField.tipo]?.icon || Type, {
-                      className: 'w-4 h-4 text-emerald-600',
+                      className: 'w-4 h-4 text-foreground',
                     })}
-                    <span>{FIELD_TYPE_INFO[selectedField.tipo]?.label || selectedField.tipo}</span>
+                    <span className="text-xs font-semibold text-foreground">
+                      {FIELD_TYPE_INFO[selectedField.tipo]?.label || selectedField.tipo}
+                    </span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
-                    Título da Pergunta
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                    Título / Pergunta *
                   </label>
-                  <input
-                    type="text"
+                  <textarea
+                    rows={2}
                     value={selectedField.label}
                     onChange={(e) => handleUpdateSelectedField({ label: e.target.value })}
-                    className="w-full text-xs font-medium p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:border-emerald-500 bg-transparent"
-                    placeholder="Ex: Qual procedimento te interessa?"
+                    className={fieldInputClass}
                   />
                 </div>
 
                 <div>
-                  <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
-                    Instrução / Descrição Auxiliar
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                    Descrição ou Subtítulo (Opcional)
                   </label>
                   <textarea
                     rows={2}
                     value={selectedField.descricao || ''}
-                    onChange={(e) => handleUpdateSelectedField({ descricao: e.target.value })}
-                    className="w-full text-xs font-medium p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:border-emerald-500 bg-transparent resize-none"
-                    placeholder="Ex: Entraremos em contato com você por aqui."
+                    onChange={(e) => handleUpdateSelectedField({ descricao: e.target.value || null })}
+                    placeholder="Instrução adicional de apoio ao respondente..."
+                    className={fieldInputClass}
                   />
                 </div>
 
-                {selectedField.tipo !== 'welcome' && selectedField.tipo !== 'thank_you' && (
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Resposta Obrigatória</span>
-                    <input
-                      type="checkbox"
-                      checked={selectedField.obrigatorio}
-                      onChange={(e) => handleUpdateSelectedField({ obrigatorio: e.target.checked })}
-                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                {['text', 'whatsapp', 'email', 'textarea'].includes(selectedField.tipo) && (
+                  <div>
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                      Placeholder
+                    </label>
+                    <Input
+                      type="text"
+                      value={selectedField.placeholder || ''}
+                      onChange={(e) => handleUpdateSelectedField({ placeholder: e.target.value || null })}
+                      placeholder="Ex: Digite sua resposta..."
                     />
+                  </div>
+                )}
+
+                {selectedField.tipo !== 'welcome' && selectedField.tipo !== 'thank_you' && (
+                  <div className="pt-2 border-t border-border">
+                    <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedField.obrigatorio}
+                        onChange={(e) => handleUpdateSelectedField({ obrigatorio: e.target.checked })}
+                        className="rounded border-input text-primary focus:ring-ring"
+                      />
+                      <span>Resposta obrigatória</span>
+                    </label>
                   </div>
                 )}
 
                 {/* Opções de Múltipla Escolha */}
                 {selectedField.tipo === 'choice' && (
-                  <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                    <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block">
+                  <div className="pt-2 border-t border-border space-y-2">
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block">
                       Opções de Resposta
                     </label>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {(selectedField.opcoes || []).map((opt, i) => (
                         <div key={opt.id} className="flex items-center gap-1.5">
-                          <span className="w-5 text-2xs font-bold text-zinc-400 text-center">
+                          <span className="w-5 text-xs font-mono font-bold text-muted-foreground text-center">
                             {LETRAS_OPCOES[i] || i + 1}
                           </span>
-                          <input
+                          <Input
                             type="text"
                             value={opt.label}
                             onChange={(e) => {
@@ -665,7 +688,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                               newOpts[i] = { ...newOpts[i], label: e.target.value };
                               handleUpdateSelectedField({ opcoes: newOpts });
                             }}
-                            className="flex-1 text-xs p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 focus:border-emerald-500 focus:outline-none bg-transparent"
+                            className="flex-1 h-8 text-xs"
                           />
                           <button
                             type="button"
@@ -673,15 +696,17 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                               const newOpts = (selectedField.opcoes || []).filter((_, idx) => idx !== i);
                               handleUpdateSelectedField({ opcoes: newOpts });
                             }}
-                            className="p-1.5 text-zinc-400 hover:text-rose-500 transition-colors"
+                            className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ))}
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => {
                         const newOpts = [
                           ...(selectedField.opcoes || []),
@@ -689,24 +714,24 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         ];
                         handleUpdateSelectedField({ opcoes: newOpts });
                       }}
-                      className="w-full mt-1 py-1.5 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                      className="w-full mt-1 text-xs"
                     >
                       + Adicionar Opção
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
             )}
 
-            {/* ABA 2: TEMA & PALETAS LUXURY */}
+            {/* ABA 2: TEMA & PALETAS */}
             {activeTab === 'tema' && (
               <div className="space-y-5">
                 {/* Seletor de Modo de Contraste */}
                 <div>
-                  <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-2">
-                    Modo de Contraste
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+                    Modo de Exibição
                   </label>
-                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
+                  <div className="grid grid-cols-3 gap-1 p-1 bg-muted rounded-xl">
                     <button
                       type="button"
                       onClick={() =>
@@ -715,10 +740,10 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                           tema_config: { ...form.tema_config, modo: 'auto' },
                         })
                       }
-                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-ui cursor-pointer ${
                         !form.tema_config?.modo || form.tema_config.modo === 'auto'
-                          ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
-                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                          ? 'bg-card text-foreground shadow-2xs'
+                          : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       <Sparkles className="w-3 h-3" />
@@ -732,10 +757,10 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                           tema_config: { ...form.tema_config, modo: 'light' },
                         })
                       }
-                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-ui cursor-pointer ${
                         form.tema_config?.modo === 'light'
-                          ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
-                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                          ? 'bg-card text-foreground shadow-2xs'
+                          : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       <Sun className="w-3 h-3" />
@@ -749,19 +774,19 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                           tema_config: { ...form.tema_config, modo: 'dark' },
                         })
                       }
-                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-ui cursor-pointer ${
                         form.tema_config?.modo === 'dark'
-                          ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
-                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                          ? 'bg-card text-foreground shadow-2xs'
+                          : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       <Moon className="w-3 h-3" />
                       <span>Escuro</span>
                     </button>
                   </div>
-                  <span className="text-3xs text-zinc-400 mt-1 block px-1">
+                  <span className="text-caption text-muted-foreground mt-1 block">
                     {!form.tema_config?.modo || form.tema_config.modo === 'auto'
-                      ? 'Calcula contraste WCAG automaticamente pela luminância da cor de fundo.'
+                      ? 'Calcula contraste WCAG automaticamente pela cor de fundo.'
                       : form.tema_config.modo === 'light'
                       ? 'Força interface clara para este formulário.'
                       : 'Força interface escura para este formulário.'}
@@ -769,7 +794,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                 </div>
 
                 <div>
-                  <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-2">
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-2">
                     Paletas Predefinidas
                   </label>
                   <div className="grid grid-cols-1 gap-2">
@@ -783,59 +808,59 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                             tema_config: { ...form.tema_config, ...preset.config },
                           })
                         }
-                        className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:border-emerald-500 flex items-center justify-between cursor-pointer transition-all hover:scale-[1.01]"
+                        className="p-2.5 rounded-xl border border-border hover:border-border-strong hover:bg-accent/40 flex items-center justify-between cursor-pointer transition-ui"
                       >
                         <div className="flex items-center gap-2.5">
-                          <span className={`w-4 h-4 rounded-full ${preset.badge}`} />
-                          <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                          <span className={`w-3.5 h-3.5 rounded-full ${preset.badge}`} />
+                          <span className="text-xs font-semibold text-foreground">
                             {preset.nome}
                           </span>
                         </div>
-                        <span className="text-2xs text-zinc-400 font-mono">{preset.config.cor_primaria}</span>
+                        <span className="text-caption text-muted-foreground font-mono">{preset.config.cor_primaria}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-3">
+                <div className="pt-2 border-t border-border space-y-3">
                   <div>
-                    <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
-                      Cor Primária (Destaques & Botão)
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                      Cor Primária (Acento & Botão)
                     </label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={form.tema_config?.cor_primaria || '#10b981'}
+                        value={form.tema_config?.cor_primaria || '#d8ff3c'}
                         onChange={(e) =>
                           setForm({
                             ...form,
                             tema_config: { ...form.tema_config, cor_primaria: e.target.value },
                           })
                         }
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-zinc-200"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-border"
                       />
-                      <input
+                      <Input
                         type="text"
-                        value={form.tema_config?.cor_primaria || '#10b981'}
+                        value={form.tema_config?.cor_primaria || '#d8ff3c'}
                         onChange={(e) =>
                           setForm({
                             ...form,
                             tema_config: { ...form.tema_config, cor_primaria: e.target.value },
                           })
                         }
-                        className="flex-1 text-xs font-mono uppercase p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent"
+                        className="flex-1 h-8 text-xs font-mono uppercase"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
                       Cor de Fundo
                     </label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={form.tema_config?.cor_fundo || '#ffffff'}
+                        value={form.tema_config?.cor_fundo || '#09090b'}
                         onChange={(e) => {
                           const newBg = e.target.value;
                           const currentModo = form.tema_config?.modo;
@@ -848,15 +873,15 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                             tema_config: {
                               ...form.tema_config,
                               cor_fundo: newBg,
-                              cor_texto: autoTextColor || '#09090b',
+                              cor_texto: autoTextColor || '#f4f4f5',
                             },
                           });
                         }}
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-zinc-200"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-border"
                       />
-                      <input
+                      <Input
                         type="text"
-                        value={form.tema_config?.cor_fundo || '#ffffff'}
+                        value={form.tema_config?.cor_fundo || '#09090b'}
                         onChange={(e) => {
                           const newBg = e.target.value;
                           const currentModo = form.tema_config?.modo;
@@ -869,50 +894,50 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                             tema_config: {
                               ...form.tema_config,
                               cor_fundo: newBg,
-                              cor_texto: autoTextColor || '#09090b',
+                              cor_texto: autoTextColor || '#f4f4f5',
                             },
                           });
                         }}
-                        className="flex-1 text-xs font-mono uppercase p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent"
+                        className="flex-1 h-8 text-xs font-mono uppercase"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
                       Cor do Texto Principal
                     </label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={form.tema_config?.cor_texto || '#09090b'}
+                        value={form.tema_config?.cor_texto || '#f4f4f5'}
                         onChange={(e) =>
                           setForm({
                             ...form,
                             tema_config: { ...form.tema_config, cor_texto: e.target.value },
                           })
                         }
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-zinc-200"
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-border"
                       />
-                      <input
+                      <Input
                         type="text"
-                        value={form.tema_config?.cor_texto || '#09090b'}
+                        value={form.tema_config?.cor_texto || '#f4f4f5'}
                         onChange={(e) =>
                           setForm({
                             ...form,
                             tema_config: { ...form.tema_config, cor_texto: e.target.value },
                           })
                         }
-                        className="flex-1 text-xs font-mono uppercase p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent"
+                        className="flex-1 h-8 text-xs font-mono uppercase"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
                       Logo do Cliente (URL)
                     </label>
-                    <input
+                    <Input
                       type="url"
                       value={form.tema_config?.logo_url || ''}
                       onChange={(e) =>
@@ -922,7 +947,6 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         })
                       }
                       placeholder="https://exemplo.com/logo.png"
-                      className="w-full text-xs p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:border-emerald-500 bg-transparent"
                     />
                   </div>
                 </div>
@@ -933,28 +957,27 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
             {activeTab === 'ajustes' && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
                     Slug do Link
                   </label>
-                  <div className="flex items-center gap-1 text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl p-2 bg-zinc-50 dark:bg-zinc-800">
-                    <span className="text-zinc-400">/f/</span>
+                  <div className="flex items-center gap-1 text-xs border border-input rounded-xl p-2 bg-card">
+                    <span className="text-muted-foreground">/f/</span>
                     <input
                       type="text"
                       value={form.slug}
                       onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                      className="flex-1 bg-transparent font-medium text-zinc-800 dark:text-zinc-100 focus:outline-none"
+                      className="flex-1 bg-transparent font-medium text-foreground focus:outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
                     Cliente Vinculado
                   </label>
-                  <select
+                  <Select
                     value={form.cliente_id || ''}
                     onChange={(e) => setForm({ ...form, cliente_id: e.target.value || null })}
-                    className="w-full text-xs font-medium p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:border-emerald-500 bg-white dark:bg-zinc-900"
                   >
                     <option value="">Nenhum (Uso Geral da Agência)</option>
                     {clientes.map((c) => (
@@ -962,21 +985,20 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         {c.nome}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
-                  <label className="text-2xs font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
                     WhatsApp para Alerta de Novo Lead
                   </label>
-                  <input
+                  <Input
                     type="tel"
                     value={form.notificacao_whatsapp_numero || ''}
                     onChange={(e) => setForm({ ...form, notificacao_whatsapp_numero: e.target.value })}
                     placeholder="11999999999 (com DDD)"
-                    className="w-full text-xs font-medium p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:border-emerald-500 bg-transparent"
                   />
-                  <span className="text-2xs text-zinc-400 mt-1 block">
+                  <span className="text-caption text-muted-foreground mt-1 block">
                     Número que receberá o botão de contato direto no final.
                   </span>
                 </div>
@@ -986,76 +1008,81 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
         </aside>
       </div>
 
-      {/* Modal de Compartilhamento */}
-      {showShareModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 border border-zinc-200 dark:border-zinc-800">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Compartilhar Formulário</h3>
-              <button
-                type="button"
-                onClick={() => setShowShareModal(false)}
-                className="p-1.5 rounded-xl text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                ✕
-              </button>
-            </div>
+      {/* Modal de Compartilhamento com DialogShell */}
+      <DialogShell
+        open={showShareModal}
+        onRequestClose={() => setShowShareModal(false)}
+        aria-label="Compartilhar Formulário"
+        className="max-w-md w-full"
+      >
+        <div className="p-5 border-b border-border flex items-center justify-between shrink-0">
+          <h3 className="font-display text-base font-bold text-foreground">Compartilhar Formulário</h3>
+          <button
+            type="button"
+            onClick={() => setShowShareModal(false)}
+            className="p-1.5 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 block">Link Direto</label>
-              <div className="flex items-center gap-2 p-2 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
-                <input
-                  type="text"
-                  readOnly
-                  value={publicUrl}
-                  className="flex-1 bg-transparent text-xs font-mono text-zinc-700 dark:text-zinc-300 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(publicUrl);
-                    setCopiedLink(true);
-                    setTimeout(() => setCopiedLink(false), 2000);
-                  }}
-                  className="px-3 py-1.5 bg-white dark:bg-zinc-700 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-100 shadow-2xs hover:bg-zinc-50 flex items-center gap-1.5 cursor-pointer"
-                >
-                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedLink ? 'Copiado!' : 'Copiar'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 block">Incorporar em Site (Iframe)</label>
-              <textarea
+        <div className="p-5 space-y-4 overflow-y-auto">
+          <div className="space-y-2">
+            <label className="text-label font-medium text-foreground block">Link Direto</label>
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-muted border border-border">
+              <input
+                type="text"
                 readOnly
-                rows={2}
-                value={`<iframe src="${publicUrl}" width="100%" height="650" frameborder="0"></iframe>`}
-                className="w-full text-2xs font-mono p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 resize-none focus:outline-none"
+                value={publicUrl}
+                className="flex-1 bg-transparent text-xs font-mono text-foreground focus:outline-none"
               />
-            </div>
-
-            <div className="pt-2 flex justify-between items-center">
-              <a
-                href={publicUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"
-              >
-                <span>Abrir formulário</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-              <button
+              <Button
                 type="button"
-                onClick={() => setShowShareModal(false)}
-                className="px-4 py-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-xl text-xs font-bold cursor-pointer"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(publicUrl);
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 2000);
+                }}
               >
-                Concluir
-              </button>
+                {copiedLink ? <Check className="w-3.5 h-3.5 text-brand-text mr-1" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
+                <span>{copiedLink ? 'Copiado!' : 'Copiar'}</span>
+              </Button>
             </div>
           </div>
+
+          <div className="space-y-2 pt-1">
+            <label className="text-label font-medium text-foreground block">Incorporar em Site (Iframe)</label>
+            <textarea
+              readOnly
+              rows={2}
+              value={`<iframe src="${publicUrl}" width="100%" height="650" frameborder="0"></iframe>`}
+              className="w-full text-caption font-mono p-2.5 rounded-xl bg-muted border border-border text-foreground resize-none focus:outline-none"
+            />
+          </div>
         </div>
-      )}
+
+        <div className="p-4 border-t border-border bg-muted/30 flex justify-between items-center shrink-0">
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-bold text-foreground hover:underline flex items-center gap-1"
+          >
+            <span>Abrir formulário</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={() => setShowShareModal(false)}
+          >
+            Concluir
+          </Button>
+        </div>
+      </DialogShell>
     </div>
   );
 }
