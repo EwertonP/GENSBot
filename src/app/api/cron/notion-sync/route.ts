@@ -13,6 +13,50 @@ export const maxDuration = 60;
 // fica pra próxima execução do cron (1x por dia) ou pro próximo clique manual em "Sincronizar".
 const LIMITE_BUSCAS_DETALHADAS_POR_EXECUCAO = 60;
 
+/**
+ * Baixa arquivos com URLs temporárias do Notion (AWS S3 presigned com validade de 1h)
+ * e salva permanentemente no bucket 'post-media' do Supabase Storage.
+ */
+async function persistirArquivoNotion(remoteUrl: string, pageId: string, index: number): Promise<string> {
+  if (!remoteUrl || remoteUrl.includes('supabase.co/storage')) {
+    return remoteUrl;
+  }
+  // Só converte se for link temporário do AWS S3 / Notion
+  if (!remoteUrl.includes('amazonaws.com') && !remoteUrl.includes('notion.so')) {
+    return remoteUrl;
+  }
+
+  try {
+    const res = await fetch(remoteUrl);
+    if (!res.ok) {
+      console.warn(`[notion-sync] Falha ao baixar anexo Notion (${res.status}): ${remoteUrl.slice(0, 80)}`);
+      return remoteUrl;
+    }
+
+    const contentType = res.headers.get('content-type') || 'application/octet-stream';
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const isVideo = contentType.includes('video') || /\.mp4/i.test(remoteUrl);
+    const ext = isVideo ? 'mp4' : (contentType.includes('png') ? 'png' : 'jpg');
+    const path = `notion/${pageId}/${Date.now()}-${index}.${ext}`;
+
+    const { error } = await supabase.storage.from('post-media').upload(path, buffer, {
+      contentType,
+      upsert: true,
+    });
+
+    if (error) {
+      console.error('[notion-sync] Erro ao salvar anexo Notion no Supabase Storage:', error);
+      return remoteUrl;
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
+    return publicUrl;
+  } catch (err) {
+    console.error('[notion-sync] Erro ao persistir anexo do Notion:', err);
+    return remoteUrl;
+  }
+}
+
 export async function handleNotionSync(req: Request) {
   const authHeader = req.headers.get('Authorization');
   const cronSecret = process.env.CRON_SECRET;
@@ -166,13 +210,18 @@ export async function handleNotionSync(req: Request) {
           }
         }
 
-        // Prepara objeto dos arquivos no formato ArquivoConteudo[]
-        const arquivos = demand.arquivosUrls.map((url, index) => ({
-          id: `notion-file-${index}`,
-          url,
-          tipo: url.match(/\.(mp4|mov|webm)/i) ? 'video' : 'imagem',
-          ordem: index,
-        }));
+        // Prepara objeto dos arquivos no formato ArquivoConteudo[], persistindo anexos temporários do Notion no Supabase Storage
+        const arquivos = [];
+        for (let i = 0; i < demand.arquivosUrls.length; i++) {
+          const rawUrl = demand.arquivosUrls[i];
+          const permanentUrl = await persistirArquivoNotion(rawUrl, page.id, i + 1);
+          arquivos.push({
+            id: `notion-file-${i}`,
+            url: permanentUrl,
+            tipo: (permanentUrl.match(/\.(mp4|mov|webm)/i) ? 'video' : 'imagem') as 'video' | 'imagem',
+            ordem: i + 1,
+          });
+        }
 
         // Se o item já existe no GENSBot com status avançado (ex.: agendamento ou publicado),
         // não permite que o Notion retroceda o status.

@@ -48,7 +48,8 @@ import type { PostingTimeSuggestion } from '@/lib/best-posting-time';
 import type { PrefillAgendamento } from '@/lib/conteudo';
 import { detectarGatilhosDaLegenda, type PublishAutomationConfig } from '@/lib/publish-automation';
 import type { Automation } from '@/types/automation';
-import { upload } from '@vercel/blob/client';
+import { uploadMediaFile } from '@/lib/storage-upload';
+
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
 type PostKind = 'post' | 'reels' | 'story';
@@ -511,12 +512,8 @@ export default function PublishPanel({
     try {
       let uploadedUrls: string[] = [...prefillRemoteUrls];
       for (const file of files) {
-        const blob = await upload(file.name, file, {
-          access: 'public',
-          handleUploadUrl: '/api/instagram/upload-media',
-          multipart: true,
-        });
-        uploadedUrls.push(blob.url);
+        const res = await uploadMediaFile(file, 'publish');
+        uploadedUrls.push(res.url);
       }
 
       if (uploadedUrls.length === 0) {

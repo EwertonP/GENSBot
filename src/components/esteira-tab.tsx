@@ -69,7 +69,8 @@ import {
 import { detectarGatilhosDaLegenda } from '@/lib/publish-automation';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
-import { upload } from '@vercel/blob/client';
+import { uploadMediaFile } from '@/lib/storage-upload';
+
 
 export const ETAPAS_PIPELINE: { status: StatusConteudo; label: string; short: string; step: number }[] = [
   { status: 'planejamento', label: 'Briefing & Ideia', short: 'Briefing', step: 1 },
@@ -364,36 +365,20 @@ export default function EsteiraTab({
     }
   }
 
-  // Helper para upload de mídias direto no Vercel Blob com fallback
+  // Helper para upload de mídias direto no Supabase Storage (bucket 'post-media')
   async function handleUploadArquivos(fileList: FileList | File[]): Promise<ArquivoConteudo[]> {
     const files = Array.from(fileList);
     const novos: ArquivoConteudo[] = [];
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
-      const isVid = f.type.startsWith('video');
-      try {
-        const blob = await upload(f.name, f, {
-          access: 'public',
-          handleUploadUrl: '/api/instagram/upload-media',
-          multipart: true,
-        });
-        novos.push({
-          id: crypto.randomUUID(),
-          url: blob.url,
-          tipo: isVid ? 'video' : 'imagem',
-          ordem: i + 1,
-          nome: f.name,
-        });
-      } catch {
-        const localUrl = URL.createObjectURL(f);
-        novos.push({
-          id: crypto.randomUUID(),
-          url: localUrl,
-          tipo: isVid ? 'video' : 'imagem',
-          ordem: i + 1,
-          nome: f.name,
-        });
-      }
+      const res = await uploadMediaFile(f, 'conteudo');
+      novos.push({
+        id: crypto.randomUUID(),
+        url: res.url,
+        tipo: res.tipo,
+        ordem: i + 1,
+        nome: res.nome,
+      });
     }
     return novos;
   }

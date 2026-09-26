@@ -1,41 +1,46 @@
 import { NextResponse } from 'next/server';
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { supabase } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth-api';
+import { sanitizeFileName } from '@/lib/storage-upload';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'video/mp4', 'video/quicktime'];
-const MAX_SIZE_BYTES = 1024 * 1024 * 1024; // 1GB — teto de vídeo de Reels da própria Meta
-
-// POST: gera o client token que autoriza o navegador a mandar o arquivo direto
-// pro Vercel Blob (multipart, sem passar pelo corpo desta função serverless —
-// que tem limite de ~4.5MB, bem abaixo de um vídeo de Reels). Antes isso ia
-// pelo Supabase Storage via signed URL; trocado pro Blob pra não depender do
-// limite de upload configurado no projeto Supabase (50MB no plano free) e
-// aproveitar o multipart nativo do Blob pra arquivo grande.
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
-
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async () => {
-        const user = await getAuthUser();
-        if (!user) throw new Error('Não autenticado.');
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
+    }
 
-        return {
-          allowedContentTypes: ALLOWED_TYPES,
-          maximumSizeInBytes: MAX_SIZE_BYTES,
-          addRandomSuffix: true,
-          tokenPayload: JSON.stringify({ userId: user.id }),
-        };
-      },
-      // Sem onUploadCompleted: não precisamos de nada no banco quando o upload
-      // termina — o front recebe a URL do blob direto no retorno de upload()
-      // e segue pro /api/instagram/publish com ela.
-    });
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const file = formData.get('file') as File | null;
+      if (!file) {
+        return NextResponse.json({ error: 'Nenhum arquivo enviado.' }, { status: 400 });
+      }
 
-    return NextResponse.json(jsonResponse);
+      const cleanName = sanitizeFileName(file.name);
+      const path = `uploads/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${cleanName}`;
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      const { error } = await supabase.storage.from('post-media').upload(path, buffer, {
+        contentType: file.type || 'application/octet-stream',
+        upsert: true,
+      });
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
+      return NextResponse.json({ url: publicUrl, name: file.name });
+    }
+
+    return NextResponse.json(
+      { error: 'Endpoint migrado para Supabase Storage. Use uploadMediaFile diretamente no frontend ou multipart/form-data.' },
+      { status: 400 }
+    );
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
