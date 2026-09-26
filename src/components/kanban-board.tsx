@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CalendarPicker } from '@/components/ui/calendar-picker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Board } from '@/components/ui/board';
+import { confirmDialog } from '@/components/ui/dialog';
 
 type ApprovalStatus = 'rascunho' | 'em_revisao' | 'aprovado' | 'agendado' | 'publicado' | 'rejeitado';
 
@@ -124,7 +125,7 @@ export default function KanbanBoard({ accounts, selectedAccountId, withAccount, 
 
   const handleReject = async () => {
     if (!editingPost) return;
-    if (!confirm('Rejeitar esta publicação? Ela sai do board.')) return;
+    if (!(await confirmDialog({title: "Rejeitar esta publicação?",description: "Ela sai do board.",confirmLabel: "Rejeitar",tone: "destructive"}))) return;
     setSaving(true);
     try {
       const res = await fetch(withAccount(`/api/instagram/publish/${editingPost.id}`), {
@@ -145,7 +146,7 @@ export default function KanbanBoard({ accounts, selectedAccountId, withAccount, 
 
   const handleCancel = async () => {
     if (!editingPost) return;
-    if (!confirm('Cancelar esta publicação agendada?')) return;
+    if (!(await confirmDialog({title: "Cancelar esta publicação agendada?",confirmLabel: "Cancelar publicação",cancelLabel: "Manter",tone: "destructive"}))) return;
     setSaving(true);
     try {
       const res = await fetch(withAccount(`/api/instagram/publish/${editingPost.id}`), { method: 'DELETE' });

@@ -20,6 +20,7 @@ import {
   type ContaInstagramResumo,
   type DestinoConta,
 } from '@/lib/clientes';
+import { confirmDialog } from '@/components/ui/dialog';
 
 interface ClientesTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
@@ -137,10 +138,11 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
 
   async function criarAPartirDasContas() {
     if (contasLivres.length === 0) return;
-    const ok = confirm(
-      `Criar ${contasLivres.length} cliente${contasLivres.length > 1 ? 's' : ''} a partir das contas do Instagram ainda sem cliente?\n\n` +
-        'Cada um leva o @ da conta como nome — você renomeia depois na ficha.'
-    );
+    const ok = await confirmDialog({
+      title: `Criar ${contasLivres.length} cliente${contasLivres.length > 1 ? 's' : ''} a partir das contas do Instagram?`,
+      description: 'Cada um leva o @ da conta como nome — você renomeia depois na ficha.',
+      confirmLabel: 'Criar clientes',
+    });
     if (!ok) return;
 
     setImportando(true);

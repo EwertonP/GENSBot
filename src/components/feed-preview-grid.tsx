@@ -27,6 +27,8 @@ import { Badge } from '@/components/ui/badge';
 import { Instagram } from '@/components/instagram-icon';
 import { STATUS_LABELS, type ConteudoItem, type StatusConteudo } from '@/lib/conteudo';
 import type { Cliente } from '@/lib/clientes';
+import { confirmDialog } from '@/components/ui/dialog';
+import { Sheet } from '@/components/ui/sheet';
 
 interface FeedPreviewGridProps {
   cliente: Cliente;
@@ -76,7 +78,7 @@ export function FeedPreviewGrid({
   }
 
   async function handleRenovarToken() {
-    if (!confirm('Deseja revogar o link anterior e gerar um novo link para este cliente?')) return;
+    if (!(await confirmDialog({title: "Gerar um novo link de aprovação?",description: "O link atual deixa de funcionar — quem ainda tiver o antigo precisará receber o novo.",confirmLabel: "Gerar novo link"}))) return;
     setRenovandoToken(true);
     try {
       const res = await fetch(`/api/clientes/${cliente.id}`, {
@@ -266,8 +268,8 @@ export function FeedPreviewGrid({
       )}
 
       {/* Modal: COMPARTILHAR PREVIEW (idêntico à Imagem 3 de referência) */}
-      {modalShareAberto && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+      <Sheet open={modalShareAberto} onClose={() => setModalShareAberto(false)} aria-label="Compartilhar preview do feed" className="bg-transparent border-0 shadow-none rounded-none overflow-visible max-h-none w-full max-w-md">
+        {modalShareAberto && (
           <div className="w-full max-w-md bg-card border border-border rounded-3xl p-6 shadow-2xl flex flex-col gap-4 relative animate-in zoom-in-95 duration-200">
             <button
               type="button"
@@ -344,12 +346,12 @@ export function FeedPreviewGrid({
               Link fixo — não muda de mês pra mês, sempre mostra as publicações do cliente. Quem tiver o link pode navegar pelos carrosséis e deixar comentários e aprovações.
             </p>
           </div>
-        </div>
-      )}
+        )}
+      </Sheet>
 
       {/* Modal / Drawer do Post Ativo (Navegação Fiel ao Portal do Cliente) */}
-      {postAtivo && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+      <Sheet open={!!postAtivo} onClose={() => setPostAtivo(null)} aria-label="Detalhes da publicação" className="bg-transparent border-0 shadow-none rounded-none overflow-visible max-h-none w-full max-w-4xl">
+        {postAtivo && (
           <div className="w-full max-w-4xl bg-card border border-border rounded-3xl overflow-hidden shadow-2xl grid grid-cols-1 lg:grid-cols-12 max-h-[90vh] relative animate-in zoom-in-95 duration-200">
             <button
               type="button"
@@ -469,8 +471,8 @@ export function FeedPreviewGrid({
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Sheet>
     </div>
   );
 }

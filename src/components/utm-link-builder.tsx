@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
+import { confirmDialog } from '@/components/ui/dialog';
 
 interface UtmLinkBuilderProps {
   withAccount: (url: string) => string;
@@ -190,7 +191,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este link UTM?')) return;
+    if (!(await confirmDialog({title: "Excluir este link UTM?",description: "O link curto para de redirecionar e os cliques registrados deixam de aparecer aqui.",confirmLabel: "Excluir link",tone: "destructive"}))) return;
     await fetch(withAccount(`/api/utm-links/${id}`), { method: 'DELETE' });
     if (editingId === id) resetForm();
     await load();

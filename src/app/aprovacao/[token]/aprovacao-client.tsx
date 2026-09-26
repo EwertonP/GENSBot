@@ -27,6 +27,7 @@ import { InstagramCarrosselPreview } from '@/components/aprovacao/instagram-carr
 import { InstagramStoryPreview } from '@/components/aprovacao/instagram-story-preview';
 import { InstagramReelsPreview } from '@/components/aprovacao/instagram-reels-preview';
 import { ClienteAvatar } from '@/components/cliente-avatar';
+import { toast } from '@/components/ui/toast';
 
 interface PaginaAprovacaoClientProps {
   itemInicial: ConteudoItem | null;
@@ -111,7 +112,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       setItem(data.item);
       setSucessoAprovado(true);
     } catch (err: any) {
-      alert(err.message || 'Erro ao aprovar.');
+      toast.error('Não foi possível aprovar', { description: err.message || 'Tente novamente em instantes.' });
     } finally {
       setEnviando(false);
     }
@@ -166,7 +167,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       setTextoAjuste('');
       setModalAjusteAberto(false);
     } catch (err: any) {
-      alert(err.message || 'Erro ao enviar feedback.');
+      toast.error('Não foi possível enviar o ajuste', { description: err.message || 'Seu texto continua aqui — tente enviar de novo.' });
     } finally {
       setEnviando(false);
     }

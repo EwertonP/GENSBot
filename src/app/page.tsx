@@ -36,11 +36,9 @@ import {
   Plus,
   Trash2,
   Edit2,
-  RefreshCw,
   CheckCircle,
   CheckSquare,
   CalendarDays,
-  AlertCircle,
   LogOut,
   Send,
   X,
@@ -65,6 +63,10 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
+import { confirmDialog } from '@/components/ui/dialog';
+import { toast } from '@/components/ui/toast';
+import { Tip } from '@/components/ui/tooltip';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface InstagramAccountSummary {
   id: string;
@@ -160,6 +162,20 @@ export default function Dashboard() {
     });
   };
 
+  // Ctrl/Cmd+B recolhe a sidebar (fora de campos de texto).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'b' || e.shiftKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+      e.preventDefault();
+      toggleSidebar();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
@@ -213,7 +229,6 @@ export default function Dashboard() {
   const [publicReplyInput, setPublicReplyInput] = useState('');
 
   // Mensagens de alerta/sucesso
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Layout states
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -460,9 +475,11 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [isConnected, activeTab, selectedAccountId]);
 
+  // Mantém a assinatura antiga que as abas recebem por prop; por baixo usa o
+  // gerenciador global (fila, pausa no hover, swipe) — ver ui/toast.tsx.
   const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 5000);
+    if (type === 'error') toast.error(message);
+    else toast.success(message);
   };
 
   const fetchChatMessages = async (contactId: string) => {
@@ -652,7 +669,7 @@ export default function Dashboard() {
   };
 
   const handleDeleteAutomation = async (id: string) => {
-    if (!confirm('Deseja realmente excluir esta automação?')) return;
+    if (!(await confirmDialog({title: "Excluir esta automação?",description: "Ela para de responder imediatamente. O histórico de contatos continua salvo.",confirmLabel: "Excluir automação",tone: "destructive"}))) return;
     try {
       const res = await fetch(`/api/automations/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -738,9 +755,9 @@ export default function Dashboard() {
     setActiveBranchTab('true');
   };
 
-  const removeCondition = () => {
+  const removeCondition = async () => {
     if (!wizardCondition) return;
-    if (!confirm('Remover a condição descarta todo o ramo "Se falso" (perguntas, link e follow-ups configurados nele). O ramo "Se verdadeiro" vira o fluxo normal. Quer continuar?')) return;
+    if (!(await confirmDialog({title: "Remover a condição?",description: "O ramo \"Se falso\" (perguntas, link e follow-ups) será descartado, e o ramo \"Se verdadeiro\" vira o fluxo normal.",confirmLabel: "Remover condição",tone: "destructive"}))) return;;
     setQualificationSteps(prev => [...prev, ...wizardCondition.trueBranch.questions]);
     setForm(prev => ({
       ...prev,
@@ -808,7 +825,7 @@ export default function Dashboard() {
   const handleDisconnect = async () => {
     if (!selectedAccountId || selectedAccountId === 'all') return;
     const account = accounts.find(a => a.instagram_user_id === selectedAccountId);
-    if (!confirm(`Deseja realmente desconectar a conta @${account?.instagram_username || selectedAccountId}?`)) return;
+    if (!(await confirmDialog({ title: `Desconectar @${account?.instagram_username || selectedAccountId}?`, description: 'As automações dessa conta param de responder até você conectá-la de novo.', confirmLabel: 'Desconectar', tone: 'destructive' }))) return;
 
     try {
       const res = await fetch(withAccount('/api/status'), { method: 'DELETE' });
@@ -840,10 +857,20 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
-        <div className="flex flex-col items-center gap-4">
-          <RefreshCw className="w-12 h-12 animate-spin text-primary" />
-          <p className="text-muted-foreground font-medium">Carregando painel de automação...</p>
+      // Esqueleto com o formato real do shell: sidebar + cabeçalho + cards,
+      // em vez de spinner solto — a tela "chega" sem salto de layout.
+      <div role="status" aria-label="Carregando o GENSBot" className="h-screen w-screen flex bg-background">
+        <div className="hidden md:flex w-64 shrink-0 flex-col gap-3 border-r border-sidebar-border bg-sidebar p-4">
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-12 w-full mt-2" />
+          {Array.from({ length: 9 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+        </div>
+        <div className="flex-1 flex flex-col gap-6 p-6 md:p-8">
+          <Skeleton className="h-8 w-64" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+          </div>
+          <Skeleton className="h-72 rounded-2xl" />
         </div>
       </div>
     );
@@ -851,36 +878,6 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased">
-      {/* Toast Alert */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            role="status"
-            aria-live="polite"
-            initial={{ opacity: 0, y: -12, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.96 }}
-            transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-card text-foreground shadow-lg"
-          >
-            {toast.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
-            )}
-            <p className="text-sm font-semibold">{toast.message}</p>
-            <button
-              type="button"
-              onClick={() => setToast(null)}
-              aria-label="Fechar aviso"
-              className="p-1 -m-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer flex-shrink-0"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Overlay para o Menu Mobile */}
       {isMobileMenuOpen && (
         <div 
@@ -908,9 +905,12 @@ export default function Dashboard() {
               )}
             </div>
             
+            <Tip label={isSidebarCollapsed ? 'Expandir menu' : 'Recolher menu'} shortcut="Ctrl+B" side="right">
             <button
+              type="button"
               onClick={toggleSidebar}
-              title={isSidebarCollapsed ? 'Expandir menu (Ctrl+B)' : 'Recuar menu (Ctrl+B)'}
+              aria-label={isSidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
+              aria-expanded={!isSidebarCollapsed}
               className="p-1.5 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               {isSidebarCollapsed ? (
@@ -919,6 +919,7 @@ export default function Dashboard() {
                 <PanelLeftClose className="w-4 h-4" />
               )}
             </button>
+            </Tip>
           </div>
 
           {/* Seletor de Conta do Instagram (perfil ativo) */}
@@ -1110,9 +1111,11 @@ export default function Dashboard() {
                 const active = activeTab === item.id;
 
                 return (
+                  <Tip key={item.id} label={item.label} side="right" disabled={!isSidebarCollapsed}>
                   <button
-                    key={item.id}
-                    title={item.label}
+                    type="button"
+                    aria-current={active ? 'page' : undefined}
+                    aria-label={isSidebarCollapsed ? item.label : undefined}
                     onClick={() => {
                       setActiveTab(item.id as any);
                       setIsEditing(false);
@@ -1126,6 +1129,7 @@ export default function Dashboard() {
                     <Icon className={`relative w-4 h-4 flex-shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
                     {!isSidebarCollapsed && <span className="relative truncate">{item.label}</span>}
                   </button>
+                  </Tip>
                 );
               })}
             </div>
@@ -1168,10 +1172,10 @@ export default function Dashboard() {
             <Logo className="h-5" />
           </div>
           <div className="flex items-center gap-2">
+            <Tip label={theme === 'dark' ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'} side="bottom">
             <button
               type="button"
               onClick={toggleTheme}
-              title={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
               aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
               className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-all duration-150 cursor-pointer shadow-2xs flex items-center justify-center"
             >
@@ -1181,6 +1185,7 @@ export default function Dashboard() {
                 <Moon className="w-4 h-4 text-foreground animate-in spin-in-180 duration-200" />
               )}
             </button>
+            </Tip>
             <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs shadow-xs">
               {currentUser?.email?.substring(0, 1).toUpperCase()}
             </div>
@@ -1231,18 +1236,18 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => handleSelectAccount('all')}
                   className="ml-1 text-xs px-2 py-0.5 rounded-md bg-card hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-all cursor-pointer"
-                  title="Voltar para a Visão Geral da Agência"
+                  aria-label="Sair da conta e voltar para a visão geral da agência"
                 >
-                  ✕ Visão Agência
+                  <X aria-hidden className="inline w-3 h-3 -mt-px" /> Visão Agência
                 </button>
               </div>
             )}
 
             {/* Alternador Simples de Tema (Dark / Light) */}
+            <Tip label={theme === 'dark' ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'} side="bottom">
             <button
               type="button"
               onClick={toggleTheme}
-              title={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
               aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
               className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-all duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 flex items-center justify-center"
             >
@@ -1252,6 +1257,7 @@ export default function Dashboard() {
                 <Moon className="w-4 h-4 text-foreground animate-in spin-in-180 duration-200" />
               )}
             </button>
+            </Tip>
           </div>
         </header>
 

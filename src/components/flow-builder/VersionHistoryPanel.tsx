@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, RotateCcw, Eye } from 'lucide-react';
 import type { FlowDefinition } from '@/types/flow';
+import { confirmDialog } from '@/components/ui/dialog';
 
 interface VersionSummary {
   id: string;
@@ -72,8 +73,8 @@ export default function VersionHistoryPanel({ automationId, onClose, onView, onR
                 <Eye className="w-3 h-3" /> Ver
               </button>
               <button
-                onClick={() => {
-                  if (confirm(`Restaurar a versão ${v.version_number}? Isso salva um novo snapshot do estado atual antes de restaurar.`)) {
+                onClick={async () => {
+                  if (await confirmDialog({ title: `Restaurar a versão ${v.version_number}?`, description: 'Antes de restaurar, o estado atual é salvo como uma nova versão — nada se perde.', confirmLabel: 'Restaurar' })) {
                     onRestore(v.id);
                   }
                 }}

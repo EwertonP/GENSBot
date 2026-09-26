@@ -25,6 +25,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { uploadMediaFile } from '@/lib/storage-upload';
+import { confirmDialog } from '@/components/ui/dialog';
 
 
 export interface MembroEquipe {
@@ -207,7 +208,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
   }
 
   async function handleExcluirMembro(m: MembroEquipe) {
-    if (!confirm(`Deseja realmente excluir permanentemente o membro ${m.nome}? Esta ação não pode ser desfeita.`)) return;
+    if (!(await confirmDialog({ title: `Excluir ${m.nome} da equipe?`, description: 'A exclusão é permanente e não pode ser desfeita. As demandas atribuídas a essa pessoa ficam sem responsável.', confirmLabel: 'Excluir membro', tone: 'destructive' }))) return;
     try {
       const res = await fetch(`/api/equipe/${m.id}?hard=true`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Erro ao excluir membro.');
