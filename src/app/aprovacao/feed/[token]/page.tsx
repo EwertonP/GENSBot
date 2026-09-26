@@ -149,7 +149,7 @@ export default function FeedAprovacaoPage() {
               type="button"
               onClick={handleAprovarGrade}
               disabled={aprovandoGrade}
-              className="px-3.5 py-1.5 rounded-xl bg-lime text-lime-foreground font-bold text-xs hover:bg-lime/90 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-1.5 rounded-xl bg-lime text-lime-foreground font-bold text-xs hover:bg-lime/90 transition-ui shadow-xs cursor-pointer disabled:opacity-50"
             >
               {aprovandoGrade ? 'Aprovando...' : `Aprovar Grade (${pendentesAprovacao} posts)`}
             </button>
@@ -388,7 +388,7 @@ export default function FeedAprovacaoPage() {
                   href={`/aprovacao/${postSelecionado.token_aprovacao}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-center text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-center text-xs font-bold transition-ui shadow-xs cursor-pointer"
                 >
                   Abrir Tela de Aprovação Dedicada ↗
                 </a>

@@ -264,7 +264,7 @@ function InstagramPhoneMockup({
             {previewUrls.map((_, i) => (
               <span
                 key={i}
-                className={`h-1.5 rounded-full transition-all ${
+                className={`h-1.5 rounded-full transition-ui ${
                   currentIndex === i ? 'w-3 bg-foreground' : 'w-1 bg-muted-foreground/40'
                 }`}
               />
@@ -930,7 +930,7 @@ export default function PublishPanel({
                       setPreviewUrls([]);
                       setPrefillRemoteUrls([]);
                     }}
-                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                    className={`p-3 rounded-2xl border text-left transition-ui cursor-pointer flex flex-col gap-1 ${
                       active
                         ? 'bg-primary/20 text-primary border-primary/40 shadow-xs font-bold'
                         : 'bg-accent/40 text-foreground border-border hover:bg-accent/80'
@@ -959,7 +959,7 @@ export default function PublishPanel({
             </div>
 
             {/* Dropzone */}
-            <div className="relative border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl p-6 transition-all text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-2">
+            <div className="relative border-2 border-dashed border-border hover:border-foreground/30 rounded-2xl p-6 transition-ui text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-2">
               <input
                 type="file"
                 multiple={kind === 'post'}
@@ -1054,7 +1054,7 @@ export default function PublishPanel({
           {/* Seção: Automação de Comentários (Direct Automático) */}
           {kind !== 'story' && (
             <div
-              className={`p-4 rounded-2xl border transition-all ${
+              className={`p-4 rounded-2xl border transition-ui ${
                 autoEnabled
                   ? 'bg-accent/40 border-primary/40 shadow-xs'
                   : 'bg-card border-border hover:border-foreground/20'
@@ -1163,7 +1163,7 @@ export default function PublishPanel({
                         <button
                           type="button"
                           onClick={() => setAutoMatchType('contains')}
-                          className={`text-xs px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                          className={`text-xs px-2 py-0.5 rounded-md font-bold transition-ui cursor-pointer ${
                             autoMatchType === 'contains'
                               ? 'bg-foreground text-background'
                               : 'text-muted-foreground hover:text-foreground'
@@ -1174,7 +1174,7 @@ export default function PublishPanel({
                         <button
                           type="button"
                           onClick={() => setAutoMatchType('exact')}
-                          className={`text-xs px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                          className={`text-xs px-2 py-0.5 rounded-md font-bold transition-ui cursor-pointer ${
                             autoMatchType === 'exact'
                               ? 'bg-foreground text-background'
                               : 'text-muted-foreground hover:text-foreground'
@@ -1211,7 +1211,7 @@ export default function PublishPanel({
                                 setAutoKeywords(updated.join(', '));
                               }
                             }}
-                            className={`text-xs font-mono px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                            className={`text-xs font-mono px-2 py-0.5 rounded-md border transition-ui cursor-pointer ${
                               isSelected
                                 ? 'bg-primary/20 border-primary text-primary font-bold'
                                 : 'bg-card border-border text-muted-foreground hover:text-foreground'
@@ -1331,7 +1331,7 @@ export default function PublishPanel({
               <button
                 type="button"
                 onClick={() => setScheduleEnabled(false)}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-ui cursor-pointer ${
                   !scheduleEnabled
                     ? 'bg-foreground text-background shadow-xs'
                     : 'bg-accent/40 text-muted-foreground hover:text-foreground'
@@ -1342,7 +1342,7 @@ export default function PublishPanel({
               <button
                 type="button"
                 onClick={() => setScheduleEnabled(true)}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-ui cursor-pointer flex items-center justify-center gap-1.5 ${
                   scheduleEnabled
                     ? 'bg-foreground text-background shadow-xs'
                     : 'bg-accent/40 text-muted-foreground hover:text-foreground'
@@ -1602,7 +1602,7 @@ export default function PublishPanel({
               <button
                 type="button"
                 onClick={() => setFilaContaFiltro('target')}
-                className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-xl font-bold transition-ui cursor-pointer ${
                   filaContaFiltro === 'target'
                     ? 'bg-card text-foreground shadow-2xs border border-border'
                     : 'text-muted-foreground hover:text-foreground'
@@ -1613,7 +1613,7 @@ export default function PublishPanel({
               <button
                 type="button"
                 onClick={() => setFilaContaFiltro('all')}
-                className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-xl font-bold transition-ui cursor-pointer ${
                   filaContaFiltro === 'all'
                     ? 'bg-card text-foreground shadow-2xs border border-border'
                     : 'text-muted-foreground hover:text-foreground'
@@ -1635,7 +1635,7 @@ export default function PublishPanel({
                   key={st.id}
                   type="button"
                   onClick={() => setFiltroStatus(st.id)}
-                  className={`px-3 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-xl font-bold transition-ui cursor-pointer ${
                     filtroStatus === st.id
                       ? 'bg-card text-foreground shadow-2xs border border-border'
                       : 'text-muted-foreground hover:text-foreground'
@@ -1673,7 +1673,7 @@ export default function PublishPanel({
               return (
                 <div
                   key={post.id}
-                  className={`py-3.5 flex flex-col gap-2 transition-all rounded-2xl px-3 ${
+                  className={`py-3.5 flex flex-col gap-2 transition-ui rounded-2xl px-3 ${
                     isEditingThis
                       ? 'bg-warning-soft border-2 border-warning-ring shadow-xs ring-1 ring-warning-ring'
                       : 'hover:bg-accent/25 border border-transparent'
@@ -1742,7 +1742,7 @@ export default function PublishPanel({
                         <button
                           type="button"
                           onClick={() => handleStartEdit(post)}
-                          className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-[0.98] ${
+                          className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-ui cursor-pointer shadow-2xs active:scale-[0.98] ${
                             isEditingThis
                               ? 'bg-warning text-warning-foreground border-warning-ring shadow-xs'
                               : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 hover:border-primary/50'

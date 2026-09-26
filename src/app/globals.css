@@ -102,6 +102,15 @@
   --text-display--line-height: 2.25rem;
 }
 
+/* Movimento: curva "ease-out-expo" (rápida no começo, assenta devagar) e 160ms
+   como padrão de toda utility transition-*. Uma curva só = o app inteiro se
+   move igual. Transições de entrada de overlay usam 200-300ms (ver ui/dialog). */
+@theme {
+  --default-transition-duration: 160ms;
+  --default-transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -327,6 +336,29 @@
   }
 }
 
+/* Substitui transition-all: anima só o que muda em interação (cor, sombra,
+   opacidade, transform) e NUNCA largura/altura/padding, que forçam layout a
+   cada frame. Respeita duration-* e ease-* como transition-all respeita. */
+@utility transition-ui {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, box-shadow, opacity, transform, translate, scale, rotate;
+  transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+
+/* Entrada suave de tela/painel: só opacidade (barata, e sobrevive ao
+   "reduzir movimento"). Esta classe era usada em ~30 telas sem existir. */
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@utility animate-fade-in {
+  animation: aparecer 200ms var(--ease-out-expo) both;
+}
+
 /* Rótulo de seção em caixa alta com tracking positivo. Usar em cabeçalho de
    grupo (sidebar, colunas), nunca como "kicker" acima de um título. */
 @utility eyebrow {
@@ -341,13 +373,24 @@
   color: var(--lime-foreground);
 }
 
-/* Anima só quando o SO permite — troca spring/slide por cross-fade curto,
-   sem desligar feedback de estado (cor/opacidade continuam). */
+/* "Reduzir movimento": troca MOVIMENTO por fade, mas mantém o feedback de estado.
+   - animações viram instantâneas (spinners e pulsos param);
+   - transições só de cor/opacidade/sombra continuam (hover, foco, seleção);
+   - deslocamento e escala (transform/translate/scale) deixam de animar e
+     os efeitos de hover/active:scale não se aplicam.
+   Animações feitas em JS (motion/react) obedecem por MotionConfig no layout. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, box-shadow, opacity !important;
+  }
+  [class*="hover:scale-"]:hover,
+  [class*="active:scale-"]:active,
+  [class*="hover:-translate-y-"]:hover {
+    scale: none !important;
+    translate: none !important;
   }
 }
+

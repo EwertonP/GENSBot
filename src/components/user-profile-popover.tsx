@@ -98,7 +98,7 @@ export default function UserProfilePopover({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2.5 p-2 rounded-xl bg-accent/40 hover:bg-accent border border-border hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group"
+        className="w-full flex items-center justify-between gap-2.5 p-2 rounded-xl bg-accent/40 hover:bg-accent border border-border hover:border-foreground/20 transition-ui cursor-pointer text-left shadow-2xs group"
         aria-label="Menu do usuário master"
       >
         <div className="flex items-center gap-2.5 min-w-0">

@@ -10,7 +10,7 @@ import { buildFlowFromAdvancedForm, decompileFlow } from '@/lib/flow-engine/wiza
 import UtmLinkBuilder from '@/components/utm-link-builder';
 import MetricsPanel from '@/components/metrics-panel';
 import PublishPanel from '@/components/publish-panel';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import ContactsTab from '@/components/contacts-tab';
 import InboxPanel from '@/components/inbox-panel';
 import UserProfilePopover from '@/components/user-profile-popover';
@@ -818,7 +818,7 @@ export default function Dashboard() {
       )}
 
       {/* 1. Left Sidebar Navigation — 100% fixa em tela inteira */}
-      <aside className={`fixed md:relative inset-y-0 left-0 z-50 ${sidebarCompacta ? 'w-20' : 'w-72'} h-full bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:relative inset-y-0 left-0 z-50 ${sidebarCompacta ? 'w-20' : 'w-72'} h-full bg-sidebar text-muted-foreground flex flex-col flex-shrink-0 select-none border-r border-sidebar-border transition-[width,translate] duration-300 ease-out-expo ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
 
         {/* Brand & Workspace Header */}
         <div className={`p-4 pb-3 flex flex-col gap-2 ${sidebarCompacta ? 'items-center px-2' : ''}`}>
@@ -869,7 +869,7 @@ export default function Dashboard() {
                 aria-haspopup="listbox"
                 aria-expanded={accountMenuOpen}
                 title={selectedAccountId === 'all' ? 'Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}
-                className={`w-full flex items-center ${sidebarCompacta ? 'justify-center p-2' : 'gap-2.5 p-2'} rounded-xl bg-accent/60 hover:bg-accent border border-border hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group`}
+                className={`w-full flex items-center ${sidebarCompacta ? 'justify-center p-2' : 'gap-2.5 p-2'} rounded-xl bg-accent/60 hover:bg-accent border border-border hover:border-foreground/20 transition-ui cursor-pointer text-left shadow-2xs group`}
               >
                 {selectedAccountId === 'all' ? (
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 border border-primary/40">
@@ -989,7 +989,7 @@ export default function Dashboard() {
             <button
               onClick={handleConnectInstagram}
               title="Conectar Instagram"
-              className={`mt-2 w-full flex items-center justify-center ${sidebarCompacta ? 'p-2.5' : 'gap-2 px-3 py-2.5'} rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-all shadow-xs cursor-pointer`}
+              className={`mt-2 w-full flex items-center justify-center ${sidebarCompacta ? 'p-2.5' : 'gap-2 px-3 py-2.5'} rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-ui shadow-xs cursor-pointer`}
             >
               <Instagram className="w-3.5 h-3.5 flex-shrink-0" />
               {!sidebarCompacta && <span>Conectar Instagram</span>}
@@ -1094,7 +1094,7 @@ export default function Dashboard() {
               type="button"
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
-              className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-all duration-150 cursor-pointer shadow-2xs flex items-center justify-center"
+              className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-ui duration-150 cursor-pointer shadow-2xs flex items-center justify-center"
             >
               {theme === 'dark' ? (
                 <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
@@ -1128,7 +1128,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => handleSelectAccount('all')}
-                  className="ml-1 text-xs px-2 py-0.5 rounded-md bg-card hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                  className="ml-1 text-xs px-2 py-0.5 rounded-md bg-card hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-ui cursor-pointer"
                   aria-label="Sair da conta e voltar para a visão geral da agência"
                 >
                   <X aria-hidden className="inline w-3 h-3 -mt-px" /> Visão Agência
@@ -1162,7 +1162,7 @@ export default function Dashboard() {
               type="button"
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
-              className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-all duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 flex items-center justify-center"
+              className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-ui duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 flex items-center justify-center"
             >
               {theme === 'dark' ? (
                 <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
@@ -1181,13 +1181,13 @@ export default function Dashboard() {
           </div>
         )}
         <main aria-busy={trocandoConta} className="flex-1 p-4 sm:p-6 md:p-8 bg-background max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] w-full mx-auto space-y-6">
-          <AnimatePresence mode="wait">
+          {/* Entrada só com opacidade e sem esperar a saída da tela anterior: a troca
+              é imediata (interrompível) e, com "reduzir movimento", segue sendo só fade. */}
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
@@ -1358,7 +1358,6 @@ export default function Dashboard() {
             </div>
           )}
           </motion.div>
-          </AnimatePresence>
 
         </main>
         

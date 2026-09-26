@@ -152,7 +152,7 @@ export function InstagramCarrosselPreview({
               <button
                 type="button"
                 onClick={() => onPedirAjuste(slideValido + 1)}
-                className="absolute bottom-3 right-3 bg-black/75 hover:bg-black text-white text-[10px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-md border border-white/20 flex items-center gap-1 shadow-md transition-all active:scale-95"
+                className="absolute bottom-3 right-3 bg-black/75 hover:bg-black text-white text-[10px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-md border border-white/20 flex items-center gap-1 shadow-md transition-ui active:scale-95"
               >
                 <Sparkles className="w-3 h-3 text-lime" />
                 <span>Ajustar Slide #{slideValido + 1}</span>
@@ -200,7 +200,7 @@ export function InstagramCarrosselPreview({
                 key={i}
                 type="button"
                 onClick={() => onMudarSlide(i)}
-                className={`transition-all rounded-full ${
+                className={`transition-ui rounded-full ${
                   slideValido === i
                     ? 'w-4 h-1.5 bg-blue-500'
                     : 'w-1.5 h-1.5 bg-neutral-400 dark:bg-neutral-600 hover:bg-neutral-500'

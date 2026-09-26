@@ -74,7 +74,7 @@ export function MemberChipSelect({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={`h-8 w-full px-2.5 rounded-xl border text-xs transition-all flex items-center justify-between gap-1.5 cursor-pointer shadow-2xs group text-left ${
+        className={`h-8 w-full px-2.5 rounded-xl border text-xs transition-ui flex items-center justify-between gap-1.5 cursor-pointer shadow-2xs group text-left ${
           membroSelecionado
             ? 'bg-accent/40 border-border hover:bg-accent/70 hover:border-foreground/30 text-foreground font-semibold'
             : 'bg-background/80 border-border hover:bg-accent/40 hover:border-foreground/30 text-muted-foreground'

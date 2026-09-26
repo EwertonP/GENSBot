@@ -243,7 +243,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
             <button
               type="button"
               onClick={() => setQuestions((prev) => [...prev, { kind: 'message', text: '' }])}
-              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-muted-foreground text-muted-foreground bg-transparent hover:bg-accent hover:text-foreground hover:border-primary px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-muted-foreground text-muted-foreground bg-transparent hover:bg-accent hover:text-foreground hover:border-primary px-4 py-3 rounded-xl transition-ui cursor-pointer font-bold text-xs"
             >
               <Plus className="w-4 h-4" />
               Mensagem Simples
@@ -253,7 +253,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
               onClick={() =>
                 setQuestions((prev) => [...prev, { kind: 'question', text: '', buttons: [''], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '', saveReplyToField: '' }])
               }
-              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-ui cursor-pointer font-bold text-xs"
             >
               <Plus className="w-4 h-4" />
               Pergunta com Botões
@@ -263,7 +263,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
               onClick={() =>
                 setQuestions((prev) => [...prev, { kind: 'question', text: '', buttons: [], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '', saveReplyToField: '' }])
               }
-              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+              className="flex-1 flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-ui cursor-pointer font-bold text-xs"
             >
               <Plus className="w-4 h-4" />
               Pergunta Aberta
@@ -286,7 +286,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
               value={tail.link_text || ''}
               onChange={(e) => onChange((prev) => ({ ...prev, link_text: e.target.value }))}
               rows={2}
-              className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none font-medium"
+              className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-ui resize-none font-medium"
             />
           </div>
 
@@ -467,7 +467,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                 followups: [...prev.followups, { id: Math.random().toString(36).substr(2, 9), delay_minutes: 15, text: '', link_url: '' }],
               }));
             }}
-            className="flex items-center justify-center gap-2 border border-dashed border-muted-foreground text-muted-foreground bg-transparent hover:bg-accent hover:text-foreground hover:border-primary px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+            className="flex items-center justify-center gap-2 border border-dashed border-muted-foreground text-muted-foreground bg-transparent hover:bg-accent hover:text-foreground hover:border-primary px-4 py-3 rounded-xl transition-ui cursor-pointer font-bold text-xs"
           >
             <Plus className="w-4 h-4" />
             Adicionar Mensagem à Sequência

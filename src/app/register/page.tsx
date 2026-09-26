@@ -81,7 +81,7 @@ export default function RegisterPage() {
           </p>
           <a
             href="/login"
-            className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-md transition-all"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-md transition-ui"
           >
             Ir para o Login
           </a>
@@ -119,7 +119,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
-                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-ui"
               />
             </div>
 
@@ -133,7 +133,7 @@ export default function RegisterPage() {
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   required
-                  className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono"
+                  className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-ui font-mono"
                 />
               </div>
 
@@ -145,7 +145,7 @@ export default function RegisterPage() {
                   placeholder="ex: Designer / Copywriter"
                   value={cargo}
                   onChange={e => setCargo(e.target.value)}
-                  className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                  className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-ui"
                 />
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-ui"
               />
             </div>
 
@@ -172,7 +172,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-ui"
               />
             </div>
 
@@ -185,7 +185,7 @@ export default function RegisterPage() {
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 required
-                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                className="bg-accent border border-input text-foreground text-sm rounded-xl px-4 py-3 placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-ui"
               />
             </div>
 
@@ -199,7 +199,7 @@ export default function RegisterPage() {
               id="register-submit"
               type="submit"
               disabled={loading}
-              className="mt-2 w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:bg-accent disabled:text-muted-foreground text-primary-foreground font-bold text-sm shadow-md cursor-pointer transition-all"
+              className="mt-2 w-full py-3 rounded-xl bg-primary hover:bg-primary/90 disabled:bg-accent disabled:text-muted-foreground text-primary-foreground font-bold text-sm shadow-md cursor-pointer transition-ui"
             >
               {loading ? 'Criando conta...' : 'Criar Conta Gratuita'}
             </button>

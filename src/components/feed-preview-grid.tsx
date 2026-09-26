@@ -201,7 +201,7 @@ export function FeedPreviewGrid({
                     setPostAtivo(post);
                     setSlideIndex(0);
                   }}
-                  className="group relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-card/80 border border-border hover:border-primary/60 transition-all cursor-pointer select-none"
+                  className="group relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-card/80 border border-border hover:border-primary/60 transition-ui cursor-pointer select-none"
                 >
                   {/* Imagem / Vídeo de Capa */}
                   {primeiraMidia ? (

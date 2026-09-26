@@ -197,7 +197,16 @@ Cada Onda é mergeada e testada antes da próxima.
      - **`hooks/use-automation-editor.ts`:** o estado do editor de automação (formulário, perguntas, condição, aviso de saída) saiu do `page.tsx`, movido sem mudar a lógica. Os dados carregados (`automations`, mídias, UTM) continuam na página, porque o Dashboard também usa.
      - **Esteira:** os modais "Duplicar mês" e "Enviar para aprovação" viraram `esteira-duplicar-mes-sheet.tsx` e `esteira-aprovacao-whatsapp-sheet.tsx`.
      - **Ainda por fazer:** o `esteira-tab` continua com ~3.2k linhas. Os formulários de criar e editar demanda são quase idênticos e são o próximo candidato a virar um componente único, mas exigem testes com dados reais.
-6. **Motion:** springs interrompíveis (apple-design) e `prefers-reduced-motion` em tudo.
+6. ✅ **Motion:** ver §6.1 abaixo.
+
+### 6.1 Regras de movimento
+
+- **Uma curva só.** O padrão de toda `transition-*` é 160ms com `cubic-bezier(0.22, 1, 0.36, 1)` (`--ease-out-expo`, rápida no começo e assenta devagar), definido no `@theme`. Overlays de entrada usam 200–300ms (ver `ui/dialog.tsx`); saídas são mais curtas (100–150ms).
+- **Interrompível.** Transições CSS retargeteiam no meio do caminho e são preferidas a keyframes. A troca de tela usa só entrada (fade de 180ms), sem esperar a saída da tela anterior. Não use `AnimatePresence mode="wait"` em navegação.
+- **Nada de `transition-all`.** Use `transition-ui` (cor, sombra, opacidade, transform) ou propriedades explícitas, como `transition-[width,translate]` na sidebar. `transition-all` só onde o tamanho anima de propósito (barras de progresso).
+- **`animate-fade-in`** (só opacidade, 200ms) existe de verdade agora; antes era usada em ~30 telas sem estar definida.
+- **"Reduzir movimento"** (`prefers-reduced-motion`): animações viram instantâneas, deslocamento e escala deixam de animar e `hover:scale-*` / `active:scale-*` / `hover:-translate-y-*` não se aplicam, mas cor, opacidade e sombra continuam animando, porque são o feedback de estado. As animações em JS (`motion/react`) obedecem por `MotionConfig reducedMotion="user"` no layout.
+- **Um momento autoral por tela**, não efeitos espalhados. Micro-interações (hover, foco) são discretas; o destaque é a entrada dos overlays (Dialog, busca rápida, toasts).
 
 Referências de produto: **Linear** (sidebar e cor só em estado/ação), **Attio** (cards de CRM com ação no hover), **Notion Calendar** (cor como estrutura) e **Spectrum UI** (contraste de status, command palette, undo pill, stat cards).
 

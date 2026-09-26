@@ -124,7 +124,7 @@ export function CalendarPicker({ value, onChange, suggestions, className }: Cale
                       key={`${s.weekday}-${s.hourStart}`}
                       type="button"
                       onClick={() => applySuggestion(s)}
-                      className="text-xs px-2 py-1 rounded-lg bg-accent text-accent-foreground hover:bg-accent/70 transition-all font-medium"
+                      className="text-xs px-2 py-1 rounded-lg bg-accent text-accent-foreground hover:bg-accent/70 transition-ui font-medium"
                     >
                       {s.weekdayLabel} {String(s.hourStart).padStart(2, '0')}h–{String(s.hourEnd).padStart(2, '0')}h
                     </button>
@@ -166,7 +166,7 @@ export function CalendarPicker({ value, onChange, suggestions, className }: Cale
                     disabled={!day}
                     onClick={() => day && applyDay(day)}
                     className={cn(
-                      'aspect-square rounded-lg text-xs transition-all',
+                      'aspect-square rounded-lg text-xs transition-ui',
                       !day && 'invisible',
                       isSelected ? 'bg-primary text-primary-foreground font-bold' : 'hover:bg-accent text-foreground'
                     )}

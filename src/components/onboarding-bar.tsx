@@ -58,7 +58,7 @@ export function OnboardingBar({ cliente, onAtualizarCliente, showToast }: Onboar
   }
 
   return (
-    <div className="w-full bg-card/70 border border-border rounded-2xl p-4 flex flex-col gap-3 shadow-2xs backdrop-blur-sm transition-all select-none">
+    <div className="w-full bg-card/70 border border-border rounded-2xl p-4 flex flex-col gap-3 shadow-2xs backdrop-blur-sm transition-ui select-none">
       {/* Top Header: Título, Progresso e Barra */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
@@ -104,7 +104,7 @@ export function OnboardingBar({ cliente, onAtualizarCliente, showToast }: Onboar
               type="button"
               disabled={isSaving}
               onClick={() => handleToggleEtapa(etapa.id)}
-              className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+              className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-ui cursor-pointer ${
                 isDone
                   ? 'bg-primary/15 border-primary/45 text-foreground hover:bg-primary/20 shadow-2xs'
                   : 'bg-accent/25 border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
@@ -119,7 +119,7 @@ export function OnboardingBar({ cliente, onAtualizarCliente, showToast }: Onboar
               ) : (
                 <Circle className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground/80 shrink-0 transition-colors" />
               )}
-              <span className={`transition-all ${isDone ? 'font-bold text-foreground' : ''}`}>
+              <span className={`transition-ui ${isDone ? 'font-bold text-foreground' : ''}`}>
                 {etapa.label}
               </span>
             </button>

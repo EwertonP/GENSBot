@@ -332,7 +332,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
             aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
-            className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-all duration-150 cursor-pointer shadow-2xs flex items-center justify-center ml-1 active:scale-[0.98]"
+            className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-ui duration-150 cursor-pointer shadow-2xs flex items-center justify-center ml-1 active:scale-[0.98]"
           >
             {theme === 'dark' ? (
               <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />

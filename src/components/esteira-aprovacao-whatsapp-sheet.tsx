@@ -239,7 +239,7 @@ export function AprovacaoWhatsappSheet({
                       key={c.id}
                       type="button"
                       onClick={() => setTelefoneAprovacaoCustom(c.telefone || '')}
-                      className={`text-xs px-2.5 py-1 rounded-xl border flex items-center gap-1.5 cursor-pointer transition-all ${
+                      className={`text-xs px-2.5 py-1 rounded-xl border flex items-center gap-1.5 cursor-pointer transition-ui ${
                         telefoneAprovacaoCustom === (c.telefone || '')
                           ? 'bg-foreground text-background border-foreground font-bold'
                           : 'bg-card text-muted-foreground hover:text-foreground border-border'
@@ -347,7 +347,7 @@ export function AprovacaoWhatsappSheet({
                 showToast('WhatsApp Web aberto com sucesso!', 'success');
                 onClose();
               }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-lime hover:bg-lime/90 text-lime-foreground font-bold text-xs shadow-2xs transition-all cursor-pointer active:scale-[0.98]"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-lime hover:bg-lime/90 text-lime-foreground font-bold text-xs shadow-2xs transition-ui cursor-pointer active:scale-[0.98]"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Abrir WhatsApp Web</span>
