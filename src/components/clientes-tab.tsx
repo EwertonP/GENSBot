@@ -284,7 +284,7 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                     setSelecionadoId(c.id);
                   }
                 }}
-                className={`group flex flex-col justify-between gap-4 p-5 bg-card hover:bg-card/95 border border-border hover:border-foreground/20 rounded-2xl shadow-2xs hover:shadow-sm transition-all duration-200 ${
+                className={`group flex flex-col justify-between gap-4 p-5 bg-card hover:bg-card/95 border border-border hover:border-foreground/20 rounded-2xl shadow-2xs hover:shadow-sm transition-ui duration-200 ${
                   c.ativo ? '' : 'opacity-60 bg-muted/30'
                 }`}
               >
@@ -323,7 +323,7 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                         e.stopPropagation();
                         onAbrirConta('publish', conta.instagram_user_id);
                       }}
-                      className="h-7 text-xs font-bold px-2.5 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all shrink-0 cursor-pointer shadow-2xs font-display"
+                      className="h-7 text-xs font-bold px-2.5 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-ui shrink-0 cursor-pointer shadow-2xs font-display"
                     >
                       🎯 Operar Painel
                     </Button>

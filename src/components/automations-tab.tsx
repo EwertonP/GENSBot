@@ -201,7 +201,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                         
                         <div className="flex flex-wrap items-center gap-4 flex-shrink-0 w-full md:w-auto">
                           {/* Active toggle */}
-                          <label className="flex items-center gap-2.5 cursor-pointer select-none p-1.5 px-3 rounded-2xl bg-accent/40 border border-border hover:border-foreground/30 transition-all">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none p-1.5 px-3 rounded-2xl bg-accent/40 border border-border hover:border-foreground/30 transition-ui">
                             <input
                               type="checkbox"
                               checked={form.active}
@@ -223,7 +223,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                           <button
                             type="button"
                             onClick={() => setIsEditing(false)}
-                            className="text-xs font-bold text-muted-foreground hover:text-foreground px-4 py-2.5 rounded-full hover:bg-accent border border-border transition-all cursor-pointer animate-fade-in"
+                            className="text-xs font-bold text-muted-foreground hover:text-foreground px-4 py-2.5 rounded-full hover:bg-accent border border-border transition-ui cursor-pointer animate-fade-in"
                           >
                             Voltar
                           </button>
@@ -231,7 +231,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                           <button
                             type="submit"
                             disabled={!!wizardIncompatibleReason}
-                            className="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-md cursor-pointer transition-ui disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Salvar Fluxo
                           </button>
@@ -281,7 +281,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                                       handleLoadStories();
                                     }
                                   }}
-                                  className={`flex flex-col items-center justify-center gap-2 p-4 rounded-lg border-2 text-center transition-all cursor-pointer ${
+                                  className={`flex flex-col items-center justify-center gap-2 p-4 rounded-lg border-2 text-center transition-ui cursor-pointer ${
                                     active
                                       ? 'bg-primary/10 border-primary text-primary'
                                       : 'bg-card border-border text-muted-foreground hover:border-muted-foreground hover:text-foreground'
@@ -304,7 +304,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                               placeholder="ex: quero, cupom, info"
                               value={keywordInput}
                               onChange={handleKeywordsChange}
-                              className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all font-mono"
+                              className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-ui font-mono"
                             />
                           </div>
 
@@ -313,7 +313,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                             <select
                               value={form.match_type}
                               onChange={e => setForm(prev => ({ ...prev, match_type: e.target.value as any }))}
-                              className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground font-semibold cursor-pointer transition-all"
+                              className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground font-semibold cursor-pointer transition-ui"
                             >
                               <option value="contains">Contém a palavra-chave</option>
                               <option value="exact">Exato (Palavra-chave exata)</option>
@@ -329,7 +329,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                             <button
                               type="button"
                               onClick={handleLoadMedia}
-                              className="px-4 py-2.5 rounded-xl border border-border bg-accent hover:bg-muted text-foreground text-xs font-bold cursor-pointer transition-all flex items-center gap-2"
+                              className="px-4 py-2.5 rounded-xl border border-border bg-accent hover:bg-muted text-foreground text-xs font-bold cursor-pointer transition-ui flex items-center gap-2"
                             >
                               {form.specific_post_id ? 'Trocar Publicação Selecionada' : 'Selecionar Post Específico'}
                               <ExternalLink className="w-3.5 h-3.5" />
@@ -382,7 +382,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                               <button
                                 type="button"
                                 onClick={() => setForm(prev => ({ ...prev, specific_story_id: null }))}
-                                className={`flex-1 px-4 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                                className={`flex-1 px-4 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-ui ${
                                   !form.specific_story_id
                                     ? 'border-primary bg-primary/10 text-primary'
                                     : 'border-border bg-accent text-muted-foreground hover:bg-muted'
@@ -394,7 +394,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                                 type="button"
                                 onClick={handleLoadStories}
                                 disabled={loadingStories}
-                                className={`flex-1 px-4 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-wait ${
+                                className={`flex-1 px-4 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-ui disabled:opacity-50 disabled:cursor-wait ${
                                   form.specific_story_id
                                     ? 'border-primary bg-primary/10 text-primary'
                                     : 'border-border bg-accent text-muted-foreground hover:bg-muted'
@@ -768,7 +768,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
               <button
                 onClick={() => setShowMediaModal(false)}
                 aria-label="Fechar seleção de publicação"
-                className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground cursor-pointer transition-all"
+                className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground cursor-pointer transition-ui"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -785,7 +785,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                 <button
                   key={tab.id}
                   onClick={() => setMediaFilter(tab.id as any)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-ui cursor-pointer whitespace-nowrap ${
                     mediaFilter === tab.id
                       ? 'bg-accent border border-primary/25 text-primary font-bold'
                       : 'bg-card border border-accent text-muted-foreground hover:text-foreground'
@@ -815,7 +815,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                         setShowMediaModal(false);
                         showToast('Post selecionado com sucesso!', 'success');
                       }}
-                      className="bg-card border border-accent hover:border-primary rounded-2xl p-4 cursor-pointer group transition-all flex flex-row gap-5 items-start shadow-sm hover:shadow-md text-foreground"
+                      className="bg-card border border-accent hover:border-primary rounded-2xl p-4 cursor-pointer group transition-ui flex flex-row gap-5 items-start shadow-sm hover:shadow-md text-foreground"
                     >
                       {/* Esquerda: Imagem Grande (Capa) */}
                       <div className="w-28 h-28 sm:w-40 sm:h-40 rounded-xl bg-accent relative overflow-hidden flex-shrink-0 border border-border">
@@ -859,7 +859,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
               <button
                 onClick={() => setShowStoryModal(false)}
                 aria-label="Fechar seleção de story"
-                className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground cursor-pointer transition-all"
+                className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground cursor-pointer transition-ui"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -887,7 +887,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                         setShowStoryModal(false);
                         showToast('Story selecionada com sucesso!', 'success');
                       }}
-                      className="bg-card border border-accent hover:border-primary rounded-2xl overflow-hidden cursor-pointer group transition-all shadow-sm hover:shadow-md text-foreground"
+                      className="bg-card border border-accent hover:border-primary rounded-2xl overflow-hidden cursor-pointer group transition-ui shadow-sm hover:shadow-md text-foreground"
                     >
                       <div className="aspect-[9/16] bg-accent relative overflow-hidden border-b border-border">
                         <img

@@ -111,7 +111,7 @@ export function InstagramReelsPreview({
 
           {/* Indicador de Play/Pause Flutuante no Centro */}
           {pausado && videoUrl && (
-            <div className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center shadow-xl border border-white/20 transition-all hover:scale-105 pointer-events-none">
+            <div className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center shadow-xl border border-white/20 transition-ui hover:scale-105 pointer-events-none">
               <Play className="w-7 h-7 ml-1 fill-white" />
             </div>
           )}
@@ -282,7 +282,7 @@ export function InstagramReelsPreview({
               }
               onPedirAjuste(tempoAtual);
             }}
-            className="text-xs font-bold px-4 py-2 rounded-xl bg-lime hover:bg-lime/90 text-lime-foreground flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer font-sans"
+            className="text-xs font-bold px-4 py-2 rounded-xl bg-lime hover:bg-lime/90 text-lime-foreground flex items-center gap-2 shadow-md transition-ui active:scale-95 cursor-pointer font-sans"
           >
             <Clock className="w-4 h-4 text-lime-foreground" />
             <span>Sugerir Ajuste aos {formatarTimecode(tempoAtual)}</span>

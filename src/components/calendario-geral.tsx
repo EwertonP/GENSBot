@@ -315,7 +315,7 @@ export default function CalendarioGeral({
             <button
               type="button"
               onClick={() => setViewMode('mes')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
                 viewMode === 'mes'
                   ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
@@ -326,7 +326,7 @@ export default function CalendarioGeral({
             <button
               type="button"
               onClick={() => setViewMode('semana')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
                 viewMode === 'semana'
                   ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
@@ -337,7 +337,7 @@ export default function CalendarioGeral({
             <button
               type="button"
               onClick={() => setViewMode('dia')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
                 viewMode === 'dia'
                   ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
@@ -352,7 +352,7 @@ export default function CalendarioGeral({
             <button
               type="button"
               onClick={() => mudarMes(-1)}
-              className="p-1.5 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-ui cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -372,7 +372,7 @@ export default function CalendarioGeral({
             <button
               type="button"
               onClick={() => mudarMes(1)}
-              className="p-1.5 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-ui cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -519,7 +519,7 @@ export default function CalendarioGeral({
                             setItemModal(item);
                           }}
                           aria-label={`${item.cliente?.nome || ''}: ${item.titulo || item.tipo}. Abrir detalhes (arraste para mudar o dia)`}
-                          className={`${arrastandoId === item.id ? 'opacity-50 ' : ''}text-left p-2 rounded-xl border-l-4 border-primary bg-card/90 hover:bg-card border border-border text-foreground shadow-2xs hover:shadow-xs transition-all flex flex-col gap-1.5 cursor-pointer group`}
+                          className={`${arrastandoId === item.id ? 'opacity-50 ' : ''}text-left p-2 rounded-xl border-l-4 border-primary bg-card/90 hover:bg-card border border-border text-foreground shadow-2xs hover:shadow-xs transition-ui flex flex-col gap-1.5 cursor-pointer group`}
                         >
                           <div className="flex items-center justify-between gap-1">
                             <div className="flex items-center gap-1.5 min-w-0">
@@ -606,7 +606,7 @@ export default function CalendarioGeral({
                     <div
                       key={item.id}
                       onClick={() => setItemModal(item)}
-                      className="p-4 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all shadow-2xs flex flex-col gap-3 cursor-pointer group"
+                      className="p-4 rounded-2xl border border-border bg-card hover:border-primary/50 transition-ui shadow-2xs flex flex-col gap-3 cursor-pointer group"
                     >
                       {/* Capa */}
                       {capaUrl ? (
@@ -728,7 +728,7 @@ export default function CalendarioGeral({
                           href={arq.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="group relative rounded-xl border border-border overflow-hidden bg-accent/50 aspect-square flex flex-col items-center justify-center p-2 text-center hover:border-primary transition-all"
+                          className="group relative rounded-xl border border-border overflow-hidden bg-accent/50 aspect-square flex flex-col items-center justify-center p-2 text-center hover:border-primary transition-ui"
                         >
                           {arq.tipo === 'imagem' ? (
                             <img src={arq.url} alt="" className="w-full h-full object-cover rounded-lg" />
@@ -822,7 +822,7 @@ export default function CalendarioGeral({
                         setItemModal(null);
                         onAbrirDemanda(id);
                       }}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent hover:bg-accent/80 text-foreground font-bold text-xs transition-all border border-border cursor-pointer shadow-2xs"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent hover:bg-accent/80 text-foreground font-bold text-xs transition-ui border border-border cursor-pointer shadow-2xs"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-primary" />
                       <span>Editar Demanda Completa</span>
@@ -846,7 +846,7 @@ export default function CalendarioGeral({
                         setItemModal(null);
                         onIrParaAgendamento(prefill);
                       }}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/85 text-primary-foreground font-bold text-xs transition-all cursor-pointer shadow-2xs"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/85 text-primary-foreground font-bold text-xs transition-ui cursor-pointer shadow-2xs"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>Abrir no Simulador de Post</span>
@@ -861,7 +861,7 @@ export default function CalendarioGeral({
                     })}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-[#052e16] font-bold text-xs transition-all shadow-2xs"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-[#052e16] font-bold text-xs transition-ui shadow-2xs"
                   >
                     <Share2 className="w-4 h-4" />
                     Enviar para Aprovação (Whats)

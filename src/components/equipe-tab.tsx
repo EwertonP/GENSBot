@@ -331,7 +331,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             return (
               <Card
                 key={membro.id}
-                className={`p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 bg-card shadow-2xs hover:shadow-xs ${
+                className={`p-5 rounded-2xl border transition-ui flex flex-col justify-between gap-4 bg-card shadow-2xs hover:shadow-xs ${
                   !membro.ativo
                     ? 'opacity-70 border-dashed border-border'
                     : isMaster

@@ -317,7 +317,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                       key={p.id}
                       type="button"
                       onClick={() => applyPreset(p)}
-                      className={`text-xs px-2.5 py-1 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
+                      className={`text-xs px-2.5 py-1 rounded-xl border flex items-center gap-1.5 transition-ui cursor-pointer ${
                         isSelected
                           ? 'bg-card border-foreground/30 shadow-2xs font-bold text-foreground ring-1 ring-foreground/20'
                           : 'border-border hover:bg-accent/60 text-muted-foreground'

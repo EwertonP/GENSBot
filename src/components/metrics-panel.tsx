@@ -464,7 +464,7 @@ function AudienceActivityCard({
                 title={`${h.hour}h: ${h.followersOnline.toLocaleString('pt-BR')} seguidores online`}
               >
                 <div
-                  className={`w-full rounded-t-md transition-all duration-200 ${
+                  className={`w-full rounded-t-md transition-ui duration-200 ${
                     isPeak ? 'bg-primary shadow-xs border border-primary-foreground/30' : 'bg-primary/20 hover:bg-primary/35'
                   }`}
                   style={{ height: `${heightPercent}%` }}
@@ -494,7 +494,7 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
   const engRate = item.reach > 0 ? ((item.interactions / item.reach) * 100).toFixed(1) : null;
 
   return (
-    <div className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-foreground/30 hover:shadow-md transition-all duration-200">
+    <div className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-foreground/30 hover:shadow-md transition-ui duration-200">
       <div className="relative aspect-square w-full bg-accent overflow-hidden">
         {item.media_url || item.thumbnail_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -781,7 +781,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           <button
             type="button"
             onClick={() => setAbaSub('metricas')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-ui cursor-pointer ${
               abaSub === 'metricas'
                 ? 'bg-primary text-primary-foreground shadow-2xs font-display'
                 : 'bg-accent/40 text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -793,7 +793,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           <button
             type="button"
             onClick={() => setAbaSub('historico_relatorios')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-ui cursor-pointer ${
               abaSub === 'historico_relatorios'
                 ? 'bg-primary text-primary-foreground shadow-2xs font-display'
                 : 'bg-accent/40 text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -1077,7 +1077,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                     key={f.id}
                     type="button"
                     onClick={() => setContentFilter(f.id)}
-                    className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    className={`px-3 py-1 rounded-xl text-xs font-semibold transition-ui cursor-pointer ${
                       contentFilter === f.id
                         ? 'bg-primary text-primary-foreground font-bold shadow-2xs'
                         : 'text-muted-foreground hover:text-foreground'

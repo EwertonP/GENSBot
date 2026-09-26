@@ -111,7 +111,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveFormat(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-ui cursor-pointer ${
                   active
                     ? 'bg-card text-foreground shadow-2xs border border-border'
                     : 'text-muted-foreground hover:text-foreground'
@@ -145,7 +145,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
             {stories.map((story) => (
               <div
                 key={story.id}
-                className="group relative aspect-[9/16] rounded-2xl overflow-hidden bg-black border border-border shadow-2xs hover:shadow-xs transition-all"
+                className="group relative aspect-[9/16] rounded-2xl overflow-hidden bg-black border border-border shadow-2xs hover:shadow-xs transition-ui"
               >
                 <img src={story.media_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 flex flex-col justify-between p-3 pointer-events-none">
@@ -177,7 +177,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
             return (
               <div
                 key={pub.id}
-                className={`group relative rounded-2xl overflow-hidden bg-accent/60 border border-border hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-all flex flex-col ${
+                className={`group relative rounded-2xl overflow-hidden bg-accent/60 border border-border hover:border-foreground/30 shadow-2xs hover:shadow-xs transition-ui flex flex-col ${
                   isReel ? 'aspect-[9/16]' : 'aspect-[4/5]'
                 }`}
               >

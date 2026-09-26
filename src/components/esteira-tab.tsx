@@ -888,7 +888,7 @@ export default function EsteiraTab({
             <button
               type="button"
               onClick={() => setViewMode('kanban')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`p-1.5 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
                 viewMode === 'kanban'
                   ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
@@ -900,7 +900,7 @@ export default function EsteiraTab({
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`p-1.5 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
                 viewMode === 'list'
                   ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
@@ -912,7 +912,7 @@ export default function EsteiraTab({
             <button
               type="button"
               onClick={() => setViewMode('feed')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`p-1.5 rounded-lg text-xs font-bold transition-ui cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'feed'
                   ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
@@ -953,7 +953,7 @@ export default function EsteiraTab({
             disabled={sincronizandoNotion}
             variant="outline"
             size="sm"
-            className="rounded-xl shadow-2xs h-9 text-xs font-bold bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-all cursor-pointer"
+            className="rounded-xl shadow-2xs h-9 text-xs font-bold bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-ui cursor-pointer"
             title="Sincronizar demandas ativas diretamente com o Notion"
           >
             <Sparkles className={`w-3.5 h-3.5 mr-1.5 text-primary ${sincronizandoNotion ? 'animate-spin' : ''}`} />
@@ -969,7 +969,7 @@ export default function EsteiraTab({
               variant="outline"
               size="sm"
               onClick={() => setOcultarPublicados((prev) => !prev)}
-              className={`rounded-xl shadow-2xs h-9 text-xs font-bold transition-all cursor-pointer ${
+              className={`rounded-xl shadow-2xs h-9 text-xs font-bold transition-ui cursor-pointer ${
                 ocultarPublicados
                   ? 'bg-accent/40 text-muted-foreground border-border hover:text-foreground'
                   : 'bg-success-soft text-success border-success-ring'
@@ -1225,7 +1225,7 @@ export default function EsteiraTab({
                           const draggedId = e.dataTransfer.getData('text/plain');
                           if (draggedId) handleMudarStatus(draggedId, colStatus, item.id);
                         }}
-                        className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-ui duration-200 flex flex-col gap-3 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           temAjustes
                             ? 'border-destructive/40 bg-destructive/5'
                             : 'border-border hover:border-foreground/30'
@@ -1489,7 +1489,7 @@ export default function EsteiraTab({
                                       handleLevarParaAgendamento(item);
                                     }}
                                     title="Ver ou reagendar publicação agendada"
-                                    className="text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 transition-all cursor-pointer"
+                                    className="text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 transition-ui cursor-pointer"
                                   >
                                     <Calendar className="w-3 h-3" />
                                     <span>Agendado</span>
@@ -1504,7 +1504,7 @@ export default function EsteiraTab({
                                     handleLevarParaAgendamento(item);
                                   }}
                                   title="Levar demanda aprovada direto para a tela de Agendamento do Instagram"
-                                  className="text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-primary hover:bg-primary/85 text-primary-foreground border border-primary/40 shadow-xs transition-all cursor-pointer"
+                                  className="text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-primary hover:bg-primary/85 text-primary-foreground border border-primary/40 shadow-xs transition-ui cursor-pointer"
                                 >
                                   <Sparkles className="w-3 h-3" />
                                   <span>Agendar</span>
@@ -1524,7 +1524,7 @@ export default function EsteiraTab({
                                     ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
                                     : 'Enviar para aprovação no WhatsApp Web'
                                 }
-                                className={`text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-all cursor-pointer ${
+                                className={`text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-ui cursor-pointer ${
                                   item.status === 'revisao_cliente'
                                     ? 'bg-warning hover:bg-warning/90 text-warning-foreground border-warning-ring'
                                     : 'bg-lime hover:bg-lime/90 text-lime-foreground font-bold border-foreground/15 shadow-xs active:scale-[0.98]'
@@ -1733,7 +1733,7 @@ export default function EsteiraTab({
                       key={etapa.status}
                       type="button"
                       onClick={() => setFormStatusInicial(etapa.status)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-ui cursor-pointer ${
                         isCurrent
                           ? 'bg-primary text-primary-foreground font-bold shadow-2xs'
                           : isDone
@@ -1806,7 +1806,7 @@ export default function EsteiraTab({
                       key={fmt.id}
                       type="button"
                       onClick={() => setFormTipo(fmt.id)}
-                      className={`h-6.5 px-2 rounded-md flex items-center justify-center gap-1 text-xs font-bold transition-all cursor-pointer ${
+                      className={`h-6.5 px-2 rounded-md flex items-center justify-center gap-1 text-xs font-bold transition-ui cursor-pointer ${
                         formTipo === fmt.id
                           ? 'bg-primary text-primary-foreground shadow-2xs font-bold'
                           : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
@@ -1823,7 +1823,7 @@ export default function EsteiraTab({
                   <button
                     type="button"
                     onClick={() => setFormModoVisualizacao('abas')}
-                    className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer text-xs ${
+                    className={`px-2 py-0.5 rounded-md font-semibold transition-ui cursor-pointer text-xs ${
                       formModoVisualizacao === 'abas'
                         ? 'bg-card text-foreground shadow-2xs font-bold'
                         : 'text-muted-foreground hover:text-foreground'
@@ -1835,7 +1835,7 @@ export default function EsteiraTab({
                   <button
                     type="button"
                     onClick={() => setFormModoVisualizacao('split')}
-                    className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer text-xs ${
+                    className={`px-2 py-0.5 rounded-md font-semibold transition-ui cursor-pointer text-xs ${
                       formModoVisualizacao === 'split'
                         ? 'bg-card text-foreground shadow-2xs font-bold'
                         : 'text-muted-foreground hover:text-foreground'
@@ -1855,7 +1855,7 @@ export default function EsteiraTab({
                     <button
                       type="button"
                       onClick={() => setFormAbaConteudo('legenda')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
                         formAbaConteudo === 'legenda'
                           ? 'bg-card text-foreground shadow-2xs border border-border'
                           : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
@@ -1871,7 +1871,7 @@ export default function EsteiraTab({
                     <button
                       type="button"
                       onClick={() => setFormAbaConteudo('briefing')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
                         formAbaConteudo === 'briefing'
                           ? 'bg-card text-foreground shadow-2xs border border-border'
                           : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
@@ -1887,7 +1887,7 @@ export default function EsteiraTab({
                     <button
                       type="button"
                       onClick={() => setFormAbaConteudo('anexos')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
                         formAbaConteudo === 'anexos'
                           ? 'bg-card text-foreground shadow-2xs border border-border'
                           : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
@@ -2010,7 +2010,7 @@ export default function EsteiraTab({
                           {formArquivos.map((arq, idx) => (
                             <div
                               key={arq.id || idx}
-                              className="p-2.5 rounded-xl bg-accent/30 border border-border flex items-center justify-between gap-2.5 group hover:border-foreground/30 transition-all"
+                              className="p-2.5 rounded-xl bg-accent/30 border border-border flex items-center justify-between gap-2.5 group hover:border-foreground/30 transition-ui"
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className="w-10 h-10 rounded-lg bg-black overflow-hidden shrink-0 border border-border relative">
@@ -2228,7 +2228,7 @@ export default function EsteiraTab({
                                 setFormClienteId(c.id);
                                 setTrocarClienteAbertoNovo(false);
                               }}
-                              className={`flex items-center gap-2 p-1.5 rounded-lg text-left transition-all cursor-pointer ${
+                              className={`flex items-center gap-2 p-1.5 rounded-lg text-left transition-ui cursor-pointer ${
                                 isSelected
                                   ? 'bg-accent/80 font-bold text-foreground'
                                   : 'hover:bg-accent/40 text-muted-foreground'
@@ -2266,7 +2266,7 @@ export default function EsteiraTab({
                           key={p.id}
                           type="button"
                           onClick={() => setFormPrioridade(p.id)}
-                          className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-all text-xs ${
+                          className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-ui text-xs ${
                             isSelected
                               ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs ring-1 ring-primary/20`
                               : 'bg-card hover:bg-accent/50 border-border text-foreground font-semibold hover:border-foreground/30'
@@ -2435,7 +2435,7 @@ export default function EsteiraTab({
                         key={etapa.status}
                         type="button"
                         onClick={() => setEditStatus(etapa.status)}
-                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-ui cursor-pointer ${
                           isCurrent
                             ? 'bg-primary text-primary-foreground font-bold shadow-2xs'
                             : isDone
@@ -2531,7 +2531,7 @@ export default function EsteiraTab({
                         key={fmt.id}
                         type="button"
                         onClick={() => setEditTipo(fmt.id)}
-                        className={`h-6.5 px-2 rounded-md flex items-center justify-center gap-1 text-xs font-bold transition-all cursor-pointer ${
+                        className={`h-6.5 px-2 rounded-md flex items-center justify-center gap-1 text-xs font-bold transition-ui cursor-pointer ${
                           editTipo === fmt.id
                             ? 'bg-primary text-primary-foreground shadow-2xs font-bold'
                             : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
@@ -2548,7 +2548,7 @@ export default function EsteiraTab({
                     <button
                       type="button"
                       onClick={() => setEditModoVisualizacao('abas')}
-                      className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer text-xs ${
+                      className={`px-2 py-0.5 rounded-md font-semibold transition-ui cursor-pointer text-xs ${
                         editModoVisualizacao === 'abas'
                           ? 'bg-card text-foreground shadow-2xs font-bold'
                           : 'text-muted-foreground hover:text-foreground'
@@ -2560,7 +2560,7 @@ export default function EsteiraTab({
                     <button
                       type="button"
                       onClick={() => setEditModoVisualizacao('split')}
-                      className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer text-xs ${
+                      className={`px-2 py-0.5 rounded-md font-semibold transition-ui cursor-pointer text-xs ${
                         editModoVisualizacao === 'split'
                           ? 'bg-card text-foreground shadow-2xs font-bold'
                           : 'text-muted-foreground hover:text-foreground'
@@ -2580,7 +2580,7 @@ export default function EsteiraTab({
                       <button
                         type="button"
                         onClick={() => setEditAbaConteudo('legenda')}
-                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
                           editAbaConteudo === 'legenda'
                             ? 'bg-card text-foreground shadow-2xs border border-border'
                             : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
@@ -2596,7 +2596,7 @@ export default function EsteiraTab({
                       <button
                         type="button"
                         onClick={() => setEditAbaConteudo('briefing')}
-                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
                           editAbaConteudo === 'briefing'
                             ? 'bg-card text-foreground shadow-2xs border border-border'
                             : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
@@ -2612,7 +2612,7 @@ export default function EsteiraTab({
                       <button
                         type="button"
                         onClick={() => setEditAbaConteudo('anexos')}
-                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
                           editAbaConteudo === 'anexos'
                             ? 'bg-card text-foreground shadow-2xs border border-border'
                             : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
@@ -2735,7 +2735,7 @@ export default function EsteiraTab({
                             {editArquivos.map((arq, idx) => (
                               <div
                                 key={arq.id || idx}
-                                className="p-2.5 rounded-xl bg-accent/30 border border-border flex items-center justify-between gap-2.5 group hover:border-foreground/30 transition-all"
+                                className="p-2.5 rounded-xl bg-accent/30 border border-border flex items-center justify-between gap-2.5 group hover:border-foreground/30 transition-ui"
                               >
                                 <div className="flex items-center gap-2.5 min-w-0">
                                   <div className="w-10 h-10 rounded-lg bg-black overflow-hidden shrink-0 border border-border relative">
@@ -2953,7 +2953,7 @@ export default function EsteiraTab({
                                   setEditClienteId(c.id);
                                   setTrocarClienteAbertoEdit(false);
                                 }}
-                                className={`flex items-center gap-2 p-1.5 rounded-lg text-left transition-all cursor-pointer ${
+                                className={`flex items-center gap-2 p-1.5 rounded-lg text-left transition-ui cursor-pointer ${
                                   isSelected
                                     ? 'bg-accent/80 font-bold text-foreground'
                                     : 'hover:bg-accent/40 text-muted-foreground'
@@ -2991,7 +2991,7 @@ export default function EsteiraTab({
                             key={p.id}
                             type="button"
                             onClick={() => setEditPrioridade(p.id)}
-                            className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-all text-xs ${
+                            className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-ui text-xs ${
                               isSelected
                                 ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs ring-1 ring-primary/20`
                                 : 'bg-card hover:bg-accent/50 border-border text-foreground font-semibold hover:border-foreground/30'

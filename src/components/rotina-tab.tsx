@@ -297,7 +297,7 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
           <button
             type="button"
             onClick={() => setTabAtiva('pendente')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-ui cursor-pointer ${
               tabAtiva === 'pendente'
                 ? 'bg-card text-foreground shadow-2xs font-bold'
                 : 'text-muted-foreground hover:text-foreground'
@@ -308,7 +308,7 @@ export default function RotinaTab({ showToast }: RotinaTabProps) {
           <button
             type="button"
             onClick={() => setTabAtiva('concluido')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-ui cursor-pointer ${
               tabAtiva === 'concluido'
                 ? 'bg-card text-foreground shadow-2xs font-bold'
                 : 'text-muted-foreground hover:text-foreground'

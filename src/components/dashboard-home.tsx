@@ -475,7 +475,7 @@ export default function DashboardHome({
           <button
             type="button"
             onClick={() => setHomeMode('demandas')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
               homeMode === 'demandas'
                 ? 'bg-card text-foreground shadow-2xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
@@ -493,7 +493,7 @@ export default function DashboardHome({
           <button
             type="button"
             onClick={() => setHomeMode('metricas')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
               homeMode === 'metricas'
                 ? 'bg-card text-foreground shadow-2xs border border-border'
                 : 'text-muted-foreground hover:text-foreground'
@@ -614,7 +614,7 @@ export default function DashboardHome({
                 return (
                   <div
                     key={dia.dataIso}
-                    className={`flex flex-col gap-2 p-3 rounded-2xl border transition-all ${
+                    className={`flex flex-col gap-2 p-3 rounded-2xl border transition-ui ${
                       dia.eHoje
                         ? 'bg-accent/40 border-primary/40 shadow-xs ring-1 ring-primary/20'
                         : 'bg-background/60 border-border'
@@ -651,7 +651,7 @@ export default function DashboardHome({
                             <div
                               key={item.id}
                               onClick={() => onNavigateTab?.('esteira', item.id)}
-                              className="p-2 rounded-xl bg-card border border-border hover:border-foreground/30 transition-all cursor-pointer shadow-2xs flex flex-col gap-1.5"
+                              className="p-2 rounded-xl bg-card border border-border hover:border-foreground/30 transition-ui cursor-pointer shadow-2xs flex flex-col gap-1.5"
                             >
                               <div className="flex items-center gap-1.5">
                                 {item.tipo === 'reel' ? (
@@ -724,7 +724,7 @@ export default function DashboardHome({
                       <div
                         key={item.id}
                         onClick={() => onNavigateTab?.('esteira')}
-                        className="p-3 rounded-2xl bg-accent/30 border border-border hover:border-foreground/30 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs"
+                        className="p-3 rounded-2xl bg-accent/30 border border-border hover:border-foreground/30 transition-ui cursor-pointer flex items-center justify-between gap-3 shadow-2xs"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <ClienteAvatar
@@ -793,7 +793,7 @@ export default function DashboardHome({
                   {tarefasFiltradas.slice(0, 5).map((tarefa) => (
                     <div
                       key={tarefa.id}
-                      className="p-3 rounded-2xl bg-accent/30 border border-border hover:border-foreground/30 transition-all flex items-center justify-between gap-3 shadow-2xs"
+                      className="p-3 rounded-2xl bg-accent/30 border border-border hover:border-foreground/30 transition-ui flex items-center justify-between gap-3 shadow-2xs"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <button
@@ -867,7 +867,7 @@ export default function DashboardHome({
                 setPeriodDays(p.days);
                 setChartPeriod(p.days === 7 ? '7d' : p.days === 90 ? 'month' : '30d');
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-ui cursor-pointer ${
                 periodDays === p.days
                   ? 'bg-card text-foreground shadow-2xs border border-border'
                   : 'text-muted-foreground hover:text-foreground'
@@ -1184,7 +1184,7 @@ export default function DashboardHome({
               {automationRanking.slice(0, 4).map((auto, i) => (
                 <div
                   key={auto.id}
-                  className="flex items-center gap-3 text-xs p-3 rounded-2xl bg-accent/30 border border-border hover:border-foreground/20 transition-all"
+                  className="flex items-center gap-3 text-xs p-3 rounded-2xl bg-accent/30 border border-border hover:border-foreground/20 transition-ui"
                 >
                   <span className="w-5 h-5 rounded-lg bg-foreground text-background font-bold text-xs flex items-center justify-center shrink-0">
                     {i + 1}

@@ -270,7 +270,7 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
             value={form.welcome_dm}
             onChange={(e) => setForm((prev) => ({ ...prev, welcome_dm: e.target.value }))}
             rows={3}
-            className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none"
+            className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-ui resize-none"
           />
           <div className="flex items-center gap-2">
             <button
@@ -294,7 +294,7 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
             placeholder="Ex: Sim, quero!"
             value={form.quick_reply_button || ''}
             onChange={(e) => setForm((prev) => ({ ...prev, quick_reply_button: e.target.value || null }))}
-            className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all font-semibold"
+            className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-ui font-semibold"
           />
         </div>
 
@@ -616,7 +616,7 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
         <button
           type="button"
           onClick={() => setAddMenuOpen((v) => !v)}
-          className="w-full flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+          className="w-full flex items-center justify-center gap-2 border border-dashed border-primary text-primary bg-transparent hover:bg-primary/10 px-4 py-3 rounded-xl transition-ui cursor-pointer font-bold text-xs"
         >
           <Plus className="w-4 h-4" />
           Adicionar passo
@@ -673,7 +673,7 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
             value={tail.link_text || ''}
             onChange={(e) => onChangeTail((prev) => ({ ...prev, link_text: e.target.value }))}
             rows={2}
-            className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-all resize-none font-medium"
+            className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground transition-ui resize-none font-medium"
           />
         </div>
 
@@ -835,7 +835,7 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
           }));
           setExpanded((prev) => ({ ...prev, [`f-${newId}`]: true }));
         }}
-        className="flex items-center justify-center gap-2 border border-dashed border-muted-foreground text-muted-foreground bg-transparent hover:bg-accent hover:text-foreground hover:border-primary px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-xs"
+        className="flex items-center justify-center gap-2 border border-dashed border-muted-foreground text-muted-foreground bg-transparent hover:bg-accent hover:text-foreground hover:border-primary px-4 py-3 rounded-xl transition-ui cursor-pointer font-bold text-xs"
       >
         <Plus className="w-4 h-4" />
         Adicionar Follow-up
