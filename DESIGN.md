@@ -173,12 +173,18 @@ Cada Onda é mergeada e testada antes da próxima.
    - Trocar de conta mostra uma barra de progresso em vez do esqueleto de tela inteira.
    - Removidos `crm-board`, `calendar-view`, `kanban-board`, `logs-tab`, `sequence-manager`, `ui/board` e o chat antigo do `page.tsx`.
    - Ficou para depois: tirar o estado das automações do `page.tsx` (~50 props para o `AutomationsTab`).
-5. **Telas:**
-   - Quebrar o `esteira-tab` (~3.5k linhas); o board real ainda usa drag nativo e não o `ui/board.tsx`.
-   - Calendário com arrastar para reagendar.
-   - Composer em etapas.
-   - Aprovação do cliente com nome e desfazer.
-   - KPIs no padrão Stat Cards.
+5. **Telas**, entregues em 3 PRs:
+   - ✅ **5a:**
+     - **Aprovação do cliente:**
+       - O nome é pedido uma vez e lembrado no navegador.
+       - Aprovar mostra "Aprovado · Desfazer" por 8s antes de enviar; se a aba fechar, envia via `sendBeacon`.
+       - O ajuste pode ser "este slide/momento" ou "a publicação toda".
+     - **Esteira:**
+       - Cards focáveis: Enter abre, e Alt + ←/→ muda de etapa.
+       - Menu "Mover para…" (`mover-etapa-menu.tsx`) para teclado e toque.
+       - Um só vocabulário de etapas: Planejamento, Criação, Revisão interna, Aprovação do cliente, Agendamento, Publicado.
+   - **5b:** Calendário com arrastar para reagendar e busca; KPIs do Dashboard no padrão Stat Cards.
+   - **5c:** Publicação em etapas; tirar o estado das automações do `page.tsx`; quebrar o `esteira-tab` (~3.5k linhas).
 6. **Motion:** springs interrompíveis (apple-design) e `prefers-reduced-motion` em tudo.
 
 Referências de produto: **Linear** (sidebar e cor só em estado/ação), **Attio** (cards de CRM com ação no hover), **Notion Calendar** (cor como estrutura) e **Spectrum UI** (contraste de status, command palette, undo pill, stat cards).

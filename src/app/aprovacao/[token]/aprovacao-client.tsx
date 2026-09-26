@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
   AlertCircle,
@@ -17,6 +17,8 @@ import {
   MoreHorizontal,
   Sun,
   Moon,
+  Undo2,
+  UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +30,9 @@ import { InstagramStoryPreview } from '@/components/aprovacao/instagram-story-pr
 import { InstagramReelsPreview } from '@/components/aprovacao/instagram-reels-preview';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { toast } from '@/components/ui/toast';
+
+const NOME_STORAGE_KEY = 'gensbot_aprovacao_nome';
+const SEGUNDOS_DESFAZER = 8;
 
 interface PaginaAprovacaoClientProps {
   itemInicial: ConteudoItem | null;
@@ -48,7 +53,22 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   // Modal de Ajuste
   const [modalAjusteAberto, setModalAjusteAberto] = useState(false);
   const [textoAjuste, setTextoAjuste] = useState('');
-  const [autorNome, setAutorNome] = useState('');
+  // Nome de quem aprova: pedido uma vez e lembrado neste navegador — antes
+  // toda aprovação ficava registrada como "Cliente".
+  const [autorNome, setAutorNome] = useState(() => {
+    try {
+      return typeof window !== 'undefined' ? localStorage.getItem(NOME_STORAGE_KEY) || '' : '';
+    } catch {
+      return '';
+    }
+  });
+  const [nomeSheetAberto, setNomeSheetAberto] = useState(false);
+  const [nomeRascunho, setNomeRascunho] = useState('');
+  const acaoAposNomeRef = useRef<null | (() => void)>(null);
+  // Aprovação com "Desfazer": só é enviada quando a contagem acaba.
+  const [aprovacaoPendente, setAprovacaoPendente] = useState<number | null>(null); // segundos restantes
+  const aprovacaoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [ajusteEscopo, setAjusteEscopo] = useState<'ponto' | 'geral'>('ponto');
   const [ajusteSlideIndex, setAjusteSlideIndex] = useState<number | null>(null);
   const [ajusteTimestamp, setAjusteTimestamp] = useState<number | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -97,15 +117,42 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       .finally(() => setCarregando(false));
   }, [token, itemInicial]);
 
-  // Ação de Aprovação Direta
-  async function handleAprovar() {
+  // Garante o nome antes de uma ação; se faltar, pergunta e continua depois.
+  function comNome(acao: () => void) {
+    if (autorNome.trim()) return acao();
+    acaoAposNomeRef.current = acao;
+    setNomeRascunho('');
+    setNomeSheetAberto(true);
+  }
+
+  function salvarNome(e: React.FormEvent) {
+    e.preventDefault();
+    const nome = nomeRascunho.trim();
+    if (!nome) return;
+    setAutorNome(nome);
+    try {
+      localStorage.setItem(NOME_STORAGE_KEY, nome);
+    } catch {}
+    setNomeSheetAberto(false);
+    const acao = acaoAposNomeRef.current;
+    acaoAposNomeRef.current = null;
+    // deixa o estado do nome assentar antes de seguir
+    if (acao) setTimeout(acao, 0);
+  }
+
+  function corpoAprovacao(nome: string) {
+    return JSON.stringify({ acao: 'aprovar', autor: nome || 'Cliente' });
+  }
+
+  // Envio real da aprovação (fim da contagem, ou saída da página).
+  async function enviarAprovacao() {
     if (!token) return;
     setEnviando(true);
     try {
       const res = await fetch(`/api/aprovacao/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acao: 'aprovar', autor: autorNome || 'Cliente' }),
+        body: corpoAprovacao(autorNome),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao aprovar');
@@ -118,16 +165,62 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
     }
   }
 
+  function pararContagem() {
+    if (aprovacaoTimerRef.current) clearInterval(aprovacaoTimerRef.current);
+    aprovacaoTimerRef.current = null;
+  }
+
+  // Clique em "Aprovar": mostra "Aprovado · Desfazer" e só envia ao fim da contagem.
+  function handleAprovar() {
+    comNome(() => {
+      pararContagem();
+      setAprovacaoPendente(SEGUNDOS_DESFAZER);
+      aprovacaoTimerRef.current = setInterval(() => {
+        setAprovacaoPendente((s) => {
+          if (s === null) return null;
+          if (s <= 1) {
+            pararContagem();
+            void enviarAprovacao();
+            return null;
+          }
+          return s - 1;
+        });
+      }, 1000);
+    });
+  }
+
+  function desfazerAprovacao() {
+    pararContagem();
+    setAprovacaoPendente(null);
+  }
+
+  // Se a pessoa fechar a aba durante a contagem, a aprovação ainda vale.
+  useEffect(() => {
+    if (aprovacaoPendente === null) return;
+    const onHide = () => {
+      if (aprovacaoTimerRef.current === null) return;
+      pararContagem();
+      navigator.sendBeacon(`/api/aprovacao/${token}`, new Blob([corpoAprovacao(autorNome)], { type: 'application/json' }));
+    };
+    window.addEventListener('pagehide', onHide);
+    return () => window.removeEventListener('pagehide', onHide);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aprovacaoPendente === null, token, autorNome]);
+
+  useEffect(() => () => pararContagem(), []);
+
   // Abrir modal com pré-preenchimento
   function handleAbrirAjusteSlide(slideIndex: number) {
     setAjusteSlideIndex(slideIndex);
     setAjusteTimestamp(null);
+    setAjusteEscopo(arquivos.length > 1 ? 'ponto' : 'geral');
     setModalAjusteAberto(true);
   }
 
   function handleAbrirAjusteVideo(segundos: number) {
     setAjusteTimestamp(segundos);
     setAjusteSlideIndex(null);
+    setAjusteEscopo('ponto');
     setModalAjusteAberto(true);
   }
 
@@ -144,14 +237,17 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
         autor: autorNome.trim() || 'Cliente',
       };
 
-      if (ajusteTimestamp != null) {
-        payload.timestamp_seconds = ajusteTimestamp;
-      } else if (ajusteSlideIndex != null) {
-        payload.slide_index = ajusteSlideIndex;
-      } else if (item?.tipo === 'reel') {
-        payload.timestamp_seconds = videoTempo;
-      } else if (arquivos.length > 1) {
-        payload.slide_index = slideAtual + 1;
+      // "A publicação toda" não fixa slide nem tempo.
+      if (ajusteEscopo === 'ponto') {
+        if (ajusteTimestamp != null) {
+          payload.timestamp_seconds = ajusteTimestamp;
+        } else if (ajusteSlideIndex != null) {
+          payload.slide_index = ajusteSlideIndex;
+        } else if (item?.tipo === 'reel') {
+          payload.timestamp_seconds = videoTempo;
+        } else if (arquivos.length > 1) {
+          payload.slide_index = slideAtual + 1;
+        }
       }
 
       const res = await fetch(`/api/aprovacao/${token}`, {
@@ -166,6 +262,10 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       setItem(data.item);
       setTextoAjuste('');
       setModalAjusteAberto(false);
+      toast.success('Ajuste enviado', { description: 'A equipe da agência já foi avisada.' });
+      try {
+        if (autorNome.trim()) localStorage.setItem(NOME_STORAGE_KEY, autorNome.trim());
+      } catch {}
     } catch (err: any) {
       toast.error('Não foi possível enviar o ajuste', { description: err.message || 'Seu texto continua aqui — tente enviar de novo.' });
     } finally {
@@ -313,46 +413,20 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
         {/* Barra de Ação de Decisão do Cliente (Aprovar / Solicitar Ajustes) */}
         <div className="w-full max-w-[420px] bg-card rounded-2xl border border-border p-3.5 shadow-md flex flex-col gap-2.5">
-          {sucessoAprovado ? (
-            <div className="p-3.5 rounded-xl bg-success/15 border border-success/30 text-success flex items-center justify-center gap-2 font-bold text-xs">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Publicação aprovada para publicação no Instagram! 🎉</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2.5">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (isReel) {
-                    handleAbrirAjusteVideo(videoTempo);
-                  } else {
-                    handleAbrirAjusteSlide(slideAtual + 1);
-                  }
-                }}
-                disabled={enviando}
-                className="rounded-xl text-xs font-bold h-10"
-              >
-                <MessageSquarePlus className="w-3.5 h-3.5 mr-1" />
-                {isReel
-                  ? `Ajustar aos ${formatarTimecode(videoTempo)}`
-                  : arquivos.length > 1
-                  ? `Ajustar Slide ${slideAtual + 1}`
-                  : 'Sugerir Ajuste'}
-              </Button>
-
-              <Button
-                type="button"
-                variant="lime"
-                onClick={handleAprovar}
-                loading={enviando}
-                className="rounded-xl text-xs font-bold shadow-xs h-10 text-lime-foreground active:scale-[0.98]"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                Aprovar Post
-              </Button>
-            </div>
-          )}
+          <BarraDecisao
+            aprovado={sucessoAprovado}
+            pendente={aprovacaoPendente}
+            enviando={enviando}
+            rotuloAjuste={isReel ? `Ajustar aos ${formatarTimecode(videoTempo)}` : arquivos.length > 1 ? `Ajustar slide ${slideAtual + 1}` : 'Sugerir ajuste'}
+            onAjuste={() => comNome(() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirAjusteSlide(slideAtual + 1)))}
+            onAprovar={handleAprovar}
+            onDesfazer={desfazerAprovacao}
+            autorNome={autorNome}
+            onTrocarNome={() => {
+              setNomeRascunho(autorNome);
+              setNomeSheetAberto(true);
+            }}
+          />
         </div>
       </main>
 
@@ -526,10 +600,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (isReel) handleAbrirAjusteVideo(videoTempo);
-                    else handleAbrirAjusteSlide(slideAtual + 1);
-                  }}
+                  onClick={() => comNome(() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirAjusteSlide(slideAtual + 1)))}
                   className="hover:text-muted-foreground transition-transform active:scale-110"
                   title="Comentar / Sugerir Ajuste"
                 >
@@ -559,46 +630,21 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
             {/* Decision Bar para Aprovação ou Solicitação de Ajustes */}
             <div className="p-3 border-t border-border bg-accent/30">
-              {sucessoAprovado ? (
-                <div className="p-3 rounded-xl bg-success/15 border border-success/30 text-success flex items-center justify-center gap-2 font-bold text-xs">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Publicação Aprovada! 🎉</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      if (isReel) {
-                        handleAbrirAjusteVideo(videoTempo);
-                      } else {
-                        handleAbrirAjusteSlide(slideAtual + 1);
-                      }
-                    }}
-                    disabled={enviando}
-                    className="rounded-xl text-xs font-bold h-10 border border-border bg-card text-foreground hover:bg-accent active:scale-[0.98] transition-all"
-                  >
-                    <MessageSquarePlus className="w-3.5 h-3.5 mr-1 text-primary" />
-                    {isReel
-                      ? `Ajustar (${formatarTimecode(videoTempo)})`
-                      : arquivos.length > 1
-                      ? `Ajustar Slide ${slideAtual + 1}`
-                      : 'Sugerir Ajuste'}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="lime"
-                    onClick={handleAprovar}
-                    loading={enviando}
-                    className="rounded-xl text-xs font-bold shadow-xs h-10 text-lime-foreground active:scale-[0.98] transition-all"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                    Aprovar Post
-                  </Button>
-                </div>
-              )}
+              <BarraDecisao
+                aprovado={sucessoAprovado}
+                pendente={aprovacaoPendente}
+                enviando={enviando}
+                rotuloAjuste={isReel ? `Ajustar aos ${formatarTimecode(videoTempo)}` : arquivos.length > 1 ? `Ajustar slide ${slideAtual + 1}` : 'Sugerir ajuste'}
+                onAjuste={() => comNome(() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirAjusteSlide(slideAtual + 1)))}
+                onAprovar={handleAprovar}
+                onDesfazer={desfazerAprovacao}
+                autorNome={autorNome}
+                onTrocarNome={() => {
+                  setNomeRascunho(autorNome);
+                  setNomeSheetAberto(true);
+                }}
+                compacto
+          />
             </div>
 
           </div>
@@ -611,22 +657,76 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
         Visualizador nativo de Instagram powered by <strong className="font-semibold text-foreground">Agência GENS</strong>
       </footer>
 
+      {/* Nome de quem está aprovando (pedido uma vez) */}
+      <Sheet open={nomeSheetAberto} onClose={() => setNomeSheetAberto(false)} aria-label="Seu nome" className="w-full max-w-sm">
+        <form onSubmit={salvarNome} className="p-6 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-base font-semibold font-display text-foreground">Como podemos te chamar?</h3>
+            <p className="text-sm text-muted-foreground">Seu nome fica junto da aprovação ou do ajuste, pra equipe saber quem pediu.</p>
+          </div>
+          <input
+            autoFocus
+            required
+            value={nomeRascunho}
+            onChange={(e) => setNomeRascunho(e.target.value)}
+            placeholder="Ex.: Mariana"
+            maxLength={60}
+            className="w-full bg-card border border-input rounded-xl px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setNomeSheetAberto(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary" size="sm" disabled={!nomeRascunho.trim()}>
+              Continuar
+            </Button>
+          </div>
+        </form>
+      </Sheet>
+
       {/* Modal / Sheet para Inserir Ajuste Específico */}
       <Sheet open={modalAjusteAberto} onClose={() => setModalAjusteAberto(false)} aria-label="Solicitar Ajuste">
         <form onSubmit={handleEnviarAjuste} className="p-6 flex flex-col gap-4">
           <div>
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ajuste de Conteúdo</span>
             <h3 className="text-lg font-bold font-display text-foreground mt-0.5">
-              {ajusteTimestamp != null
-                ? `Solicitar alteração aos ${formatarTimecode(ajusteTimestamp)}`
+              {ajusteEscopo === 'geral'
+                ? 'Pedir ajuste na publicação'
+                : ajusteTimestamp != null
+                ? `Pedir ajuste aos ${formatarTimecode(ajusteTimestamp)}`
                 : ajusteSlideIndex != null
-                ? `Solicitar alteração no Slide #${ajusteSlideIndex}`
-                : 'Solicitar alteração na publicação'}
+                ? `Pedir ajuste no slide ${ajusteSlideIndex}`
+                : 'Pedir ajuste na publicação'}
             </h3>
           </div>
 
+          {(ajusteTimestamp != null || (ajusteSlideIndex != null && arquivos.length > 1)) && (
+            <div role="radiogroup" aria-label="Sobre o que é o ajuste" className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-muted border border-border">
+              {([
+                ['ponto', ajusteTimestamp != null ? `Este momento (${formatarTimecode(ajusteTimestamp)})` : `Este slide (${ajusteSlideIndex})`],
+                ['geral', 'A publicação toda'],
+              ] as const).map(([valor, rotulo]) => (
+                <button
+                  key={valor}
+                  type="button"
+                  role="radio"
+                  aria-checked={ajusteEscopo === valor}
+                  onClick={() => setAjusteEscopo(valor)}
+                  className={`h-9 rounded-lg text-xs font-medium transition-colors cursor-pointer ${ajusteEscopo === valor ? 'bg-card text-foreground shadow-xs ring-1 ring-border-strong' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  {rotulo}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="p-2.5 rounded-xl bg-accent/60 border border-border text-xs flex items-center gap-2">
-            {ajusteTimestamp != null ? (
+            {ajusteEscopo === 'geral' ? (
+              <>
+                <Smartphone className="w-4 h-4 text-primary" />
+                <span>O ajuste vale para a publicação inteira (legenda, ordem, ideia geral).</span>
+              </>
+            ) : ajusteTimestamp != null ? (
               <>
                 <Clock className="w-4 h-4 text-primary" />
                 <span>O comentário ficará fixado exatamente aos <strong>{formatarTimecode(ajusteTimestamp)}</strong> do vídeo.</span>
@@ -679,6 +779,74 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
         </form>
       </Sheet>
 
+    </div>
+  );
+}
+
+function BarraDecisao({
+  aprovado,
+  pendente,
+  enviando,
+  rotuloAjuste,
+  onAjuste,
+  onAprovar,
+  onDesfazer,
+  autorNome,
+  onTrocarNome,
+  compacto,
+}: {
+  aprovado: boolean;
+  pendente: number | null;
+  enviando: boolean;
+  rotuloAjuste: string;
+  onAjuste: () => void;
+  onAprovar: () => void;
+  onDesfazer: () => void;
+  autorNome: string;
+  onTrocarNome: () => void;
+  compacto?: boolean;
+}) {
+  if (aprovado) {
+    return (
+      <div role="status" className={`${compacto ? 'p-3' : 'p-3.5'} rounded-xl bg-success-soft border border-success-ring text-success flex items-center justify-center gap-2 font-semibold text-sm`}>
+        <CheckCircle2 className="w-4 h-4" />
+        <span>Publicação aprovada. A agência já foi avisada.</span>
+      </div>
+    );
+  }
+
+  if (pendente !== null) {
+    return (
+      <div role="status" aria-live="polite" className="p-2 pl-3.5 rounded-xl bg-success-soft border border-success-ring flex items-center gap-3">
+        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+        <span className="flex-1 text-sm font-semibold text-success">Aprovado</span>
+        <span className="text-xs text-muted-foreground tabular-nums">envia em {pendente}s</span>
+        <Button type="button" variant="secondary" size="sm" onClick={onDesfazer}>
+          <Undo2 className="w-3.5 h-3.5" />
+          Desfazer
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2.5">
+        <Button type="button" variant="outline" onClick={onAjuste} disabled={enviando} className="h-10">
+          <MessageSquarePlus className="w-3.5 h-3.5" />
+          {rotuloAjuste}
+        </Button>
+        <Button type="button" variant="lime" onClick={onAprovar} loading={enviando} className="h-10">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          Aprovar
+        </Button>
+      </div>
+      {autorNome && (
+        <button type="button" onClick={onTrocarNome} className="self-center flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer">
+          <UserRound className="w-3 h-3" />
+          Respondendo como <strong className="font-semibold text-foreground">{autorNome}</strong> · trocar
+        </button>
+      )}
     </div>
   );
 }

@@ -73,7 +73,7 @@ describe('conteudo / esteira & aprovacao', () => {
     expect(STATUS_LABELS.criacao_arte.label).toBe('Criação');
     expect(STATUS_LABELS.revisao_interna.label).toBe('Revisão');
     expect(STATUS_LABELS.revisao_cliente.label).toBe('Aprovação');
-    expect(STATUS_LABELS.agendamento.label).toBe('Agendado');
+    expect(STATUS_LABELS.agendamento.label).toBe('Agendamento');
     expect(STATUS_LABELS.publicado.label).toBe('Publicado');
   });
 
