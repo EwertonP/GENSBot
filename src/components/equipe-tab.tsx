@@ -24,7 +24,8 @@ import { Select } from '@/components/ui/select';
 import { Sheet } from '@/components/ui/sheet';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
-import { upload } from '@vercel/blob/client';
+import { uploadMediaFile } from '@/lib/storage-upload';
+
 
 export interface MembroEquipe {
   id: string;
@@ -112,15 +113,11 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
     const file = e.target.files[0];
     setUploadingFoto(true);
     try {
-      const blob = await upload(file.name, file, {
-        access: 'public',
-        handleUploadUrl: '/api/instagram/upload-media',
-      });
-      setFormFotoUrl(blob.url);
+      const res = await uploadMediaFile(file, 'equipe');
+      setFormFotoUrl(res.url);
       showToast('Foto de perfil enviada com sucesso!', 'success');
-    } catch {
-      const localUrl = URL.createObjectURL(file);
-      setFormFotoUrl(localUrl);
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao enviar foto.', 'error');
     } finally {
       setUploadingFoto(false);
     }

@@ -17,7 +17,8 @@ import { ClienteAvatar } from '@/components/cliente-avatar';
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { upload } from '@vercel/blob/client';
+import { uploadMediaFile } from '@/lib/storage-upload';
+
 
 interface UserProfilePopoverProps {
   userName?: string;
@@ -71,14 +72,10 @@ export default function UserProfilePopover({
     const file = e.target.files[0];
     setUploading(true);
     try {
-      const blob = await upload(file.name, file, {
-        access: 'public',
-        handleUploadUrl: '/api/instagram/upload-media',
-      });
-      setEditAvatarUrl(blob.url);
-    } catch {
-      const localUrl = URL.createObjectURL(file);
-      setEditAvatarUrl(localUrl);
+      const res = await uploadMediaFile(file, 'avatars');
+      setEditAvatarUrl(res.url);
+    } catch (err: any) {
+      console.error('Erro ao subir foto de perfil:', err);
     } finally {
       setUploading(false);
     }
