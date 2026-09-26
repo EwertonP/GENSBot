@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Clock,
   Sparkles,
-  CornerDownLeft,
 } from 'lucide-react';
 import type { Form, FormField } from '@/types/form';
 import {
@@ -181,7 +180,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
             setTimeout(() => {
               handleNext();
               setSelectedPulseId(null);
-            }, 240);
+            }, 220);
           }
         }
       }
@@ -214,10 +213,11 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
   }
 
   const tema = form.tema_config || {
-    cor_primaria: '#10b981',
-    cor_fundo: '#ffffff',
-    cor_texto: '#09090b',
-    cor_card: '#f4f4f5',
+    cor_primaria: '#d8ff3c',
+    cor_fundo: '#09090b',
+    cor_texto: '#f4f4f5',
+    cor_card: '#141417',
+    modo: 'dark',
   };
 
   const isDark = useMemo(() => {
@@ -226,30 +226,36 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
     return isColorDark(tema.cor_fundo);
   }, [tema.modo, tema.cor_fundo]);
 
+  // Contraste do texto do botão primário (se o botão for lima, o texto é escuro; se for escuro, é claro)
+  const primaryBtnTextColor = useMemo(() => {
+    const primary = tema.cor_primaria || (isDark ? '#d8ff3c' : '#192313');
+    return isColorDark(primary) ? '#ffffff' : '#12180d';
+  }, [tema.cor_primaria, isDark]);
+
   const variants: any = {
     enter: (dir: 'forward' | 'backward') => ({
-      y: dir === 'forward' ? 32 : -32,
+      y: dir === 'forward' ? 24 : -24,
       opacity: 0,
-      scale: 0.985,
+      scale: 0.99,
     }),
     center: {
       y: 0,
       opacity: 1,
       scale: 1,
-      transition: { duration: 0.28, ease: 'easeOut' },
+      transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
     },
     exit: (dir: 'forward' | 'backward') => ({
-      y: dir === 'forward' ? -28 : 28,
+      y: dir === 'forward' ? -20 : 20,
       opacity: 0,
-      scale: 0.985,
-      transition: { duration: 0.18, ease: 'easeIn' },
+      scale: 0.99,
+      transition: { duration: 0.16, ease: [0.22, 1, 0.36, 1] },
     }),
   };
 
   if (!currentField) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
-        <p className="text-zinc-400 font-medium text-sm">Este formulário não possui etapas ativas.</p>
+        <p className="text-muted-foreground font-medium text-sm">Este formulário não possui etapas ativas.</p>
       </div>
     );
   }
@@ -257,47 +263,45 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
   return (
     <div
       data-theme={isDark ? 'dark' : 'light'}
-      className={`min-h-screen flex flex-col justify-between select-none relative font-sans transition-colors duration-500 overflow-x-hidden ${
-        isDark ? 'dark bg-zinc-950 text-zinc-100' : 'bg-white text-zinc-900'
+      className={`min-h-screen flex flex-col justify-between select-none relative font-sans transition-colors duration-200 overflow-x-hidden ${
+        isDark ? 'dark bg-background text-foreground' : 'bg-background text-foreground'
       }`}
       style={{
-        backgroundColor: tema.cor_fundo || (isDark ? '#09090b' : '#ffffff'),
-        color: tema.cor_texto || (isDark ? '#f4f4f5' : '#09090b'),
+        backgroundColor: tema.cor_fundo || (isDark ? '#09090b' : '#f7f8f2'),
+        color: tema.cor_texto || (isDark ? '#f4f4f5' : '#192313'),
         colorScheme: isDark ? 'dark' : 'light',
       }}
     >
-      {/* Barra de Progresso Superior com Gradiente Suave */}
-      <div className={`fixed top-0 left-0 right-0 h-1 z-50 overflow-hidden ${isDark ? 'bg-white/10' : 'bg-black/10'}`}>
+      {/* Barra de Progresso Superior Minimalista (sem neon, hairline de 2px) */}
+      <div className={`fixed top-0 left-0 right-0 h-1 z-50 overflow-hidden ${isDark ? 'bg-white/10' : 'bg-black/5'}`}>
         <motion.div
-          className="h-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-          style={{ backgroundColor: tema.cor_primaria || '#10b981' }}
+          className="h-full"
+          style={{ backgroundColor: tema.cor_primaria || (isDark ? '#d8ff3c' : '#192313') }}
           animate={{ width: `${progressPct}%` }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
         />
       </div>
 
       {/* Topo Flutuante: Logo & Contador Minimalista */}
-      <header className="px-6 sm:px-12 py-6 max-w-4xl w-full mx-auto flex items-center justify-between z-10">
+      <header className="px-6 sm:px-12 py-5 max-w-4xl w-full mx-auto flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           {tema.logo_url ? (
-            <img src={tema.logo_url} alt="Logo" className="h-9 max-w-[160px] object-contain" />
+            <img src={tema.logo_url} alt="Logo" className="h-8 max-w-[150px] object-contain" />
           ) : form.cliente_nome ? (
-            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border shadow-2xs ${
-              isDark ? 'bg-zinc-800/80 border-zinc-700/60 text-zinc-200' : 'bg-zinc-100/90 border-zinc-200/80 text-zinc-800'
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold tracking-wide uppercase ${
+              isDark ? 'bg-card border-border text-foreground' : 'bg-card border-border text-foreground'
             }`}>
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tema.cor_primaria || '#10b981' }} />
-              <span className="text-xs font-semibold tracking-wide uppercase opacity-80">
-                {form.cliente_nome}
-              </span>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tema.cor_primaria || (isDark ? '#d8ff3c' : '#192313') }} />
+              <span>{form.cliente_nome}</span>
             </div>
           ) : null}
         </div>
 
         {currentField.tipo !== 'welcome' && currentField.tipo !== 'thank_you' && (
-          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-mono font-medium opacity-80 ${
-            isDark ? 'bg-zinc-800/80 border-zinc-700/60 text-zinc-300' : 'bg-zinc-100/90 border-zinc-200/80 text-zinc-700'
+          <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-mono font-medium ${
+            isDark ? 'bg-card border-border text-muted-foreground' : 'bg-card border-border text-muted-foreground'
           }`}>
-            <span>{currentIndex}</span>
+            <span className="text-foreground font-bold">{currentIndex}</span>
             <span className="opacity-40">/</span>
             <span>{fields.length - 2 > 0 ? fields.length - 2 : fields.length}</span>
           </div>
@@ -305,7 +309,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
       </header>
 
       {/* Área Central: A Pergunta em Foco Absoluto */}
-      <main className="flex-1 flex items-center justify-center px-6 sm:px-12 py-10 max-w-2xl w-full mx-auto">
+      <main className="flex-1 flex items-center justify-center px-6 sm:px-12 py-8 max-w-2xl w-full mx-auto">
         <AnimatePresence custom={direction} mode="wait">
           <motion.div
             key={currentField.id}
@@ -318,48 +322,49 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
           >
             {/* 1. TELA DE BOAS-VINDAS */}
             {currentField.tipo === 'welcome' && (
-              <div className="space-y-8 w-full py-4">
-                <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider ${
-                  isDark ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/25'
+              <div className="space-y-6 w-full py-4">
+                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold font-mono tracking-wide ${
+                  isDark ? 'bg-secondary text-brand-text border-brand-ring' : 'bg-secondary text-brand-text border-brand-ring'
                 }`}>
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Formulário Exclusivo</span>
+                  <span>Formulário de Atendimento</span>
                 </div>
 
-                <div className="space-y-3">
-                  <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.03em] leading-[1.12]">
+                <div className="space-y-2.5">
+                  <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
                     {currentField.label}
                   </h1>
                   {currentField.descricao && (
-                    <p className="text-lg sm:text-xl opacity-75 font-normal leading-relaxed max-w-xl">
+                    <p className="text-base sm:text-lg text-muted-foreground font-normal leading-relaxed max-w-xl">
                       {currentField.descricao}
                     </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs opacity-60 font-medium">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
                   <Clock className="w-4 h-4" />
-                  <span>Leva aproximadamente 1 a 2 minutos</span>
+                  <span>Duração estimada: 1 a 2 minutos</span>
                 </div>
 
-                {/* Botão Estilo Button-in-Button */}
+                {/* Botão de Ação Primária no Padrão GENS */}
                 <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <button
                     type="button"
                     onClick={handleNext}
-                    style={{ backgroundColor: tema.cor_primaria || '#10b981', color: '#ffffff' }}
-                    className="group px-7 py-4 rounded-full font-bold text-base sm:text-lg shadow-lg hover:shadow-xl hover:brightness-105 active:scale-[0.98] transition-all flex items-center gap-3.5 cursor-pointer"
+                    style={{
+                      backgroundColor: tema.cor_primaria || (isDark ? '#d8ff3c' : '#192313'),
+                      color: primaryBtnTextColor,
+                    }}
+                    className="px-6 py-3.5 rounded-xl font-bold text-sm sm:text-base shadow-xs hover:opacity-90 active:scale-[0.985] transition-ui flex items-center gap-2.5 cursor-pointer"
                   >
-                    <span>Começar Agora</span>
-                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center transition-transform group-hover:translate-x-0.5">
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
+                    <span>Começar</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
 
-                  <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-60 font-mono">
+                  <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
                     <span>pressione</span>
-                    <kbd className={`px-2 py-1 rounded-md border font-bold shadow-2xs ${
-                      isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'
+                    <kbd className={`px-2 py-0.5 rounded-md border text-xs font-mono font-medium ${
+                      isDark ? 'bg-muted border-border text-muted-foreground' : 'bg-muted border-border text-muted-foreground'
                     }`}>
                       Enter ↵
                     </kbd>
@@ -370,41 +375,37 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
 
             {/* 2. TELA DE AGRADECIMENTO */}
             {currentField.tipo === 'thank_you' && (
-              <div className="space-y-8 w-full py-4 text-center sm:text-left">
-                {/* Aura de Sucesso */}
-                <motion.div
-                  initial={{ scale: 0.7, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', damping: 15, stiffness: 250 }}
-                  className={`inline-flex p-4 rounded-3xl border shadow-inner ${
-                    isDark ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-500/15 text-emerald-600 border-emerald-500/25'
-                  }`}
-                >
-                  <Check className="w-10 h-10 stroke-[2.75]" />
-                </motion.div>
+              <div className="space-y-6 w-full py-4 text-center sm:text-left">
+                {/* Ícone de Sucesso Sóbrio & Refinado */}
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
+                  isDark ? 'bg-success-soft text-success border-success-ring' : 'bg-success-soft text-success border-success-ring'
+                }`}>
+                  <Check className="w-6 h-6 stroke-[2.5]" />
+                </div>
 
-                <div className="space-y-3">
-                  <h1 className="text-3xl sm:text-5xl font-extrabold tracking-[-0.03em] leading-tight">
+                <div className="space-y-2.5">
+                  <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-foreground leading-tight">
                     {currentField.label}
                   </h1>
                   {currentField.descricao && (
-                    <p className="text-lg sm:text-xl opacity-75 font-normal leading-relaxed max-w-xl">
+                    <p className="text-base sm:text-lg text-muted-foreground font-normal leading-relaxed max-w-xl">
                       {currentField.descricao}
                     </p>
                   )}
                 </div>
 
+                {/* Botão de WhatsApp Oficial (DESIGN.md: #25D366 com texto #052e16) */}
                 {form.notificacao_whatsapp_numero && (
                   <div className="pt-2">
                     <a
                       href={`https://wa.me/55${form.notificacao_whatsapp_numero.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Acabei de enviar minhas respostas no formulário "${form.titulo}".`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group inline-flex items-center gap-3.5 px-8 py-4 rounded-full bg-[#25D366] text-white font-bold text-base sm:text-lg shadow-lg hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer"
+                      className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-[#25D366] text-[#052e16] font-bold text-sm sm:text-base shadow-xs hover:brightness-105 active:scale-[0.985] transition-ui cursor-pointer"
                     >
-                      <MessageCircle className="w-6 h-6 fill-white" />
+                      <MessageCircle className="w-5 h-5 fill-current" />
                       <span>Falar no WhatsApp com nossa equipe</span>
-                      <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                      <ArrowRight className="w-4 h-4" />
                     </a>
                   </div>
                 )}
@@ -413,31 +414,31 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
 
             {/* 3. PERGUNTAS INTERATIVAS */}
             {currentField.tipo !== 'welcome' && currentField.tipo !== 'thank_you' && (
-              <div className="space-y-7 w-full">
+              <div className="space-y-6 w-full">
                 {/* Cabeçalho da Pergunta com Micro-Eyebrow */}
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span
-                      className="text-xs font-mono font-bold tracking-wider uppercase opacity-70"
-                      style={{ color: tema.cor_primaria || '#10b981' }}
+                      className="text-xs font-mono font-bold uppercase tracking-wider"
+                      style={{ color: tema.cor_primaria || (isDark ? '#d8ff3c' : '#192313') }}
                     >
                       {String(currentIndex).padStart(2, '0')} →
                     </span>
                     {currentField.obrigatorio && (
-                      <span className={`text-2xs font-semibold px-2 py-0.5 rounded-full border ${
-                        isDark ? 'bg-rose-500/15 text-rose-400 border-rose-500/30' : 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                      <span className={`text-xs font-medium px-2 py-0.2 rounded-full border ${
+                        isDark ? 'bg-destructive-soft text-destructive border-destructive-ring' : 'bg-destructive-soft text-destructive border-destructive-ring'
                       }`}>
                         Obrigatório
                       </span>
                     )}
                   </div>
 
-                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-[-0.025em] leading-[1.2]">
+                  <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground leading-snug">
                     {currentField.label}
                   </h2>
 
                   {currentField.descricao && (
-                    <p className="text-sm sm:text-base opacity-70 leading-relaxed max-w-xl">
+                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xl">
                       {currentField.descricao}
                     </p>
                   )}
@@ -446,47 +447,39 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                 {/* Input: TEXTO CURTO */}
                 {currentField.tipo === 'text' && (
                   <div className="pt-2">
-                    <div className="relative group">
-                      <input
-                        ref={inputRef}
-                        type="text"
-                        value={currentAnswer || ''}
-                        onChange={(e) => handleSetAnswer(e.target.value)}
-                        placeholder={currentField.placeholder || 'Digite sua resposta...'}
-                        className={`w-full text-xl sm:text-2xl font-medium bg-transparent border-b-2 pb-3 transition-colors focus:outline-none ${
-                          isDark
-                            ? 'border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-400'
-                            : 'border-zinc-300 text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600'
-                        }`}
-                      />
-                    </div>
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={currentAnswer || ''}
+                      onChange={(e) => handleSetAnswer(e.target.value)}
+                      placeholder={currentField.placeholder || 'Digite sua resposta...'}
+                      className={`w-full text-xl sm:text-2xl font-display font-medium bg-transparent border-b-2 pb-3 transition-colors focus:outline-none placeholder:text-muted-foreground/40 ${
+                        isDark ? 'border-border focus:border-primary text-foreground' : 'border-border focus:border-primary text-foreground'
+                      }`}
+                    />
                   </div>
                 )}
 
                 {/* Input: TEXTAREA */}
                 {currentField.tipo === 'textarea' && (
                   <div className="pt-2 space-y-2">
-                    <div className={`p-1 rounded-3xl border shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] ${
-                      isDark ? 'bg-white/5 border-zinc-800' : 'bg-black/5 border-zinc-200'
-                    }`}>
-                      <textarea
-                        ref={inputRef}
-                        rows={4}
-                        value={currentAnswer || ''}
-                        onChange={(e) => handleSetAnswer(e.target.value)}
-                        placeholder={currentField.placeholder || 'Descreva em detalhes aqui...'}
-                        className={`w-full text-base sm:text-lg font-medium rounded-[calc(1.5rem-4px)] p-4 focus:outline-none resize-none transition-all ${
-                          isDark
-                            ? 'bg-zinc-900 text-zinc-100 placeholder:text-zinc-500'
-                            : 'bg-white text-zinc-900 placeholder:text-zinc-400'
-                        }`}
-                      />
-                    </div>
-                    <div className="flex items-center gap-1.5 text-2xs opacity-50 font-mono">
+                    <textarea
+                      ref={inputRef}
+                      rows={4}
+                      value={currentAnswer || ''}
+                      onChange={(e) => handleSetAnswer(e.target.value)}
+                      placeholder={currentField.placeholder || 'Descreva em detalhes aqui...'}
+                      className={`w-full text-base font-sans rounded-xl p-3.5 border transition-ui resize-none focus:outline-none focus:ring-2 focus:ring-ring/25 ${
+                        isDark
+                          ? 'bg-card border-input text-foreground placeholder:text-muted-foreground'
+                          : 'bg-card border-input text-foreground placeholder:text-muted-foreground'
+                      }`}
+                    />
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
                       <span>Dica: Use</span>
-                      <kbd className={`px-1.5 py-0.5 rounded border ${
-                        isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'
-                      }`}>Shift + Enter</kbd>
+                      <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-muted-foreground text-xs">
+                        Shift + Enter
+                      </kbd>
                       <span>para pular linha</span>
                     </div>
                   </div>
@@ -496,12 +489,10 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                 {currentField.tipo === 'whatsapp' && (
                   <div className="pt-2">
                     <div className={`flex items-center gap-3 border-b-2 pb-3 transition-colors ${
-                      isDark
-                        ? 'border-zinc-700 focus-within:border-emerald-400'
-                        : 'border-zinc-300 focus-within:border-emerald-600'
+                      isDark ? 'border-border focus-within:border-primary' : 'border-border focus-within:border-primary'
                     }`}>
-                      <span className="text-base sm:text-lg font-bold opacity-75 flex items-center gap-1.5">
-                        <span className="text-xl">🇧🇷</span> +55
+                      <span className="text-base sm:text-lg font-bold text-muted-foreground flex items-center gap-1.5">
+                        <span>🇧🇷</span> +55
                       </span>
                       <input
                         ref={inputRef}
@@ -509,11 +500,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                         value={currentAnswer || ''}
                         onChange={(e) => handleSetAnswer(formatWhatsAppMask(e.target.value))}
                         placeholder={currentField.placeholder || '(11) 99999-9999'}
-                        className={`w-full text-xl sm:text-2xl font-medium bg-transparent focus:outline-none tracking-wide ${
-                          isDark
-                            ? 'text-zinc-100 placeholder:text-zinc-500'
-                            : 'text-zinc-900 placeholder:text-zinc-400'
-                        }`}
+                        className="w-full text-xl sm:text-2xl font-display font-medium bg-transparent focus:outline-none tracking-wide text-foreground placeholder:text-muted-foreground/40"
                       />
                     </div>
                   </div>
@@ -528,18 +515,16 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                       value={currentAnswer || ''}
                       onChange={(e) => handleSetAnswer(e.target.value)}
                       placeholder={currentField.placeholder || 'seuemail@exemplo.com'}
-                      className={`w-full text-xl sm:text-2xl font-medium bg-transparent border-b-2 pb-3 transition-colors focus:outline-none ${
-                        isDark
-                          ? 'border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-400'
-                          : 'border-zinc-300 text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600'
+                      className={`w-full text-xl sm:text-2xl font-display font-medium bg-transparent border-b-2 pb-3 transition-colors focus:outline-none placeholder:text-muted-foreground/40 ${
+                        isDark ? 'border-border focus:border-primary text-foreground' : 'border-border focus:border-primary text-foreground'
                       }`}
                     />
                   </div>
                 )}
 
-                {/* Input: MÚLTIPLA ESCOLHA (CARDS COM KEYCAPS) */}
+                {/* Input: MÚLTIPLA ESCOLHA (Cards Estilo Linear) */}
                 {currentField.tipo === 'choice' && currentField.opcoes && (
-                  <div className="pt-2 grid gap-3 w-full">
+                  <div className="pt-2 grid gap-2.5 w-full">
                     {currentField.opcoes.map((opt, i) => {
                       const isSelected = currentAnswer === opt.id || currentAnswer === opt.label;
                       const isPulsing = selectedPulseId === opt.id;
@@ -559,35 +544,28 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                               }, 220);
                             }
                           }}
-                          className={`w-full p-4 rounded-2xl border-2 text-left font-medium text-base sm:text-lg flex items-center justify-between cursor-pointer transition-all active:scale-[0.985] ${
+                          className={`w-full p-3.5 rounded-xl border text-left font-medium text-sm sm:text-base flex items-center justify-between cursor-pointer transition-ui active:scale-[0.985] ${
                             isSelected || isPulsing
-                              ? 'border-emerald-500 bg-emerald-500/10 shadow-sm'
-                              : isDark
-                              ? 'border-zinc-800 bg-zinc-900/80 hover:border-zinc-700 hover:bg-zinc-800/80 text-zinc-100'
-                              : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 text-zinc-900'
+                              ? 'border-primary bg-secondary/40 shadow-xs'
+                              : 'border-border bg-card hover:border-border-strong hover:bg-accent text-foreground'
                           }`}
                         >
-                          <div className="flex items-center gap-3.5">
-                            {/* Keycap Badge */}
+                          <div className="flex items-center gap-3">
                             <span
-                              className={`w-8 h-8 rounded-lg text-xs font-mono font-bold flex items-center justify-center transition-all ${
+                              className={`w-7 h-7 rounded-lg text-xs font-mono font-bold flex items-center justify-center transition-colors ${
                                 isSelected || isPulsing
-                                  ? 'bg-emerald-500 text-white shadow-sm'
-                                  : isDark
-                                  ? 'bg-zinc-800 border border-zinc-700 text-zinc-300 shadow-[0_2px_0_rgba(0,0,0,0.2)]'
-                                  : 'bg-zinc-100 border border-zinc-200 text-zinc-600 shadow-[0_2px_0_rgba(0,0,0,0.06)]'
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted border border-border text-muted-foreground'
                               }`}
                             >
                               {letra}
                             </span>
-                            <span className={`font-semibold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                              {opt.label}
-                            </span>
+                            <span className="font-medium text-foreground">{opt.label}</span>
                           </div>
 
                           {isSelected && (
-                            <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                              <Check className="w-3 h-3 stroke-[3]" />
                             </div>
                           )}
                         </button>
@@ -598,8 +576,8 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
 
                 {/* Input: NPS (0 a 10) */}
                 {currentField.tipo === 'nps' && (
-                  <div className="pt-2 space-y-3 w-full">
-                    <div className="grid grid-cols-6 sm:grid-cols-11 gap-2">
+                  <div className="pt-2 space-y-2.5 w-full">
+                    <div className="grid grid-cols-6 sm:grid-cols-11 gap-1.5">
                       {Array.from({ length: 11 }).map((_, n) => {
                         const isSelected = currentAnswer === n;
                         return (
@@ -610,12 +588,10 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                               handleSetAnswer(n);
                               setTimeout(() => handleNext(), 220);
                             }}
-                            className={`h-13 rounded-xl border-2 font-mono font-bold text-base flex items-center justify-center cursor-pointer transition-all active:scale-95 ${
+                            className={`h-11 rounded-lg border font-mono font-bold text-sm flex items-center justify-center cursor-pointer transition-ui active:scale-95 ${
                               isSelected
-                                ? 'border-emerald-500 bg-emerald-500 text-white shadow-md scale-105'
-                                : isDark
-                                ? 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800 bg-zinc-900/80 text-zinc-200'
-                                : 'border-zinc-200 hover:border-zinc-400 hover:bg-zinc-100 bg-white text-zinc-800'
+                                ? 'border-primary bg-primary text-primary-foreground shadow-xs'
+                                : 'border-border hover:border-border-strong hover:bg-accent bg-card text-foreground'
                             }`}
                           >
                             {n}
@@ -623,7 +599,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                         );
                       })}
                     </div>
-                    <div className={`flex justify-between text-xs px-1 font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    <div className="flex justify-between text-xs text-muted-foreground px-1 font-medium">
                       <span>0 - Pouco provável</span>
                       <span>10 - Altamente provável</span>
                     </div>
@@ -632,7 +608,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
 
                 {/* Input: AVALIAÇÃO COM ESTRELAS */}
                 {currentField.tipo === 'rating' && (
-                  <div className="pt-2 flex items-center gap-3">
+                  <div className="pt-2 flex items-center gap-2">
                     {[1, 2, 3, 4, 5].map((star) => {
                       const isFilled = (currentAnswer || 0) >= star;
                       return (
@@ -643,15 +619,13 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                             handleSetAnswer(star);
                             setTimeout(() => handleNext(), 220);
                           }}
-                          className="p-2 cursor-pointer hover:scale-115 active:scale-90 transition-transform"
+                          className="p-1.5 cursor-pointer hover:scale-110 active:scale-90 transition-transform"
                         >
                           <Star
-                            className={`w-11 h-11 transition-all ${
+                            className={`w-9 h-9 transition-colors ${
                               isFilled
-                                ? 'text-amber-400 fill-amber-400 drop-shadow-[0_2px_8px_rgba(251,191,36,0.5)]'
-                                : isDark
-                                ? 'text-zinc-700 fill-transparent'
-                                : 'text-zinc-300 fill-transparent'
+                                ? 'text-amber-400 fill-amber-400 drop-shadow-[0_2px_8px_rgba(251,191,36,0.3)]'
+                                : 'text-muted-foreground/30 fill-transparent'
                             }`}
                           />
                         </button>
@@ -660,14 +634,10 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                   </div>
                 )}
 
-                {/* Input: UPLOAD DE ARQUIVO (Cloudflare R2) */}
+                {/* Input: UPLOAD DE ARQUIVO */}
                 {currentField.tipo === 'file' && (
                   <div className="pt-2">
-                    <label className={`border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all group ${
-                      isDark
-                        ? 'border-zinc-700 bg-zinc-900/50 hover:bg-zinc-900/80 hover:border-emerald-500 text-zinc-200'
-                        : 'border-zinc-300 bg-zinc-50/80 hover:bg-zinc-100/80 hover:border-emerald-600 text-zinc-800'
-                    }`}>
+                    <label className="border-2 border-dashed border-border hover:border-border-strong rounded-2xl p-6 flex flex-col items-center justify-center gap-2.5 cursor-pointer transition-ui bg-card hover:bg-accent group">
                       <input
                         type="file"
                         className="hidden"
@@ -677,24 +647,22 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                         }}
                       />
                       {uploadingFile ? (
-                        <div className="flex items-center gap-3 text-emerald-600 font-semibold animate-pulse">
-                          <UploadCloud className="w-8 h-8 animate-bounce" />
-                          <span>Enviando para Cloudflare R2...</span>
+                        <div className="flex items-center gap-2 text-primary font-semibold animate-pulse text-sm">
+                          <UploadCloud className="w-6 h-6 animate-bounce" />
+                          <span>Enviando para o servidor seguro...</span>
                         </div>
                       ) : currentAnswer?.url ? (
-                        <div className="flex items-center gap-3 text-emerald-600 font-semibold">
-                          <FileCheck2 className="w-8 h-8" />
+                        <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                          <FileCheck2 className="w-6 h-6" />
                           <span>Arquivo anexado: {currentAnswer.nome}</span>
                         </div>
                       ) : (
                         <>
-                          <div className={`p-3.5 rounded-2xl group-hover:scale-110 transition-transform ${
-                            isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-200/80 text-zinc-600'
-                          }`}>
-                            <UploadCloud className="w-8 h-8" />
+                          <div className="p-3 rounded-xl bg-muted text-foreground group-hover:scale-105 transition-transform">
+                            <UploadCloud className="w-6 h-6" />
                           </div>
-                          <span className="font-semibold text-base">Clique ou arraste um arquivo aqui</span>
-                          <span className="text-xs opacity-60">Fotos, vídeos ou documentos sem limite de tamanho</span>
+                          <span className="font-semibold text-sm text-foreground">Clique ou arraste um arquivo aqui</span>
+                          <span className="text-xs text-muted-foreground">Fotos, vídeos ou documentos sem limite de tamanho</span>
                         </>
                       )}
                     </label>
@@ -704,18 +672,14 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
                 {/* Input: TERMOS / LGPD */}
                 {currentField.tipo === 'terms' && (
                   <div className="pt-2">
-                    <label className={`p-4 rounded-2xl border flex items-start gap-3.5 cursor-pointer transition-all ${
-                      isDark
-                        ? 'border-zinc-800 bg-zinc-900/80 hover:border-zinc-700 text-zinc-200'
-                        : 'border-zinc-200 bg-white hover:border-zinc-300 text-zinc-800'
-                    }`}>
+                    <label className="p-3.5 rounded-xl border border-border bg-card hover:border-border-strong flex items-start gap-3 cursor-pointer transition-ui">
                       <input
                         type="checkbox"
                         checked={currentAnswer === true}
                         onChange={(e) => handleSetAnswer(e.target.checked)}
-                        className="mt-1 w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300 cursor-pointer"
+                        className="mt-0.5 w-4 h-4 rounded border-input text-primary focus:ring-ring cursor-pointer"
                       />
-                      <span className="text-sm sm:text-base font-normal leading-relaxed opacity-90">
+                      <span className="text-xs sm:text-sm font-normal text-foreground leading-relaxed">
                         {currentField.placeholder || 'Concordo com os termos de privacidade e autorizo o contato via WhatsApp.'}
                       </span>
                     </label>
@@ -724,30 +688,31 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
 
                 {/* Alerta de Validação */}
                 {errorMsg && (
-                  <div className="flex items-center gap-2 text-rose-500 text-sm font-semibold animate-bounce">
+                  <div className="flex items-center gap-2 text-destructive text-xs font-semibold">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{errorMsg}</span>
                   </div>
                 )}
 
-                {/* Botão de Avanço com Haptic Feel */}
-                <div className="pt-4 flex items-center gap-4">
+                {/* Botão de Avanço / OK */}
+                <div className="pt-3 flex items-center gap-3">
                   <button
                     type="button"
                     onClick={handleNext}
                     disabled={submitting}
-                    style={{ backgroundColor: tema.cor_primaria || '#10b981', color: '#ffffff' }}
-                    className="px-7 py-3.5 rounded-2xl font-bold text-base shadow-md hover:shadow-lg hover:brightness-105 active:scale-[0.98] transition-all flex items-center gap-2.5 cursor-pointer disabled:opacity-50"
+                    style={{
+                      backgroundColor: tema.cor_primaria || (isDark ? '#d8ff3c' : '#192313'),
+                      color: primaryBtnTextColor,
+                    }}
+                    className="px-6 py-2.5 rounded-xl font-bold text-sm shadow-xs hover:opacity-90 active:scale-[0.985] transition-ui flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <span>{currentIndex === fields.length - 2 ? 'Enviar Respostas' : 'OK'}</span>
-                    <Check className="w-4 h-4 stroke-[3]" />
+                    <Check className="w-4 h-4 stroke-[2.5]" />
                   </button>
 
-                  <div className="hidden sm:flex items-center gap-1.5 text-xs opacity-60 font-mono">
+                  <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
                     <span>pressione</span>
-                    <kbd className={`px-2 py-1 rounded-md border font-bold shadow-2xs ${
-                      isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'
-                    }`}>
+                    <kbd className="px-2 py-0.5 rounded-md border border-border bg-muted text-muted-foreground text-xs font-mono font-medium">
                       Enter ↵
                     </kbd>
                   </div>
@@ -758,39 +723,31 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
         </AnimatePresence>
       </main>
 
-      {/* Rodapé Flutuante: Navegação & Dock */}
-      <footer className={`px-6 sm:px-12 py-5 max-w-4xl w-full mx-auto flex items-center justify-between z-10 border-t ${
-        isDark ? 'border-zinc-800/80' : 'border-zinc-200/80'
-      }`}>
-        <div className="flex items-center gap-2">
-          <span className="text-2xs font-semibold opacity-50 uppercase tracking-widest">Tecnologia</span>
-          <span className="text-xs font-bold tracking-tight text-emerald-600">GENSBot</span>
+      {/* Rodapé Flutuante: Navegação & Dock Minimalista */}
+      <footer className="px-6 sm:px-12 py-4 max-w-4xl w-full mx-auto flex items-center justify-between z-10 border-t border-border">
+        <div className="flex items-center gap-1.5">
+          <span className="text-caption text-muted-foreground uppercase tracking-widest font-mono">Tecnologia</span>
+          <span className="text-xs font-bold font-display text-foreground tracking-tight">GENSBot</span>
         </div>
 
         {/* Botões Chevron Tipo Dock */}
-        <div className={`flex items-center gap-1 p-1 rounded-xl shadow-2xs border ${
-          isDark ? 'bg-zinc-800/90 border-zinc-700/80' : 'bg-zinc-100/90 border-zinc-200/80'
-        }`}>
+        <div className="flex items-center gap-1 p-1 rounded-xl border border-border bg-card shadow-2xs">
           <button
             type="button"
             onClick={handleBack}
             disabled={history.length <= 1}
             title="Pergunta anterior (Shift + Enter ou ↑)"
-            className={`p-2 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors ${
-              isDark ? 'hover:bg-zinc-700 text-zinc-200' : 'hover:bg-white text-zinc-700'
-            }`}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
           >
             <ChevronUp className="w-4 h-4" />
           </button>
-          <div className={`w-px h-4 ${isDark ? 'bg-zinc-700' : 'bg-zinc-200'}`} />
+          <div className="w-px h-3.5 bg-border" />
           <button
             type="button"
             onClick={handleNext}
             disabled={currentIndex >= fields.length - 1}
             title="Próxima pergunta (Enter ou ↓)"
-            className={`p-2 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors ${
-              isDark ? 'hover:bg-zinc-700 text-zinc-200' : 'hover:bg-white text-zinc-700'
-            }`}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
           >
             <ChevronDown className="w-4 h-4" />
           </button>
