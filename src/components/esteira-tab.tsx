@@ -71,14 +71,16 @@ import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
 import { uploadMediaFile } from '@/lib/storage-upload';
 import { confirmDialog, MediaLightbox } from '@/components/ui/dialog';
+import { MoverEtapaMenu } from '@/components/mover-etapa-menu';
 
 
 export const ETAPAS_PIPELINE: { status: StatusConteudo; label: string; short: string; step: number }[] = [
-  { status: 'planejamento', label: 'Briefing & Ideia', short: 'Briefing', step: 1 },
-  { status: 'criacao_arte', label: 'Criação Visual', short: 'Criação', step: 2 },
-  { status: 'revisao_interna', label: 'Revisão Interna', short: 'Revisão', step: 3 },
-  { status: 'revisao_cliente', label: 'Aprovação Cliente', short: 'Aprovação', step: 4 },
-  { status: 'agendamento', label: 'Agendado', short: 'Agendado', step: 5 },
+  // Um só vocabulário: "short" = STATUS_LABELS (badges e colunas); "label" = versão por extenso do stepper.
+  { status: 'planejamento', label: 'Planejamento', short: 'Planejamento', step: 1 },
+  { status: 'criacao_arte', label: 'Criação', short: 'Criação', step: 2 },
+  { status: 'revisao_interna', label: 'Revisão interna', short: 'Revisão', step: 3 },
+  { status: 'revisao_cliente', label: 'Aprovação do cliente', short: 'Aprovação', step: 4 },
+  { status: 'agendamento', label: 'Agendamento', short: 'Agendamento', step: 5 },
   { status: 'publicado', label: 'Publicado', short: 'Publicado', step: 6 },
 ];
 
@@ -1180,7 +1182,24 @@ export default function EsteiraTab({
                       <Card
                         key={item.id}
                         draggable={true}
+                        tabIndex={0}
+                        role="group"
+                        aria-label={`${item.titulo || 'Demanda'} — ${STATUS_LABELS[colStatus]?.label ?? ''}. Enter abre; Alt + setas movem de etapa.`}
                         onClick={() => handleAbrirModalEditar(item)}
+                        onKeyDown={(e) => {
+                          if (e.target !== e.currentTarget) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleAbrirModalEditar(item);
+                            return;
+                          }
+                          if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+                            e.preventDefault();
+                            const idx = ETAPAS_PIPELINE.findIndex((et) => et.status === colStatus);
+                            const alvo = ETAPAS_PIPELINE[idx + (e.key === 'ArrowRight' ? 1 : -1)];
+                            if (alvo) handleMudarStatus(item.id, alvo.status);
+                          }
+                        }}
                         onDragStart={(e) => {
                           setDraggingItemId(item.id);
                           e.dataTransfer.setData('text/plain', item.id);
@@ -1208,7 +1227,7 @@ export default function EsteiraTab({
                           const draggedId = e.dataTransfer.getData('text/plain');
                           if (draggedId) handleMudarStatus(draggedId, colStatus, item.id);
                         }}
-                        className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 cursor-pointer relative ${
+                        className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-all duration-200 flex flex-col gap-3 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           temAjustes
                             ? 'border-destructive/40 bg-destructive/5'
                             : 'border-border hover:border-foreground/30'
@@ -1220,6 +1239,15 @@ export default function EsteiraTab({
                         {isOverItem && (
                           <div className="absolute -top-1.5 left-2 right-2 h-1 bg-primary rounded-full shadow-xs animate-pulse pointer-events-none z-10" />
                         )}
+
+                        {/* Mover sem arrastar (teclado/toque) */}
+                        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-popup-open]]:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
+                          <MoverEtapaMenu
+                            etapas={ETAPAS_PIPELINE.map((et) => ({ status: et.status, label: et.label }))}
+                            atual={colStatus}
+                            onMover={(novo) => handleMudarStatus(item.id, novo)}
+                          />
+                        </div>
 
                         {/* Capa da Demanda no Kanban */}
                         {(() => {

@@ -170,11 +170,11 @@ export const STATUS_LABELS: Record<StatusConteudo, { label: string; tag: string;
   em_edicao: { label: 'Criação', tag: '02', variant: 'info' },
   revisao_arte: { label: 'Revisão', tag: '03', variant: 'warning' },
   revisao_interna: { label: 'Revisão', tag: '03', variant: 'warning' },
-  travado: { label: 'Revisão (Ajuste)', tag: '03', variant: 'destructive' },
+  travado: { label: 'Ajuste pedido', tag: '03', variant: 'destructive' },
   revisao_cliente: { label: 'Aprovação', tag: '04', variant: 'warning' },
-  agendamento: { label: 'Agendado', tag: '05', variant: 'success' },
-  revisao_agendamento: { label: 'Agendado', tag: '05', variant: 'success' },
-  pronto_publicar: { label: 'Agendado', tag: '05', variant: 'success' },
+  agendamento: { label: 'Agendamento', tag: '05', variant: 'success' },
+  revisao_agendamento: { label: 'Agendamento', tag: '05', variant: 'success' },
+  pronto_publicar: { label: 'Agendamento', tag: '05', variant: 'success' },
   publicado: { label: 'Publicado', tag: '06', variant: 'success' },
 };
 
