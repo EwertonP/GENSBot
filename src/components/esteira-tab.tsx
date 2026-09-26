@@ -145,6 +145,8 @@ export default function EsteiraTab({
   const [busca, setBusca] = useState('');
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'feed'>('kanban');
   const [mesSelecionado, setMesSelecionado] = useState<string>(() => new Date().toISOString().slice(0, 7));
+  const [ocultarPublicados, setOcultarPublicados] = useState(true);
+
 
   // Drag and Drop state
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
@@ -277,10 +279,15 @@ export default function EsteiraTab({
     }
   }, [itemFocoId, items]);
 
+  const totalPublicados = useMemo(() => {
+    return items.filter((it) => it.status === 'publicado').length;
+  }, [items]);
+
   const itemsFiltrados = useMemo(() => {
     return items.filter((item) => {
       if (clienteSelecionado !== 'all' && item.cliente_id !== clienteSelecionado) return false;
       if (responsavelFiltro !== 'all' && item.responsavel_id !== responsavelFiltro) return false;
+      if (ocultarPublicados && item.status === 'publicado') return false;
       if (busca.trim()) {
         const termo = busca.toLowerCase();
         const matchTitulo = (item.titulo || '').toLowerCase().includes(termo);
@@ -291,7 +298,7 @@ export default function EsteiraTab({
       }
       return true;
     });
-  }, [items, clienteSelecionado, responsavelFiltro, busca]);
+  }, [items, clienteSelecionado, responsavelFiltro, busca, ocultarPublicados]);
 
   async function handleMudarStatus(
     itemId: string,
@@ -881,6 +888,25 @@ export default function EsteiraTab({
 
 
 
+          {/* Toggle Ocultar/Exibir Publicados */}
+          {totalPublicados > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setOcultarPublicados((prev) => !prev)}
+              className={`rounded-xl shadow-2xs h-9 text-xs font-bold transition-all cursor-pointer ${
+                ocultarPublicados
+                  ? 'bg-accent/40 text-muted-foreground border-border hover:text-foreground'
+                  : 'bg-success-soft text-success border-success-ring'
+              }`}
+              title={ocultarPublicados ? 'Clique para exibir as postagens publicadas' : 'Clique para ocultar as postagens publicadas da esteira'}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+              <span>{ocultarPublicados ? `Publicados Ocultos (${totalPublicados})` : `Exibindo Publicados (${totalPublicados})`}</span>
+            </Button>
+          )}
+
           {/* Botão Nova Demanda */}
           <Button
             onClick={handleAbrirModalNovo}
@@ -1028,7 +1054,7 @@ export default function EsteiraTab({
         />
       ) : viewMode === 'kanban' ? (
         <div className="flex gap-4 overflow-x-auto pb-6 pt-1 select-none">
-          {COLUNAS_KANBAN.map((colStatus) => {
+          {COLUNAS_KANBAN.filter((col) => !ocultarPublicados || col !== 'publicado').map((colStatus) => {
             const itensDaColuna = itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === colStatus);
             const info = STATUS_LABELS[colStatus];
             const isOver = draggingOverCol === colStatus;

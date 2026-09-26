@@ -491,3 +491,24 @@ export function correspondeClienteEnotionDb(nomeCliente: string, tituloNotionDb:
   return false;
 }
 
+/**
+ * Arquiva uma página no Notion (move para a lixeira/arquivo do Notion,
+ * removendo-a da visualização ativa da database/quadro).
+ */
+export async function archiveNotionPage(pageId: string): Promise<boolean> {
+  if (!pageId) return false;
+  const cleanId = pageId.replace(/-/g, '');
+  try {
+    const res = await fetchNotionComRetry(`https://api.notion.com/v1/pages/${cleanId}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ archived: true }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('Erro ao arquivar página no Notion:', pageId, err);
+    return false;
+  }
+}
+
+

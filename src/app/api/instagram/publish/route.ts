@@ -145,7 +145,16 @@ export async function POST(req: Request) {
 
       if (conteudo_item_id) {
         const publishedDate = data.published_at || new Date().toISOString();
+
+        // 1. Busca os arquivos e notion_page_id antes de atualizar
         const { data: itemConteudo } = await supabase
+          .from('conteudo_items')
+          .select('id, notion_page_id, arquivos')
+          .eq('id', conteudo_item_id)
+          .maybeSingle();
+
+        // 2. Atualiza a demanda para publicado e esvazia arquivos para manter o banco leve
+        await supabase
           .from('conteudo_items')
           .update({
             scheduled_post_id: data.id,
@@ -153,15 +162,26 @@ export async function POST(req: Request) {
             data_programada: scheduled_at || publishedDate,
             publicado_em: publishedDate,
             automacao_config: automation_config?.enabled ? automation_config : null,
+            arquivos: [],
             atualizado_em: new Date().toISOString(),
           })
-          .eq('id', conteudo_item_id)
-          .select('notion_page_id')
-          .maybeSingle();
+          .eq('id', conteudo_item_id);
 
+        // 3. Libera o espaço das mídias no Supabase Storage (bucket post-media)
+        if (itemConteudo?.arquivos) {
+          import('@/lib/storage-upload').then(({ cleanupStorageMedia }) => {
+            cleanupStorageMedia(supabase, itemConteudo.arquivos).catch((err) => {
+              console.error('Erro na limpeza de storage pós-publicação:', err);
+            });
+          });
+        }
+
+        // 4. Atualiza status no Notion e arquiva a página
         if (itemConteudo?.notion_page_id) {
-          import('@/lib/notion').then(({ updateNotionPageStatus }) => {
-            updateNotionPageStatus(itemConteudo.notion_page_id, ['Publicado', 'Postado', 'Concluído']).catch(() => {});
+          import('@/lib/notion').then(({ updateNotionPageStatus, archiveNotionPage }) => {
+            updateNotionPageStatus(itemConteudo.notion_page_id, ['Publicado', 'Postado', 'Concluído'])
+              .then(() => archiveNotionPage(itemConteudo.notion_page_id))
+              .catch(() => {});
           });
         }
       }
