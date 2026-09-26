@@ -192,7 +192,11 @@ Cada Onda é mergeada e testada antes da próxima.
      - **Dashboard:** KPIs em `StatCard` (`ui/stat-card.tsx`), com valor, frase explicativa e `Sparkline` de dado real.
        - Saíram os deltas fixos que sobraram (+24,8%, +17,4%, +148, +31,2%, +19,4%), as barras de horário inventadas e o "18h às 21h" fixo.
        - O melhor horário passa a ser calculado pela janela de 3h com mais seguidores online.
-   - **5c:** Publicação em etapas; tirar o estado das automações do `page.tsx`; quebrar o `esteira-tab` (~3.5k linhas).
+   - ✅ **5c:**
+     - **Publicação em passos:** Formato e mídia → Legenda → Automação → Publicar, com indicador de passo concluído e botões Voltar/Próximo. Todos os campos continuam montados (só um passo aparece), então nada se perde ao trocar de passo. A prévia do celular já era fixa ao lado.
+     - **`hooks/use-automation-editor.ts`:** o estado do editor de automação (formulário, perguntas, condição, aviso de saída) saiu do `page.tsx`, movido sem mudar a lógica. Os dados carregados (`automations`, mídias, UTM) continuam na página, porque o Dashboard também usa.
+     - **Esteira:** os modais "Duplicar mês" e "Enviar para aprovação" viraram `esteira-duplicar-mes-sheet.tsx` e `esteira-aprovacao-whatsapp-sheet.tsx`.
+     - **Ainda por fazer:** o `esteira-tab` continua com ~3.2k linhas. Os formulários de criar e editar demanda são quase idênticos e são o próximo candidato a virar um componente único, mas exigem testes com dados reais.
 6. **Motion:** springs interrompíveis (apple-design) e `prefers-reduced-motion` em tudo.
 
 Referências de produto: **Linear** (sidebar e cor só em estado/ação), **Attio** (cards de CRM com ação no hover), **Notion Calendar** (cor como estrutura) e **Spectrum UI** (contraste de status, command palette, undo pill, stat cards).
