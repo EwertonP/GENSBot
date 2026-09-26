@@ -24,6 +24,7 @@ import {
   Edit2,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { toast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
@@ -46,6 +47,13 @@ interface DiaCalendario {
   nomeDia?: string;
 }
 
+const normalizar = (t: string) =>
+  t
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
 export default function CalendarioGeral({
   showToast,
   onAbrirDemanda,
@@ -67,6 +75,9 @@ export default function CalendarioGeral({
   const [clienteFiltro, setClienteFiltro] = useState('all');
   const [responsavelFiltro, setResponsavelFiltro] = useState('all');
   const [itemModal, setItemModal] = useState<ConteudoItem | null>(null);
+  const [busca, setBusca] = useState('');
+  const [arrastandoId, setArrastandoId] = useState<string | null>(null);
+  const [diaAlvo, setDiaAlvo] = useState<string | null>(null);
 
   const mesReferenciaString = useMemo(() => {
     return `${ano}-${String(mesIndex + 1).padStart(2, '0')}-01`;
@@ -131,9 +142,55 @@ export default function CalendarioGeral({
     return items.filter((item) => {
       if (clienteFiltro !== 'all' && item.cliente_id !== clienteFiltro) return false;
       if (responsavelFiltro !== 'all' && item.responsavel_id !== responsavelFiltro) return false;
+      if (busca.trim()) {
+        const termo = normalizar(busca);
+        const alvo = normalizar(`${item.titulo || ''} ${item.legenda || ''} ${item.cliente?.nome || ''}`);
+        if (!termo.split(/\s+/).every((t) => alvo.includes(t))) return false;
+      }
       return true;
     });
-  }, [items, clienteFiltro, responsavelFiltro]);
+  }, [items, clienteFiltro, responsavelFiltro, busca]);
+
+  /**
+   * Muda a data de um post (arrastar no calendário ou "Mudar data" no
+   * detalhe). Mantém o horário, atualiza na hora e oferece Desfazer.
+   */
+  async function reagendar(item: ConteudoItem, novaData: string) {
+    const campo: 'data_programada' | 'prazo' = item.data_programada ? 'data_programada' : 'prazo';
+    const anterior = item[campo];
+    if (!anterior || anterior.slice(0, 10) === novaData) return;
+    const novoValor = novaData + anterior.slice(10);
+
+    const aplicar = (valor: string) =>
+      setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, [campo]: valor } : it)));
+    const salvar = async (valor: string) => {
+      const res = await fetch(`/api/conteudo/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [campo]: valor }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Tente novamente.');
+    };
+
+    aplicar(novoValor);
+    setItemModal((m) => (m && m.id === item.id ? { ...m, [campo]: novoValor } : m));
+    try {
+      await salvar(novoValor);
+      const rotulo = new Date(`${novaData}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+      toast.undo(`Reagendado para ${rotulo}`, async () => {
+        aplicar(anterior);
+        setItemModal((m) => (m && m.id === item.id ? { ...m, [campo]: anterior } : m));
+        try {
+          await salvar(anterior);
+        } catch {
+          toast.error('Não foi possível desfazer', { description: 'Recarregue o calendário para ver a data atual.' });
+        }
+      }, { description: item.titulo || undefined });
+    } catch (err) {
+      aplicar(anterior);
+      toast.error('Não foi possível reagendar', { description: err instanceof Error ? err.message : undefined });
+    }
+  }
 
   // Montagem da grade do calendário (dias do mês)
   const diasDoCalendario = useMemo<DiaCalendario[]>(() => {
@@ -325,6 +382,17 @@ export default function CalendarioGeral({
 
       {/* 2. Barra de Filtros */}
       <div className="flex flex-wrap items-center gap-3">
+        <div className="relative">
+          <Search aria-hidden className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar post ou cliente…"
+            aria-label="Buscar no calendário"
+            className="h-9 w-56 rounded-xl border border-input bg-card pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+          />
+        </div>
         <Select
           value={clienteFiltro}
           onChange={(e) => setClienteFiltro(e.target.value)}
@@ -354,7 +422,7 @@ export default function CalendarioGeral({
         )}
 
         <span className="text-xs text-muted-foreground font-mono ml-auto">
-          {itemsFiltrados.length} postagens programadas no mês
+          {itemsFiltrados.length} {itemsFiltrados.length === 1 ? 'postagem' : 'postagens'} no mês · arraste um post para outro dia para reagendar
         </span>
       </div>
 
@@ -387,8 +455,25 @@ export default function CalendarioGeral({
                 <div
                   key={d.dataStr || `day-${idx}`}
                   onClick={() => setDiaSelecionado(d.dia!)}
+                  onDragOver={(e) => {
+                    if (!arrastandoId) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (diaAlvo !== d.dataStr) setDiaAlvo(d.dataStr);
+                  }}
+                  onDragLeave={() => diaAlvo === d.dataStr && setDiaAlvo(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const id = e.dataTransfer.getData('text/plain') || arrastandoId;
+                    const it = items.find((x) => x.id === id);
+                    setArrastandoId(null);
+                    setDiaAlvo(null);
+                    if (it) reagendar(it, d.dataStr);
+                  }}
                   className={`p-2 ${viewMode === 'semana' ? 'min-h-[220px]' : 'min-h-[130px]'} flex flex-col justify-between transition-colors cursor-pointer ${
-                    temChoque ? 'bg-warning/5' : eHoje ? 'bg-primary/10' : 'hover:bg-accent/20'
+                    diaAlvo === d.dataStr
+                      ? 'bg-brand-soft ring-2 ring-inset ring-brand-ring'
+                      : temChoque ? 'bg-warning/5' : eHoje ? 'bg-primary/10' : 'hover:bg-accent/20'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -419,11 +504,22 @@ export default function CalendarioGeral({
                         <button
                           key={item.id}
                           type="button"
+                          draggable
+                          onDragStart={(e) => {
+                            setArrastandoId(item.id);
+                            e.dataTransfer.setData('text/plain', item.id);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onDragEnd={() => {
+                            setArrastandoId(null);
+                            setDiaAlvo(null);
+                          }}
                           onClick={(e) => {
                             e.stopPropagation();
                             setItemModal(item);
                           }}
-                          className="text-left p-2 rounded-xl border-l-4 border-primary bg-card/90 hover:bg-card border border-border text-foreground shadow-2xs hover:shadow-xs transition-all flex flex-col gap-1.5 cursor-pointer group"
+                          aria-label={`${item.cliente?.nome || ''}: ${item.titulo || item.tipo}. Abrir detalhes (arraste para mudar o dia)`}
+                          className={`${arrastandoId === item.id ? 'opacity-50 ' : ''}text-left p-2 rounded-xl border-l-4 border-primary bg-card/90 hover:bg-card border border-border text-foreground shadow-2xs hover:shadow-xs transition-all flex flex-col gap-1.5 cursor-pointer group`}
                         >
                           <div className="flex items-center justify-between gap-1">
                             <div className="flex items-center gap-1.5 min-w-0">
@@ -463,9 +559,17 @@ export default function CalendarioGeral({
                     })}
 
                     {d.itens.length > (viewMode === 'semana' ? 6 : 3) && (
-                      <span className="text-xs font-bold text-muted-foreground text-center pt-0.5">
-                        +{d.itens.length - (viewMode === 'semana' ? 6 : 3)} outros
-                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDiaSelecionado(d.dia!);
+                          setViewMode('dia');
+                        }}
+                        className="text-xs font-semibold text-muted-foreground hover:text-foreground text-center pt-0.5 cursor-pointer"
+                      >
+                        +{d.itens.length - (viewMode === 'semana' ? 6 : 3)} outros · ver o dia
+                      </button>
                     )}
                   </div>
                 </div>
@@ -670,6 +774,17 @@ export default function CalendarioGeral({
                       {itemModal.data_programada ? itemModal.data_programada.slice(0, 16).replace('T', ' ') : 'Não agendada'}
                     </strong>
                   </div>
+                  {(itemModal.data_programada || itemModal.prazo) && (
+                    <label className="flex items-center justify-between gap-2 border-t border-border pt-1.5">
+                      <span className="text-muted-foreground font-medium">Mudar data:</span>
+                      <input
+                        type="date"
+                        value={(itemModal.data_programada || itemModal.prazo || '').slice(0, 10)}
+                        onChange={(e) => e.target.value && reagendar(itemModal, e.target.value)}
+                        className="h-8 rounded-lg border border-input bg-card px-2 text-xs text-foreground font-mono focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                      />
+                    </label>
+                  )}
                   {itemModal.prazo && (
                     <div className="flex items-center justify-between border-t border-border pt-1.5">
                       <span className="text-muted-foreground font-medium">Prazo Interno:</span>
