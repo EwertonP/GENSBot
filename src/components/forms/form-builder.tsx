@@ -40,7 +40,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { DialogShell, confirmDialog } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/toast';
-import { isColorDark, getOptimalTextColor } from '@/lib/form-engine';
+import { isColorDark, getOptimalTextColor, ensureAccessibleTextColor } from '@/lib/form-engine';
 import { fieldInputClass } from '@/lib/form-styles';
 
 interface FormBuilderProps {
@@ -863,17 +863,13 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         value={form.tema_config?.cor_fundo || '#09090b'}
                         onChange={(e) => {
                           const newBg = e.target.value;
-                          const currentModo = form.tema_config?.modo;
-                          const autoTextColor =
-                            !currentModo || currentModo === 'auto'
-                              ? getOptimalTextColor(newBg)
-                              : form.tema_config?.cor_texto;
+                          const autoTextColor = ensureAccessibleTextColor(form.tema_config?.cor_texto, newBg);
                           setForm({
                             ...form,
                             tema_config: {
                               ...form.tema_config,
                               cor_fundo: newBg,
-                              cor_texto: autoTextColor || '#f4f4f5',
+                              cor_texto: autoTextColor,
                             },
                           });
                         }}
@@ -884,17 +880,13 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         value={form.tema_config?.cor_fundo || '#09090b'}
                         onChange={(e) => {
                           const newBg = e.target.value;
-                          const currentModo = form.tema_config?.modo;
-                          const autoTextColor =
-                            !currentModo || currentModo === 'auto'
-                              ? getOptimalTextColor(newBg)
-                              : form.tema_config?.cor_texto;
+                          const autoTextColor = ensureAccessibleTextColor(form.tema_config?.cor_texto, newBg);
                           setForm({
                             ...form,
                             tema_config: {
                               ...form.tema_config,
                               cor_fundo: newBg,
-                              cor_texto: autoTextColor || '#f4f4f5',
+                              cor_texto: autoTextColor,
                             },
                           });
                         }}
@@ -910,7 +902,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={form.tema_config?.cor_texto || '#f4f4f5'}
+                        value={form.tema_config?.cor_texto || (isColorDark(form.tema_config?.cor_fundo || '#09090b') ? '#f4f4f5' : '#192313')}
                         onChange={(e) =>
                           setForm({
                             ...form,
@@ -921,7 +913,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                       />
                       <Input
                         type="text"
-                        value={form.tema_config?.cor_texto || '#f4f4f5'}
+                        value={form.tema_config?.cor_texto || (isColorDark(form.tema_config?.cor_fundo || '#09090b') ? '#f4f4f5' : '#192313')}
                         onChange={(e) =>
                           setForm({
                             ...form,

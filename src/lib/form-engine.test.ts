@@ -6,6 +6,8 @@ import {
   calculateProgress,
   isColorDark,
   getOptimalTextColor,
+  ensureAccessibleTextColor,
+  getContrastRatio,
 } from './form-engine';
 import type { FormField } from '@/types/form';
 
@@ -134,7 +136,7 @@ describe('Form Engine', () => {
       expect(isColorDark('#f4f4f5')).toBe(false);
       expect(isColorDark('#fff1f2')).toBe(false);
       expect(isColorDark('#fefce8')).toBe(false);
-      expect(getOptimalTextColor('#ffffff')).toBe('#09090b');
+      expect(getOptimalTextColor('#ffffff')).toBe('#192313');
     });
 
     it('identifica cores escuras com precisão', () => {
@@ -151,6 +153,26 @@ describe('Form Engine', () => {
       expect(isColorDark(undefined)).toBe(false);
       expect(isColorDark('')).toBe(false);
       expect(isColorDark('invalid')).toBe(false);
+    });
+
+    it('previne colapso de contraste garantindo legibilidade WCAG', () => {
+      // Se fundo é branco e texto veio branco (#f4f4f5), força tinta escura #192313
+      expect(ensureAccessibleTextColor('#f4f4f5', '#ffffff')).toBe('#192313');
+      expect(ensureAccessibleTextColor('#ffffff', '#ffffff')).toBe('#192313');
+
+      // Se fundo é escuro e texto veio escuro (#192313), força texto claro #f4f4f5
+      expect(ensureAccessibleTextColor('#192313', '#09090b')).toBe('#f4f4f5');
+      expect(ensureAccessibleTextColor('#000000', '#09090b')).toBe('#f4f4f5');
+
+      // Se já possui alto contraste, preserva a cor original
+      expect(ensureAccessibleTextColor('#f4f4f5', '#09090b')).toBe('#f4f4f5');
+      expect(ensureAccessibleTextColor('#192313', '#f7f8f2')).toBe('#192313');
+      expect(ensureAccessibleTextColor('#291816', '#fff1f2')).toBe('#291816');
+    });
+
+    it('calcula ratio de contraste corretamente', () => {
+      expect(getContrastRatio('#ffffff', '#000000')).toBeGreaterThan(20);
+      expect(getContrastRatio('#ffffff', '#ffffff')).toBeCloseTo(1, 1);
     });
   });
 });

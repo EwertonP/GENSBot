@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     const slug = `${baseSlug}-${randomSuffix}`;
 
     // Busca cor e dados do cliente para o tema se selecionado
-    let corPrimaria = '#10b981';
+    let corPrimaria = '#d8ff3c';
     if (cliente_id) {
       const { data: cliente } = await supabase
         .from('clientes')
@@ -93,10 +93,10 @@ export async function POST(req: Request) {
 
     const temaConfig = {
       cor_primaria: corPrimaria,
-      cor_fundo: '#ffffff',
-      cor_texto: '#09090b',
-      cor_card: '#f4f4f5',
-      fonte: 'inter',
+      cor_fundo: '#09090b',
+      cor_texto: '#f4f4f5',
+      cor_card: '#141417',
+      modo: 'dark',
     };
 
     // 1. Cria o formulário
