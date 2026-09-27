@@ -167,10 +167,70 @@ export function isColorDark(hexColor?: string | null): boolean {
 }
 
 /**
- * Retorna uma cor de texto otimizada (#ffffff para fundos escuros e #09090b para fundos claros)
+ * Retorna a luminância relativa (0 a 1) segundo a especificação ITU-R BT.709 / WCAG 2.x
+ */
+export function getRelativeLuminance(hexColor?: string | null): number {
+  if (!hexColor || typeof hexColor !== 'string') return 1;
+  let hex = hexColor.replace('#', '').trim();
+  if (hex.length === 3) {
+    hex = hex.split('').map((c) => c + c).join('');
+  }
+  if (hex.length !== 6) return 1;
+
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+/**
+ * Calcula a taxa de contraste (1:1 a 21:1) entre duas cores hex segundo WCAG 2.x
+ */
+export function getContrastRatio(hex1?: string | null, hex2?: string | null): number {
+  const l1 = getRelativeLuminance(hex1);
+  const l2 = getRelativeLuminance(hex2);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Garante que a cor do texto tenha contraste suficiente (mínimo 4.5:1) com o fundo.
+ * Se a cor fornecida for ilegível (ex: texto claro em fundo claro ou texto escuro em fundo escuro),
+ * substitui automaticamente pela cor ideal de alto contraste (#192313 para claro, #f4f4f5 para escuro).
+ */
+export function ensureAccessibleTextColor(textColor?: string | null, bgColor?: string | null): string {
+  const bgIsDark = isColorDark(bgColor);
+  const idealColor = bgIsDark ? '#f4f4f5' : '#192313';
+
+  if (!textColor || typeof textColor !== 'string') {
+    return idealColor;
+  }
+
+  // Prevenção direta de colapso de contraste:
+  // Se o fundo for claro e o texto também for claro (ex: #ffffff no fundo e #f4f4f5 no texto),
+  // ou se o fundo for escuro e o texto também for escuro
+  const textIsDark = isColorDark(textColor);
+  if (bgIsDark === textIsDark) {
+    return idealColor;
+  }
+
+  const contrast = getContrastRatio(textColor, bgColor);
+  if (contrast < 4.0) {
+    return idealColor;
+  }
+
+  return textColor;
+}
+
+/**
+ * Retorna uma cor de texto otimizada (#f4f4f5 para fundos escuros e #192313 para fundos claros)
  * garantindo taxa de contraste WCAG AAA.
  */
 export function getOptimalTextColor(bgHex?: string | null): string {
-  return isColorDark(bgHex) ? '#f4f4f5' : '#09090b';
+  return isColorDark(bgHex) ? '#f4f4f5' : '#192313';
 }
 
