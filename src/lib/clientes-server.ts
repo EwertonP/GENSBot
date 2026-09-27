@@ -157,6 +157,8 @@ export function traduzirErroBanco(error: { code?: string; message: string }, con
       return respostaErro('Algum valor está fora do permitido.', 400);
     case '42501':
       return respostaErro('Você não tem permissão para essa ação.', 403);
+    case '22P02':
+      return respostaErro('Formato de identificador ou dado inválido.', 400);
     default:
       console.error(`Erro em ${contexto}:`, error.code, error.message);
       return respostaErro('Erro interno. Tente novamente.', 500);

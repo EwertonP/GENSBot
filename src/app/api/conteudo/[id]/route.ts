@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { supabase as serviceSupabase } from '@/lib/supabase';
 import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
 
 const SELECT_CONTEUDO = `
@@ -38,14 +39,28 @@ const SELECT_CONTEUDO = `
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
-  const { supabase } = auth.ctx;
+  const { supabase, membro } = auth.ctx;
 
   const { id } = await params;
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('conteudo_items')
     .select(SELECT_CONTEUDO)
     .eq('id', id)
     .single();
+
+  if ((error || !data) && membro?.agencia_id) {
+    const { data: fallbackData } = await serviceSupabase
+      .from('conteudo_items')
+      .select(SELECT_CONTEUDO)
+      .eq('id', id)
+      .eq('agencia_id', membro.agencia_id)
+      .single();
+
+    if (fallbackData) {
+      data = fallbackData;
+      error = null;
+    }
+  }
 
   if (error || !data) {
     return respostaErro('Item de conteúdo não encontrado', 404);
@@ -57,7 +72,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
-  const { supabase } = auth.ctx;
+  const { supabase, membro } = auth.ctx;
 
   const { id } = await params;
 
@@ -93,6 +108,26 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     }
 
+    // Normalização defensiva de campos UUID e datas para evitar erros de sintaxe no Postgres (22P02)
+    if ('responsavel_id' in updates && !updates.responsavel_id) {
+      updates.responsavel_id = null;
+    }
+    if ('editor_id' in updates && !updates.editor_id) {
+      updates.editor_id = null;
+    }
+    if ('cliente_id' in updates && !updates.cliente_id) {
+      updates.cliente_id = null;
+    }
+    if ('data_programada' in updates && !updates.data_programada) {
+      updates.data_programada = null;
+    }
+    if ('prazo' in updates && !updates.prazo) {
+      updates.prazo = null;
+    }
+    if ('publicado_em' in updates && !updates.publicado_em) {
+      updates.publicado_em = null;
+    }
+
     // Se o status for alterado para publicado e não tiver publicado_em, define a data atual
     if (updates.status === 'publicado' && !updates.publicado_em) {
       updates.publicado_em = new Date().toISOString();
@@ -100,11 +135,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Se houve alteração de status ou envio de novo comentário, registra no histórico (audit trail)
     if ('status' in updates || body.novo_comentario_equipe) {
-      const { data: itemAtual } = await supabase
+      let { data: itemAtual } = await supabase
         .from('conteudo_items')
         .select('status, historico_atividades, notion_page_id, arquivos')
         .eq('id', id)
         .single();
+
+      if (!itemAtual && membro?.agencia_id) {
+        const { data: fbItem } = await serviceSupabase
+          .from('conteudo_items')
+          .select('status, historico_atividades, notion_page_id, arquivos')
+          .eq('id', id)
+          .eq('agencia_id', membro.agencia_id)
+          .single();
+        if (fbItem) itemAtual = fbItem;
+      }
 
       if (itemAtual) {
         const historico = Array.isArray(itemAtual.historico_atividades) ? [...itemAtual.historico_atividades] : [];
@@ -166,30 +211,58 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('conteudo_items')
       .update(updates)
       .eq('id', id)
       .select(SELECT_CONTEUDO)
       .single();
 
+    if (error && membro?.agencia_id) {
+      console.warn('Tentando fallback serviceSupabase em PATCH /api/conteudo/[id]:', error.message);
+      const { data: fallbackData, error: fallbackError } = await serviceSupabase
+        .from('conteudo_items')
+        .update(updates)
+        .eq('id', id)
+        .eq('agencia_id', membro.agencia_id)
+        .select(SELECT_CONTEUDO)
+        .single();
+
+      if (!fallbackError && fallbackData) {
+        data = fallbackData;
+        error = null;
+      }
+    }
+
     if (error) {
       return traduzirErroBanco(error, 'PATCH /api/conteudo/[id]');
     }
 
     return NextResponse.json({ item: data });
-  } catch {
-    return respostaErro('Erro ao processar atualização', 400);
+  } catch (err: any) {
+    console.error('Erro inesperado em PATCH /api/conteudo/[id]:', err);
+    return respostaErro('Erro ao processar atualização: ' + (err?.message || 'dados inválidos'), 400);
   }
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
-  const { supabase } = auth.ctx;
+  const { supabase, membro } = auth.ctx;
 
   const { id } = await params;
-  const { error } = await supabase.from('conteudo_items').delete().eq('id', id);
+  let { error } = await supabase.from('conteudo_items').delete().eq('id', id);
+
+  if (error && membro?.agencia_id) {
+    const { error: fallbackError } = await serviceSupabase
+      .from('conteudo_items')
+      .delete()
+      .eq('id', id)
+      .eq('agencia_id', membro.agencia_id);
+    if (!fallbackError) {
+      error = null;
+    }
+  }
 
   if (error) {
     return traduzirErroBanco(error, 'DELETE /api/conteudo/[id]');

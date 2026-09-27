@@ -162,33 +162,50 @@ export async function POST(req: Request) {
     const hoje = new Date();
     const mesPadrao = mes_referencia || `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
 
-    const { data, error } = await supabase
+    const insertPayload = {
+      agencia_id: membro.agencia_id,
+      cliente_id,
+      tipo,
+      status,
+      prioridade: prioridade || 'media',
+      titulo: titulo ? String(titulo).trim() || null : null,
+      legenda: legenda ? String(legenda).trim() || null : null,
+      briefing: briefing ? String(briefing).trim() || null : null,
+      mes_referencia: mesPadrao,
+      data_programada: data_programada || null,
+      prazo: prazo || null,
+      responsavel_id: responsavel_id || user.id,
+      editor_id: editor_id || null,
+      arquivos,
+    };
+
+    let { data, error } = await supabase
       .from('conteudo_items')
-      .insert({
-        agencia_id: membro.agencia_id,
-        cliente_id,
-        tipo,
-        status,
-        prioridade: prioridade || 'media',
-        titulo: titulo || null,
-        legenda: legenda || null,
-        briefing: briefing || null,
-        mes_referencia: mesPadrao,
-        data_programada: data_programada || null,
-        prazo: prazo || null,
-        responsavel_id: responsavel_id || user.id,
-        editor_id: editor_id || null,
-        arquivos,
-      })
+      .insert(insertPayload)
       .select(SELECT_CONTEUDO)
       .single();
+
+    if (error && membro?.agencia_id) {
+      console.warn('Tentando fallback serviceSupabase em POST /api/conteudo:', error.message);
+      const { data: fallbackData, error: fallbackError } = await serviceSupabase
+        .from('conteudo_items')
+        .insert(insertPayload)
+        .select(SELECT_CONTEUDO)
+        .single();
+
+      if (!fallbackError && fallbackData) {
+        data = fallbackData;
+        error = null;
+      }
+    }
 
     if (error) {
       return traduzirErroBanco(error, 'POST /api/conteudo');
     }
 
     return NextResponse.json({ item: data }, { status: 201 });
-  } catch {
+  } catch (err: any) {
+    console.error('Erro em POST /api/conteudo:', err);
     return respostaErro('Corpo da requisição inválido', 400);
   }
 }
