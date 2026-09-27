@@ -76,7 +76,7 @@ export async function uploadMediaFile(
       }
     }
   } catch (r2Error) {
-    console.warn('[Storage] Não foi possível fazer upload via Cloudflare R2, utilizando Supabase Storage:', r2Error);
+    console.warn('[Storage] Upload direto para Cloudflare R2 não completou (geralmente pendente regra de CORS no bucket "gensbot-media"). Utilizando Supabase Storage como fallback seguro:', r2Error);
   }
 
   // 2. Fallback: Supabase Storage (bucket 'post-media')
