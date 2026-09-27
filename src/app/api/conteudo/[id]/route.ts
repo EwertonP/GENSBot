@@ -66,6 +66,26 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return respostaErro('Item de conteúdo não encontrado', 404);
   }
 
+  if (data?.cliente?.instagram_account_id) {
+    const { data: conta } = await serviceSupabase
+      .from('instagram_accounts')
+      .select('id, instagram_user_id, instagram_username, profile_picture_url')
+      .eq('id', data.cliente.instagram_account_id)
+      .maybeSingle();
+
+    if (conta) {
+      data = {
+        ...data,
+        cliente: {
+          ...data.cliente,
+          foto_url: data.cliente.foto_url || conta.profile_picture_url,
+          instagram_user_id: conta.instagram_user_id,
+          instagram_username: conta.instagram_username,
+        },
+      };
+    }
+  }
+
   return NextResponse.json({ item: data });
 }
 
@@ -137,14 +157,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if ('status' in updates || body.novo_comentario_equipe) {
       let { data: itemAtual } = await supabase
         .from('conteudo_items')
-        .select('status, historico_atividades, notion_page_id, arquivos')
+        .select('status, historico_atividades, notion_page_id, arquivos, scheduled_post_id')
         .eq('id', id)
         .single();
 
       if (!itemAtual && membro?.agencia_id) {
         const { data: fbItem } = await serviceSupabase
           .from('conteudo_items')
-          .select('status, historico_atividades, notion_page_id, arquivos')
+          .select('status, historico_atividades, notion_page_id, arquivos, scheduled_post_id')
           .eq('id', id)
           .eq('agencia_id', membro.agencia_id)
           .single();
@@ -184,9 +204,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             });
           }
 
-          // Se marcou como publicado manualmente: libera storage de mídias e esvazia arquivos
+          // Se marcou como publicado manualmente: sincroniza scheduled_posts pendente, libera storage de mídias e esvazia arquivos
           if (updates.status === 'publicado') {
             updates.publicado_em = updates.publicado_em || new Date().toISOString();
+            if (itemAtual.scheduled_post_id) {
+              await serviceSupabase
+                .from('scheduled_posts')
+                .update({ status: 'published', published_at: updates.publicado_em })
+                .eq('id', itemAtual.scheduled_post_id)
+                .eq('status', 'scheduled');
+            }
             if (itemAtual.arquivos && itemAtual.arquivos.length > 0) {
               import('@/lib/storage-upload').then(({ cleanupStorageMedia }) => {
                 cleanupStorageMedia(supabase, itemAtual.arquivos).catch(() => {});

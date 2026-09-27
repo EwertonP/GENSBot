@@ -110,10 +110,11 @@ export async function createCarouselContainer({
     throw new Error('Carrossel precisa de 2 a 10 itens de mídia.');
   }
 
-  const childIds = await Promise.all(
+  const childResults = await Promise.all(
     mediaUrls.map(async (url) => {
+      const isVideo = Boolean(url.match(/\.(mp4|mov)(\?|$)/i));
       const params = new URLSearchParams({ access_token: accessToken, is_carousel_item: 'true' });
-      if (url.match(/\.(mp4|mov)(\?|$)/i)) {
+      if (isVideo) {
         params.set('media_type', 'VIDEO');
         params.set('video_url', url);
       } else {
@@ -124,9 +125,17 @@ export async function createCarouselContainer({
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params.toString(),
       });
-      return data.id as string;
+      return { id: data.id as string, isVideo };
     })
   );
+
+  // Vídeos dentro de carrossel precisam estar FINISHED pela Meta antes de criar o container pai
+  const videoChildren = childResults.filter((c) => c.isVideo);
+  if (videoChildren.length > 0) {
+    await Promise.all(videoChildren.map((vc) => waitForContainerReady(vc.id, accessToken)));
+  }
+
+  const childIds = childResults.map((c) => c.id);
 
   const parentParams = new URLSearchParams({
     access_token: accessToken,

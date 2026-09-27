@@ -1290,7 +1290,7 @@ export default function Dashboard() {
           {activeTab === 'publish' && (
             <div className="animate-fade-in max-w-5xl mx-auto">
               <PublishPanel
-                accounts={accounts.map((acc) => ({ instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
+                accounts={accounts.map((acc) => ({ id: acc.id, instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
                 selectedAccountId={selectedAccountId}
                 withAccount={withAccount}
                 prefillData={prefillAgendamento}

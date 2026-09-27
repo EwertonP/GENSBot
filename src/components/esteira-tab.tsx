@@ -412,7 +412,9 @@ export default function EsteiraTab({
       return;
     }
     const mediaUrls = (item.arquivos || []).map((a) => a.url);
-    const clienteConta = item.cliente?.instagram_accounts?.instagram_username || null;
+    const clienteContaId = (item.cliente as any)?.instagram_user_id || null;
+    const clienteUsername = (item.cliente as any)?.instagram_username || (item.cliente as any)?.instagram_accounts?.instagram_username || null;
+    const clienteAccountId = (item.cliente as any)?.instagram_account_id || null;
 
     let autoConfig = item.automacao_config || null;
     if (!autoConfig && item.legenda) {
@@ -431,8 +433,8 @@ export default function EsteiraTab({
     const prefill: PrefillAgendamento = {
       conteudoId: item.id,
       clienteNome: item.cliente?.nome || 'Cliente',
-      instagramAccountId: (item.cliente as any)?.instagram_account_id || null,
-      instagramUserId: clienteConta,
+      instagramAccountId: clienteAccountId,
+      instagramUserId: clienteContaId || clienteUsername,
       kind: item.tipo === 'reel' ? 'reels' : item.tipo === 'story' ? 'story' : 'post',
       mediaUrls,
       caption: item.legenda || '',

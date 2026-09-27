@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getInstagramAccountByInstagramUserId, listInstagramAccountsForUser } from '@/lib/instagram-account';
+import { getAccountForUserOrAgency, listInstagramAccountsForUser } from '@/lib/instagram-account';
 import { publishPost, PublishMediaType } from '@/lib/instagram-publish';
 import { supabase } from '@/lib/supabase';
 import { createAutomationForPublishedPost, PublishAutomationConfig } from '@/lib/publish-automation';
@@ -50,8 +50,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Carrossel precisa de ao menos 2 itens de mídia.' }, { status: 400 });
     }
 
-    const account = await getInstagramAccountByInstagramUserId(instagram_user_id);
-    if (!account || account.user_id !== user.id) {
+    const account = await getAccountForUserOrAgency(user.id, instagram_user_id);
+    if (!account) {
       return NextResponse.json({ error: 'Conta do Instagram não encontrada.' }, { status: 404 });
     }
 
@@ -213,19 +213,21 @@ export async function GET(req: Request) {
     if (!user) return unauthorizedResponse();
 
     const accountParam = new URL(req.url).searchParams.get('account');
+    const accounts = await listInstagramAccountsForUser(user.id);
+    const agencyAccountIds = accounts.map((a) => a.instagram_user_id);
 
     let query = supabase
       .from('scheduled_posts')
       .select('*')
-      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(100);
 
     if (accountParam && accountParam !== 'all') {
       query = query.eq('instagram_user_id', accountParam);
+    } else if (agencyAccountIds.length > 0) {
+      query = query.in('instagram_user_id', agencyAccountIds);
     } else {
-      const accounts = await listInstagramAccountsForUser(user.id);
-      query = query.in('instagram_user_id', accounts.map((a) => a.instagram_user_id));
+      query = query.eq('user_id', user.id);
     }
 
     const { data, error } = await query;

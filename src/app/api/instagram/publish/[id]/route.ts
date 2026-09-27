@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getInstagramAccountByInstagramUserId } from '@/lib/instagram-account';
+import { getAccountForUserOrAgency } from '@/lib/instagram-account';
 import { getBestPostingTimes } from '@/lib/best-posting-time';
 import { supabase } from '@/lib/supabase';
 
@@ -59,8 +59,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (fetchError) throw fetchError;
     if (!post) return NextResponse.json({ error: 'Publicação não encontrada.' }, { status: 404 });
 
-    const account = await getInstagramAccountByInstagramUserId(post.instagram_user_id);
-    if (!account || account.user_id !== user.id) {
+    const account = await getAccountForUserOrAgency(user.id, post.instagram_user_id);
+    if (!account) {
       return NextResponse.json({ error: 'Publicação não encontrada.' }, { status: 404 });
     }
 
@@ -137,11 +137,16 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     const { data: existing } = await supabase
       .from('scheduled_posts')
-      .select('id, user_id, status')
+      .select('id, user_id, instagram_user_id, status')
       .eq('id', id)
       .maybeSingle();
 
-    if (!existing || existing.user_id !== user.id) {
+    if (!existing) {
+      return NextResponse.json({ error: 'Publicação não encontrada.' }, { status: 404 });
+    }
+
+    const account = await getAccountForUserOrAgency(user.id, existing.instagram_user_id);
+    if (!account) {
       return NextResponse.json({ error: 'Publicação não encontrada.' }, { status: 404 });
     }
     if (existing.status !== 'scheduled') {

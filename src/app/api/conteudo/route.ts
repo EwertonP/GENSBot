@@ -98,7 +98,7 @@ export async function GET(req: Request) {
     new Set(
       items
         .map((it) => it.cliente)
-        .filter((c) => c && !c.foto_url && c.instagram_account_id)
+        .filter((c) => c && c.instagram_account_id)
         .map((c) => c.instagram_account_id)
     )
   );
@@ -107,20 +107,21 @@ export async function GET(req: Request) {
   if (contasIdsParaBuscar.length > 0) {
     const { data: contas } = await supabase
       .from('instagram_accounts')
-      .select('id, instagram_username, profile_picture_url')
+      .select('id, instagram_user_id, instagram_username, profile_picture_url')
       .in('id', contasIdsParaBuscar);
     contasMap = new Map((contas || []).map((c: any) => [c.id, c]));
   }
 
   const itemsTratados = items.map((it) => {
-    if (it.cliente && !it.cliente.foto_url && it.cliente.instagram_account_id) {
+    if (it.cliente && it.cliente.instagram_account_id) {
       const conta = contasMap.get(it.cliente.instagram_account_id);
-      if (conta?.profile_picture_url) {
+      if (conta) {
         return {
           ...it,
           cliente: {
             ...it.cliente,
-            foto_url: conta.profile_picture_url,
+            foto_url: it.cliente.foto_url || conta.profile_picture_url,
+            instagram_user_id: conta.instagram_user_id,
             instagram_username: conta.instagram_username,
           },
         };

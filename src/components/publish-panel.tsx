@@ -57,6 +57,7 @@ type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
 type PostKind = 'post' | 'reels' | 'story';
 
 interface AccountOption {
+  id?: string;
   instagram_user_id: string;
   instagram_username: string | null;
 }
@@ -414,8 +415,13 @@ export default function PublishPanel({
         // ignora data inválida
       }
     }
-    if (prefillData.instagramUserId) {
-      const conta = accounts.find((a) => a.instagram_user_id === prefillData.instagramUserId);
+    if (prefillData.instagramUserId || prefillData.instagramAccountId) {
+      const conta = accounts.find(
+        (a) =>
+          a.instagram_user_id === prefillData.instagramUserId ||
+          a.instagram_username === prefillData.instagramUserId ||
+          (prefillData.instagramAccountId && a.id === prefillData.instagramAccountId)
+      );
       if (conta) setTargetAccount(conta.instagram_user_id);
     }
     if (prefillData.automationConfig) {
@@ -522,6 +528,10 @@ export default function PublishPanel({
   const handleSubmit = async () => {
     if ((files.length === 0 && prefillRemoteUrls.length === 0) || !targetAccount) {
       setError('Selecione uma conta e adicione pelo menos uma imagem ou vídeo.');
+      return;
+    }
+    if (caption.length > 2200) {
+      setError('A legenda ultrapassa o limite máximo do Instagram de 2.200 caracteres.');
       return;
     }
     setError(null);
@@ -1019,7 +1029,7 @@ export default function PublishPanel({
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-foreground">Legenda do Instagram</label>
-              <span className="text-xs font-mono text-muted-foreground">
+              <span className={`text-xs font-mono transition-colors ${caption.length > 2200 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
                 {caption.length}/2.200 caracteres
               </span>
             </div>

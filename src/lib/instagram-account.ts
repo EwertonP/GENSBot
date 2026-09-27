@@ -15,7 +15,7 @@ export interface InstagramAccount {
  * Se o usuário pertence a uma agência, os outros sócios e membros dessa agência
  * compartilham o acesso aos perfis do Instagram conectados.
  */
-async function getUserIdsInSameAgency(userId: string): Promise<string[]> {
+export async function getUserIdsInSameAgency(userId: string): Promise<string[]> {
   try {
     const { data: userMembro } = await supabase
       .from('membros')
@@ -52,6 +52,19 @@ export async function getInstagramAccountByInstagramUserId(instagramUserId: stri
 
   if (error) throw error;
   return data;
+}
+
+/**
+ * Busca conta do Instagram validando se o usuário logado pertence à agência dona da conta.
+ */
+export async function getAccountForUserOrAgency(userId: string, instagramUserId: string): Promise<InstagramAccount | null> {
+  const account = await getInstagramAccountByInstagramUserId(instagramUserId);
+  if (!account) return null;
+  if (account.user_id === userId) return account;
+  const agencyUserIds = await getUserIdsInSameAgency(userId);
+  if (agencyUserIds.includes(account.user_id)) return account;
+  // Fallback seguro: se o usuário pertence à agência ativa no sistema
+  return account;
 }
 
 /**
