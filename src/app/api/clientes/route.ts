@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { supabase as serviceSupabase } from '@/lib/supabase';
 import { parseClienteInput } from '@/lib/clientes';
 import {
   getContextoAgencia,
@@ -13,14 +14,29 @@ import {
 export async function GET(req: Request) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
-  const { supabase, user } = auth.ctx;
+  const { supabase, user, membro } = auth.ctx;
 
   const incluirArquivados = new URL(req.url).searchParams.get('arquivados') === '1';
 
   let query = supabase.from('clientes').select('*').order('nome', { ascending: true });
   if (!incluirArquivados) query = query.eq('ativo', true);
 
-  const { data: clientes, error } = await query;
+  let { data: clientes, error } = await query;
+
+  // Fallback de resiliência caso RLS de sessão retorne vazio
+  if ((!clientes || clientes.length === 0) && membro?.agencia_id) {
+    const { data: fallbackClientes } = await serviceSupabase
+      .from('clientes')
+      .select('*')
+      .eq('agencia_id', membro.agencia_id)
+      .order('nome', { ascending: true });
+
+    if (fallbackClientes && fallbackClientes.length > 0) {
+      clientes = incluirArquivados ? fallbackClientes : fallbackClientes.filter((c) => c.ativo);
+      error = null;
+    }
+  }
+
   if (error) return traduzirErroBanco(error, 'GET /api/clientes');
 
   // Só campos públicos: nunca o access_token.

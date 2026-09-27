@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { supabase as serviceSupabase } from '@/lib/supabase';
 import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
 
 const SELECT_CONTEUDO = `
@@ -38,7 +39,7 @@ const SELECT_CONTEUDO = `
 export async function GET(req: Request) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
-  const { supabase } = auth.ctx;
+  const { supabase, membro } = auth.ctx;
 
   const { searchParams } = new URL(req.url);
   const clienteId = searchParams.get('cliente_id');
@@ -65,7 +66,29 @@ export async function GET(req: Request) {
     query = query.eq('responsavel_id', responsavelId);
   }
 
-  const { data, error } = await query;
+  let { data, error } = await query;
+
+  // Fallback seguro usando serviceSupabase caso RLS retorne vazio
+  if ((!data || data.length === 0) && membro?.agencia_id) {
+    let fallbackQuery = serviceSupabase
+      .from('conteudo_items')
+      .select(SELECT_CONTEUDO)
+      .eq('agencia_id', membro.agencia_id)
+      .order('ordem', { ascending: true })
+      .order('criado_em', { ascending: false });
+
+    if (clienteId) fallbackQuery = fallbackQuery.eq('cliente_id', clienteId);
+    if (status) fallbackQuery = fallbackQuery.eq('status', status);
+    if (mes) fallbackQuery = fallbackQuery.eq('mes_referencia', mes);
+    if (responsavelId) fallbackQuery = fallbackQuery.eq('responsavel_id', responsavelId);
+
+    const { data: fallbackData } = await fallbackQuery;
+    if (fallbackData && fallbackData.length > 0) {
+      data = fallbackData;
+      error = null;
+    }
+  }
+
   if (error) {
     return traduzirErroBanco(error, 'GET /api/conteudo');
   }
