@@ -31,7 +31,10 @@ export default function LoginPage() {
         setError('E-mail ou senha incorretos. Verifique e tente novamente.');
       }
     } else {
-      router.push('/');
+      // Só aceita destino interno (ex.: /oauth/authorize do connector MCP).
+      const next = new URLSearchParams(window.location.search).get('next');
+      const destino = next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
+      router.push(destino);
       router.refresh();
     }
   }
