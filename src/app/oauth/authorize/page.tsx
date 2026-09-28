@@ -12,6 +12,7 @@ const PERMISSOES = [
   'Mover demandas entre etapas da esteira (sem publicar)',
   'Preparar links e mensagens de aprovação (a equipe envia)',
   'Criar formulários em rascunho e ler as respostas',
+  'Criar e editar automações de DM sempre pausadas (ativar é só pela tela)',
 ];
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -74,7 +75,7 @@ export default async function AutorizarPage({ searchParams }: Props) {
           </ul>
 
           <p className="text-xs text-muted-foreground">
-            O Claude não publica posts, não envia mensagens a clientes e não exclui nada. Você corta o acesso a qualquer momento removendo o
+            O Claude não publica posts, não ativa automações, não envia mensagens a clientes e não exclui nada. Você corta o acesso a qualquer momento removendo o
             connector no Claude, e ele cai sozinho se o membro for desativado.
           </p>
 
