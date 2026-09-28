@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { supabase as serviceSupabase } from '@/lib/supabase';
 import {
   STATUS_TAREFA_VALIDOS,
   TIPOS_TAREFA_VALIDOS,
@@ -50,7 +51,7 @@ export async function PATCH(req: Request, { params }: Params) {
       }
       const novo = normalizarStatusTarefa(updates.status);
       updates.status = novo;
-      const { data: atual } = await supabase
+      const { data: atual } = await serviceSupabase
         .from('tarefas')
         .select('iniciado_em')
         .eq('id', id)
@@ -64,18 +65,20 @@ export async function PATCH(req: Request, { params }: Params) {
 
     updates.atualizado_em = new Date().toISOString();
 
-    const { data, error } = await supabase
-      .from('tarefas')
-      .update(updates)
-      .eq('id', id)
-      .eq('agencia_id', membro.agencia_id)
-      .select(`
+    const SELECT = `
         *,
         cliente:clientes(id, nome, cor, foto_url),
         responsavel:membros!responsavel_id(id, nome, email, cargo),
         demanda:conteudo_items!demanda_id(id, titulo, status)
-      `)
-      .single();
+      `;
+    const atualizar = (db: typeof supabase) =>
+      db.from('tarefas').update(updates).eq('id', id).eq('agencia_id', membro.agencia_id).select(SELECT).single();
+
+    let { data, error } = await atualizar(supabase);
+    if (error) {
+      console.warn('PATCH /api/rotina/[id]: fallback service role:', error.message);
+      ({ data, error } = await atualizar(serviceSupabase));
+    }
 
     if (error) {
       return traduzirErroBanco(error, 'PATCH /api/rotina/[id]');
@@ -94,11 +97,12 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   const { id } = await params;
 
-  const { error } = await supabase
-    .from('tarefas')
-    .delete()
-    .eq('id', id)
-    .eq('agencia_id', membro.agencia_id);
+  const apagar = (db: typeof supabase) => db.from('tarefas').delete().eq('id', id).eq('agencia_id', membro.agencia_id);
+  let { error } = await apagar(supabase);
+  if (error) {
+    console.warn('DELETE /api/rotina/[id]: fallback service role:', error.message);
+    ({ error } = await apagar(serviceSupabase));
+  }
 
   if (error) {
     return traduzirErroBanco(error, 'DELETE /api/rotina/[id]');
