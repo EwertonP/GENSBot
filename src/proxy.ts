@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes that don't require auth
-  const publicRoutes = ['/login', '/register', '/privacidade', '/exclusao-de-dados', '/aprovacao', '/relatorio', '/r', '/f'];
+  const publicRoutes = ['/login', '/register', '/privacidade', '/exclusao-de-dados', '/aprovacao', '/relatorio', '/r', '/f', '/oauth', '/.well-known'];
   const isPublicRoute = publicRoutes.some(r => pathname.startsWith(r));
   const isApiRoute = pathname.startsWith('/api');
 
@@ -40,7 +40,10 @@ export async function proxy(request: NextRequest) {
 
   if (user && (pathname === '/login' || pathname === '/register')) {
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    // Já logado vindo do fluxo OAuth do MCP: volta direto para a tela de autorização.
+    const next = request.nextUrl.searchParams.get('next');
+    url.pathname = next && next.startsWith('/oauth/') ? next.split('?')[0] : '/';
+    url.search = next && next.startsWith('/oauth/') && next.includes('?') ? next.slice(next.indexOf('?')) : '';
     return NextResponse.redirect(url);
   }
 
