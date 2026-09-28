@@ -263,6 +263,14 @@ function InstagramPhoneMockup({
           </div>
         )}
 
+        {/* Sticker de Música no Instagram Stories */}
+        {kind === 'story' && audioName && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/75 dark:bg-black/85 backdrop-blur-md border border-white/20 rounded-full px-3 py-1 flex items-center gap-1.5 shadow-lg max-w-[85%] z-10 animate-in fade-in duration-200">
+            <Music className="w-3 h-3 text-primary shrink-0 animate-pulse" />
+            <span className="text-[10px] font-bold text-white truncate">{audioName}</span>
+          </div>
+        )}
+
         {/* Banner de Comentários / Automação no mockup */}
         {automationKeyword && (
           <div className="absolute bottom-2 left-2 right-2 bg-black/85 backdrop-blur-md border border-primary/50 rounded-xl px-2.5 py-1.5 flex items-center justify-between shadow-lg animate-in fade-in duration-200">
@@ -1281,25 +1289,28 @@ export default function PublishPanel({
             </div>
           )}
 
-          {/* Trilha Sonora / Música para Carrossel e Reels */}
-          {(isCarousel || kind === 'reels') && (
-            <div className="flex flex-col gap-3 p-4 rounded-2xl bg-card border border-border shadow-2xs">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-primary/15 text-primary flex items-center justify-center shadow-2xs">
-                    <Music className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-foreground block">
-                      Trilha Sonora / Música (Opcional)
-                    </label>
-                    <span className="text-[11px] text-muted-foreground">
-                      {kind === 'reels'
-                        ? 'Áudio de exibição no Reels.'
-                        : 'Música de fundo recomendada para o Carrossel.'}
-                    </span>
-                  </div>
+          {/* Trilha Sonora / Música para Feed, Carrossel, Reels e Stories */}
+          <div className="flex flex-col gap-3 p-4 rounded-2xl bg-card border border-border shadow-2xs">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-primary/15 text-primary flex items-center justify-center shadow-2xs">
+                  <Music className="w-4 h-4" />
                 </div>
+                <div>
+                  <label className="text-xs font-bold text-foreground block">
+                    Trilha Sonora / Música (Opcional)
+                  </label>
+                  <span className="text-[11px] text-muted-foreground">
+                    {kind === 'reels'
+                      ? 'Áudio de exibição no Reels.'
+                      : kind === 'story'
+                      ? 'Música para o Story (com sticker na prévia).'
+                      : isCarousel
+                      ? 'Música de fundo recomendada para o Carrossel.'
+                      : 'Música de fundo recomendada para a publicação.'}
+                  </span>
+                </div>
+              </div>
 
                 <Button
                   type="button"
@@ -1422,7 +1433,6 @@ export default function PublishPanel({
                 </div>
               )}
             </div>
-          )}
 
           </div>
 
