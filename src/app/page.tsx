@@ -1301,7 +1301,7 @@ export default function Dashboard() {
 
           {/* TAB: ROTINA & AFAZERES DA AGÊNCIA */}
           {activeTab === 'rotina' && (
-            <RotinaTab showToast={showToast} />
+            <RotinaTab showToast={showToast} onAbrirDemanda={(itemId) => navegarPara('esteira', { item: itemId })} />
           )}
 
           {/* TAB: CLIENTES — a espinha do sistema unificado */}
