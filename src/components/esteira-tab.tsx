@@ -68,6 +68,7 @@ import type { MembroEquipe } from '@/components/equipe-tab';
 import { uploadMediaFile } from '@/lib/storage-upload';
 import { confirmDialog, MediaLightbox } from '@/components/ui/dialog';
 import { MoverEtapaMenu } from '@/components/mover-etapa-menu';
+import { CapaReelsField } from '@/components/capa-reels-field';
 import { DuplicarMesSheet } from '@/components/esteira-duplicar-mes-sheet';
 import { AprovacaoWhatsappSheet } from '@/components/esteira-aprovacao-whatsapp-sheet';
 
@@ -195,9 +196,11 @@ export default function EsteiraTab({
   const [expandirCapaEdit, setExpandirCapaEdit] = useState(false);
 
   // Modos de Visualização e Abas para Modais de Demanda (Ergonomia 1920x1080)
-  const [formAbaConteudo, setFormAbaConteudo] = useState<'legenda' | 'briefing' | 'anexos'>('legenda');
+  const [formAbaConteudo, setFormAbaConteudo] = useState<'legenda' | 'briefing' | 'capa' | 'anexos'>('legenda');
+  const [formCapaUrl, setFormCapaUrl] = useState<string | null>(null);
   const [formModoVisualizacao, setFormModoVisualizacao] = useState<'abas' | 'split'>('abas');
-  const [editAbaConteudo, setEditAbaConteudo] = useState<'legenda' | 'briefing' | 'anexos'>('legenda');
+  const [editAbaConteudo, setEditAbaConteudo] = useState<'legenda' | 'briefing' | 'capa' | 'anexos'>('legenda');
+  const [editCapaUrl, setEditCapaUrl] = useState<string | null>(null);
   const [editModoVisualizacao, setEditModoVisualizacao] = useState<'abas' | 'split'>('abas');
   const [previewCapaLightbox, setPreviewCapaLightbox] = useState<string | null>(null);
 
@@ -441,6 +444,7 @@ export default function EsteiraTab({
       scheduledAt: item.data_programada || null,
       titulo: item.titulo || 'Publicação',
       automationConfig: autoConfig,
+      coverUrl: item.tipo === 'reel' ? item.cover_url || null : null,
     };
     onIrParaAgendamento(prefill);
     showToast(`Demanda "${item.titulo}" enviada para Agendamentos!`, 'success');
@@ -502,6 +506,7 @@ export default function EsteiraTab({
     setFormPrazoInterno('');
     setFormUrls('');
     setFormArquivos([]);
+    setFormCapaUrl(null);
     setShowManualUrlsForm(false);
     setTrocarClienteAbertoNovo(false);
     setFormAbaConteudo('legenda');
@@ -557,6 +562,7 @@ export default function EsteiraTab({
           data_programada: formDataProgramada ? new Date(formDataProgramada).toISOString() : null,
           prazo: formPrazoInterno ? new Date(formPrazoInterno).toISOString() : null,
           arquivos: arquivosFinais,
+          cover_url: formTipo === 'reel' ? formCapaUrl : null,
         }),
       });
 
@@ -621,6 +627,7 @@ export default function EsteiraTab({
       formLegenda.trim() !== '' ||
       formUrls.trim() !== '' ||
       formArquivos.length > 0 ||
+      !!formCapaUrl ||
       formDataProgramada !== '' ||
       formPrazoInterno !== '');
 
@@ -638,6 +645,7 @@ export default function EsteiraTab({
       editPrazoInterno !== (itemEmEdicao.prazo ? itemEmEdicao.prazo.slice(0, 10) : '') ||
       editClienteId !== itemEmEdicao.cliente_id ||
       editUrls.trim() !== '' ||
+      (editCapaUrl || null) !== (itemEmEdicao.cover_url || null) ||
       editArquivos.map((a) => a.url).join('|') !== (itemEmEdicao.arquivos || []).map((a) => a.url).join('|'));
 
   async function confirmarDescarte() {
@@ -687,6 +695,7 @@ export default function EsteiraTab({
     setEditPrazoInterno(item.prazo ? item.prazo.slice(0, 10) : '');
     setEditUrls('');
     setEditArquivos(item.arquivos || []);
+    setEditCapaUrl(item.cover_url || null);
     setShowManualUrlsEdit(false);
     setNovoComentarioTexto('');
     setEditClienteId(item.cliente_id);
@@ -731,6 +740,7 @@ export default function EsteiraTab({
           data_programada: editDataProgramada ? new Date(editDataProgramada).toISOString() : null,
           prazo: editPrazoInterno ? new Date(editPrazoInterno).toISOString() : null,
           arquivos: arquivosFinais,
+          cover_url: editTipo === 'reel' ? editCapaUrl : null,
         }),
       });
 
@@ -1251,7 +1261,7 @@ export default function EsteiraTab({
 
                         {/* Capa da Demanda no Kanban */}
                         {(() => {
-                          const capaUrl = item.arquivos?.[0]?.url || (item as any).midia_url || null;
+                          const capaUrl = (item.tipo === 'reel' && item.cover_url) || item.arquivos?.[0]?.url || (item as any).midia_url || null;
                           if (!capaUrl) return null;
                           const isReel = item.tipo === 'reel';
                           const isStory = item.tipo === 'story';
@@ -1886,6 +1896,22 @@ export default function EsteiraTab({
                       )}
                     </button>
 
+                    {formTipo === 'reel' && (
+                      <button
+                        type="button"
+                        onClick={() => setFormAbaConteudo('capa')}
+                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
+                          formAbaConteudo === 'capa'
+                            ? 'bg-card text-foreground shadow-2xs border border-border'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
+                        }`}
+                      >
+                        <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                        <span>Capa</span>
+                        {formCapaUrl && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => setFormAbaConteudo('anexos')}
@@ -1896,7 +1922,7 @@ export default function EsteiraTab({
                       }`}
                     >
                       <Paperclip className="w-3.5 h-3.5 text-primary" />
-                      <span>Mídias & Anexos</span>
+                      <span>{formTipo === 'reel' ? 'Vídeo' : 'Mídias & Anexos'}</span>
                       <span className="text-xs font-mono text-muted-foreground ml-0.5">
                         ({formArquivos.length})
                       </span>
@@ -1983,6 +2009,15 @@ export default function EsteiraTab({
                   )}
 
                   {/* Conteúdo Aba: Mídias & Anexos */}
+                  {formAbaConteudo === 'capa' && formTipo === 'reel' && (
+                    <CapaReelsField
+                      url={formCapaUrl}
+                      onChange={setFormCapaUrl}
+                      onPreview={setPreviewCapaLightbox}
+                      onErro={(msg) => showToast(msg, 'error')}
+                    />
+                  )}
+
                   {formAbaConteudo === 'anexos' && (
                     <div className="flex flex-col gap-3 flex-1 min-h-0">
                       {/* Dropzone Compacto */}
@@ -1990,7 +2025,7 @@ export default function EsteiraTab({
                         <input
                           type="file"
                           multiple={formTipo !== 'reel'}
-                          accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                          accept={formTipo === 'reel' ? 'video/mp4,video/quicktime' : 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime'}
                           onChange={handleFormFilesChange}
                           disabled={formUploading}
                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
@@ -2394,7 +2429,20 @@ export default function EsteiraTab({
                 </span>
 
                 {/* Se houver capa/mídia, chip compacto com preview e zoom */}
-                {editArquivos[0]?.url && (
+                {editTipo === 'reel' && editCapaUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewCapaLightbox(editCapaUrl)}
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-accent/60 hover:bg-accent border border-border text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer group"
+                    title="Clique para ampliar a capa"
+                  >
+                    <div className="w-4 h-4 rounded overflow-hidden bg-black shrink-0 border border-border">
+                      <img src={editCapaUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <span className="hidden sm:inline">Capa</span>
+                    <Maximize2 className="w-3 h-3 text-muted-foreground group-hover:text-foreground" />
+                  </button>
+                ) : editArquivos[0]?.url && (
                   <button
                     type="button"
                     onClick={() => setPreviewCapaLightbox(editArquivos[0].url)}
@@ -2611,6 +2659,22 @@ export default function EsteiraTab({
                         )}
                       </button>
 
+                      {editTipo === 'reel' && (
+                        <button
+                          type="button"
+                          onClick={() => setEditAbaConteudo('capa')}
+                          className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
+                            editAbaConteudo === 'capa'
+                              ? 'bg-card text-foreground shadow-2xs border border-border'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
+                          }`}
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                          <span>Capa</span>
+                          {editCapaUrl && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => setEditAbaConteudo('anexos')}
@@ -2621,7 +2685,7 @@ export default function EsteiraTab({
                         }`}
                       >
                         <Paperclip className="w-3.5 h-3.5 text-primary" />
-                        <span>Mídias & Anexos</span>
+                        <span>{editTipo === 'reel' ? 'Vídeo' : 'Mídias & Anexos'}</span>
                         <span className="text-xs font-mono text-muted-foreground ml-0.5">
                           ({editArquivos.length})
                         </span>
@@ -2708,6 +2772,15 @@ export default function EsteiraTab({
                     )}
 
                     {/* Conteúdo Aba: Mídias & Anexos */}
+                    {editAbaConteudo === 'capa' && editTipo === 'reel' && (
+                      <CapaReelsField
+                        url={editCapaUrl}
+                        onChange={setEditCapaUrl}
+                        onPreview={setPreviewCapaLightbox}
+                        onErro={(msg) => showToast(msg, 'error')}
+                      />
+                    )}
+
                     {editAbaConteudo === 'anexos' && (
                       <div className="flex flex-col gap-3 flex-1 min-h-0">
                         {/* Dropzone Compacto */}
@@ -2715,7 +2788,7 @@ export default function EsteiraTab({
                           <input
                             type="file"
                             multiple={editTipo !== 'reel'}
-                            accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                            accept={editTipo === 'reel' ? 'video/mp4,video/quicktime' : 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime'}
                             onChange={handleEditFilesChange}
                             disabled={editUploading}
                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"

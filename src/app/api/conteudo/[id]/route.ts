@@ -116,6 +116,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       'responsavel_id',
       'editor_id',
       'arquivos',
+      'cover_url',
       'comentarios_revisao',
       'historico_atividades',
       'automacao_config',

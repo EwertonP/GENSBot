@@ -154,6 +154,7 @@ export async function POST(req: Request) {
       responsavel_id,
       editor_id,
       arquivos = [],
+      cover_url,
     } = body;
 
     if (!cliente_id) {
@@ -178,6 +179,7 @@ export async function POST(req: Request) {
       responsavel_id: responsavel_id || user.id,
       editor_id: editor_id || null,
       arquivos,
+      cover_url: cover_url ? String(cover_url) : null,
     };
 
     let { data, error } = await supabase

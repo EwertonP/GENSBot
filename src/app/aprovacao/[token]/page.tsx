@@ -2,6 +2,7 @@ import type { Metadata, ResolvingMetadata } from 'next';
 import { supabase } from '@/lib/supabase';
 import PaginaAprovacaoClient from './aprovacao-client';
 import type { ConteudoItem } from '@/lib/conteudo';
+import { obterUrlBaseApp } from '@/lib/relatorio-token';
 
 interface PageProps {
   params: Promise<{ token: string }>;
@@ -47,9 +48,9 @@ export async function generateMetadata(
   const titulo = `Aprovação de ${formato}: "${item.titulo || 'Nova Postagem'}" | ${clienteNome}`;
   const descricao = `Prévia visual oficial do ${formato} de ${clienteNome}. Navegue pelos slides, assista ao vídeo e aprove com 1 clique.`;
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://allingens.vercel.app');
+  // Domínio público de produção: a URL do deploy (VERCEL_URL) fica atrás da
+  // proteção da Vercel, e o WhatsApp não consegue baixar a imagem da prévia.
+  const baseUrl = obterUrlBaseApp();
 
   const ogImageUrl = `${baseUrl}/api/aprovacao/${token}/og`;
 
