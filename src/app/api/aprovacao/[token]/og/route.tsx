@@ -18,6 +18,7 @@ export async function GET(
         titulo,
         legenda,
         arquivos,
+        cover_url,
         cliente:clientes(
           nome,
           foto_url,
@@ -31,8 +32,10 @@ export async function GET(
     const clienteNome = (item?.cliente as any)?.nome || 'Agência GENS';
     const tipo = item?.tipo || 'post';
     const arquivos = Array.isArray(item?.arquivos) ? item.arquivos : [];
-    const primeiroArquivo = arquivos[0];
-    const isImagem = primeiroArquivo && primeiroArquivo.tipo === 'imagem';
+    // Capa da prévia: a capa definida (Reels) ou a primeira imagem (post/carrossel).
+    const primeiraImagem = arquivos.find((a: { tipo?: string }) => a?.tipo === 'imagem');
+    const capaUrl: string | null = item?.cover_url || primeiraImagem?.url || null;
+    const isImagem = !!capaUrl;
     const totalSlides = arquivos.length;
 
     const formatoLabel =
@@ -222,7 +225,7 @@ export async function GET(
             {isImagem ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={primeiroArquivo.url}
+                src={capaUrl!}
                 alt="Prévia do Post"
                 style={{
                   width: '100%',
