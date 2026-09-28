@@ -42,6 +42,8 @@ import {
   Radio,
   Play,
   Pause,
+  Smartphone,
+  Download,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +62,7 @@ import { toast } from '@/components/ui/toast';
 import { CollaboratorsTagsInput, type CollaboratorTag } from '@/components/collaborators-tags-input';
 import { LocationPicker } from '@/components/location-picker';
 import { AudioPickerModal } from '@/components/audio-picker-modal';
+import { PublishAppKitModal } from '@/components/publish-app-kit-modal';
 import type { TrendingTrack } from '@/app/api/instagram/trending-audios/route';
 import { Instagram } from '@/components/instagram-icon';
 
@@ -365,6 +368,7 @@ export default function PublishPanel({
   const [locationName, setLocationName] = useState<string | null>(null);
   const [audioName, setAudioName] = useState<string>('');
   const [audioPickerOpen, setAudioPickerOpen] = useState(false);
+  const [appKitOpen, setAppKitOpen] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<TrendingTrack | null>(null);
   const [panelAudioPlaying, setPanelAudioPlaying] = useState(false);
   const panelAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -1312,16 +1316,32 @@ export default function PublishPanel({
                 </div>
               </div>
 
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setAudioPickerOpen(true)}
-                  className="h-8 text-xs rounded-xl gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  Explorar Músicas em Alta
-                </Button>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAudioPickerOpen(true)}
+                    className="h-8 text-xs rounded-xl gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    Explorar Músicas em Alta
+                  </Button>
+
+                  {(isCarousel || kind === 'story' || audioName.trim()) && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setAppKitOpen(true)}
+                      className="h-8 text-xs rounded-xl gap-1.5 border border-primary/30 text-foreground hover:bg-accent font-semibold"
+                      title="Abrir Kit para Postar no App com Música Oficial"
+                    >
+                      <Smartphone className="w-3.5 h-3.5 text-primary" />
+                      Kit de Postagem no App
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Se tiver uma faixa selecionada com artwork e preview */}
@@ -1371,18 +1391,32 @@ export default function PublishPanel({
                       <span className="text-[11px] text-muted-foreground truncate">
                         {selectedTrack.artist}
                       </span>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
                         <a
                           href={selectedTrack.instagram_search_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                          className="text-[10px] text-primary hover:underline flex items-center gap-1 font-semibold"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Instagram className="w-2.5 h-2.5" />
                           Ver no Instagram
                           <ExternalLink className="w-2.5 h-2.5" />
                         </a>
+
+                        {selectedTrack.preview_url && (
+                          <a
+                            href={selectedTrack.preview_url}
+                            download={`${selectedTrack.title}.mp3`}
+                            target="_blank"
+                            className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium"
+                            title="Baixar áudio de 30s para embutir no Canva ou CapCut"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Download className="w-2.5 h-2.5 text-primary" />
+                            Baixar MP3 (p/ Vídeo)
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1434,12 +1468,28 @@ export default function PublishPanel({
               )}
 
               {kind !== 'reels' && (
-                <p className="text-[11px] text-muted-foreground/85 flex items-center gap-1.5 mt-1 pt-2 border-t border-border/40">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-primary/70" />
-                  <span>
-                    <strong>Nota da Meta:</strong> A API oficial do Instagram não permite anexar músicas licenciadas em carrosséis de fotos automaticamente (recurso exclusivo do app móvel). No GENSBot ela fica documentada na esteira, prévia e com link direto para o áudio no Instagram.
-                  </span>
-                </p>
+                <div className="mt-1 pt-2.5 border-t border-border/40 flex flex-col gap-1.5 text-[11px] text-muted-foreground/90">
+                  <div className="flex items-start gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 shrink-0 text-primary mt-0.5" />
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-foreground">Como ter a música tocando no Carrossel/Story:</span>
+                      <span>
+                        • <strong>Opção 1 (100% Automático via API):</strong> Baixe o MP3 acima e insira como trilha do slide 1 em vídeo (.mp4 no Canva ou CapCut). O Instagram tocará o áudio automaticamente no feed!
+                      </span>
+                      <span>
+                        • <strong>Opção 2 (Música Oficial no App):</strong> Abra o{' '}
+                        <button
+                          type="button"
+                          onClick={() => setAppKitOpen(true)}
+                          className="text-primary font-bold hover:underline inline-flex items-center gap-0.5 cursor-pointer"
+                        >
+                          Kit de Postagem no App <ExternalLink className="w-2.5 h-2.5" />
+                        </button>{' '}
+                        para baixar as mídias, copiar a legenda e tocar em "Abrir Áudio" para publicar no app oficial em 10 segundos.
+                      </span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -1882,6 +1932,19 @@ export default function PublishPanel({
           }}
         />
 
+        {/* Kit de Publicação no App com Música Oficial (Opção 2 - Later/Buffer) */}
+        <PublishAppKitModal
+          open={appKitOpen}
+          onClose={() => setAppKitOpen(false)}
+          mediaUrls={previewUrls}
+          caption={caption}
+          audioName={audioName}
+          selectedTrack={selectedTrack}
+          collaborators={collaboratorTags.map((c) => c.username)}
+          locationName={locationName}
+          accountUsername={accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || null}
+        />
+
         {/* Modal / Dialog de Confirmação Obrigatória Antes de Enviar ao Instagram */}
         <Sheet
           open={showConfirmModal}
@@ -2033,6 +2096,36 @@ export default function PublishPanel({
               <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
+              </div>
+            )}
+
+            {(isCarousel || kind === 'story') && audioName.trim() && (
+              <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-foreground">
+                      Quer a música oficial da Meta tocando no post?
+                    </span>
+                    <span className="text-[11px] text-muted-foreground truncate">
+                      Use o kit para baixar mídias, copiar legenda e abrir o áudio no app.
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    setAppKitOpen(true);
+                  }}
+                  className="h-8 text-xs font-bold rounded-xl shrink-0 gap-1 border-primary/40 text-primary hover:bg-primary/15"
+                >
+                  Abrir Kit no App
+                </Button>
               </div>
             )}
 
