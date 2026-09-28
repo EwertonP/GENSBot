@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { supabase as serviceSupabase } from '@/lib/supabase';
 import {
   DIAS_CONCLUIDO_VISIVEL,
   STATUS_TAREFA_VALIDOS,
@@ -51,34 +52,44 @@ export async function GET(req: Request) {
 
   const limiteConcluido = new Date(Date.now() - DIAS_CONCLUIDO_VISIVEL * 24 * 60 * 60 * 1000).toISOString();
 
-  let tarefasQuery = supabase
-    .from('tarefas')
-    .select(SELECT_TAREFA)
-    .eq('agencia_id', membro.agencia_id)
-    .order('ordem', { ascending: true })
-    .order('criado_em', { ascending: false });
+  // Mesmo padrão das rotas de conteúdo/clientes: se a sessão do usuário falhar no
+  // PostgREST (ex.: PGRST303), refaz com a service role, sempre filtrando pela agência.
+  const consultar = (db: typeof supabase) => {
+    let tarefasQuery = db
+      .from('tarefas')
+      .select(SELECT_TAREFA)
+      .eq('agencia_id', membro.agencia_id)
+      .order('ordem', { ascending: true })
+      .order('criado_em', { ascending: false });
 
-  if (alvo !== 'all') tarefasQuery = tarefasQuery.eq('responsavel_id', alvo);
-  if (clienteId) tarefasQuery = tarefasQuery.eq('cliente_id', clienteId);
-  if (status === 'pendente') {
-    tarefasQuery = tarefasQuery.neq('status', 'concluido');
-  } else if (status && STATUS_TAREFA_VALIDOS.includes(status as StatusTarefaBanco)) {
-    tarefasQuery = tarefasQuery.eq('status', status);
-  } else {
-    tarefasQuery = tarefasQuery.or(`status.neq.concluido,concluido_em.gte.${limiteConcluido}`);
+    if (alvo !== 'all') tarefasQuery = tarefasQuery.eq('responsavel_id', alvo);
+    if (clienteId) tarefasQuery = tarefasQuery.eq('cliente_id', clienteId);
+    if (status === 'pendente') {
+      tarefasQuery = tarefasQuery.neq('status', 'concluido');
+    } else if (status && STATUS_TAREFA_VALIDOS.includes(status as StatusTarefaBanco)) {
+      tarefasQuery = tarefasQuery.eq('status', status);
+    } else {
+      tarefasQuery = tarefasQuery.or(`status.neq.concluido,concluido_em.gte.${limiteConcluido}`);
+    }
+
+    let demandasQuery = db
+      .from('conteudo_items')
+      .select(SELECT_DEMANDA)
+      .eq('agencia_id', membro.agencia_id)
+      .or(`status.neq.publicado,publicado_em.gte.${limiteConcluido}`)
+      .order('prazo', { ascending: true, nullsFirst: false });
+
+    if (alvo !== 'all') demandasQuery = demandasQuery.or(`responsavel_id.eq.${alvo},editor_id.eq.${alvo}`);
+    if (clienteId) demandasQuery = demandasQuery.eq('cliente_id', clienteId);
+
+    return Promise.all([tarefasQuery, demandasQuery]);
+  };
+
+  let [tarefasRes, demandasRes] = await consultar(supabase);
+  if (tarefasRes.error) {
+    console.warn('GET /api/rotina: fallback service role:', tarefasRes.error.message);
+    [tarefasRes, demandasRes] = await consultar(serviceSupabase);
   }
-
-  let demandasQuery = supabase
-    .from('conteudo_items')
-    .select(SELECT_DEMANDA)
-    .eq('agencia_id', membro.agencia_id)
-    .or(`status.neq.publicado,publicado_em.gte.${limiteConcluido}`)
-    .order('prazo', { ascending: true, nullsFirst: false });
-
-  if (alvo !== 'all') demandasQuery = demandasQuery.or(`responsavel_id.eq.${alvo},editor_id.eq.${alvo}`);
-  if (clienteId) demandasQuery = demandasQuery.eq('cliente_id', clienteId);
-
-  const [tarefasRes, demandasRes] = await Promise.all([tarefasQuery, demandasQuery]);
 
   if (tarefasRes.error) return traduzirErroBanco(tarefasRes.error, 'GET /api/rotina');
   // Demandas são complemento: se a consulta falhar, o quadro de tarefas continua funcionando.
@@ -116,7 +127,7 @@ export async function POST(req: Request) {
   // Sub-tarefa herda o cliente da demanda.
   if (demandaId) {
     tipo = 'sub_tarefa';
-    const { data: demanda } = await supabase
+    const { data: demanda } = await serviceSupabase
       .from('conteudo_items')
       .select('id, cliente_id')
       .eq('id', demandaId)
@@ -131,28 +142,30 @@ export async function POST(req: Request) {
   const estimativa = Number(body.estimativa_min);
   const agora = new Date().toISOString();
 
-  const { data, error } = await supabase
-    .from('tarefas')
-    .insert({
-      agencia_id: membro.agencia_id,
-      cliente_id: clienteId,
-      responsavel_id: (body.responsavel_id as string | undefined) || user.id,
-      demanda_id: demandaId,
-      tipo,
-      titulo,
-      descricao: String(body.descricao || '').trim() || null,
-      status,
-      prioridade,
-      prazo: (body.prazo as string | undefined) || null,
-      solicitante: String(body.solicitante || '').trim() || null,
-      aguardando_de: status === 'aguardando' ? String(body.aguardando_de || '').trim() || null : null,
-      estimativa_min: Number.isFinite(estimativa) && estimativa > 0 ? Math.round(estimativa) : null,
-      origem: body.origem === 'claude' ? 'claude' : 'manual',
-      iniciado_em: status === 'fazendo' || status === 'concluido' ? agora : null,
-      concluido_em: status === 'concluido' ? agora : null,
-    })
-    .select(SELECT_TAREFA)
-    .single();
+  const linha = {
+    agencia_id: membro.agencia_id,
+    cliente_id: clienteId,
+    responsavel_id: (body.responsavel_id as string | undefined) || user.id,
+    demanda_id: demandaId,
+    tipo,
+    titulo,
+    descricao: String(body.descricao || '').trim() || null,
+    status,
+    prioridade,
+    prazo: (body.prazo as string | undefined) || null,
+    solicitante: String(body.solicitante || '').trim() || null,
+    aguardando_de: status === 'aguardando' ? String(body.aguardando_de || '').trim() || null : null,
+    estimativa_min: Number.isFinite(estimativa) && estimativa > 0 ? Math.round(estimativa) : null,
+    origem: body.origem === 'claude' ? 'claude' : 'manual',
+    iniciado_em: status === 'fazendo' || status === 'concluido' ? agora : null,
+    concluido_em: status === 'concluido' ? agora : null,
+  };
+
+  let { data, error } = await supabase.from('tarefas').insert(linha).select(SELECT_TAREFA).single();
+  if (error) {
+    console.warn('POST /api/rotina: fallback service role:', error.message);
+    ({ data, error } = await serviceSupabase.from('tarefas').insert(linha).select(SELECT_TAREFA).single());
+  }
 
   if (error) return traduzirErroBanco(error, 'POST /api/rotina');
 
