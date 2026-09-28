@@ -323,7 +323,7 @@ export default function DashboardHome({
     Promise.all([
       fetch('/api/equipe').then((r) => (r.ok ? r.json() : { membros: [] })).catch(() => ({ membros: [] })),
       fetch('/api/conteudo').then((r) => (r.ok ? r.json() : { items: [] })).catch(() => ({ items: [] })),
-      fetch('/api/rotina?status=pendente').then((r) => (r.ok ? r.json() : { tarefas: [] })).catch(() => ({ tarefas: [] })),
+      fetch('/api/rotina?status=pendente&membro_id=all').then((r) => (r.ok ? r.json() : { tarefas: [] })).catch(() => ({ tarefas: [] })),
     ])
       .then(([eqRes, contRes, rotRes]) => {
         if (!ativo) return;
@@ -342,7 +342,7 @@ export default function DashboardHome({
   }, []);
 
   async function handleToggleTarefaHome(tarefa: TarefaRotina) {
-    const novoStatus = tarefa.status === 'pendente' ? 'concluido' : 'pendente';
+    const novoStatus = tarefa.status === 'concluido' ? 'a_fazer' : 'concluido';
     setTarefasRotina((prev) => prev.filter((t) => t.id !== tarefa.id));
 
     try {
