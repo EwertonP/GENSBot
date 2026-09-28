@@ -36,6 +36,10 @@ import {
   User,
   Pencil,
   Save,
+  Music,
+  MapPin,
+  ImagePlus,
+  Radio,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,7 +55,8 @@ import type { Automation } from '@/types/automation';
 import { uploadMediaFile } from '@/lib/storage-upload';
 import { confirmDialog } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/toast';
-
+import { CollaboratorsTagsInput, type CollaboratorTag } from '@/components/collaborators-tags-input';
+import { LocationPicker } from '@/components/location-picker';
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
 type PostKind = 'post' | 'reels' | 'story';
@@ -74,6 +79,11 @@ interface ScheduledPost {
   ig_media_id: string | null;
   error_message: string | null;
   published_at: string | null;
+  collaborators?: string[] | null;
+  cover_url?: string | null;
+  location_id?: string | null;
+  location_name?: string | null;
+  audio_name?: string | null;
   automation_config?: PublishAutomationConfig | null;
   created_automation_id?: string | null;
 }
@@ -151,6 +161,10 @@ function InstagramPhoneMockup({
   isCarousel,
   caption,
   automationKeyword,
+  locationName,
+  audioName,
+  collaborators,
+  coverUrl,
 }: {
   kind: PostKind;
   username: string;
@@ -159,6 +173,10 @@ function InstagramPhoneMockup({
   isCarousel: boolean;
   caption: string;
   automationKeyword?: string | null;
+  locationName?: string | null;
+  audioName?: string | null;
+  collaborators?: { username: string }[];
+  coverUrl?: string | null;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -184,18 +202,37 @@ function InstagramPhoneMockup({
 
       {/* Header do Post no Instagram */}
       <div className="p-3 flex items-center justify-between bg-card border-b border-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#d8ff3c] via-[#55703a] to-[#192313] p-0.5 shadow-2xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#d8ff3c] via-[#55703a] to-[#192313] p-0.5 shadow-2xs shrink-0">
             <div className="w-full h-full rounded-full bg-card flex items-center justify-center font-bold text-[10px] text-foreground">
               {username[1]?.toUpperCase() || 'G'}
             </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-bold text-foreground leading-none">{username}</span>
-            <span className="text-[9px] text-muted-foreground mt-0.5">Áudio original</span>
+          <div className="flex flex-col min-w-0 text-left">
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-xs font-bold text-foreground leading-none truncate">{username}</span>
+              {collaborators && collaborators.length > 0 && (
+                <span className="text-[10px] text-muted-foreground truncate">
+                  e {collaborators.map((c) => `@${c.username}`).join(', ')}
+                </span>
+              )}
+            </div>
+            {locationName ? (
+              <span className="text-[10px] text-foreground/90 font-medium mt-0.5 truncate flex items-center gap-0.5">
+                <MapPin className="w-2.5 h-2.5 shrink-0 text-primary" />
+                {locationName}
+              </span>
+            ) : audioName ? (
+              <span className="text-[9px] text-muted-foreground mt-0.5 truncate flex items-center gap-0.5">
+                <Music className="w-2.5 h-2.5 shrink-0 text-primary" />
+                {audioName}
+              </span>
+            ) : (
+              <span className="text-[9px] text-muted-foreground mt-0.5">Áudio original</span>
+            )}
           </div>
         </div>
-        <span className="text-xs font-bold text-muted-foreground tracking-widest">•••</span>
+        <span className="text-xs font-bold text-muted-foreground tracking-widest shrink-0 ml-1">•••</span>
       </div>
 
       {/* Área da Mídia */}
@@ -211,6 +248,14 @@ function InstagramPhoneMockup({
           <video src={activeUrl || ''} className="w-full h-full object-cover" controls muted />
         ) : (
           <img src={activeUrl || ''} alt="" className="w-full h-full object-cover" />
+        )}
+
+        {/* Indicador de Capa Customizada no Reels */}
+        {kind === 'reels' && coverUrl && (
+          <div className="absolute top-2 left-2 bg-black/75 backdrop-blur-md border border-white/20 rounded-lg px-2 py-0.5 flex items-center gap-1 text-[9px] text-white font-medium">
+            <ImagePlus className="w-2.5 h-2.5 text-primary" />
+            <span>Capa Personalizada</span>
+          </div>
         )}
 
         {/* Banner de Comentários / Automação no mockup */}
@@ -301,7 +346,14 @@ export default function PublishPanel({
   const [prefillRemoteUrls, setPrefillRemoteUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState('');
   const [collaboratorsInput, setCollaboratorsInput] = useState('');
+  const [collaboratorTags, setCollaboratorTags] = useState<CollaboratorTag[]>([]);
   const [userTagsInput, setUserTagsInput] = useState('');
+  const [locationId, setLocationId] = useState<string | null>(null);
+  const [locationName, setLocationName] = useState<string | null>(null);
+  const [audioName, setAudioName] = useState<string>('');
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
@@ -433,6 +485,20 @@ export default function PublishPanel({
       setAutoLinkButtonLabel(prefillData.automationConfig.link_button_label || '');
       setAutoPublicReply(prefillData.automationConfig.public_replies?.[0] || '');
     }
+    if (prefillData.coverUrl) {
+      setCoverUrl(prefillData.coverUrl);
+      setCoverPreview(prefillData.coverUrl);
+    }
+    if (prefillData.locationName || prefillData.locationId) {
+      setLocationId(prefillData.locationId || null);
+      setLocationName(prefillData.locationName || null);
+    }
+    if (prefillData.audioName) {
+      setAudioName(prefillData.audioName);
+    }
+    if (prefillData.collaborators && prefillData.collaborators.length > 0) {
+      setCollaboratorTags(prefillData.collaborators.map((c) => ({ username: c.replace(/^@/, '') })));
+    }
   }, [prefillData, accounts]);
 
   // Lista de Publicações
@@ -552,13 +618,24 @@ export default function PublishPanel({
         throw new Error('Nenhuma mídia disponível para publicação.');
       }
 
+      let finalCoverUrl = coverUrl;
+      if (coverFile) {
+        const coverRes = await uploadMediaFile(coverFile, 'cover');
+        finalCoverUrl = coverRes.url;
+        setCoverUrl(finalCoverUrl);
+      }
+
       let mediaType: MediaType;
       if (kind === 'story') mediaType = 'STORIES';
       else if (kind === 'reels') mediaType = 'REELS';
       else if (isCarousel) mediaType = 'CAROUSEL';
       else mediaType = isVideo ? 'VIDEO' : 'IMAGE';
 
-      const collaborators = kind !== 'story' ? parseNameList(collaboratorsInput, 3) : [];
+      const collaborators = kind !== 'story'
+        ? (collaboratorTags.length > 0
+            ? collaboratorTags.map((c) => c.username).slice(0, 5)
+            : parseNameList(collaboratorsInput, 5))
+        : [];
       const userTags = kind === 'story' ? parseNameList(userTagsInput).map((username) => ({ username })) : [];
 
       const automationPayload = autoEnabled
@@ -584,6 +661,10 @@ export default function PublishPanel({
             caption,
             collaborators: collaborators.length > 0 ? collaborators : undefined,
             user_tags: userTags.length > 0 ? userTags : undefined,
+            cover_url: finalCoverUrl || undefined,
+            location_id: locationId || undefined,
+            location_name: locationName || undefined,
+            audio_name: audioName.trim() || undefined,
             scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
             automation_config: automationPayload,
           }),
@@ -605,6 +686,10 @@ export default function PublishPanel({
             caption,
             collaborators: collaborators.length > 0 ? collaborators : undefined,
             user_tags: userTags.length > 0 ? userTags : undefined,
+            cover_url: finalCoverUrl || undefined,
+            location_id: locationId || undefined,
+            location_name: locationName || undefined,
+            audio_name: audioName.trim() || undefined,
             scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
             conteudo_item_id: prefillData?.conteudoId || undefined,
             automation_config: automationPayload,
@@ -646,7 +731,14 @@ export default function PublishPanel({
       setPrefillRemoteUrls([]);
       setCaption('');
       setCollaboratorsInput('');
+      setCollaboratorTags([]);
       setUserTagsInput('');
+      setLocationId(null);
+      setLocationName(null);
+      setAudioName('');
+      setCoverUrl(null);
+      setCoverFile(null);
+      setCoverPreview(null);
       setScheduleEnabled(false);
       setScheduledAt(null);
       setEditingPostId(null);
@@ -676,7 +768,15 @@ export default function PublishPanel({
 
   // Há algo digitado/anexado no composer que ainda não foi publicado?
   const composerSujo =
-    files.length > 0 || caption.trim() !== '' || collaboratorsInput.trim() !== '' || userTagsInput.trim() !== '' || (autoEnabled && !editingPostId);
+    files.length > 0 ||
+    caption.trim() !== '' ||
+    collaboratorTags.length > 0 ||
+    collaboratorsInput.trim() !== '' ||
+    userTagsInput.trim() !== '' ||
+    locationName !== null ||
+    audioName.trim() !== '' ||
+    coverFile !== null ||
+    (autoEnabled && !editingPostId);
 
   const handleStartEdit = async (post: ScheduledPost) => {
     if (editingPostId === post.id) return;
@@ -721,13 +821,27 @@ export default function PublishPanel({
 
     // Colaboradores e Tags
     const postCollabs = (post as any).collaborators;
-    setCollaboratorsInput(Array.isArray(postCollabs) ? postCollabs.join(', ') : '');
+    if (Array.isArray(postCollabs)) {
+      setCollaboratorTags(postCollabs.map((c: string) => ({ username: c.replace(/^@/, '') })));
+      setCollaboratorsInput(postCollabs.join(', '));
+    } else {
+      setCollaboratorTags([]);
+      setCollaboratorsInput('');
+    }
     const postTags = (post as any).user_tags;
     setUserTagsInput(
       Array.isArray(postTags)
         ? postTags.map((t: any) => (typeof t === 'string' ? t : t.username)).join(', ')
         : ''
     );
+
+    // Localização, Capa e Áudio
+    setLocationId((post as any).location_id || null);
+    setLocationName((post as any).location_name || null);
+    setAudioName((post as any).audio_name || '');
+    setCoverUrl((post as any).cover_url || null);
+    setCoverFile(null);
+    setCoverPreview((post as any).cover_url || null);
 
     // Automação Direct
     if (post.automation_config?.enabled) {
@@ -756,7 +870,14 @@ export default function PublishPanel({
     setPrefillRemoteUrls([]);
     setCaption('');
     setCollaboratorsInput('');
+    setCollaboratorTags([]);
     setUserTagsInput('');
+    setLocationId(null);
+    setLocationName(null);
+    setAudioName('');
+    setCoverUrl(null);
+    setCoverFile(null);
+    setCoverPreview(null);
     setScheduleEnabled(false);
     setScheduledAt(null);
     setAutoEnabled(false);
@@ -1022,6 +1143,137 @@ export default function PublishPanel({
             )}
           </div>
 
+          {/* Capa Customizada para Reels ou Vídeo */}
+          {(kind === 'reels' || isVideo) && (
+            <div className="flex flex-col gap-2 p-3.5 rounded-2xl bg-card border border-border shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                    <ImagePlus className="w-3.5 h-3.5" />
+                  </div>
+                  <label className="text-xs font-bold text-foreground">
+                    Capa do Reels (Opcional)
+                  </label>
+                </div>
+                {coverPreview ? (
+                  <Badge variant="info" className="text-[10px] px-2 py-0">
+                    Capa Personalizada Ativa
+                  </Badge>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">Padrão: 1º quadro</span>
+                )}
+              </div>
+
+              {coverPreview ? (
+                <div className="flex items-center justify-between gap-3 p-2 bg-accent/30 rounded-xl border border-border">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={coverPreview}
+                      alt="Capa do Reels"
+                      className="w-12 h-16 rounded-lg object-cover border border-border shrink-0"
+                    />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-semibold text-foreground truncate">
+                        {coverFile ? coverFile.name : 'Imagem de capa personalizada'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground truncate">
+                        Exibida na grade do perfil e feed de Reels
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoverFile(null);
+                      setCoverPreview(null);
+                      setCoverUrl(null);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                    title="Remover capa personalizada"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative flex items-center justify-between p-3 rounded-xl border border-dashed border-input hover:border-foreground/30 bg-accent/10 hover:bg-accent/20 transition-all cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setCoverFile(file);
+                        setCoverPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <div className="flex items-center gap-2.5">
+                    <ImagePlus className="w-4 h-4 text-muted-foreground" />
+                    <div className="flex flex-col text-left">
+                      <span className="text-xs font-semibold text-foreground">
+                        Definir capa personalizada para o Reels
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        JPG ou PNG em 9:16 (se não escolher, a Meta usa o 1º quadro)
+                      </span>
+                    </div>
+                  </div>
+                  <Button type="button" variant="secondary" size="sm" className="pointer-events-none text-xs h-7 px-2.5">
+                    Selecionar
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Trilha Sonora / Música para Carrossel e Reels */}
+          {(isCarousel || kind === 'reels') && (
+            <div className="flex flex-col gap-2 p-3.5 rounded-2xl bg-card border border-border shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                    <Music className="w-3.5 h-3.5" />
+                  </div>
+                  <label className="text-xs font-bold text-foreground">
+                    Trilha Sonora / Música (Opcional)
+                  </label>
+                </div>
+                {audioName.trim() && (
+                  <Badge variant="muted" className="text-[10px] px-2 py-0">
+                    Definida
+                  </Badge>
+                )}
+              </div>
+
+              <div className="relative flex items-center">
+                <Music className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  value={audioName}
+                  onChange={(e) => setAudioName(e.target.value)}
+                  placeholder="ex: Coldplay - Viva La Vida (nome do artista e música)"
+                  className="h-9 pl-9 pr-8 w-full rounded-xl bg-accent/20 border border-input text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-sans"
+                />
+                {audioName.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setAudioName('')}
+                    className="absolute right-2.5 p-1 text-muted-foreground hover:text-foreground"
+                    title="Limpar música"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {kind === 'reels'
+                  ? 'Define o nome de exibição do áudio original no Instagram Reels.'
+                  : 'Apresenta a trilha sonora selecionada na prévia do post e ficha de agendamento.'}
+              </p>
+            </div>
+          )}
+
           </div>
 
           <div id="passo-legenda" role="tabpanel" aria-labelledby="aba-legenda" hidden={passo !== 'legenda'} className="flex flex-col gap-6">
@@ -1042,18 +1294,55 @@ export default function PublishPanel({
             />
           </div>
 
-          {/* Colaboradores / Marcação (Opcional) */}
-          {kind !== 'story' && (
+          {/* Localização da Postagem */}
+          <div className="flex flex-col gap-1.5 pt-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-primary" />
+                Localização da Postagem
+              </label>
+              <span className="text-[10px] text-muted-foreground">Opcional</span>
+            </div>
+            <LocationPicker
+              locationId={locationId}
+              locationName={locationName}
+              onChange={({ id, name }) => {
+                setLocationId(id);
+                setLocationName(name);
+              }}
+            />
+          </div>
+
+          {/* Colaboradores / Marcação de Perfis */}
+          {kind !== 'story' ? (
+            <div className="flex flex-col gap-1.5 pt-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-primary" />
+                  Colaboradores do Post (até 5 perfis)
+                </label>
+                <span className="text-[10px] text-muted-foreground">
+                  Receberão convite de co-autoria
+                </span>
+              </div>
+              <CollaboratorsTagsInput
+                value={collaboratorTags}
+                onChange={setCollaboratorTags}
+                max={5}
+                placeholder="Digite @perfil ou nome e tecle Espaço..."
+              />
+            </div>
+          ) : (
             <div className="flex flex-col gap-1.5 pt-1">
               <label className="text-xs font-semibold text-foreground">
-                Colaboradores (até 3 perfis separados por vírgula)
+                Marcar pessoas no Story (separados por vírgula)
               </label>
               <input
                 type="text"
-                value={collaboratorsInput}
-                onChange={(e) => setCollaboratorsInput(e.target.value)}
+                value={userTagsInput}
+                onChange={(e) => setUserTagsInput(e.target.value)}
                 placeholder="ex: perfil1, perfil2"
-                className="h-9 px-3.5 rounded-xl bg-card border border-input text-xs text-foreground focus:outline-none focus:border-foreground/40"
+                className="h-9 px-3.5 rounded-xl bg-card border border-input text-xs text-foreground focus:outline-none focus:border-foreground/40 font-sans"
               />
             </div>
           )}
@@ -1528,11 +1817,33 @@ export default function PublishPanel({
                   <p className="text-xs text-foreground/90 line-clamp-2 mt-0.5">
                     {caption ? caption : <span className="italic text-muted-foreground">(Sem legenda)</span>}
                   </p>
-                  {autoEnabled && (
-                    <span className="text-xs text-primary font-bold mt-1 flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> Direct Automático Ativo ({autoKeywords})
-                    </span>
-                  )}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    {locationName && (
+                      <span className="text-[11px] bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-primary" /> {locationName}
+                      </span>
+                    )}
+                    {audioName.trim() && (
+                      <span className="text-[11px] bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
+                        <Music className="w-3 h-3 text-primary" /> {audioName}
+                      </span>
+                    )}
+                    {collaboratorTags.length > 0 && (
+                      <span className="text-[11px] bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
+                        <User className="w-3 h-3 text-primary" /> {collaboratorTags.map((c) => `@${c.username}`).join(', ')}
+                      </span>
+                    )}
+                    {coverPreview && (
+                      <span className="text-[11px] bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
+                        <ImagePlus className="w-3 h-3 text-primary" /> Capa personalizada
+                      </span>
+                    )}
+                    {autoEnabled && (
+                      <span className="text-[11px] bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <Zap className="w-3 h-3" /> DM Automática ({autoKeywords})
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1589,6 +1900,10 @@ export default function PublishPanel({
             isCarousel={isCarousel}
             caption={caption}
             automationKeyword={autoEnabled ? (autoKeywords.split(',')[0]?.trim() || 'QUERO') : null}
+            locationName={locationName}
+            audioName={audioName.trim() || null}
+            collaborators={collaboratorTags}
+            coverUrl={coverPreview}
           />
         </div>
       </div>
@@ -1697,17 +2012,22 @@ export default function PublishPanel({
                     >
                       {/* Thumbnail */}
                       <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-accent shrink-0 border border-border group-hover:border-foreground/40 transition-colors">
-                        <img src={post.media_url} alt="" className="w-full h-full object-cover" />
+                        <img src={post.cover_url || post.media_url} alt="" className="w-full h-full object-cover" />
                         {isCarouselPost && post.media_urls && (
                           <span className="absolute bottom-0 right-0 bg-black/80 text-white text-[11px] font-mono font-bold px-1 rounded-tl">
                             {post.media_urls.length}
+                          </span>
+                        )}
+                        {post.cover_url && (
+                          <span className="absolute top-0 left-0 bg-primary/90 text-primary-foreground text-[8px] font-mono font-bold px-1 rounded-br">
+                            CAPA
                           </span>
                         )}
                       </div>
 
                       {/* Info */}
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono font-bold bg-accent text-foreground px-2 py-0.5 rounded-md border border-border shrink-0">
                             @{accounts.find((a) => a.instagram_user_id === post.instagram_user_id)?.instagram_username || 'instagram'}
                           </span>
@@ -1715,9 +2035,26 @@ export default function PublishPanel({
                             {post.caption || '(sem legenda)'}
                           </p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {post.media_type} · {new Date(post.status === 'published' && post.published_at ? post.published_at : post.scheduled_at).toLocaleString('pt-BR')}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap text-xs text-muted-foreground">
+                          <span>
+                            {post.media_type} · {new Date(post.status === 'published' && post.published_at ? post.published_at : post.scheduled_at).toLocaleString('pt-BR')}
+                          </span>
+                          {post.location_name && (
+                            <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
+                              · <MapPin className="w-2.5 h-2.5 text-primary" /> {post.location_name}
+                            </span>
+                          )}
+                          {post.audio_name && (
+                            <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
+                              · <Music className="w-2.5 h-2.5 text-primary" /> {post.audio_name}
+                            </span>
+                          )}
+                          {Array.isArray(post.collaborators) && post.collaborators.length > 0 && (
+                            <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
+                              · <User className="w-2.5 h-2.5 text-primary" /> {post.collaborators.map((c) => `@${typeof c === 'string' ? c : (c as any).username}`).join(', ')}
+                            </span>
+                          )}
+                        </div>
                         {post.status === 'failed' && post.error_message && (
                           <p className="text-xs text-destructive mt-0.5 font-medium">{post.error_message}</p>
                         )}

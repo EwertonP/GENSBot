@@ -28,6 +28,10 @@ export async function POST(req: Request) {
       scheduled_at,
       collaborators,
       user_tags,
+      cover_url,
+      location_id,
+      location_name,
+      audio_name,
       conteudo_item_id,
       automation_config,
     } = body as {
@@ -39,6 +43,10 @@ export async function POST(req: Request) {
       scheduled_at?: string;
       collaborators?: string[];
       user_tags?: { username: string }[];
+      cover_url?: string;
+      location_id?: string;
+      location_name?: string;
+      audio_name?: string;
       conteudo_item_id?: string;
       automation_config?: PublishAutomationConfig;
     };
@@ -66,6 +74,10 @@ export async function POST(req: Request) {
       caption: caption || null,
       collaborators: collaborators || null,
       user_tags: user_tags || null,
+      cover_url: cover_url || null,
+      location_id: location_id || null,
+      location_name: location_name || null,
+      audio_name: audio_name || null,
       automation_config: automation_config?.enabled ? automation_config : null,
     };
 
@@ -85,6 +97,10 @@ export async function POST(req: Request) {
             scheduled_post_id: data.id,
             status: 'agendamento',
             data_programada: scheduled_at,
+            cover_url: cover_url || null,
+            location_id: location_id || null,
+            location_name: location_name || null,
+            audio_name: audio_name || null,
             automacao_config: automation_config?.enabled ? automation_config : null,
             atualizado_em: new Date().toISOString(),
           })
@@ -113,6 +129,9 @@ export async function POST(req: Request) {
         caption,
         collaborators,
         userTags: user_tags,
+        locationId: location_id,
+        coverUrl: cover_url,
+        audioName: audio_name,
       });
 
       let createdAutomationId: string | null = null;
@@ -161,6 +180,10 @@ export async function POST(req: Request) {
             status: 'publicado',
             data_programada: scheduled_at || publishedDate,
             publicado_em: publishedDate,
+            cover_url: cover_url || null,
+            location_id: location_id || null,
+            location_name: location_name || null,
+            audio_name: audio_name || null,
             automacao_config: automation_config?.enabled ? automation_config : null,
             arquivos: [],
             atualizado_em: new Date().toISOString(),

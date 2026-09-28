@@ -100,6 +100,11 @@ export interface PrefillAgendamento {
   scheduledAt?: string | null;
   titulo: string;
   automationConfig?: import('./publish-automation').PublishAutomationConfig | null;
+  coverUrl?: string | null;
+  locationId?: string | null;
+  locationName?: string | null;
+  audioName?: string | null;
+  collaborators?: string[] | null;
 }
 
 export interface ConteudoItem {
@@ -121,6 +126,10 @@ export interface ConteudoItem {
   editor_id: string | null;
   scheduled_post_id: string | null;
   arquivos: ArquivoConteudo[];
+  cover_url?: string | null;
+  location_id?: string | null;
+  location_name?: string | null;
+  audio_name?: string | null;
   token_aprovacao: string;
   comentarios_revisao: ComentarioRevisao[];
   historico_atividades?: EventoAtividade[];

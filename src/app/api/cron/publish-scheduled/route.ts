@@ -97,6 +97,9 @@ async function handlePublishScheduled(req: Request) {
           caption: post.caption,
           collaborators: post.collaborators,
           userTags: post.user_tags,
+          coverUrl: post.cover_url,
+          locationId: post.location_id,
+          audioName: post.audio_name,
         });
 
         let createdAutomationId: string | null = null;
