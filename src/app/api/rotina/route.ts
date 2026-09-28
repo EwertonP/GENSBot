@@ -127,12 +127,10 @@ export async function POST(req: Request) {
   // Sub-tarefa herda o cliente da demanda.
   if (demandaId) {
     tipo = 'sub_tarefa';
-    const { data: demanda } = await serviceSupabase
-      .from('conteudo_items')
-      .select('id, cliente_id')
-      .eq('id', demandaId)
-      .eq('agencia_id', membro.agencia_id)
-      .maybeSingle();
+    const buscarDemanda = (db: typeof supabase) =>
+      db.from('conteudo_items').select('id, cliente_id').eq('id', demandaId).eq('agencia_id', membro.agencia_id).maybeSingle();
+    let { data: demanda } = await buscarDemanda(supabase);
+    if (!demanda) ({ data: demanda } = await buscarDemanda(serviceSupabase));
     if (!demanda) return respostaErro('Demanda vinculada não encontrada.', 400);
     clienteId = clienteId || demanda.cliente_id;
   } else if (tipo === 'sub_tarefa') {
