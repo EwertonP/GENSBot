@@ -51,12 +51,10 @@ export async function PATCH(req: Request, { params }: Params) {
       }
       const novo = normalizarStatusTarefa(updates.status);
       updates.status = novo;
-      const { data: atual } = await serviceSupabase
-        .from('tarefas')
-        .select('iniciado_em')
-        .eq('id', id)
-        .eq('agencia_id', membro.agencia_id)
-        .maybeSingle();
+      const buscarAtual = (db: typeof supabase) =>
+        db.from('tarefas').select('iniciado_em').eq('id', id).eq('agencia_id', membro.agencia_id).maybeSingle();
+      let { data: atual } = await buscarAtual(supabase);
+      if (!atual) ({ data: atual } = await buscarAtual(serviceSupabase));
       const derivados = camposDaTransicao(novo, atual);
       // aguardando_de enviado junto com a mudança para Aguardando tem prioridade.
       if (novo === 'aguardando' && 'aguardando_de' in updates) delete derivados.aguardando_de;
