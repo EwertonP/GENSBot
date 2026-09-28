@@ -6,8 +6,9 @@ import { supabase as serviceSupabase } from '../supabase';
 import type { ContextoMcp } from './oauth';
 import { ErroFerramenta, FERRAMENTAS as FERRAMENTAS_C1 } from './ferramentas';
 import { FERRAMENTAS_C2 } from './ferramentas-c2';
+import { FERRAMENTAS_C3 } from './ferramentas-c3';
 
-const FERRAMENTAS = [...FERRAMENTAS_C1, ...FERRAMENTAS_C2];
+const FERRAMENTAS = [...FERRAMENTAS_C1, ...FERRAMENTAS_C2, ...FERRAMENTAS_C3];
 
 export const VERSOES_PROTOCOLO = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
@@ -15,6 +16,7 @@ const INSTRUCOES = [
   'Você está conectado ao GENSBot, o sistema operacional da Agência GENS (clientes, esteira de demandas, rotina da equipe).',
   'Antes de criar conteúdo de um cliente, use ler_cliente para respeitar tom, regras e restrições e não repetir temas.',
   'Conteúdo (post/reel/story) só entra via criar_demandas_lote com o scorecard do MetodoViral (média ≥ 9 e humanizer rodado).',
+  'Automações de DM nascem pausadas, só são editadas pausadas e exigem a copy já passada pelo humanizer; ativar é sempre pela tela.',
   'Formulários criados ficam em rascunho; aprovações devolvem link e mensagem para a equipe enviar.',
   'Você não publica, não envia mensagens a clientes e não exclui nada. Confirme com a pessoa antes de mover várias demandas de uma vez.',
 ].join(' ');

@@ -95,7 +95,44 @@ describe('C2: formulários e aprovações', async () => {
     expect(entrouEmAprovacao(h)).toBe('2026-09-05');
     expect(entrouEmAprovacao(null)).toBeNull();
   });
-  it('servidor expõe as 18 ferramentas', () => {
-    expect(listarFerramentas()).toHaveLength(18);
+  it('servidor expõe as 24 ferramentas', () => {
+    expect(listarFerramentas()).toHaveLength(24);
+  });
+});
+
+describe('C3: automações', async () => {
+  const { montarFormulario } = await import('./ferramentas-c3');
+  const { buildFlowFromAdvancedForm, decompileFlow } = await import('../flow-engine/wizardCompiler');
+  const base = {
+    nome: 'Captação EU QUERO',
+    gatilhos: ['comment', 'dm'],
+    palavras_chave: ['EU QUERO'],
+    respostas_publicas: ['Te chamei no direct!'],
+    mensagem_inicial: 'Oi! Vi seu comentário.',
+    botao_inicial: 'Quero saber',
+    perguntas: [{ texto: 'Qual seu segmento?', botoes: ['Saúde', 'Varejo'] }, { texto: 'Seu e-mail?', salvar_em_campo: 'email' }],
+    link: { texto: 'Marca aqui:', url: 'https://cal.com/gens', botao: 'Agendar' },
+    followups: [{ texto: 'Ainda com dúvida?', apos_minutos: 1440 }],
+    copy_humanizada: true,
+  };
+  it('exige humanizer, gatilho válido e palavra-chave', () => {
+    expect(() => montarFormulario({ ...base, copy_humanizada: false })).toThrow(/humanizer/);
+    expect(() => montarFormulario({ ...base, gatilhos: ['whatsapp'] })).toThrow(/gatilhos/);
+    expect(() => montarFormulario({ ...base, palavras_chave: [] })).toThrow(/palavras_chave/);
+    expect(() => montarFormulario({ ...base, link: { url: 'javascript:alert(1)' } })).toThrow(/URL/);
+  });
+  it('sempre pausada e compila num fluxo que a tela consegue reabrir', () => {
+    const { form, perguntas } = montarFormulario(base);
+    expect(form.active).toBe(false);
+    const flow = buildFlowFromAdvancedForm(form, perguntas);
+    const volta = decompileFlow(flow);
+    expect(volta.compatible).toBe(true);
+    if (volta.compatible) {
+      expect(volta.form.welcome_dm).toBe('Oi! Vi seu comentário.');
+      expect(volta.form.keywords).toEqual(['EU QUERO']);
+      expect(volta.questions).toHaveLength(2);
+      expect(volta.form.link_url).toBe('https://cal.com/gens');
+      expect(volta.form.followups).toHaveLength(1);
+    }
   });
 });
