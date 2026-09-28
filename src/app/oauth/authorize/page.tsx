@@ -10,6 +10,8 @@ const PERMISSOES = [
   'Ver clientes, equipe, demandas e a sua rotina',
   'Criar e editar demandas e tarefas em seu nome',
   'Mover demandas entre etapas da esteira (sem publicar)',
+  'Preparar links e mensagens de aprovação (a equipe envia)',
+  'Criar formulários em rascunho e ler as respostas',
 ];
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };

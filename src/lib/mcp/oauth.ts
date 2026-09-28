@@ -82,6 +82,8 @@ export interface ContextoMcp {
   agenciaId: string;
   papel: 'master' | 'membro';
   nome: string;
+  /** Origem pública do app na requisição atual (para montar links). */
+  origem?: string;
 }
 
 /** Emite par access/refresh para um membro. Devolve os valores em claro (só nesta hora). */

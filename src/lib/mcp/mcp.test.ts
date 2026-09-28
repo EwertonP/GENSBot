@@ -71,3 +71,31 @@ describe('servidor JSON-RPC', () => {
     expect(tools.find((t) => t.name === 'listar_clientes')?.annotations.readOnlyHint).toBe(true);
   });
 });
+
+describe('C2: formulários e aprovações', async () => {
+  const { montarCampos, entrouEmAprovacao } = await import('./ferramentas-c2');
+  it('adiciona boas-vindas e agradecimento e exige opções em escolha', () => {
+    const campos = montarCampos('f', [
+      { tipo: 'text', label: 'Seu nome?' },
+      { tipo: 'choice', label: 'Serviço?', opcoes: ['A', 'B'] },
+    ]);
+    expect(campos.map((c) => c.tipo)).toEqual(['welcome', 'text', 'choice', 'thank_you']);
+    expect(campos.map((c) => c.ordem)).toEqual([0, 1, 2, 3]);
+    expect((campos[2].opcoes as { label: string }[]).map((o) => o.label)).toEqual(['A', 'B']);
+    expect(() => montarCampos('f', [{ tipo: 'choice', label: 'X', opcoes: ['só uma'] }])).toThrow(/2 opções/);
+    expect(() => montarCampos('f', [{ tipo: 'foto', label: 'X' }])).toThrow(/tipo/);
+    expect(() => montarCampos('f', [])).toThrow();
+  });
+  it('acha quando a demanda entrou em aprovação', () => {
+    const h = [
+      { tipo: 'status', para_status: 'revisao_cliente', criado_em: '2026-09-01' },
+      { tipo: 'status', para_status: 'revisao_interna', criado_em: '2026-09-02' },
+      { tipo: 'status', para_status: 'revisao_cliente', criado_em: '2026-09-05' },
+    ];
+    expect(entrouEmAprovacao(h)).toBe('2026-09-05');
+    expect(entrouEmAprovacao(null)).toBeNull();
+  });
+  it('servidor expõe as 18 ferramentas', () => {
+    expect(listarFerramentas()).toHaveLength(18);
+  });
+});
