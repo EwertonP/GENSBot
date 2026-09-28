@@ -1432,6 +1432,15 @@ export default function PublishPanel({
                   )}
                 </div>
               )}
+
+              {kind !== 'reels' && (
+                <p className="text-[11px] text-muted-foreground/85 flex items-center gap-1.5 mt-1 pt-2 border-t border-border/40">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-primary/70" />
+                  <span>
+                    <strong>Nota da Meta:</strong> A API oficial do Instagram não permite anexar músicas licenciadas em carrosséis de fotos automaticamente (recurso exclusivo do app móvel). No GENSBot ela fica documentada na esteira, prévia e com link direto para o áudio no Instagram.
+                  </span>
+                </p>
+              )}
             </div>
 
           </div>
