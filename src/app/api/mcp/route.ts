@@ -21,6 +21,7 @@ function naoAutorizado(req: Request) {
 export async function POST(req: Request) {
   const ctx = await validarAccessToken(req.headers.get('authorization'));
   if (!ctx) return naoAutorizado(req);
+  ctx.origem = origemDaRequisicao(req);
 
   let corpo: unknown;
   try {
