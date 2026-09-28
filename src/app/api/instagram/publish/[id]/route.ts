@@ -37,6 +37,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       media_urls,
       collaborators,
       user_tags,
+      cover_url,
+      location_id,
+      location_name,
+      audio_name,
       automation_config,
     } = body as {
       approval_status?: ApprovalStatus;
@@ -48,6 +52,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       media_urls?: string[];
       collaborators?: string[];
       user_tags?: { username: string }[];
+      cover_url?: string | null;
+      location_id?: string | null;
+      location_name?: string | null;
+      audio_name?: string | null;
       automation_config?: any;
     };
 
@@ -78,6 +86,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (media_urls !== undefined) update.media_urls = media_urls;
     if (collaborators !== undefined) update.collaborators = collaborators;
     if (user_tags !== undefined) update.user_tags = user_tags;
+    if (cover_url !== undefined) update.cover_url = cover_url;
+    if (location_id !== undefined) update.location_id = location_id;
+    if (location_name !== undefined) update.location_name = location_name;
+    if (audio_name !== undefined) update.audio_name = audio_name;
     if (automation_config !== undefined) update.automation_config = automation_config;
 
     // Mover pro Kanban pra "aprovado" sem uma data já definida dispara o agendamento
@@ -109,6 +121,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const esteiraUpdate: Record<string, unknown> = { atualizado_em: new Date().toISOString() };
       if (caption !== undefined) esteiraUpdate.legenda = caption;
       if (scheduled_at) esteiraUpdate.data_programada = scheduled_at;
+      if (cover_url !== undefined) esteiraUpdate.cover_url = cover_url;
+      if (location_id !== undefined) esteiraUpdate.location_id = location_id;
+      if (location_name !== undefined) esteiraUpdate.location_name = location_name;
+      if (audio_name !== undefined) esteiraUpdate.audio_name = audio_name;
       if (automation_config !== undefined) esteiraUpdate.automacao_config = automation_config;
 
       await supabase

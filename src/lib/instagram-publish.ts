@@ -22,6 +22,9 @@ interface CreateContainerParams {
   caption?: string | null;
   collaborators?: string[] | null;
   userTags?: UserTag[] | null;
+  locationId?: string | null;
+  coverUrl?: string | null;
+  audioName?: string | null;
 }
 
 interface PublishParams extends CreateContainerParams {
@@ -46,16 +49,22 @@ export async function createMediaContainer({
   caption,
   collaborators,
   userTags,
+  locationId,
+  coverUrl,
+  audioName,
 }: CreateContainerParams): Promise<string> {
   const params = new URLSearchParams({ access_token: accessToken });
   if (caption) params.set('caption', caption);
   // Colaboradores só fazem sentido em Post/Reels/Carrossel — em Story a
-  // marcação é só user_tags (a Graph API não aceita collaborators em Story).
+  // marcação é só user_tags (a Graph API aceita até 5 colaboradores).
   if (collaborators && collaborators.length > 0 && mediaType !== 'STORIES') {
-    params.set('collaborators', JSON.stringify(collaborators.slice(0, 3)));
+    params.set('collaborators', JSON.stringify(collaborators.slice(0, 5)));
   }
   if (userTags && userTags.length > 0) {
     params.set('user_tags', JSON.stringify(userTags));
+  }
+  if (locationId) {
+    params.set('location_id', locationId);
   }
 
   if (mediaType === 'STORIES') {
@@ -68,20 +77,38 @@ export async function createMediaContainer({
   } else if (mediaType === 'REELS') {
     params.set('media_type', 'REELS');
     params.set('video_url', mediaUrl);
+    if (coverUrl) params.set('cover_url', coverUrl);
+    if (audioName) params.set('audio_name', audioName);
   } else if (mediaType === 'VIDEO') {
     params.set('media_type', 'REELS'); // feed de vídeo é publicado como REELS na API atual
     params.set('video_url', mediaUrl);
+    if (coverUrl) params.set('cover_url', coverUrl);
+    if (audioName) params.set('audio_name', audioName);
   } else {
     params.set('image_url', mediaUrl);
   }
 
-  const data = await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString(),
-  });
-
-  return data.id as string;
+  try {
+    const data = await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    return data.id as string;
+  } catch (err: any) {
+    // Se a Meta rejeitar o location_id (ex: página sem coordenadas válidas), tenta novamente sem travar o post
+    if (locationId && (err.message?.toLowerCase().includes('location') || err.message?.includes('100'))) {
+      console.warn('Meta Graph API rejeitou location_id, tentando sem localização:', err.message);
+      params.delete('location_id');
+      const fallbackData = await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      });
+      return fallbackData.id as string;
+    }
+    throw err;
+  }
 }
 
 /**
@@ -98,6 +125,7 @@ export async function createCarouselContainer({
   caption,
   collaborators,
   userTags,
+  locationId,
 }: {
   instagramUserId: string;
   accessToken: string;
@@ -105,6 +133,7 @@ export async function createCarouselContainer({
   caption?: string | null;
   collaborators?: string[] | null;
   userTags?: UserTag[] | null;
+  locationId?: string | null;
 }): Promise<string> {
   if (mediaUrls.length < 2 || mediaUrls.length > 10) {
     throw new Error('Carrossel precisa de 2 a 10 itens de mídia.');
@@ -144,19 +173,35 @@ export async function createCarouselContainer({
   });
   if (caption) parentParams.set('caption', caption);
   if (collaborators && collaborators.length > 0) {
-    parentParams.set('collaborators', JSON.stringify(collaborators.slice(0, 3)));
+    parentParams.set('collaborators', JSON.stringify(collaborators.slice(0, 5)));
   }
   if (userTags && userTags.length > 0) {
     parentParams.set('user_tags', JSON.stringify(userTags));
   }
+  if (locationId) {
+    parentParams.set('location_id', locationId);
+  }
 
-  const parentData = await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: parentParams.toString(),
-  });
-
-  return parentData.id as string;
+  try {
+    const parentData = await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: parentParams.toString(),
+    });
+    return parentData.id as string;
+  } catch (err: any) {
+    if (locationId && (err.message?.toLowerCase().includes('location') || err.message?.includes('100'))) {
+      console.warn('Meta Graph API rejeitou location_id no carrossel, tentando sem localização:', err.message);
+      parentParams.delete('location_id');
+      const fallbackData = await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: parentParams.toString(),
+      });
+      return fallbackData.id as string;
+    }
+    throw err;
+  }
 }
 
 /**
@@ -221,6 +266,7 @@ export async function publishPost(params: PublishParams): Promise<{ igMediaId: s
       caption: params.caption,
       collaborators: params.collaborators,
       userTags: params.userTags,
+      locationId: params.locationId,
     });
     // O container pai do carrossel também passa por processamento antes
     // de poder ser publicado, mesmo quando todos os itens são imagem.
