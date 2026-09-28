@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Image as ImageIcon,
   Clapperboard,
@@ -40,6 +40,8 @@ import {
   MapPin,
   ImagePlus,
   Radio,
+  Play,
+  Pause,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,6 +59,9 @@ import { confirmDialog } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/toast';
 import { CollaboratorsTagsInput, type CollaboratorTag } from '@/components/collaborators-tags-input';
 import { LocationPicker } from '@/components/location-picker';
+import { AudioPickerModal } from '@/components/audio-picker-modal';
+import type { TrendingTrack } from '@/app/api/instagram/trending-audios/route';
+import { Instagram } from '@/components/instagram-icon';
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
 type PostKind = 'post' | 'reels' | 'story';
@@ -351,6 +356,45 @@ export default function PublishPanel({
   const [locationId, setLocationId] = useState<string | null>(null);
   const [locationName, setLocationName] = useState<string | null>(null);
   const [audioName, setAudioName] = useState<string>('');
+  const [audioPickerOpen, setAudioPickerOpen] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<TrendingTrack | null>(null);
+  const [panelAudioPlaying, setPanelAudioPlaying] = useState(false);
+  const panelAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (panelAudioRef.current) {
+        panelAudioRef.current.pause();
+        panelAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleTogglePanelAudio = () => {
+    if (!selectedTrack?.preview_url) return;
+    if (panelAudioPlaying) {
+      panelAudioRef.current?.pause();
+      setPanelAudioPlaying(false);
+    } else {
+      if (!panelAudioRef.current || panelAudioRef.current.src !== selectedTrack.preview_url) {
+        panelAudioRef.current = new Audio(selectedTrack.preview_url);
+        panelAudioRef.current.onended = () => setPanelAudioPlaying(false);
+        panelAudioRef.current.onerror = () => setPanelAudioPlaying(false);
+      }
+      panelAudioRef.current.play().catch(() => setPanelAudioPlaying(false));
+      setPanelAudioPlaying(true);
+    }
+  };
+
+  const handleClearAudio = () => {
+    setAudioName('');
+    setSelectedTrack(null);
+    if (panelAudioRef.current) {
+      panelAudioRef.current.pause();
+      panelAudioRef.current = null;
+      setPanelAudioPlaying(false);
+    }
+  };
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -736,6 +780,11 @@ export default function PublishPanel({
       setLocationId(null);
       setLocationName(null);
       setAudioName('');
+      setSelectedTrack(null);
+      if (panelAudioRef.current) {
+        panelAudioRef.current.pause();
+        setPanelAudioPlaying(false);
+      }
       setCoverUrl(null);
       setCoverFile(null);
       setCoverPreview(null);
@@ -875,6 +924,11 @@ export default function PublishPanel({
     setLocationId(null);
     setLocationName(null);
     setAudioName('');
+    setSelectedTrack(null);
+    if (panelAudioRef.current) {
+      panelAudioRef.current.pause();
+      setPanelAudioPlaying(false);
+    }
     setCoverUrl(null);
     setCoverFile(null);
     setCoverPreview(null);
@@ -1229,48 +1283,144 @@ export default function PublishPanel({
 
           {/* Trilha Sonora / Música para Carrossel e Reels */}
           {(isCarousel || kind === 'reels') && (
-            <div className="flex flex-col gap-2 p-3.5 rounded-2xl bg-card border border-border shadow-2xs">
-              <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 p-4 rounded-2xl bg-card border border-border shadow-2xs">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
-                    <Music className="w-3.5 h-3.5" />
+                  <div className="w-7 h-7 rounded-xl bg-primary/15 text-primary flex items-center justify-center shadow-2xs">
+                    <Music className="w-4 h-4" />
                   </div>
-                  <label className="text-xs font-bold text-foreground">
-                    Trilha Sonora / Música (Opcional)
-                  </label>
+                  <div>
+                    <label className="text-xs font-bold text-foreground block">
+                      Trilha Sonora / Música (Opcional)
+                    </label>
+                    <span className="text-[11px] text-muted-foreground">
+                      {kind === 'reels'
+                        ? 'Áudio de exibição no Reels.'
+                        : 'Música de fundo recomendada para o Carrossel.'}
+                    </span>
+                  </div>
                 </div>
-                {audioName.trim() && (
-                  <Badge variant="muted" className="text-[10px] px-2 py-0">
-                    Definida
-                  </Badge>
-                )}
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setAudioPickerOpen(true)}
+                  className="h-8 text-xs rounded-xl gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  Explorar Músicas em Alta
+                </Button>
               </div>
 
-              <div className="relative flex items-center">
-                <Music className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <input
-                  type="text"
-                  value={audioName}
-                  onChange={(e) => setAudioName(e.target.value)}
-                  placeholder="ex: Coldplay - Viva La Vida (nome do artista e música)"
-                  className="h-9 pl-9 pr-8 w-full rounded-xl bg-accent/20 border border-input text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-sans"
-                />
-                {audioName.trim() && (
-                  <button
-                    type="button"
-                    onClick={() => setAudioName('')}
-                    className="absolute right-2.5 p-1 text-muted-foreground hover:text-foreground"
-                    title="Limpar música"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                {kind === 'reels'
-                  ? 'Define o nome de exibição do áudio original no Instagram Reels.'
-                  : 'Apresenta a trilha sonora selecionada na prévia do post e ficha de agendamento.'}
-              </p>
+              {/* Se tiver uma faixa selecionada com artwork e preview */}
+              {selectedTrack ? (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-accent/25 border border-primary/20 gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-accent shrink-0 border border-border group">
+                      {selectedTrack.artwork_url ? (
+                        <img
+                          src={selectedTrack.artwork_url}
+                          alt={selectedTrack.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                          <Music className="w-4 h-4" />
+                        </div>
+                      )}
+                      {selectedTrack.preview_url && (
+                        <button
+                          type="button"
+                          onClick={handleTogglePanelAudio}
+                          className="absolute inset-0 bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors cursor-pointer"
+                          title={panelAudioPlaying ? 'Pausar prévia' : 'Ouvir prévia (30s)'}
+                        >
+                          {panelAudioPlaying ? (
+                            <Pause className="w-4 h-4 text-primary fill-primary" />
+                          ) : (
+                            <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-foreground truncate max-w-[200px] sm:max-w-[280px]">
+                          {selectedTrack.title}
+                        </span>
+                        {panelAudioPlaying && (
+                          <div className="flex items-center gap-0.5 h-2.5">
+                            <span className="w-0.5 bg-primary h-2.5 animate-pulse" />
+                            <span className="w-0.5 bg-primary h-1.5 animate-pulse [animation-delay:150ms]" />
+                            <span className="w-0.5 bg-primary h-3 animate-pulse [animation-delay:300ms]" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-muted-foreground truncate">
+                        {selectedTrack.artist}
+                      </span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <a
+                          href={selectedTrack.instagram_search_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Instagram className="w-2.5 h-2.5" />
+                          Ver no Instagram
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setAudioPickerOpen(true)}
+                      className="px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent/40 rounded-lg transition-colors cursor-pointer"
+                      title="Trocar música"
+                    >
+                      Trocar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearAudio}
+                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
+                      title="Remover música"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Campo de input de texto caso queira digitar livremente ou se não selecionou do catálogo */
+                <div className="relative flex items-center">
+                  <Music className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    value={audioName}
+                    onChange={(e) => {
+                      setAudioName(e.target.value);
+                      if (!e.target.value) handleClearAudio();
+                    }}
+                    placeholder="ex: Coldplay - Viva La Vida (ou use 'Explorar Músicas em Alta')"
+                    className="h-9.5 pl-9 pr-8 w-full rounded-xl bg-accent/20 border border-input text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-sans"
+                  />
+                  {audioName.trim() && (
+                    <button
+                      type="button"
+                      onClick={handleClearAudio}
+                      className="absolute right-2.5 p-1 text-muted-foreground hover:text-foreground"
+                      title="Limpar música"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -1700,6 +1850,18 @@ export default function PublishPanel({
             )}
           </div>
         </Card>
+
+        {/* Modal de Músicas & Áudios em Alta no Instagram */}
+        <AudioPickerModal
+          open={audioPickerOpen}
+          onClose={() => setAudioPickerOpen(false)}
+          currentAudioName={audioName}
+          onSelectTrack={(track) => {
+            setAudioName(track.display_name);
+            setSelectedTrack(track);
+            toast.success(`Música selecionada: ${track.display_name}`);
+          }}
+        />
 
         {/* Modal / Dialog de Confirmação Obrigatória Antes de Enviar ao Instagram */}
         <Sheet
