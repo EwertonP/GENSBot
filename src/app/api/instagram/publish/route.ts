@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
 import { getAccountForUserOrAgency, listInstagramAccountsForUser } from '@/lib/instagram-account';
-import { publishPost, PublishMediaType } from '@/lib/instagram-publish';
+import { publishPost, PublishMediaType, erroLimiteColaboradores } from '@/lib/instagram-publish';
 import { supabase } from '@/lib/supabase';
 import { createAutomationForPublishedPost, PublishAutomationConfig } from '@/lib/publish-automation';
 
@@ -57,6 +57,8 @@ export async function POST(req: Request) {
     if (media_type === 'CAROUSEL' && (!media_urls || media_urls.length < 2)) {
       return NextResponse.json({ error: 'Carrossel precisa de ao menos 2 itens de mídia.' }, { status: 400 });
     }
+    const limiteColab = erroLimiteColaboradores(collaborators);
+    if (limiteColab) return NextResponse.json({ error: limiteColab }, { status: 400 });
 
     const account = await getAccountForUserOrAgency(user.id, instagram_user_id);
     if (!account) {
@@ -120,7 +122,7 @@ export async function POST(req: Request) {
 
     // Publicação imediata: chama a Graph API na hora e já grava como 'published'.
     try {
-      const { igMediaId } = await publishPost({
+      const { igMediaId, avisos, localizacaoDescartada } = await publishPost({
         instagramUserId: instagram_user_id,
         accessToken: account.access_token,
         mediaType: media_type,
@@ -150,6 +152,9 @@ export async function POST(req: Request) {
         .from('scheduled_posts')
         .insert({
           ...commonFields,
+          // Se a Meta recusou a localização, o registro não pode dizer que ela foi usada.
+          ...(localizacaoDescartada ? { location_id: null, location_name: null } : {}),
+          ...(avisos.length > 0 ? { aviso: avisos.join(' ') } : {}),
           scheduled_at: new Date().toISOString(),
           status: 'published',
           approval_status: 'publicado',
@@ -181,8 +186,8 @@ export async function POST(req: Request) {
             data_programada: scheduled_at || publishedDate,
             publicado_em: publishedDate,
             cover_url: cover_url || null,
-            location_id: location_id || null,
-            location_name: location_name || null,
+            location_id: localizacaoDescartada ? null : location_id || null,
+            location_name: localizacaoDescartada ? null : location_name || null,
             audio_name: audio_name || null,
             automacao_config: automation_config?.enabled ? automation_config : null,
             arquivos: [],

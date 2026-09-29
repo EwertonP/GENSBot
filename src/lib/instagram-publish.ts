@@ -25,6 +25,8 @@ interface CreateContainerParams {
   locationId?: string | null;
   coverUrl?: string | null;
   audioName?: string | null;
+  /** Recebe avisos não fatais (ex.: localização descartada) para o chamador registrar. */
+  avisos?: string[];
 }
 
 interface PublishParams extends CreateContainerParams {
@@ -32,13 +34,112 @@ interface PublishParams extends CreateContainerParams {
   mediaUrls?: string[] | null;
 }
 
+/** A Meta só aceita até 3 @usernames em `collaborators` (feed, Reels e carrossel). */
+export const MAX_COLABORADORES = 3;
+
+/** subcode da Meta para "user(s) cannot be accessed": perfil privado ou @ inválido. */
+const SUBCODE_COLABORADOR_INVALIDO = 2207018;
+
+export const AVISO_LOCALIZACAO_DESCARTADA = 'A Meta recusou a localização escolhida; o post foi publicado sem ela.';
+
+/** Erro da Graph API com os campos que a Meta devolve. `message` já vem em português quando dá. */
+export class MetaApiError extends Error {
+  code?: number;
+  subcode?: number;
+  /** Mensagem original da Meta, sem tradução (usada para decidir fallbacks). */
+  rawMessage: string;
+  colaboradoresInvalidos: string[];
+
+  constructor(
+    message: string,
+    info: { rawMessage: string; code?: number; subcode?: number; colaboradoresInvalidos?: string[] }
+  ) {
+    super(message);
+    this.name = 'MetaApiError';
+    this.rawMessage = info.rawMessage;
+    this.code = info.code;
+    this.subcode = info.subcode;
+    this.colaboradoresInvalidos = info.colaboradoresInvalidos || [];
+  }
+
+  get ehColaboradorInvalido() {
+    return this.subcode === SUBCODE_COLABORADOR_INVALIDO || this.colaboradoresInvalidos.length > 0;
+  }
+
+  get ehLocalizacaoInvalida() {
+    return !this.ehColaboradorInvalido && /location/i.test(this.rawMessage);
+  }
+}
+
+/** "The following user(s) cannot be accessed: a, b" -> ['a', 'b'] */
+export function extrairColaboradoresInvalidos(userMessage?: string | null): string[] {
+  if (!userMessage) return [];
+  const depois = userMessage.split(':').slice(1).join(':');
+  return depois
+    .split(',')
+    .map((n) => n.trim().replace(/^@/, '').replace(/[.\s]+$/, ''))
+    .filter(Boolean);
+}
+
+export function mensagemColaboradoresInvalidos(nomes: string[]): string {
+  const lista = nomes.length > 0 ? nomes.map((n) => `@${n}`).join(', ') : 'um dos colaboradores';
+  return `A Meta recusou ${nomes.length > 1 ? 'os colaboradores' : 'o colaborador'} ${lista}: o perfil é privado ou o @ está errado. Só perfis públicos podem ser colaboradores. Remova ${nomes.length > 1 ? 'esses @' : 'esse @'} e tente de novo.`;
+}
+
 async function graphFetch(url: string, options?: RequestInit) {
   const res = await fetch(url, options);
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.error?.message || `Erro na Graph API (${res.status}).`);
+    const erro = data.error || {};
+    const raw: string = erro.message || `Erro na Graph API (${res.status}).`;
+    const invalidos =
+      erro.error_subcode === SUBCODE_COLABORADOR_INVALIDO ? extrairColaboradoresInvalidos(erro.error_user_msg) : [];
+    const amigavel = erro.error_subcode === SUBCODE_COLABORADOR_INVALIDO ? mensagemColaboradoresInvalidos(invalidos) : raw;
+    throw new MetaApiError(amigavel, {
+      rawMessage: raw,
+      code: erro.code,
+      subcode: erro.error_subcode,
+      colaboradoresInvalidos: invalidos,
+    });
   }
   return data;
+}
+
+/**
+ * Cria um container de imagem só para a Meta validar os colaboradores (não publica nada;
+ * a Meta descarta o container sozinha em 24h). Se a checagem em si falhar por outro motivo
+ * (imagem, rede, limite), não bloqueia o usuário: devolve `verificado: false`.
+ */
+export async function validarColaboradores({
+  instagramUserId,
+  accessToken,
+  collaborators,
+  sampleImageUrl,
+}: {
+  instagramUserId: string;
+  accessToken: string;
+  collaborators: string[];
+  sampleImageUrl: string;
+}): Promise<{ ok: true; verificado: boolean } | { ok: false; invalidos: string[]; mensagem: string }> {
+  const params = new URLSearchParams({
+    access_token: accessToken,
+    image_url: sampleImageUrl,
+    collaborators: JSON.stringify(collaborators.slice(0, MAX_COLABORADORES)),
+  });
+  try {
+    await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    return { ok: true, verificado: true };
+  } catch (err) {
+    if (err instanceof MetaApiError && err.ehColaboradorInvalido) {
+      return { ok: false, invalidos: err.colaboradoresInvalidos, mensagem: err.message };
+    }
+    console.warn('Checagem de colaboradores não conclusiva:', err instanceof Error ? err.message : err);
+    return { ok: true, verificado: false };
+  }
 }
 
 export async function createMediaContainer({
@@ -52,13 +153,14 @@ export async function createMediaContainer({
   locationId,
   coverUrl,
   audioName,
+  avisos,
 }: CreateContainerParams): Promise<string> {
   const params = new URLSearchParams({ access_token: accessToken });
   if (caption) params.set('caption', caption);
   // Colaboradores só fazem sentido em Post/Reels/Carrossel — em Story a
   // marcação é só user_tags (a Graph API aceita até 5 colaboradores).
   if (collaborators && collaborators.length > 0 && mediaType !== 'STORIES') {
-    params.set('collaborators', JSON.stringify(collaborators.slice(0, 5)));
+    params.set('collaborators', JSON.stringify(collaborators.slice(0, MAX_COLABORADORES)));
   }
   if (userTags && userTags.length > 0) {
     params.set('user_tags', JSON.stringify(userTags));
@@ -96,9 +198,11 @@ export async function createMediaContainer({
     });
     return data.id as string;
   } catch (err: any) {
-    // Se a Meta rejeitar o location_id (ex: página sem coordenadas válidas), tenta novamente sem travar o post
-    if (locationId && (err.message?.toLowerCase().includes('location') || err.message?.includes('100'))) {
-      console.warn('Meta Graph API rejeitou location_id, tentando sem localização:', err.message);
+    // Se a Meta rejeitar o location_id (ex: id que não é uma página de local), publica sem ele
+    // e registra o aviso: o post não pode ficar preso por causa de um enfeite.
+    if (locationId && err instanceof MetaApiError && err.ehLocalizacaoInvalida) {
+      console.warn('Meta Graph API rejeitou location_id, tentando sem localização:', err.rawMessage);
+      avisos?.push(AVISO_LOCALIZACAO_DESCARTADA);
       params.delete('location_id');
       const fallbackData = await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
         method: 'POST',
@@ -126,6 +230,7 @@ export async function createCarouselContainer({
   collaborators,
   userTags,
   locationId,
+  avisos,
 }: {
   instagramUserId: string;
   accessToken: string;
@@ -134,6 +239,7 @@ export async function createCarouselContainer({
   collaborators?: string[] | null;
   userTags?: UserTag[] | null;
   locationId?: string | null;
+  avisos?: string[];
 }): Promise<string> {
   if (mediaUrls.length < 2 || mediaUrls.length > 10) {
     throw new Error('Carrossel precisa de 2 a 10 itens de mídia.');
@@ -173,7 +279,7 @@ export async function createCarouselContainer({
   });
   if (caption) parentParams.set('caption', caption);
   if (collaborators && collaborators.length > 0) {
-    parentParams.set('collaborators', JSON.stringify(collaborators.slice(0, 5)));
+    parentParams.set('collaborators', JSON.stringify(collaborators.slice(0, MAX_COLABORADORES)));
   }
   if (userTags && userTags.length > 0) {
     parentParams.set('user_tags', JSON.stringify(userTags));
@@ -190,8 +296,9 @@ export async function createCarouselContainer({
     });
     return parentData.id as string;
   } catch (err: any) {
-    if (locationId && (err.message?.toLowerCase().includes('location') || err.message?.includes('100'))) {
-      console.warn('Meta Graph API rejeitou location_id no carrossel, tentando sem localização:', err.message);
+    if (locationId && err instanceof MetaApiError && err.ehLocalizacaoInvalida) {
+      console.warn('Meta Graph API rejeitou location_id no carrossel, tentando sem localização:', err.rawMessage);
+      avisos?.push(AVISO_LOCALIZACAO_DESCARTADA);
       parentParams.delete('location_id');
       const fallbackData = await graphFetch(`${GRAPH_BASE}/${instagramUserId}/media`, {
         method: 'POST',
@@ -254,7 +361,15 @@ export async function publishContainer(
   return data.id as string;
 }
 
-export async function publishPost(params: PublishParams): Promise<{ igMediaId: string }> {
+export async function publishPost(
+  params: PublishParams
+): Promise<{ igMediaId: string; avisos: string[]; localizacaoDescartada: boolean }> {
+  const avisos: string[] = [];
+  const resultado = (igMediaId: string) => ({
+    igMediaId,
+    avisos,
+    localizacaoDescartada: avisos.includes(AVISO_LOCALIZACAO_DESCARTADA),
+  });
   if (params.mediaType === 'CAROUSEL') {
     if (!params.mediaUrls || params.mediaUrls.length < 2) {
       throw new Error('Carrossel precisa de ao menos 2 itens de mídia.');
@@ -267,15 +382,16 @@ export async function publishPost(params: PublishParams): Promise<{ igMediaId: s
       collaborators: params.collaborators,
       userTags: params.userTags,
       locationId: params.locationId,
+      avisos,
     });
     // O container pai do carrossel também passa por processamento antes
     // de poder ser publicado, mesmo quando todos os itens são imagem.
     await waitForContainerReady(creationId, params.accessToken);
     const igMediaId = await publishContainer(params.instagramUserId, params.accessToken, creationId);
-    return { igMediaId };
+    return resultado(igMediaId);
   }
 
-  const creationId = await createMediaContainer(params);
+  const creationId = await createMediaContainer({ ...params, avisos });
 
   // Imagem de feed não passa pelo processamento assíncrono de vídeo (sem
   // status_code pra dar polling), mas o ID do container ainda leva um
@@ -289,5 +405,13 @@ export async function publishPost(params: PublishParams): Promise<{ igMediaId: s
   }
 
   const igMediaId = await publishContainer(params.instagramUserId, params.accessToken, creationId);
-  return { igMediaId };
+  return resultado(igMediaId);
+}
+
+/** Mensagem de erro se a lista passa do limite da Meta; null se está ok. */
+export function erroLimiteColaboradores(colaboradores: unknown): string | null {
+  if (Array.isArray(colaboradores) && colaboradores.length > MAX_COLABORADORES) {
+    return `A Meta aceita no máximo ${MAX_COLABORADORES} colaboradores por publicação (você marcou ${colaboradores.length}).`;
+  }
+  return null;
 }

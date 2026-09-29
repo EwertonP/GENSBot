@@ -88,7 +88,7 @@ async function handlePublishScheduled(req: Request) {
       }
 
       try {
-        const { igMediaId } = await publishPost({
+        const { igMediaId, avisos, localizacaoDescartada } = await publishPost({
           instagramUserId: post.instagram_user_id,
           accessToken: account.access_token,
           mediaType: post.media_type as PublishMediaType,
@@ -123,6 +123,9 @@ async function handlePublishScheduled(req: Request) {
             ig_media_id: igMediaId,
             created_automation_id: createdAutomationId,
             published_at: publishedAt,
+            // Se a Meta recusou a localização, o registro não pode dizer que ela foi usada.
+            ...(localizacaoDescartada ? { location_id: null, location_name: null } : {}),
+            ...(avisos.length > 0 ? { aviso: avisos.join(' ') } : {}),
           })
           .eq('id', post.id);
 
