@@ -102,6 +102,8 @@ export async function POST(req: Request) {
     if (r.error) r = await gerar(serviceSupabase);
     tarefaHoje = r.data?.id || null;
     await serviceSupabase.from('tarefas_recorrentes').update({ ultima_geracao: hoje }).eq('id', criada.id);
+    // A lista mostra 'próxima' a partir de ultima_geracao: a de hoje já foi gerada.
+    criada.ultima_geracao = hoje;
   }
 
   return NextResponse.json({ regra: criada, tarefa_de_hoje: tarefaHoje }, { status: 201 });
