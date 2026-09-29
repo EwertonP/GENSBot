@@ -412,7 +412,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Get current authenticated user on load
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then((res: { data: { user: any } }) => {
+      const user = res?.data?.user;
       if (!user) {
         router.push('/login');
       } else {
