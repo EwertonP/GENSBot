@@ -45,7 +45,8 @@ export async function getTokenHealth(userId: string) {
     let status: 'ok' | 'warning' | 'expired' | 'unknown' = 'unknown';
     if (daysRemaining !== null) {
       if (daysRemaining < 0) status = 'expired';
-      else if (daysRemaining <= 7) status = 'warning';
+      // A renovação roda com 30 dias de folga: abaixo de 25, ela está falhando.
+      else if (daysRemaining <= 25) status = 'warning';
       else status = 'ok';
     }
     return {
@@ -296,7 +297,7 @@ export function buildAlerts(
     if (acc.status === 'expired') {
       alerts.push({ level: 'critical', key: `token:${acc.instagram_user_id}`, message: `O token da conta @${acc.instagram_username || acc.instagram_user_id} expirou. Reconecte a conta para as automações voltarem a funcionar.` });
     } else if (acc.status === 'warning') {
-      alerts.push({ level: 'warning', key: `token:${acc.instagram_user_id}`, message: `O token da conta @${acc.instagram_username || acc.instagram_user_id} expira em ${acc.daysRemaining} dia(s). A renovação automática deve cobrir isso, mas vale confirmar.` });
+      alerts.push({ level: 'warning', key: `token:${acc.instagram_user_id}`, message: `O token da conta @${acc.instagram_username || acc.instagram_user_id} expira em ${acc.daysRemaining} dia(s) e a renovação automática não está conseguindo renová-lo. Se chegar a zero, a conta precisa ser reconectada.` });
     }
   }
 
