@@ -1,4 +1,5 @@
 'use client';
+import { Avatar } from './avatar';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, UserX, Check, ChevronDown } from 'lucide-react';
@@ -56,14 +57,6 @@ export function MemberChipSelect({
 
   const membroSelecionado = membros.find((m) => m.id === value);
 
-  // Extrai iniciais (ex: "Ewerton Phillipe" -> "EP")
-  const getIniciais = (nome: string) => {
-    const partes = nome.trim().split(' ').filter(Boolean);
-    if (partes.length === 0) return '?';
-    if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
-  };
-
   return (
     <div className={`relative flex flex-col gap-0.5 ${className}`} ref={containerRef}>
       {label && (
@@ -85,9 +78,7 @@ export function MemberChipSelect({
           {membroSelecionado ? (
             <>
               {/* Mini Avatar com Iniciais */}
-              <div className="w-4.5 h-4.5 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0 border border-primary/30">
-                {getIniciais(membroSelecionado.nome)}
-              </div>
+              <Avatar nome={membroSelecionado.nome} src={membroSelecionado.foto_url} size="xs" />
               <span className="truncate text-xs font-semibold text-foreground">
                 {membroSelecionado.nome}
               </span>
@@ -153,9 +144,7 @@ export function MemberChipSelect({
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="w-5 h-5 rounded-full bg-accent text-foreground font-bold text-xs flex items-center justify-center shrink-0 border border-border">
-                      {getIniciais(m.nome)}
-                    </div>
+                    <Avatar nome={m.nome} src={m.foto_url} size="xs" />
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="truncate text-xs font-semibold leading-tight">{m.nome}</span>
                       {m.cargo && (

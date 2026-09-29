@@ -1,4 +1,5 @@
 'use client';
+import { ScrollShadow } from '@/components/ui/scroll-shadow';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -561,7 +562,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
               description="Crie o primeiro link acima para começar a rastrear acessos."
             />
           ) : (
-            <div className="overflow-x-auto">
+            <ScrollShadow>
               <table className="w-full text-left text-xs text-muted-foreground">
                 <thead className="uppercase text-xs font-bold border-b border-border">
                   <tr>
@@ -657,7 +658,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                   })}
                 </tbody>
               </table>
-            </div>
+            </ScrollShadow>
           )}
         </div>
       </Card>

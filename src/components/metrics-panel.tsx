@@ -1,4 +1,5 @@
 'use client';
+import { ScrollShadow } from '@/components/ui/scroll-shadow';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -832,7 +833,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
               description="Ao clicar em 'Copiar Link', 'Ver Relatório' ou 'Enviar no WhatsApp', os relatórios gerados aparecerão salvos nesta lista para consulta a qualquer momento."
             />
           ) : (
-            <div className="overflow-x-auto">
+            <ScrollShadow>
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground font-mono text-xs uppercase">
@@ -900,7 +901,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollShadow>
           )}
         </Card>
       ) : loading ? (

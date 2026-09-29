@@ -1,4 +1,5 @@
 'use client';
+import { ScrollShadow } from '@/components/ui/scroll-shadow';
 
 import React from 'react';
 import { Send, MessageSquare, ExternalLink, Image as ImageIcon, AlertCircle, Copy, X, UploadCloud, Phone } from 'lucide-react';
@@ -137,7 +138,7 @@ export function AprovacaoWhatsappSheet({
               ) : (
                 <div className="p-3.5 rounded-2xl bg-accent/30 border border-border space-y-3">
                   {/* Miniaturas das Mídias */}
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                  <ScrollShadow className="flex items-center gap-2 pb-1">
                     {itemParaAprovacao.arquivos.map((arq, idx) => (
                       <div
                         key={arq.id || idx}
@@ -153,7 +154,7 @@ export function AprovacaoWhatsappSheet({
                         </span>
                       </div>
                     ))}
-                  </div>
+                  </ScrollShadow>
 
                   {/* Card de Simulação de Prévia Visual do Link no WhatsApp */}
                   <div className="p-2.5 rounded-xl bg-card border border-border flex items-center justify-between gap-3 shadow-2xs">

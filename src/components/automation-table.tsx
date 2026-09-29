@@ -1,4 +1,5 @@
 'use client';
+import { ScrollShadow } from '@/components/ui/scroll-shadow';
 
 import React from 'react';
 import { Plus, Trash2, Search, Settings, Workflow } from 'lucide-react';
@@ -85,7 +86,7 @@ export default function AutomationTable({
       </div>
 
       <Card padding="sm" className="p-0 overflow-hidden">
-        <div className="overflow-x-auto">
+        <ScrollShadow>
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-border bg-muted/40">
@@ -196,7 +197,7 @@ export default function AutomationTable({
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollShadow>
 
         {filtered.length === 0 && (
           <div className="py-10 text-center text-xs text-muted-foreground">

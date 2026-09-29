@@ -1,4 +1,5 @@
 'use client';
+import { ScrollShadow } from '@/components/ui/scroll-shadow';
 import { Select } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -337,7 +338,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <ScrollShadow>
         <table className="w-full text-sm text-left text-muted-foreground">
           <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-accent">
             <tr>
@@ -484,7 +485,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
             )}
           </tbody>
         </table>
-      </div>
+      </ScrollShadow>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
