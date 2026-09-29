@@ -1,4 +1,5 @@
 'use client';
+import { ScrollShadow } from '@/components/ui/scroll-shadow';
 
 import React, { useState, useEffect, useRef, useTransition } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -242,7 +243,7 @@ export function AudioPickerModal({
 
         {/* Categorias (Desabilitadas temporariamente durante busca ativa por texto) */}
         {!searchQuery.trim() && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <ScrollShadow className="flex items-center gap-1.5 pb-1 scrollbar-none">
             {CATEGORIES.map((cat) => {
               const Icon = cat.icon;
               const isActive = selectedCategory === cat.id;
@@ -263,7 +264,7 @@ export function AudioPickerModal({
                 </button>
               );
             })}
-          </div>
+          </ScrollShadow>
         )}
       </div>
 

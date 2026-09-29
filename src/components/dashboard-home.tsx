@@ -1,4 +1,5 @@
 'use client';
+import { ScrollShadow } from '@/components/ui/scroll-shadow';
 import { Select } from '@/components/ui/select';
 import { SegmentedItem } from '@/components/ui/segmented';
 
@@ -1110,7 +1111,7 @@ export default function DashboardHome({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <ScrollShadow>
             <table className="w-full text-sm text-left text-muted-foreground">
               <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-border">
                 <tr>
@@ -1165,7 +1166,7 @@ export default function DashboardHome({
                 )}
               </tbody>
             </table>
-          </div>
+          </ScrollShadow>
         </Card>
 
         {/* Ranking de Automações */}

@@ -1,4 +1,5 @@
 'use client';
+import { Avatar } from '@/components/ui/avatar';
 import { SegmentedItem } from '@/components/ui/segmented';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -814,8 +815,8 @@ function TarefaCard({
           </span>
         ) : null}
         {mostrarResponsavel && t.responsavel && (
-          <span className="flex items-center gap-1">
-            <User className="w-3 h-3" /> {t.responsavel.nome}
+          <span className="flex items-center gap-1.5">
+            <Avatar nome={t.responsavel.nome} size="xs" className="ring-1" /> {t.responsavel.nome}
           </span>
         )}
       </div>

@@ -1,4 +1,6 @@
 'use client';
+import { ScrollShadow } from '@/components/ui/scroll-shadow';
+import { Avatar } from '@/components/ui/avatar';
 import { SegmentedItem } from '@/components/ui/segmented';
 
 import React, { useEffect, useMemo, useState, useRef } from 'react';
@@ -1140,7 +1142,7 @@ export default function EsteiraTab({
           }}
         />
       ) : viewMode === 'kanban' ? (
-        <div className="flex gap-4 overflow-x-auto pb-6 pt-1 select-none">
+        <ScrollShadow className="flex gap-4 pb-6 pt-1 select-none">
           {COLUNAS_KANBAN.filter((col) => !ocultarPublicados || col !== 'publicado').map((colStatus) => {
             const itensDaColuna = itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === colStatus);
             const info = STATUS_LABELS[colStatus];
@@ -1383,9 +1385,7 @@ export default function EsteiraTab({
                         {/* Responsável */}
                         {item.responsavel && (
                           <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium pt-1 border-t border-border">
-                            <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-foreground">
-                              {item.responsavel.nome[0].toUpperCase()}
-                            </div>
+                            <Avatar nome={item.responsavel.nome} size="xs" />
                             <span className="truncate">{item.responsavel.nome}</span>
                           </div>
                         )}
@@ -1556,11 +1556,11 @@ export default function EsteiraTab({
               </div>
             );
           })}
-        </div>
+        </ScrollShadow>
       ) : (
         /* Visualização em Lista */
         <Card padding="lg" className="rounded-2xl">
-          <div className="overflow-x-auto">
+          <ScrollShadow>
             <table className="w-full text-left text-xs text-muted-foreground">
               <thead className="uppercase text-xs font-bold border-b border-border">
                 <tr>
@@ -1598,7 +1598,14 @@ export default function EsteiraTab({
                       </Badge>
                     </td>
                     <td className="py-3 px-3">
-                      {item.responsavel?.nome || <span className="text-muted-foreground">—</span>}
+                      {item.responsavel?.nome ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Avatar nome={item.responsavel.nome} size="xs" />
+                          {item.responsavel.nome}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="py-3 px-3 font-mono">{item.arquivos?.length || 0} arquivos</td>
                     <td className="py-3 px-3 text-right">
@@ -1701,7 +1708,7 @@ export default function EsteiraTab({
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollShadow>
         </Card>
       )}
 

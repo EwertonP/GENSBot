@@ -1,4 +1,5 @@
 'use client';
+import { ScrollShadow } from '@/components/ui/scroll-shadow';
 import { Select } from '@/components/ui/select';
 
 import React, { useState } from 'react';
@@ -769,7 +770,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
             </div>
 
             {/* Modal Filter Tabs */}
-            <div className="flex border-b border-accent bg-card px-5 py-3 gap-2 overflow-x-auto select-none scrollbar-none">
+            <ScrollShadow className="flex border-b border-accent bg-card px-5 py-3 gap-2 select-none scrollbar-none">
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'video', label: 'Reels' },
@@ -788,7 +789,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                   {tab.label}
                 </button>
               ))}
-            </div>
+            </ScrollShadow>
 
             {/* Modal List (Lista 1 por linha com miniatura grande ao lado) */}
             <div className="p-5 overflow-y-auto flex-1 bg-background flex flex-col gap-4">
