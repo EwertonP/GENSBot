@@ -1,4 +1,5 @@
 'use client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import React, { useEffect, useState, useRef } from 'react';
 import {
@@ -1825,12 +1826,7 @@ export default function PublishPanel({
 
                   {/* Opção para Salvar na Biblioteca Central */}
                   <label className="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={saveToLibrary}
-                      onChange={(e) => setSaveToLibrary(e.target.checked)}
-                      className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                    />
+                    <Checkbox checked={saveToLibrary} onCheckedChange={(checked) => setSaveToLibrary(checked)} />
                     <span className="text-xs text-foreground font-medium">
                       Salvar também esta automação na biblioteca principal para uso em futuros posts
                     </span>

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import nextDynamicImport from 'next/dynamic';
+import { Switch } from '@/components/ui/switch';
 import {
   Plus,
   ExternalLink,
@@ -202,19 +203,11 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                         <div className="flex flex-wrap items-center gap-4 flex-shrink-0 w-full md:w-auto">
                           {/* Active toggle */}
                           <label className="flex items-center gap-2.5 cursor-pointer select-none p-1.5 px-3 rounded-2xl bg-accent/40 border border-border hover:border-foreground/30 transition-ui">
-                            <input
-                              type="checkbox"
+                            <Switch
+                              size="sm"
                               checked={form.active}
-                              onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
-                              className="sr-only peer"
+                              onCheckedChange={(checked) => setForm(prev => ({ ...prev, active: checked }))}
                             />
-                            <div className={`w-10 h-5 rounded-full transition-colors relative flex items-center p-0.5 cursor-pointer ${
-                              form.active ? 'bg-primary border border-primary/30' : 'bg-muted border border-border'
-                            }`}>
-                              <div className={`w-4 h-4 rounded-full shadow-md transition-transform duration-200 ${
-                                form.active ? 'translate-x-5 bg-primary-foreground' : 'translate-x-0 bg-background border border-border'
-                              }`} />
-                            </div>
                             <span className={`text-xs font-bold font-mono ${form.active ? 'text-foreground' : 'text-muted-foreground'}`}>
                               {form.active ? '🟢 Ativa' : '⚪ Pausada'}
                             </span>

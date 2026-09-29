@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Spinner } from '@/components/ui/spinner';
 import { useParams } from 'next/navigation';
 import {
   Grid3X3,
@@ -102,7 +103,7 @@ export default function FeedAprovacaoPage() {
   if (carregando) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
-        <div className="w-10 h-10 border-3 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+        <Spinner size="lg" className="text-foreground" />
         <p className="text-xs text-muted-foreground mt-4 font-mono">Carregando feed no Instagram...</p>
       </div>
     );

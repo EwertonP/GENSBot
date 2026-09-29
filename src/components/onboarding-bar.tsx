@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Check, CheckCircle2, Circle, Sparkles, Loader2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
+import { Check, CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import { ETAPAS_ONBOARDING_PADRAO, type Cliente, type EtapaOnboarding } from '@/lib/clientes';
 
 interface OnboardingBarProps {
@@ -111,7 +112,7 @@ export function OnboardingBar({ cliente, onAtualizarCliente, showToast }: Onboar
               }`}
             >
               {isSaving ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
+                <Spinner size="xs" className="text-primary" />
               ) : isDone ? (
                 <div className="w-4 h-4 rounded-full bg-primary text-black flex items-center justify-center shrink-0 shadow-xs">
                   <Check className="w-2.5 h-2.5 stroke-[3]" />

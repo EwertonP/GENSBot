@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { Spinner } from '@/components/ui/spinner';
 import {
   CheckCircle2,
   AlertCircle,
@@ -276,7 +277,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   if (carregando) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-foreground font-sans">
-        <div className="w-8 h-8 rounded-full border-2 border-foreground border-t-transparent animate-spin mb-4" />
+        <Spinner size="md" className="text-foreground mb-4" />
         <p className="text-sm font-semibold text-muted-foreground">Carregando publicação oficial do Instagram...</p>
       </div>
     );

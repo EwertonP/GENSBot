@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { Spinner } from '@/components/ui/spinner';
 import {
   Plus,
   Search,
@@ -305,7 +306,7 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
       {loading ? (
         <div className="min-h-[280px] flex items-center justify-center">
           <div className="flex items-center gap-2.5 text-muted-foreground text-xs font-medium">
-            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <Spinner className="text-primary" />
             <span>Carregando formulários...</span>
           </div>
         </div>
