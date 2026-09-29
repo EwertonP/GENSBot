@@ -3,7 +3,7 @@
 import React, { useState, useSyncExternalStore } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
-import { X } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
 
@@ -114,6 +114,11 @@ export function ConfirmHost() {
             )}
           >
             <div className="flex flex-col gap-1.5">
+              {destructive && (
+                <span className="mb-2 inline-flex size-10 items-center justify-center rounded-full bg-destructive-soft text-destructive ring-4 ring-destructive/10 animate-in zoom-in-75 duration-200">
+                  <AlertTriangle className="size-5" />
+                </span>
+              )}
               <AlertDialog.Title className="text-base font-semibold leading-6">{opts?.title}</AlertDialog.Title>
               {opts?.description && (
                 <AlertDialog.Description className="text-sm text-muted-foreground leading-5">

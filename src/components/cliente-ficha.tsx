@@ -1,4 +1,5 @@
 'use client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -619,12 +620,7 @@ function Contatos({
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={grupo}
-              onChange={(e) => setGrupo(e.target.checked)}
-              className="size-4 accent-primary"
-            />
+            <Checkbox checked={grupo} onCheckedChange={(checked) => setGrupo(checked)} />
             É o grupo de WhatsApp do cliente
           </label>
           <Button type="button" size="sm" variant="secondary" className="ml-auto" loading={adicionando} onClick={adicionar}>

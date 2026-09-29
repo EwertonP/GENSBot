@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useTransition } from 'react';
+import { Spinner } from '@/components/ui/spinner';
 import {
   Music,
   Search,
@@ -10,7 +11,6 @@ import {
   Sparkles,
   Check,
   X,
-  Loader2,
   Volume2,
   Flame,
   Coffee,
@@ -271,7 +271,7 @@ export function AudioPickerModal({
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5 divide-y divide-border/30">
         {loading ? (
           <div className="py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <Spinner size="md" className="text-primary" />
             <p className="text-xs font-medium">Buscando áudios e prévias sonoras...</p>
           </div>
         ) : tracks.length === 0 ? (

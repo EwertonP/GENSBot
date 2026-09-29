@@ -1,4 +1,5 @@
 'use client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import React, { useState } from 'react';
 import { Plus, Trash2, ChevronDown, MessageSquare, HelpCircle, Link2, Clock, Settings2, GripVertical, GitBranch } from 'lucide-react';
@@ -331,21 +332,11 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
             <span className="text-xs font-bold text-foreground">Captura de Leads & Integração</span>
             <div className="grid grid-cols-2 gap-4">
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={form.ask_email || false}
-                  onChange={(e) => setForm((prev) => ({ ...prev, ask_email: e.target.checked }))}
-                  className="rounded border-border bg-accent text-primary focus:ring-primary/20 w-4 h-4"
-                />
+                <Checkbox checked={form.ask_email || false} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, ask_email: checked }))} />
                 <span className="text-xs text-muted-foreground font-semibold">Solicitar E-mail</span>
               </label>
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={form.ask_phone || false}
-                  onChange={(e) => setForm((prev) => ({ ...prev, ask_phone: e.target.checked }))}
-                  className="rounded border-border bg-accent text-primary focus:ring-primary/20 w-4 h-4"
-                />
+                <Checkbox checked={form.ask_phone || false} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, ask_phone: checked }))} />
                 <span className="text-xs text-muted-foreground font-semibold">Solicitar Telefone</span>
               </label>
             </div>

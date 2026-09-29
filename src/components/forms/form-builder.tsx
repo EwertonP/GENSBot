@@ -1,6 +1,8 @@
 'use client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import React, { useState, useEffect } from 'react';
+import { Spinner } from '@/components/ui/spinner';
 import {
   ArrowLeft,
   Save,
@@ -298,7 +300,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
     return (
       <div className="min-h-[500px] flex items-center justify-center">
         <div className="flex items-center gap-2.5 text-muted-foreground text-xs font-medium">
-          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <Spinner className="text-primary" />
           <span>Carregando construtor de formulários...</span>
         </div>
       </div>
@@ -657,12 +659,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                 {selectedField.tipo !== 'welcome' && selectedField.tipo !== 'thank_you' && (
                   <div className="pt-2 border-t border-border">
                     <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedField.obrigatorio}
-                        onChange={(e) => handleUpdateSelectedField({ obrigatorio: e.target.checked })}
-                        className="rounded border-input text-primary focus:ring-ring"
-                      />
+                      <Checkbox checked={selectedField.obrigatorio} onCheckedChange={(checked) => handleUpdateSelectedField({ obrigatorio: checked })} />
                       <span>Resposta obrigatória</span>
                     </label>
                   </div>

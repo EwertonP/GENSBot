@@ -1,4 +1,5 @@
 'use client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Briefcase, Plus, Search, ShieldAlert } from 'lucide-react';
@@ -212,12 +213,7 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
         </div>
         {arquivadosCount > 0 && (
           <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={mostrarArquivados}
-              onChange={(e) => setMostrarArquivados(e.target.checked)}
-              className="size-4 accent-primary"
-            />
+            <Checkbox checked={mostrarArquivados} onCheckedChange={(checked) => setMostrarArquivados(checked)} />
             Mostrar arquivados ({arquivadosCount})
           </label>
         )}

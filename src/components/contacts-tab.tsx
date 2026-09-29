@@ -1,4 +1,5 @@
 'use client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { FileText, Trash2, ExternalLink, Plus, X, Pencil, StickyNote, Info } from 'lucide-react';
@@ -340,13 +341,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
           <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-accent">
             <tr>
               <th className="py-3 px-4 w-8">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={toggleAll}
-                  aria-label="Selecionar todos os contatos desta página"
-                  className="cursor-pointer"
-                />
+                <Checkbox checked={allSelected} onCheckedChange={() => toggleAll()} aria-label="Selecionar todos os contatos desta página" />
               </th>
               <th className="py-3 px-4"><span className="sr-only">Foto</span></th>
               <th className="py-3 px-4">Nome</th>
@@ -372,13 +367,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
               contacts.map(item => (
                 <tr key={item.instagram_id} className="hover:bg-card/70 transition-colors">
                   <td className="py-3.5 px-4">
-                    <input
-                      type="checkbox"
-                      checked={selectedContactIds.has(item.instagram_id)}
-                      onChange={() => toggleOne(item.instagram_id)}
-                      aria-label={`Selecionar ${item.name || item.username || item.instagram_id}`}
-                      className="cursor-pointer"
-                    />
+                    <Checkbox checked={selectedContactIds.has(item.instagram_id)} onCheckedChange={() => toggleOne(item.instagram_id)} aria-label={`Selecionar ${item.name || item.username || item.instagram_id}`} />
                   </td>
                   <td className="py-3.5 px-4">
                     {item.profile_picture_url ? (
