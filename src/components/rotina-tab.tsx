@@ -16,6 +16,8 @@ import {
   Timer,
   Trash2,
   User,
+  Repeat,
+  Rocket,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +30,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { MoverEtapaMenu } from '@/components/mover-etapa-menu';
 import { toast } from '@/components/ui/toast';
+import { RotinaRecorrentesSheet } from '@/components/rotina-recorrentes';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
 import { STATUS_LABELS, type StatusConteudo } from '@/lib/conteudo';
@@ -110,6 +113,9 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
 
   const [colunaSobre, setColunaSobre] = useState<StatusTarefa | null>(null);
   const [editando, setEditando] = useState<TarefaRotina | null>(null);
+  const [recorrentesAberto, setRecorrentesAberto] = useState(false);
+  // Incrementa para recarregar o quadro (ex.: rotina nova gerou a tarefa de hoje).
+  const [versaoQuadro, setVersaoQuadro] = useState(0);
 
   // showToast vem recriado a cada render da página; a ref evita refazer o fetch do quadro por isso.
   const showToastRef = useRef(showToast);
@@ -152,7 +158,7 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
     return () => {
       ativo = false;
     };
-  }, [verDe]);
+  }, [verDe, versaoQuadro]);
 
   const nomeMembro = (id: string | null) => membros.find((m) => m.id === id)?.nome || null;
 
@@ -383,6 +389,27 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
     }
   }
 
+  async function promoverTarefa(tarefa: TarefaRotina, tipo: string, clienteId: string | null) {
+    try {
+      const res = await fetch(`/api/rotina/${tarefa.id}/promover`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo, cliente_id: clienteId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setEditando(null);
+      setCarregando(true);
+      setVersaoQuadro((v) => v + 1);
+      toast.success('Virou demanda na esteira', {
+        description: `"${tarefa.titulo}" entrou em Planejamento.`,
+        action: onAbrirDemanda ? { label: 'Abrir', onClick: () => onAbrirDemanda(data.demanda.id) } : undefined,
+      });
+    } catch (err) {
+      showToast(err instanceof Error && err.message ? err.message : 'Não foi possível criar a demanda.', 'error');
+    }
+  }
+
   // ---------- Render ----------
   const demandasAbertas = demandas.filter((d) => d.status !== 'publicado');
   const etapasMenu = COLUNAS_ROTINA.map((c) => ({ status: c.id, label: c.label }));
@@ -402,6 +429,13 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={() => setRecorrentesAberto(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-card hover:bg-accent text-foreground font-semibold cursor-pointer"
+          >
+            <Repeat className="w-3.5 h-3.5 text-primary" /> Recorrentes
+          </button>
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-card font-mono">
             <Layers className="w-3.5 h-3.5 text-muted-foreground" /> {resumo.abertos} em aberto
           </span>
@@ -711,6 +745,20 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
         podeReatribuir={ehMaster || editando?.responsavel_id === eu?.id}
         onClose={() => setEditando(null)}
         onSalvar={salvarEdicao}
+        onPromover={promoverTarefa}
+      />
+
+      <RotinaRecorrentesSheet
+        aberto={recorrentesAberto}
+        onClose={() => setRecorrentesAberto(false)}
+        clientes={clientes}
+        membros={membros}
+        ehMaster={ehMaster}
+        showToast={showToast}
+        onMudou={() => {
+          setCarregando(true);
+          setVersaoQuadro((v) => v + 1);
+        }}
       />
     </div>
   );
@@ -793,6 +841,11 @@ function TarefaCard({
         <Badge variant={t.tipo === 'peca_avulsa' ? 'brand' : 'muted'} className="text-[11px]">
           {TIPO_TAREFA_LABELS[t.tipo] || 'Interno'}
         </Badge>
+        {t.recorrencia_id && (
+          <span className="flex items-center" title="Tarefa recorrente">
+            <Repeat className="w-3 h-3" aria-label="Recorrente" />
+          </span>
+        )}
         {t.prioridade !== 'normal' && (
           <Badge variant={prio.variant} className="text-[11px] font-bold">
             {prio.label}
@@ -928,6 +981,7 @@ function EditarTarefaSheet({
   podeReatribuir,
   onClose,
   onSalvar,
+  onPromover,
 }: {
   tarefa: TarefaRotina | null;
   clientes: Cliente[];
@@ -935,6 +989,7 @@ function EditarTarefaSheet({
   podeReatribuir: boolean;
   onClose: () => void;
   onSalvar: (t: TarefaRotina) => Promise<void>;
+  onPromover: (t: TarefaRotina, tipo: string, clienteId: string | null) => Promise<void>;
 }) {
   // Remontado (key) a cada tarefa aberta, então o rascunho nasce da prop.
   const [rascunho, setRascunho] = useState<TarefaRotina | null>(tarefa);
@@ -1077,6 +1132,10 @@ function EditarTarefaSheet({
           )}
         </div>
 
+        {!rascunho.demanda_id && rascunho.tipo !== 'sub_tarefa' && (
+          <PromoverParaDemanda tarefa={tarefa} clientes={clientes} onPromover={onPromover} />
+        )}
+
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>
             Cancelar
@@ -1087,5 +1146,61 @@ function EditarTarefaSheet({
         </div>
       </form>
     </Sheet>
+  );
+}
+
+/** A tarefa cresceu: vira demanda da esteira (entra em Planejamento) e a tarefa é concluída. */
+function PromoverParaDemanda({
+  tarefa,
+  clientes,
+  onPromover,
+}: {
+  tarefa: TarefaRotina;
+  clientes: Cliente[];
+  onPromover: (t: TarefaRotina, tipo: string, clienteId: string | null) => Promise<void>;
+}) {
+  const [tipo, setTipo] = useState('avulso');
+  const [clienteId, setClienteId] = useState(tarefa.cliente_id || '');
+  const [enviando, setEnviando] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-dashed border-border p-3">
+      <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+        <Rocket className="w-3.5 h-3.5 text-primary" /> Transformar em demanda
+      </span>
+      <span className="text-[11px] text-muted-foreground">
+        Cria a demanda na esteira (em Planejamento) com este título, descrição, prazo e responsável, e conclui esta tarefa.
+      </span>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className="h-8 text-xs w-44" aria-label="Cliente da demanda">
+          <option value="">Escolha o cliente…</option>
+          {clientes.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+            </option>
+          ))}
+        </Select>
+        <Select value={tipo} onChange={(e) => setTipo(e.target.value)} className="h-8 text-xs w-32" aria-label="Formato da demanda">
+          <option value="avulso">Avulso</option>
+          <option value="post">Post</option>
+          <option value="reel">Reels</option>
+          <option value="story">Story</option>
+        </Select>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          loading={enviando}
+          disabled={!clienteId}
+          onClick={async () => {
+            setEnviando(true);
+            await onPromover(tarefa, tipo, clienteId || null);
+            setEnviando(false);
+          }}
+        >
+          Criar demanda
+        </Button>
+      </div>
+    </div>
   );
 }
