@@ -16,4 +16,6 @@ export interface UtmLink {
   automation_id?: string | null;
   click_count?: number;
   created_at?: string;
+  /** Cliente dono da conta de Instagram do link (calculado pela API). */
+  cliente?: { nome: string | null; cor: string | null; foto_url: string | null } | null;
 }

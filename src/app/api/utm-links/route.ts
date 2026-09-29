@@ -42,7 +42,33 @@ export async function GET(req: Request) {
       .order('created_at', { ascending: false });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json((data || []).map(link => withShortUrl(req, link)));
+
+    // Cliente de cada link: conta de Instagram do link -> cliente ligado a essa conta.
+    const { data: contas } = await supabase
+      .from('instagram_accounts')
+      .select('id, instagram_user_id, instagram_username')
+      .in('instagram_user_id', accountIds);
+    const contaIds = (contas || []).map(c => c.id);
+    const { data: clientes } = contaIds.length
+      ? await supabase.from('clientes').select('nome, cor, foto_url, instagram_account_id').in('instagram_account_id', contaIds)
+      : { data: [] };
+    const clientePorIgUser = new Map(
+      (contas || []).map(c => {
+        const cliente = (clientes || []).find(cl => cl.instagram_account_id === c.id);
+        return [
+          c.instagram_user_id,
+          {
+            nome: cliente?.nome || (c.instagram_username ? `@${c.instagram_username}` : null),
+            cor: cliente?.cor || null,
+            foto_url: cliente?.foto_url || null,
+          },
+        ];
+      })
+    );
+
+    return NextResponse.json(
+      (data || []).map(link => ({ ...withShortUrl(req, link), cliente: clientePorIgUser.get(link.instagram_user_id) || null }))
+    );
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
