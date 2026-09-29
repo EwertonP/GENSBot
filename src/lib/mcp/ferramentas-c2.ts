@@ -7,7 +7,7 @@
  */
 import { supabase as db } from '../supabase';
 import type { ContextoMcp } from './oauth';
-import { gerarLinkWhatsAppAprovacao, gerarMensagemAprovacao } from '../conteudo';
+import { ehResponsavel, gerarLinkWhatsAppAprovacao, gerarMensagemAprovacao } from '../conteudo';
 import { ErroFerramenta, type Ferramenta } from './ferramentas';
 
 type Args = Record<string, unknown>;
@@ -145,11 +145,11 @@ export const FERRAMENTAS_C2: Ferramenta[] = [
       const clienteId = idArg(args, 'cliente_id', false);
       let q = db
         .from('conteudo_items')
-        .select('id, titulo, tipo, cliente_id, token_aprovacao, historico_atividades, atualizado_em, responsavel_id, editor_id, cliente:clientes(nome)')
+        .select('id, titulo, tipo, cliente_id, token_aprovacao, historico_atividades, atualizado_em, responsavel_id, co_responsaveis_ids, editor_id, cliente:clientes(nome)')
         .eq('agencia_id', ctx.agenciaId)
         .eq('status', 'revisao_cliente');
       if (clienteId) q = q.eq('cliente_id', clienteId);
-      if (ctx.papel !== 'master') q = q.or(`responsavel_id.eq.${ctx.membroId},editor_id.eq.${ctx.membroId}`);
+      if (ctx.papel !== 'master') q = q.or(`responsavel_id.eq.${ctx.membroId},co_responsaveis_ids.cs.{${ctx.membroId}},editor_id.eq.${ctx.membroId}`);
       const { data, error } = await q;
       if (error) throw new Error(error.message);
 
@@ -186,12 +186,12 @@ export const FERRAMENTAS_C2: Ferramenta[] = [
       const id = idArg(args, 'demanda_id')!;
       const { data: d } = await db
         .from('conteudo_items')
-        .select('id, titulo, status, token_aprovacao, cliente_id, responsavel_id, editor_id, cliente:clientes(nome)')
+        .select('id, titulo, status, token_aprovacao, cliente_id, responsavel_id, co_responsaveis_ids, editor_id, cliente:clientes(nome)')
         .eq('id', id)
         .eq('agencia_id', ctx.agenciaId)
         .maybeSingle();
       if (!d) throw new ErroFerramenta('Demanda não encontrada nesta agência.');
-      if (ctx.papel !== 'master' && d.responsavel_id !== ctx.membroId && d.editor_id !== ctx.membroId) {
+      if (ctx.papel !== 'master' && !ehResponsavel(d, ctx.membroId) && d.editor_id !== ctx.membroId) {
         throw new ErroFerramenta('Você só pode preparar aprovação das suas demandas.');
       }
       const nomeCliente = (d.cliente as unknown as { nome: string } | null)?.nome || 'Cliente';

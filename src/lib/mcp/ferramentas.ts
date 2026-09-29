@@ -7,6 +7,7 @@
 import { supabase as db } from '../supabase';
 import type { ContextoMcp } from './oauth';
 import type { StatusConteudo } from '../conteudo';
+import { ehResponsavel, normalizarCoResponsaveis } from '../conteudo';
 import {
   camposDaTransicao,
   normalizarStatusTarefa,
@@ -101,12 +102,12 @@ async function clienteDaAgencia(ctx: ContextoMcp, id: string) {
 async function demandaAcessivel(ctx: ContextoMcp, id: string) {
   const { data: d } = await db
     .from('conteudo_items')
-    .select('id, status, responsavel_id, editor_id, historico_atividades, notion_page_id, titulo')
+    .select('id, status, responsavel_id, co_responsaveis_ids, editor_id, historico_atividades, notion_page_id, titulo')
     .eq('id', id)
     .eq('agencia_id', ctx.agenciaId)
     .maybeSingle();
   if (!d) throw new ErroFerramenta('Demanda não encontrada nesta agência.');
-  if (ctx.papel !== 'master' && d.responsavel_id !== ctx.membroId && d.editor_id !== ctx.membroId) {
+  if (ctx.papel !== 'master' && !ehResponsavel(d, ctx.membroId) && d.editor_id !== ctx.membroId) {
     throw new ErroFerramenta('Você só pode mexer em demandas em que é responsável ou editor(a).');
   }
   return d;
@@ -150,7 +151,7 @@ function evento(ctx: ContextoMcp, de: string, para: string) {
 
 // ---------- ferramentas ----------
 const SELECT_DEMANDA =
-  'id, cliente_id, tipo, status, titulo, legenda, briefing, mes_referencia, data_programada, prazo, prioridade, responsavel_id, editor_id, origem, cliente:clientes(nome)';
+  'id, cliente_id, tipo, status, titulo, legenda, briefing, mes_referencia, data_programada, prazo, prioridade, responsavel_id, co_responsaveis_ids, editor_id, origem, cliente:clientes(nome)';
 
 export const FERRAMENTAS: Ferramenta[] = [
   {
@@ -164,7 +165,7 @@ export const FERRAMENTAS: Ferramenta[] = [
       let dq = db.from('conteudo_items').select('status, prazo, data_programada').eq('agencia_id', ctx.agenciaId).neq('status', 'publicado');
       let tq = db.from('tarefas').select('status, prazo, responsavel_id').eq('agencia_id', ctx.agenciaId).neq('status', 'concluido');
       if (ctx.papel !== 'master') {
-        dq = dq.or(`responsavel_id.eq.${ctx.membroId},editor_id.eq.${ctx.membroId}`);
+        dq = dq.or(`responsavel_id.eq.${ctx.membroId},co_responsaveis_ids.cs.{${ctx.membroId}},editor_id.eq.${ctx.membroId}`);
         tq = tq.eq('responsavel_id', ctx.membroId);
       }
       const [{ data: demandas }, { data: tarefas }] = await Promise.all([dq, tq]);
@@ -303,8 +304,8 @@ export const FERRAMENTAS: Ferramenta[] = [
       if (mes) q = q.eq('mes_referencia', mesParaData(mes));
       if (etapa) q = q.eq('status', etapa);
       else if (args.incluir_publicadas !== true) q = q.neq('status', 'publicado');
-      if (ctx.papel !== 'master') q = q.or(`responsavel_id.eq.${ctx.membroId},editor_id.eq.${ctx.membroId}`);
-      else if (responsavelId) q = q.or(`responsavel_id.eq.${responsavelId},editor_id.eq.${responsavelId}`);
+      if (ctx.papel !== 'master') q = q.or(`responsavel_id.eq.${ctx.membroId},co_responsaveis_ids.cs.{${ctx.membroId}},editor_id.eq.${ctx.membroId}`);
+      else if (responsavelId) q = q.or(`responsavel_id.eq.${responsavelId},co_responsaveis_ids.cs.{${responsavelId}},editor_id.eq.${responsavelId}`);
       const { data: demandas, error } = await q;
       if (error) throw new Error(error.message);
       return { total: demandas?.length || 0, demandas };
@@ -429,6 +430,11 @@ export const FERRAMENTAS: Ferramenta[] = [
         data_programada: { type: 'string' },
         prazo: { type: 'string' },
         responsavel_id: { type: 'string' },
+        co_responsaveis_ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Demais responsáveis além do principal (substitui a lista atual; [] limpa).',
+        },
         editor_id: { type: 'string' },
         prioridade: { type: 'string', enum: PRIORIDADES_DEMANDA },
       },
@@ -453,6 +459,16 @@ export const FERRAMENTAS: Ferramenta[] = [
           await membroDaAgencia(ctx, v, c);
           campos[c] = v;
         }
+      }
+      if ('co_responsaveis_ids' in args) {
+        if (ctx.papel !== 'master') throw new ErroFerramenta('Só master reatribui responsáveis.');
+        const bruto = args.co_responsaveis_ids;
+        if (!Array.isArray(bruto) || bruto.some((v) => typeof v !== 'string' || !UUID_RE.test(v))) {
+          throw new ErroFerramenta('"co_responsaveis_ids" precisa ser uma lista de ids (uuid).');
+        }
+        const ids = normalizarCoResponsaveis(bruto, (campos.responsavel_id as string | null | undefined) ?? null);
+        for (const idMembro of ids) await membroDaAgencia(ctx, idMembro, 'co_responsaveis_ids');
+        campos.co_responsaveis_ids = ids;
       }
       if (Object.keys(campos).length === 0) throw new ErroFerramenta('Nenhum campo para atualizar.');
       campos.atualizado_em = new Date().toISOString();
@@ -669,6 +685,16 @@ export const FERRAMENTAS: Ferramenta[] = [
         }
       }
       if ('aguardando_de' in args) campos.aguardando_de = texto(args, 'aguardando_de', false, 200);
+      if ('co_responsaveis_ids' in args) {
+        if (ctx.papel !== 'master') throw new ErroFerramenta('Só master reatribui responsáveis.');
+        const bruto = args.co_responsaveis_ids;
+        if (!Array.isArray(bruto) || bruto.some((v) => typeof v !== 'string' || !UUID_RE.test(v))) {
+          throw new ErroFerramenta('"co_responsaveis_ids" precisa ser uma lista de ids (uuid).');
+        }
+        const ids = normalizarCoResponsaveis(bruto, (campos.responsavel_id as string | null | undefined) ?? null);
+        for (const idMembro of ids) await membroDaAgencia(ctx, idMembro, 'co_responsaveis_ids');
+        campos.co_responsaveis_ids = ids;
+      }
       if (Object.keys(campos).length === 0) throw new ErroFerramenta('Nenhum campo para atualizar.');
       campos.atualizado_em = new Date().toISOString();
 

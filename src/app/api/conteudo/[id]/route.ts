@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { normalizarCoResponsaveis } from '@/lib/conteudo';
 
 const SELECT_CONTEUDO = `
   *,
@@ -114,6 +115,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       'prazo',
       'publicado_em',
       'responsavel_id',
+      'co_responsaveis_ids',
       'editor_id',
       'arquivos',
       'cover_url',
@@ -132,6 +134,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // Normalização defensiva de campos UUID e datas para evitar erros de sintaxe no Postgres (22P02)
     if ('responsavel_id' in updates && !updates.responsavel_id) {
       updates.responsavel_id = null;
+    }
+    if ('co_responsaveis_ids' in updates) {
+      updates.co_responsaveis_ids = normalizarCoResponsaveis(updates.co_responsaveis_ids, updates.responsavel_id);
     }
     if ('editor_id' in updates && !updates.editor_id) {
       updates.editor_id = null;

@@ -1,6 +1,7 @@
 'use client';
 import { ScrollShadow } from '@/components/ui/scroll-shadow';
-import { Avatar } from '@/components/ui/avatar';
+import { AvatarGroup } from '@/components/ui/avatar';
+import { MemberMultiSelect } from '@/components/ui/member-multi-select';
 import { SegmentedItem } from '@/components/ui/segmented';
 
 import React, { useEffect, useMemo, useState, useRef } from 'react';
@@ -58,6 +59,8 @@ import {
   COLUNAS_KANBAN,
   mapearStatusParaColunaKanban,
   PRIORIDADE_CONFIG,
+  ehResponsavel,
+  idsResponsaveis,
   type PrioridadeConteudo,
   type ConteudoItem,
   type StatusConteudo,
@@ -144,6 +147,12 @@ export default function EsteiraTab({
   const [items, setItems] = useState<ConteudoItem[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [membros, setMembros] = useState<MembroEquipe[]>([]);
+  // Principal + co-responsáveis, na ordem, com nome resolvido pela equipe carregada.
+  const pessoasResponsaveis = (item: ConteudoItem) =>
+    idsResponsaveis(item)
+      .map((id) => (id === item.responsavel?.id ? item.responsavel : membros.find((m) => m.id === id)))
+      .filter((m): m is NonNullable<typeof m> => !!m)
+      .map((m) => ({ nome: m.nome, foto_url: 'foto_url' in m ? (m.foto_url as string | null | undefined) : null }));
   const [carregando, setCarregando] = useState(true);
 
   // Filtros
@@ -186,6 +195,7 @@ export default function EsteiraTab({
   const [formLegenda, setFormLegenda] = useState('');
   const [formResponsavelId, setFormResponsavelId] = useState('');
   const [formEditorId, setFormEditorId] = useState('');
+  const [formCoResponsaveis, setFormCoResponsaveis] = useState<string[]>([]);
   const [formDataProgramada, setFormDataProgramada] = useState('');
   const [formPrazoInterno, setFormPrazoInterno] = useState('');
   const [formUrls, setFormUrls] = useState('');
@@ -226,6 +236,7 @@ export default function EsteiraTab({
   const [editLegenda, setEditLegenda] = useState('');
   const [editResponsavelId, setEditResponsavelId] = useState('');
   const [editEditorId, setEditEditorId] = useState('');
+  const [editCoResponsaveis, setEditCoResponsaveis] = useState<string[]>([]);
   const [editDataProgramada, setEditDataProgramada] = useState('');
   const [editPrazoInterno, setEditPrazoInterno] = useState('');
   const [editUrls, setEditUrls] = useState('');
@@ -295,7 +306,7 @@ export default function EsteiraTab({
   const itemsFiltrados = useMemo(() => {
     return items.filter((item) => {
       if (clienteSelecionado !== 'all' && item.cliente_id !== clienteSelecionado) return false;
-      if (responsavelFiltro !== 'all' && item.responsavel_id !== responsavelFiltro) return false;
+      if (responsavelFiltro !== 'all' && !ehResponsavel(item, responsavelFiltro)) return false;
       if (ocultarPublicados && item.status === 'publicado') return false;
       if (busca.trim()) {
         const termo = busca.toLowerCase();
@@ -504,6 +515,7 @@ export default function EsteiraTab({
     setFormBriefing('');
     setFormLegenda('');
     setFormResponsavelId(membros[0]?.id || '');
+    setFormCoResponsaveis([]);
     setFormEditorId('');
     setFormDataProgramada('');
     setFormPrazoInterno('');
@@ -561,6 +573,7 @@ export default function EsteiraTab({
           briefing: formBriefing.trim() || null,
           legenda: formLegenda.trim() || null,
           responsavel_id: formResponsavelId || null,
+          co_responsaveis_ids: formCoResponsaveis.filter((id) => id !== formResponsavelId),
           editor_id: formEditorId || null,
           data_programada: formDataProgramada ? new Date(formDataProgramada).toISOString() : null,
           prazo: formPrazoInterno ? new Date(formPrazoInterno).toISOString() : null,
@@ -643,6 +656,7 @@ export default function EsteiraTab({
       editTipo !== itemEmEdicao.tipo ||
       editPrioridade !== (itemEmEdicao.prioridade || 'media') ||
       editResponsavelId !== (itemEmEdicao.responsavel_id || '') ||
+      [...editCoResponsaveis].sort().join() !== [...(itemEmEdicao.co_responsaveis_ids ?? [])].sort().join() ||
       editEditorId !== (itemEmEdicao.editor_id || '') ||
       editDataProgramada !== (itemEmEdicao.data_programada ? itemEmEdicao.data_programada.slice(0, 10) : '') ||
       editPrazoInterno !== (itemEmEdicao.prazo ? itemEmEdicao.prazo.slice(0, 10) : '') ||
@@ -693,6 +707,7 @@ export default function EsteiraTab({
     setEditBriefing(item.briefing || '');
     setEditLegenda(item.legenda || '');
     setEditResponsavelId(item.responsavel_id || '');
+    setEditCoResponsaveis(item.co_responsaveis_ids ?? []);
     setEditEditorId(item.editor_id || '');
     setEditDataProgramada(item.data_programada ? item.data_programada.slice(0, 10) : '');
     setEditPrazoInterno(item.prazo ? item.prazo.slice(0, 10) : '');
@@ -739,6 +754,7 @@ export default function EsteiraTab({
           briefing: editBriefing.trim() || null,
           legenda: editLegenda.trim() || null,
           responsavel_id: editResponsavelId || null,
+          co_responsaveis_ids: editCoResponsaveis.filter((id) => id !== editResponsavelId),
           editor_id: editEditorId || null,
           data_programada: editDataProgramada ? new Date(editDataProgramada).toISOString() : null,
           prazo: editPrazoInterno ? new Date(editPrazoInterno).toISOString() : null,
@@ -1385,8 +1401,13 @@ export default function EsteiraTab({
                         {/* Responsável */}
                         {item.responsavel && (
                           <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium pt-1 border-t border-border">
-                            <Avatar nome={item.responsavel.nome} size="xs" />
-                            <span className="truncate">{item.responsavel.nome}</span>
+                            <AvatarGroup pessoas={pessoasResponsaveis(item)} size="xs" max={3} />
+                            <span className="truncate">
+                              {item.responsavel.nome}
+                              {(item.co_responsaveis_ids?.length ?? 0) > 0 && (
+                                <span className="text-muted-foreground/70"> +{item.co_responsaveis_ids!.length}</span>
+                              )}
+                            </span>
                           </div>
                         )}
 
@@ -1600,8 +1621,8 @@ export default function EsteiraTab({
                     <td className="py-3 px-3">
                       {item.responsavel?.nome ? (
                         <span className="inline-flex items-center gap-2">
-                          <Avatar nome={item.responsavel.nome} size="xs" />
-                          {item.responsavel.nome}
+                          <AvatarGroup pessoas={pessoasResponsaveis(item)} size="xs" max={3} />
+                          {pessoasResponsaveis(item).map((p) => p.nome).join(', ')}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
@@ -2337,6 +2358,14 @@ export default function EsteiraTab({
                     onChange={setFormEditorId}
                     membros={membros}
                     placeholder="Atribuir..."
+                  />
+                  <MemberMultiSelect
+                    label="Também responsáveis"
+                    value={formCoResponsaveis}
+                    onChange={setFormCoResponsaveis}
+                    membros={membros}
+                    excluirId={formResponsavelId}
+                    className="col-span-2"
                   />
                 </div>
 
@@ -3096,6 +3125,14 @@ export default function EsteiraTab({
                       onChange={setEditEditorId}
                       membros={membros}
                       placeholder="Atribuir..."
+                    />
+                    <MemberMultiSelect
+                      label="Também responsáveis"
+                      value={editCoResponsaveis}
+                      onChange={setEditCoResponsaveis}
+                      membros={membros}
+                      excluirId={editResponsavelId}
+                      className="col-span-2"
                     />
                   </div>
 
