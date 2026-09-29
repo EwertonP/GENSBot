@@ -141,9 +141,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 }
 
-// Cancela (soft — status vira 'canceled', não apaga a linha) uma publicação ainda agendada.
-// Comportamento original preservado (só cabia pra status==='scheduled'); a única mudança
-// é também tirar o card do Kanban (approval_status: 'rejeitado') ao cancelar.
+/**
+ * Exclui permanentemente uma publicação da fila/histórico do GENSBot.
+ * Suporta qualquer status: agendada, publicada, com falha ou cancelada.
+ * Desvincula com segurança qualquer demanda na esteira vinculada a este post.
+ */
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getAuthUser();
@@ -165,29 +167,26 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     if (!account) {
       return NextResponse.json({ error: 'Publicação não encontrada.' }, { status: 404 });
     }
-    if (existing.status !== 'scheduled') {
-      return NextResponse.json({ error: 'Só é possível cancelar publicações ainda agendadas.' }, { status: 400 });
-    }
 
-    const { error } = await supabase
-      .from('scheduled_posts')
-      .update({ status: 'canceled', approval_status: 'rejeitado' })
-      .eq('id', id);
-
-    if (error) throw error;
-
-    // Se havia uma demanda vinculada na esteira, reseta o vínculo mantendo-a pronta para agendamento
+    // Se havia uma demanda vinculada na esteira, desvincula com segurança
     await supabase
       .from('conteudo_items')
       .update({
         scheduled_post_id: null,
-        data_programada: null,
-        status: 'agendamento',
+        ...(existing.status !== 'published' ? { data_programada: null, status: 'agendamento' } : {}),
         atualizado_em: new Date().toISOString(),
       })
       .eq('scheduled_post_id', id);
 
-    return NextResponse.json({ ok: true });
+    // Remove permanentemente o registro de scheduled_posts
+    const { error } = await supabase
+      .from('scheduled_posts')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ ok: true, deleted: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
