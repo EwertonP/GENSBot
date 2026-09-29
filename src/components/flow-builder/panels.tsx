@@ -1,4 +1,6 @@
 'use client';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 
 import React, { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
@@ -70,11 +72,11 @@ function TriggerPanel({ data, onChange }: { data: TriggerNodeConfig; onChange: (
         <KeywordsInput keywords={data.keywords} onChange={(keywords) => onChange({ ...data, keywords })} />
       </Field>
       <Field label="Tipo de correspondência">
-        <select className={inputCls} value={data.match_type} onChange={(e) => onChange({ ...data, match_type: e.target.value as any })}>
+        <Select className={inputCls} value={data.match_type} onChange={(e) => onChange({ ...data, match_type: e.target.value as any })}>
           <option value="contains">Contém</option>
           <option value="exact">Exata</option>
           <option value="any">Qualquer mensagem</option>
-        </select>
+        </Select>
       </Field>
       {data.triggerTypes.includes('comment') && (
         <Field label="Respostas públicas no comentário (sorteia uma, opcional)">
@@ -240,7 +242,7 @@ function SendMessagePanel({
         {utmLinks.length > 0 && (
           <div className="flex flex-col gap-1 mt-1">
             <span className="text-xs font-bold text-muted-foreground">Ou use um link UTM já criado</span>
-            <select
+            <Select
               value={selectedUtmLinkId || utmLinks.find((l) => l.short_url === data.link_url || l.generated_url === data.link_url)?.id || ''}
               onChange={(e) => handleSelectUtmLink(e.target.value)}
               className={inputCls}
@@ -251,7 +253,7 @@ function SendMessagePanel({
                   {l.name || l.base_url}{l.automation_id && l.automation_id !== automationId ? ' (já vinculado a outra automação)' : ''}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         )}
       </Field>
@@ -265,7 +267,7 @@ function SendMessagePanel({
         </Field>
       )}
       <Field label="Sequência de follow-up após esta mensagem (opcional)">
-        <select
+        <Select
           className={inputCls}
           value={data.sequence_id || ''}
           onChange={(e) => onChange({ ...data, sequence_id: e.target.value || null })}
@@ -276,7 +278,7 @@ function SendMessagePanel({
               {s.name}
             </option>
           ))}
-        </select>
+        </Select>
       </Field>
     </div>
   );
@@ -287,11 +289,11 @@ export function ConditionPanel({ data, onChange }: { data: ConditionNodeConfig; 
   return (
     <div className="flex flex-col gap-4">
       <Field label="Tipo de condição">
-        <select className={inputCls} value={data.conditionType} onChange={(e) => onChange({ ...data, conditionType: e.target.value as any })}>
+        <Select className={inputCls} value={data.conditionType} onChange={(e) => onChange({ ...data, conditionType: e.target.value as any })}>
           <option value="keyword">Palavra-chave na mensagem</option>
           <option value="tag">Tag do contato</option>
           <option value="contact_field">Campo do contato</option>
-        </select>
+        </Select>
       </Field>
 
       {data.conditionType === 'keyword' && (
@@ -300,10 +302,10 @@ export function ConditionPanel({ data, onChange }: { data: ConditionNodeConfig; 
             <KeywordsInput keywords={data.keywords || []} onChange={(keywords) => onChange({ ...data, keywords })} />
           </Field>
           <Field label="Tipo de correspondência">
-            <select className={inputCls} value={data.match_type || 'contains'} onChange={(e) => onChange({ ...data, match_type: e.target.value as any })}>
+            <Select className={inputCls} value={data.match_type || 'contains'} onChange={(e) => onChange({ ...data, match_type: e.target.value as any })}>
               <option value="contains">Contém</option>
               <option value="exact">Exata</option>
-            </select>
+            </Select>
           </Field>
         </>
       )}
@@ -314,10 +316,10 @@ export function ConditionPanel({ data, onChange }: { data: ConditionNodeConfig; 
             <input className={inputCls} value={data.tag || ''} onChange={(e) => onChange({ ...data, tag: e.target.value })} />
           </Field>
           <Field label="Condição">
-            <select className={inputCls} value={data.tagPresence || 'has'} onChange={(e) => onChange({ ...data, tagPresence: e.target.value as any })}>
+            <Select className={inputCls} value={data.tagPresence || 'has'} onChange={(e) => onChange({ ...data, tagPresence: e.target.value as any })}>
               <option value="has">Contato tem a tag</option>
               <option value="not_has">Contato não tem a tag</option>
-            </select>
+            </Select>
           </Field>
         </>
       )}
@@ -325,19 +327,19 @@ export function ConditionPanel({ data, onChange }: { data: ConditionNodeConfig; 
       {data.conditionType === 'contact_field' && (
         <>
           <Field label="Campo">
-            <select className={inputCls} value={data.field || 'email'} onChange={(e) => onChange({ ...data, field: e.target.value as any })}>
+            <Select className={inputCls} value={data.field || 'email'} onChange={(e) => onChange({ ...data, field: e.target.value as any })}>
               <option value="email">E-mail</option>
               <option value="phone">Telefone</option>
               <option value="name">Nome</option>
               <option value="username">Usuário</option>
-            </select>
+            </Select>
           </Field>
           <Field label="Operador">
-            <select className={inputCls} value={data.operator || 'not_empty'} onChange={(e) => onChange({ ...data, operator: e.target.value as any })}>
+            <Select className={inputCls} value={data.operator || 'not_empty'} onChange={(e) => onChange({ ...data, operator: e.target.value as any })}>
               <option value="not_empty">Preenchido</option>
               <option value="is_empty">Vazio</option>
               <option value="equals">Igual a</option>
-            </select>
+            </Select>
           </Field>
           {data.operator === 'equals' && (
             <Field label="Valor">
@@ -353,7 +355,7 @@ export function ConditionPanel({ data, onChange }: { data: ConditionNodeConfig; 
 function DelayPanel({ data, onChange }: { data: DelayNodeConfig; onChange: (d: DelayNodeConfig) => void }) {
   return (
     <Field label="Atraso (minutos)">
-      <input
+      <Input
         type="number"
         min={0}
         className={inputCls}
@@ -398,7 +400,7 @@ function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; o
       </Field>
       {hasTimeout && (
         <Field label="Minutos até expirar">
-          <input
+          <Input
             type="number"
             min={1}
             className={inputCls}
@@ -440,7 +442,7 @@ function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; o
         </Field>
       )}
       <Field label="Salvar a resposta num campo do contato? (opcional)">
-        <select
+        <Select
           className={inputCls}
           value={data.saveReplyToField === undefined || data.saveReplyToField === null || ['', 'email', 'phone', 'name'].includes(data.saveReplyToField) ? (data.saveReplyToField || '') : 'custom'}
           onChange={(e) => onChange({ ...data, saveReplyToField: e.target.value === 'custom' ? '' : (e.target.value || null) })}
@@ -450,7 +452,7 @@ function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; o
           <option value="phone">Telefone</option>
           <option value="name">Nome</option>
           <option value="custom">Outro (personalizado)</option>
-        </select>
+        </Select>
       </Field>
       {data.saveReplyToField != null && !['email', 'phone', 'name'].includes(data.saveReplyToField) && (
         <Field label="Nome do campo personalizado">
@@ -470,11 +472,11 @@ function ActionPanel({ data, onChange }: { data: ActionNodeConfig; onChange: (d:
   return (
     <div className="flex flex-col gap-4">
       <Field label="Tipo de ação">
-        <select className={inputCls} value={data.actionType} onChange={(e) => onChange({ ...data, actionType: e.target.value as any })}>
+        <Select className={inputCls} value={data.actionType} onChange={(e) => onChange({ ...data, actionType: e.target.value as any })}>
           <option value="add_tag">Adicionar tag</option>
           <option value="remove_tag">Remover tag</option>
           <option value="set_field">Definir campo do contato</option>
-        </select>
+        </Select>
       </Field>
       {(data.actionType === 'add_tag' || data.actionType === 'remove_tag') && (
         <Field label="Tag">
@@ -484,11 +486,11 @@ function ActionPanel({ data, onChange }: { data: ActionNodeConfig; onChange: (d:
       {data.actionType === 'set_field' && (
         <>
           <Field label="Campo">
-            <select className={inputCls} value={data.field || 'email'} onChange={(e) => onChange({ ...data, field: e.target.value as any })}>
+            <Select className={inputCls} value={data.field || 'email'} onChange={(e) => onChange({ ...data, field: e.target.value as any })}>
               <option value="email">E-mail</option>
               <option value="phone">Telefone</option>
               <option value="name">Nome</option>
-            </select>
+            </Select>
           </Field>
           <Field label="Valor">
             <input className={inputCls} value={data.value || ''} onChange={(e) => onChange({ ...data, value: e.target.value })} />

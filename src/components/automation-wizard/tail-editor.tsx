@@ -1,4 +1,6 @@
 'use client';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
@@ -203,7 +205,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-muted-foreground">Minutos até o lembrete</label>
-                      <input
+                      <Input
                         type="number"
                         min={1}
                         value={step.timeoutMinutes}
@@ -313,7 +315,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                   {utmLinkPicker.utmLinks.length > 0 && (
                     <div className="flex flex-col gap-1 mt-1">
                       <label className="text-xs font-bold text-muted-foreground">Ou use um link UTM já criado</label>
-                      <select
+                      <Select
                         value={utmLinkPicker.selectedUtmLinkId || utmLinkPicker.utmLinks.find((l) => l.short_url === tail.link_url || l.generated_url === tail.link_url)?.id || ''}
                         onChange={(e) => utmLinkPicker.onSelectUtmLink(e.target.value)}
                         className="bg-accent border border-input rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-primary text-foreground"
@@ -324,7 +326,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                             {l.name || l.base_url}{l.automation_id && l.automation_id !== utmLinkPicker.automationId ? ' (já vinculado a outra automação)' : ''}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                       <p className="text-xs text-muted-foreground">
                         Editar esse link depois na tela de Links UTM atualiza o destino aqui automaticamente.
                       </p>
@@ -403,7 +405,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-muted-foreground">Aguardar (Minutos)</label>
-                  <input
+                  <Input
                     type="number"
                     min={1}
                     value={followup.delay_minutes}

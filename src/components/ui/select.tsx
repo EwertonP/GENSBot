@@ -110,7 +110,7 @@ function collectOptions(children: React.ReactNode, out: OptionItem[] = []): Opti
 
 export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
   (
-    { className, label, error, id, children, value, defaultValue, onChange, name, required, disabled, placeholder, searchable },
+    { className, label, error, id, children, value, defaultValue, onChange, name, required, disabled, placeholder, searchable, 'aria-label': ariaLabel, title },
     ref
   ) => {
     const options = React.useMemo(() => collectOptions(children), [children]);
@@ -142,7 +142,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
         required={required}
         disabled={disabled}
       >
-        <Combobox.Trigger ref={ref} id={id} aria-invalid={error ? true : undefined} className={cn(triggerClass, className)}>
+        <Combobox.Trigger ref={ref} id={id} aria-label={ariaLabel} title={title} aria-invalid={error ? true : undefined} className={cn(triggerClass, className)}>
           <span className={cn('truncate', !selected && 'text-muted-foreground')}>
             {selected ? selected.label : (placeholder ?? 'Selecione…')}
           </span>
@@ -187,6 +187,8 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
         <BaseSelect.Trigger
           ref={ref}
           id={id}
+          aria-label={ariaLabel}
+          title={title}
           aria-invalid={error ? true : undefined}
           className={cn(triggerClass, className)}
         >

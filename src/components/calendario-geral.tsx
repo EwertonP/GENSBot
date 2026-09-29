@@ -1,4 +1,5 @@
 'use client';
+import { DatePicker } from '@/components/ui/date-picker';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -777,11 +778,11 @@ export default function CalendarioGeral({
                   {(itemModal.data_programada || itemModal.prazo) && (
                     <label className="flex items-center justify-between gap-2 border-t border-border pt-1.5">
                       <span className="text-muted-foreground font-medium">Mudar data:</span>
-                      <input
-                        type="date"
+                      <DatePicker
                         value={(itemModal.data_programada || itemModal.prazo || '').slice(0, 10)}
                         onChange={(e) => e.target.value && reagendar(itemModal, e.target.value)}
-                        className="h-8 rounded-lg border border-input bg-card px-2 text-xs text-foreground font-mono focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                        className="h-8 w-auto rounded-lg px-2 text-xs"
+                        aria-label="Mudar data"
                       />
                     </label>
                   )}

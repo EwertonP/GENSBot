@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/select';
 import { SegmentedItem } from '@/components/ui/segmented';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -994,7 +995,7 @@ export default function PublishPanel({
         {/* Seletor de Conta Ativa */}
         <div className="flex items-center gap-2.5 bg-accent/60 p-1.5 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">
           <span className="text-xs font-bold text-muted-foreground px-2">Conta:</span>
-          <select
+          <Select
             value={targetAccount}
             onChange={(e) => setTargetAccount(e.target.value)}
             className="h-8 text-xs font-bold bg-card border border-input rounded-xl px-3 text-foreground shadow-2xs focus:outline-none"
@@ -1004,7 +1005,7 @@ export default function PublishPanel({
                 @{acc.instagram_username || acc.instagram_user_id}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -1658,7 +1659,7 @@ export default function PublishPanel({
                       </span>
                       {loadingAutomations && <span className="text-xs text-muted-foreground animate-pulse">Carregando...</span>}
                     </label>
-                    <select
+                    <Select
                       value={selectedSavedId}
                       onChange={(e) => handleSelectSavedAutomation(e.target.value)}
                       className="h-9 px-3 rounded-lg bg-card border border-input text-xs text-foreground focus:outline-none focus:border-primary/60 cursor-pointer font-medium"
@@ -1669,7 +1670,7 @@ export default function PublishPanel({
                           ⚡ {aut.name} ({aut.keywords.join(', ')})
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
 
                   {/* Palavras-chave / Gatilhos */}
