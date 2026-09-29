@@ -22,6 +22,7 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { Instagram } from '@/components/instagram-icon';
+import { ClienteAvatar } from '@/components/cliente-avatar';
 import type { UtmLink } from '@/types/utm-link';
 import { buildUtmUrl } from '@/lib/utm';
 import { Card } from '@/components/ui/card';
@@ -567,6 +568,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                 <thead className="uppercase text-xs font-bold border-b border-border">
                   <tr>
                     <th className="py-2.5 px-3">Campanha / Nome</th>
+                    <th className="py-2.5 px-3">Cliente</th>
                     <th className="py-2.5 px-3">Canal</th>
                     <th className="py-2.5 px-3">Cliques</th>
                     <th className="py-2.5 px-3">Link Curto</th>
@@ -587,6 +589,17 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
                             <span className="text-xs text-muted-foreground font-mono">
                               {l.utm_campaign}
                             </span>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-3">
+                          {l.cliente?.nome ? (
+                            <span className="flex items-center gap-1.5 font-semibold text-foreground whitespace-nowrap">
+                              <ClienteAvatar nome={l.cliente.nome} cor={l.cliente.cor} fotoUrl={l.cliente.foto_url} tamanho="xs" />
+                              <span className="truncate max-w-[160px]">{l.cliente.nome}</span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </td>
 
