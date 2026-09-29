@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { ehUuid } from '@/lib/clientes';
+import { normalizarCoResponsaveis } from '@/lib/conteudo';
 
 const SELECT_CONTEUDO = `
   *,
@@ -62,8 +64,16 @@ export async function GET(req: Request) {
   if (mes) {
     query = query.eq('mes_referencia', mes);
   }
-  if (responsavelId) {
-    query = query.eq('responsavel_id', responsavelId);
+  // Principal OU co-responsável. O uuid é validado antes de entrar no filtro.
+  const filtroResponsavel =
+    responsavelId && ehUuid(responsavelId)
+      ? `responsavel_id.eq.${responsavelId},co_responsaveis_ids.cs.{${responsavelId}}`
+      : null;
+  if (responsavelId && !filtroResponsavel) {
+    return respostaErro('responsavel_id inválido', 400);
+  }
+  if (filtroResponsavel) {
+    query = query.or(filtroResponsavel);
   }
 
   let { data, error } = await query;
@@ -80,7 +90,7 @@ export async function GET(req: Request) {
     if (clienteId) fallbackQuery = fallbackQuery.eq('cliente_id', clienteId);
     if (status) fallbackQuery = fallbackQuery.eq('status', status);
     if (mes) fallbackQuery = fallbackQuery.eq('mes_referencia', mes);
-    if (responsavelId) fallbackQuery = fallbackQuery.eq('responsavel_id', responsavelId);
+    if (filtroResponsavel) fallbackQuery = fallbackQuery.or(filtroResponsavel);
 
     const { data: fallbackData } = await fallbackQuery;
     if (fallbackData && fallbackData.length > 0) {
@@ -152,6 +162,7 @@ export async function POST(req: Request) {
       data_programada,
       prazo,
       responsavel_id,
+      co_responsaveis_ids,
       editor_id,
       arquivos = [],
       cover_url,
@@ -177,6 +188,10 @@ export async function POST(req: Request) {
       data_programada: data_programada || null,
       prazo: prazo || null,
       responsavel_id: responsavel_id || user.id,
+      // Só envia a coluna quando veio no pedido (compatível com banco sem a migração).
+      ...(co_responsaveis_ids !== undefined && {
+        co_responsaveis_ids: normalizarCoResponsaveis(co_responsaveis_ids, responsavel_id || user.id),
+      }),
       editor_id: editor_id || null,
       arquivos,
       cover_url: cover_url ? String(cover_url) : null,

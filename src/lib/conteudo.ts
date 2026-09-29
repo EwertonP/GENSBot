@@ -123,6 +123,8 @@ export interface ConteudoItem {
   prazo?: string | null;
   publicado_em: string | null;
   responsavel_id: string | null;
+  /** Demais responsáveis além do principal (`responsavel_id`). */
+  co_responsaveis_ids?: string[] | null;
   editor_id: string | null;
   scheduled_post_id: string | null;
   arquivos: ArquivoConteudo[];
@@ -316,4 +318,36 @@ export function gerarLinkWhatsAppAprovacao(params: {
     return `https://wa.me/${phone}?text=${encodeURIComponent(texto)}`;
   }
   return `https://wa.me/?text=${encodeURIComponent(texto)}`;
+}
+
+const UUID_CO_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Normaliza a lista de co-responsáveis vinda do cliente: só uuids válidos,
+ * sem repetição e sem o responsável principal (ele já está em responsavel_id).
+ */
+export function normalizarCoResponsaveis(valor: unknown, principal?: string | null): string[] {
+  if (!Array.isArray(valor)) return [];
+  const vistos = new Set<string>();
+  for (const v of valor) {
+    if (typeof v !== 'string') continue;
+    const id = v.trim().toLowerCase();
+    if (!UUID_CO_RE.test(id) || id === principal?.toLowerCase()) continue;
+    vistos.add(id);
+  }
+  return [...vistos];
+}
+
+/** Todos os responsáveis da demanda: o principal primeiro, depois os demais. */
+export function idsResponsaveis(item: Pick<ConteudoItem, 'responsavel_id' | 'co_responsaveis_ids'>): string[] {
+  const ids = item.responsavel_id ? [item.responsavel_id] : [];
+  for (const id of item.co_responsaveis_ids ?? []) if (!ids.includes(id)) ids.push(id);
+  return ids;
+}
+
+export function ehResponsavel(
+  item: Pick<ConteudoItem, 'responsavel_id' | 'co_responsaveis_ids'>,
+  membroId: string
+): boolean {
+  return item.responsavel_id === membroId || (item.co_responsaveis_ids ?? []).includes(membroId);
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
+import { idsResponsaveis } from '@/lib/conteudo';
 
 export interface MembroEquipe {
   id: string;
@@ -34,15 +35,16 @@ export async function GET() {
   // Busca contagem de demandas ativas sob responsabilidade
   const { data: demandas } = await supabase
     .from('conteudo_items')
-    .select('responsavel_id')
+    .select('responsavel_id, co_responsaveis_ids')
     .eq('agencia_id', membro.agencia_id)
     .not('status', 'in', '("publicado")');
 
   const contagemDemandas: Record<string, number> = {};
   if (demandas) {
     for (const d of demandas) {
-      if (d.responsavel_id) {
-        contagemDemandas[d.responsavel_id] = (contagemDemandas[d.responsavel_id] || 0) + 1;
+      // Conta a demanda para cada responsável (principal e co-responsáveis).
+      for (const id of idsResponsaveis(d)) {
+        contagemDemandas[id] = (contagemDemandas[id] || 0) + 1;
       }
     }
   }

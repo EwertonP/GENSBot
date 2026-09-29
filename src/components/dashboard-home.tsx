@@ -37,7 +37,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DashboardContentPanel from '@/components/dashboard-content-panel';
 import { ClienteAvatar } from '@/components/cliente-avatar';
-import { STATUS_LABELS, type ConteudoItem, type StatusConteudo } from '@/lib/conteudo';
+import { STATUS_LABELS, type ConteudoItem, type StatusConteudo, ehResponsavel } from '@/lib/conteudo';
 import type { MembroEquipe } from '@/components/equipe-tab';
 import type { TarefaRotina } from '@/app/api/rotina/route';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -362,7 +362,7 @@ export default function DashboardHome({
   // Demandas filtradas pelo membro selecionado em "Ver como:"
   const demandasFiltradas = demandas.filter((item) => {
     if (verComo === 'all') return true;
-    return item.responsavel_id === verComo || item.editor_id === verComo;
+    return ehResponsavel(item, verComo) || item.editor_id === verComo;
   });
 
   const tarefasFiltradas = tarefasRotina.filter((t) => {

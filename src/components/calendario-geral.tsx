@@ -31,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Sheet } from '@/components/ui/sheet';
 import { ClienteAvatar } from '@/components/cliente-avatar';
-import { STATUS_LABELS, type ConteudoItem, type StatusConteudo, type PrefillAgendamento, gerarLinkWhatsAppAprovacao } from '@/lib/conteudo';
+import { STATUS_LABELS, type ConteudoItem, type StatusConteudo, type PrefillAgendamento, gerarLinkWhatsAppAprovacao, ehResponsavel } from '@/lib/conteudo';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
 
@@ -142,7 +142,7 @@ export default function CalendarioGeral({
   const itemsFiltrados = useMemo(() => {
     return items.filter((item) => {
       if (clienteFiltro !== 'all' && item.cliente_id !== clienteFiltro) return false;
-      if (responsavelFiltro !== 'all' && item.responsavel_id !== responsavelFiltro) return false;
+      if (responsavelFiltro !== 'all' && !ehResponsavel(item, responsavelFiltro)) return false;
       if (busca.trim()) {
         const termo = normalizar(busca);
         const alvo = normalizar(`${item.titulo || ''} ${item.legenda || ''} ${item.cliente?.nome || ''}`);
@@ -801,7 +801,14 @@ export default function CalendarioGeral({
                     <div className="flex items-center gap-2">
                       <User className="w-3.5 h-3.5 text-muted-foreground" />
                       <span className="text-muted-foreground">Copy / Redação:</span>
-                      <strong className="text-foreground">{itemModal.responsavel?.nome || 'Não atribuído'}</strong>
+                      <strong className="text-foreground">
+                        {[
+                          itemModal.responsavel?.nome,
+                          ...(itemModal.co_responsaveis_ids ?? []).map((id) => membros.find((m) => m.id === id)?.nome),
+                        ]
+                          .filter(Boolean)
+                          .join(', ') || 'Não atribuído'}
+                      </strong>
                     </div>
                     {itemModal.editor && (
                       <div className="flex items-center gap-2">

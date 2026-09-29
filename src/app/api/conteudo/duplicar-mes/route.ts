@@ -45,6 +45,7 @@ export async function POST(req: Request) {
       mes_referencia: mes_destino,
       ordem: item.ordem,
       responsavel_id: item.responsavel_id,
+      ...(item.co_responsaveis_ids?.length ? { co_responsaveis_ids: item.co_responsaveis_ids } : {}),
       editor_id: item.editor_id,
       arquivos: [],
       data_programada: null,

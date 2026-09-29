@@ -20,7 +20,7 @@ const SELECT_TAREFA = `
 
 const SELECT_DEMANDA = `
   id, cliente_id, tipo, titulo, status, prioridade, prazo, data_programada,
-  responsavel_id, editor_id, publicado_em,
+  responsavel_id, co_responsaveis_ids, editor_id, publicado_em,
   cliente:clientes(id, nome, cor, foto_url)
 `;
 
@@ -79,7 +79,7 @@ export async function GET(req: Request) {
       .or(`status.neq.publicado,publicado_em.gte.${limiteConcluido}`)
       .order('prazo', { ascending: true, nullsFirst: false });
 
-    if (alvo !== 'all') demandasQuery = demandasQuery.or(`responsavel_id.eq.${alvo},editor_id.eq.${alvo}`);
+    if (alvo !== 'all') demandasQuery = demandasQuery.or(`responsavel_id.eq.${alvo},co_responsaveis_ids.cs.{${alvo}},editor_id.eq.${alvo}`);
     if (clienteId) demandasQuery = demandasQuery.eq('cliente_id', clienteId);
 
     return Promise.all([tarefasQuery, demandasQuery]);
