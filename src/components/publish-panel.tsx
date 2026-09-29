@@ -953,17 +953,57 @@ export default function PublishPanel({
     setError(null);
   };
 
-  const handleCancel = async (id: string) => {
-    if (!(await confirmDialog({title: "Cancelar esta publicação agendada?",description: "Ela não será publicada no horário marcado.",confirmLabel: "Cancelar publicação",cancelLabel: "Manter agendada",tone: "destructive"}))) return;
-    if (editingPostId === id) {
+  const handleDeletePost = async (post: ScheduledPost) => {
+    let title = 'Excluir publicação da fila?';
+    let description = 'Este registro será removido definitivamente do histórico da fila.';
+    let confirmLabel = 'Excluir registro';
+
+    if (post.status === 'scheduled') {
+      title = 'Cancelar e excluir agendamento?';
+      description = 'Esta publicação não será enviada ao Instagram e será removida da fila de agendamento.';
+      confirmLabel = 'Excluir agendamento';
+    } else if (post.status === 'published') {
+      title = 'Excluir publicação do histórico?';
+      description =
+        'O registro será removido do histórico do GENSBot para manter sua fila limpa e organizada. (Não apaga a postagem já publicada no Instagram).';
+      confirmLabel = 'Excluir do histórico';
+    } else if (post.status === 'failed') {
+      title = 'Excluir registro com falha?';
+      description = 'Esta tentativa que falhou será removida definitivamente do histórico da fila.';
+      confirmLabel = 'Excluir falha';
+    } else if (post.status === 'canceled') {
+      title = 'Excluir publicação cancelada?';
+      description = 'Esta publicação cancelada será removida definitivamente do histórico da fila.';
+      confirmLabel = 'Excluir registro';
+    }
+
+    if (
+      !(await confirmDialog({
+        title,
+        description,
+        confirmLabel,
+        cancelLabel: 'Manter registro',
+        tone: 'destructive',
+      }))
+    ) {
+      return;
+    }
+
+    if (editingPostId === post.id) {
       handleCancelEdit();
     }
     try {
-      const res = await fetch(withAccount(`/api/instagram/publish/${id}`), { method: 'DELETE' });
+      const res = await fetch(withAccount(`/api/instagram/publish/${post.id}`), { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Tente novamente.');
-      toast.success('Agendamento cancelado');
+      toast.success(
+        post.status === 'scheduled'
+          ? 'Agendamento cancelado e excluído'
+          : 'Registro removido do histórico com sucesso'
+      );
     } catch (err) {
-      toast.error('Não foi possível cancelar o agendamento', { description: err instanceof Error ? err.message : undefined });
+      toast.error('Não foi possível excluir a publicação', {
+        description: err instanceof Error ? err.message : undefined,
+      });
     }
     loadPosts();
   };
@@ -2367,17 +2407,6 @@ export default function PublishPanel({
                         </button>
                       )}
 
-                      {isScheduled && (
-                        <button
-                          type="button"
-                          onClick={() => handleCancel(post.id)}
-                          className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                          title="Cancelar agendamento"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-
                       {post.status === 'published' && post.ig_media_id && (
                         <Button
                           variant="ghost"
@@ -2389,6 +2418,21 @@ export default function PublishPanel({
                           {isExpanded ? 'Ocultar' : 'Métricas'}
                         </Button>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePost(post)}
+                        className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                        title={
+                          post.status === 'scheduled'
+                            ? 'Cancelar e excluir agendamento'
+                            : post.status === 'published'
+                            ? 'Excluir publicação do histórico'
+                            : 'Excluir registro da fila'
+                        }
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
 
