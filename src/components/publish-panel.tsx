@@ -89,6 +89,8 @@ interface ScheduledPost {
   status: 'scheduled' | 'publishing' | 'published' | 'failed' | 'canceled';
   ig_media_id: string | null;
   error_message: string | null;
+  /** Aviso não fatal (ex.: a Meta recusou a localização e o post saiu sem ela). */
+  aviso?: string | null;
   published_at: string | null;
   collaborators?: string[] | null;
   cover_url?: string | null;
@@ -365,6 +367,7 @@ export default function PublishPanel({
   const [prefillRemoteUrls, setPrefillRemoteUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState('');
   const [collaboratorsInput, setCollaboratorsInput] = useState('');
+  const [verificandoColab, setVerificandoColab] = useState(false);
   const [collaboratorTags, setCollaboratorTags] = useState<CollaboratorTag[]>([]);
   const [userTagsInput, setUserTagsInput] = useState('');
   const [locationId, setLocationId] = useState<string | null>(null);
@@ -692,9 +695,33 @@ export default function PublishPanel({
 
       const collaborators = kind !== 'story'
         ? (collaboratorTags.length > 0
-            ? collaboratorTags.map((c) => c.username).slice(0, 5)
-            : parseNameList(collaboratorsInput, 5))
+            ? collaboratorTags.map((c) => c.username)
+            : parseNameList(collaboratorsInput, 3))
         : [];
+      if (collaborators.length > 3) {
+        throw new Error(`A Meta aceita no máximo 3 colaboradores por publicação (você marcou ${collaborators.length}). Remova ${collaborators.length - 3}.`);
+      }
+
+      // Antes de gravar o agendamento, a Meta confirma se cada @ pode ser colaborador
+      // (perfil público e @ correto). Se a própria checagem não conseguir, segue normalmente.
+      if (collaborators.length > 0) {
+        setVerificandoColab(true);
+        try {
+          const checkRes = await fetch('/api/instagram/validate-collaborators', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              instagram_user_id: targetAccount,
+              collaborators,
+              sample_media_url: uploadedUrls.find((u) => /\.(jpe?g|png|webp)(\?|$)/i.test(u)),
+            }),
+          });
+          const check = await checkRes.json().catch(() => null);
+          if (check && check.ok === false) throw new Error(check.error || 'A Meta recusou um dos colaboradores.');
+        } finally {
+          setVerificandoColab(false);
+        }
+      }
       const userTags = kind === 'story' ? parseNameList(userTagsInput).map((username) => ({ username })) : [];
 
       const automationPayload = autoEnabled
@@ -2187,7 +2214,9 @@ export default function PublishPanel({
                 className="flex-1 text-xs font-bold text-lime-foreground h-11 shadow-md cursor-pointer"
               >
                 {!submitting && <Check className="w-4 h-4 mr-1.5" />}
-                {editingPostId
+                {verificandoColab
+                  ? 'Verificando colaboradores…'
+                  : editingPostId
                   ? 'Confirmar e Salvar Alterações'
                   : scheduleEnabled
                   ? 'Confirmar e Agendar'
@@ -2363,6 +2392,11 @@ export default function PublishPanel({
                         </div>
                         {post.status === 'failed' && post.error_message && (
                           <p className="text-xs text-destructive mt-0.5 font-medium">{post.error_message}</p>
+                        )}
+                        {post.aviso && (
+                          <p className="text-xs text-warning mt-0.5 font-medium inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 shrink-0" /> {post.aviso}
+                          </p>
                         )}
                         {post.automation_config?.enabled && (
                           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">

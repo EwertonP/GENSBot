@@ -29,7 +29,8 @@ function cleanHandle(text: string): string {
 export function CollaboratorsTagsInput({
   value,
   onChange,
-  max = 5,
+  // A Meta aceita no máximo 3 colaboradores por publicação.
+  max = 3,
   placeholder = 'Digite um @ ou nome de colaborador...',
   disabled = false,
 }: CollaboratorsTagsInputProps) {

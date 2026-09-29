@@ -3,6 +3,7 @@ import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
 import { getAccountForUserOrAgency } from '@/lib/instagram-account';
 import { getBestPostingTimes } from '@/lib/best-posting-time';
 import { supabase } from '@/lib/supabase';
+import { erroLimiteColaboradores } from '@/lib/instagram-publish';
 
 const APPROVAL_STATUSES = ['rascunho', 'em_revisao', 'aprovado', 'agendado', 'publicado', 'rejeitado'] as const;
 type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
@@ -58,6 +59,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       audio_name?: string | null;
       automation_config?: any;
     };
+
+    const limiteColab = erroLimiteColaboradores(collaborators);
+    if (limiteColab) return NextResponse.json({ error: limiteColab }, { status: 400 });
 
     const { data: post, error: fetchError } = await supabase
       .from('scheduled_posts')

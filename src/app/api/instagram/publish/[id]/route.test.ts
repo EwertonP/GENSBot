@@ -18,6 +18,10 @@ vi.mock('@/lib/best-posting-time', () => ({
   getBestPostingTimes: vi.fn(),
 }));
 
+vi.mock('@/lib/instagram-publish', () => ({
+  erroLimiteColaboradores: () => null,
+}));
+
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: vi.fn(),
