@@ -33,6 +33,8 @@ export interface TarefaRotina {
   estimativa_min: number | null;
   ordem: number;
   origem: string;
+  recorrencia_id?: string | null;
+  data_ocorrencia?: string | null;
   iniciado_em: string | null;
   concluido_em: string | null;
   criado_em: string;
