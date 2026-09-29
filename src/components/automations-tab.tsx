@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/select';
 
 import React, { useState } from 'react';
 import nextDynamicImport from 'next/dynamic';
@@ -303,7 +304,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
 
                           <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-bold text-muted-foreground">Tipo de Correspondência (Match Type)</label>
-                            <select
+                            <Select
                               value={form.match_type}
                               onChange={e => setForm(prev => ({ ...prev, match_type: e.target.value as any }))}
                               className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground font-semibold cursor-pointer transition-ui"
@@ -311,7 +312,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                               <option value="contains">Contém a palavra-chave</option>
                               <option value="exact">Exato (Palavra-chave exata)</option>
                               <option value="any">Qualquer comentário (Ignora palavra-chave)</option>
-                            </select>
+                            </Select>
                           </div>
                         </div>
 

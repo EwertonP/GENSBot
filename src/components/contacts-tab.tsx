@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import { useEffect, useState, type KeyboardEvent } from 'react';
@@ -289,14 +290,14 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
         </div>
         <div className="flex items-center gap-2">
           {allTags.length > 0 && (
-            <select
+            <Select
               value={tagFilter}
               onChange={e => setTagFilter(e.target.value)}
               className="bg-accent border border-input rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
             >
               <option value="">Todas as tags</option>
               {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
-            </select>
+            </Select>
           )}
           {selectedContacts.length > 0 && (
             <>

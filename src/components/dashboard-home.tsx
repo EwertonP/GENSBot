@@ -1,4 +1,5 @@
 'use client';
+import { Select } from '@/components/ui/select';
 import { SegmentedItem } from '@/components/ui/segmented';
 
 import React, { useEffect, useState } from 'react';
@@ -508,7 +509,7 @@ export default function DashboardHome({
         {homeMode === 'demandas' && (
           <div className="flex items-center gap-2 px-2">
             <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Ver como:</span>
-            <select
+            <Select
               value={verComo}
               onChange={(e) => setVerComo(e.target.value)}
               className="h-8 text-xs font-semibold bg-accent/50 border border-input rounded-xl px-2.5 py-1 text-foreground focus:outline-none cursor-pointer"
@@ -519,7 +520,7 @@ export default function DashboardHome({
                   {m.nome} ({m.cargo || (m.papel === 'master' ? 'Sócio' : 'Membro')})
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         )}
       </div>
