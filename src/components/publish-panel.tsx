@@ -1,4 +1,5 @@
 'use client';
+import { SegmentedItem } from '@/components/ui/segmented';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -2194,28 +2195,24 @@ export default function PublishPanel({
           <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto text-xs">
             {/* Seletor de Escopo de Conta */}
             <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border">
-              <button
+              <SegmentedItem
                 type="button"
                 onClick={() => setFilaContaFiltro('target')}
-                className={`px-3 py-1 rounded-xl font-bold transition-ui cursor-pointer ${
-                  filaContaFiltro === 'target'
-                    ? 'bg-card text-foreground shadow-2xs border border-border'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                group="publish-panel-2195"
+                active={filaContaFiltro === 'target'}
+                className="px-3 py-1 rounded-xl font-bold"
               >
                 @{accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || 'Conta Ativa'}
-              </button>
-              <button
+              </SegmentedItem>
+              <SegmentedItem
                 type="button"
                 onClick={() => setFilaContaFiltro('all')}
-                className={`px-3 py-1 rounded-xl font-bold transition-ui cursor-pointer ${
-                  filaContaFiltro === 'all'
-                    ? 'bg-card text-foreground shadow-2xs border border-border'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                group="publish-panel-2195"
+                active={filaContaFiltro === 'all'}
+                className="px-3 py-1 rounded-xl font-bold"
               >
                 Todas as Contas
-              </button>
+              </SegmentedItem>
             </div>
 
             {/* Filtros de Status */}
@@ -2226,18 +2223,16 @@ export default function PublishPanel({
                 { id: 'published' as const, label: 'Publicadas' },
                 { id: 'failed' as const, label: 'Falhas' },
               ].map((st) => (
-                <button
+                <SegmentedItem
                   key={st.id}
                   type="button"
                   onClick={() => setFiltroStatus(st.id)}
-                  className={`px-3 py-1 rounded-xl font-bold transition-ui cursor-pointer ${
-                    filtroStatus === st.id
-                      ? 'bg-card text-foreground shadow-2xs border border-border'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  group="publish-panel-2217"
+                  active={filtroStatus === st.id}
+                  className="px-3 py-1 rounded-xl font-bold"
                 >
                   {st.label}
-                </button>
+                </SegmentedItem>
               ))}
             </div>
           </div>

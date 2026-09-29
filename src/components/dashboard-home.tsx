@@ -1,4 +1,5 @@
 'use client';
+import { SegmentedItem } from '@/components/ui/segmented';
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -472,14 +473,12 @@ export default function DashboardHome({
       {/* 0. Seletor de Modo da Home (Operacional vs Métricas) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-2.5 rounded-2xl border border-border shadow-2xs">
         <div className="flex items-center gap-1.5 p-1 bg-accent/60 rounded-xl border border-border">
-          <button
+          <SegmentedItem
             type="button"
             onClick={() => setHomeMode('demandas')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
-              homeMode === 'demandas'
-                ? 'bg-card text-foreground shadow-2xs border border-border'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            group="dashboard-home-473"
+            active={homeMode === 'demandas'}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold"
           >
             <CheckCircle2 className={`w-3.5 h-3.5 ${homeMode === 'demandas' ? 'text-primary' : ''}`} />
             <span>Minhas Demandas & Semana</span>
@@ -488,20 +487,22 @@ export default function DashboardHome({
                 {demandasAtivas.length}
               </span>
             )}
-          </button>
+          </SegmentedItem>
 
-          <button
+          <SegmentedItem
             type="button"
             onClick={() => setHomeMode('metricas')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
-              homeMode === 'metricas'
-                ? 'bg-card text-foreground shadow-2xs border border-border'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+
+            group="dashboard-home-473"
+
+            active={homeMode === 'metricas'}
+
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold"
+
           >
             <TrendingUp className={`w-3.5 h-3.5 ${homeMode === 'metricas' ? 'text-primary' : ''}`} />
             <span>Painel Profissional do Instagram</span>
-          </button>
+          </SegmentedItem>
         </div>
 
         {homeMode === 'demandas' && (
@@ -860,21 +861,19 @@ export default function DashboardHome({
             { days: 30 as const, label: '30 dias' },
             { days: 90 as const, label: '90 dias' },
           ]).map((p) => (
-            <button
+            <SegmentedItem
               key={p.days}
               type="button"
               onClick={() => {
                 setPeriodDays(p.days);
                 setChartPeriod(p.days === 7 ? '7d' : p.days === 90 ? 'month' : '30d');
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-ui cursor-pointer ${
-                periodDays === p.days
-                  ? 'bg-card text-foreground shadow-2xs border border-border'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+              group="dashboard-home-855"
+              active={periodDays === p.days}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold"
             >
               {p.label}
-            </button>
+            </SegmentedItem>
           ))}
         </div>
       </div>
