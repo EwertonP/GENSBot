@@ -1,4 +1,5 @@
 'use client';
+import { SegmentedItem } from '@/components/ui/segmented';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import React, { useState, useEffect } from 'react';
@@ -341,30 +342,26 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
 
         {/* Alternador Desktop / Celular */}
         <div className="flex items-center gap-1 bg-muted p-1 rounded-xl">
-          <button
+          <SegmentedItem
             type="button"
             onClick={() => setPreviewDevice('desktop')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-ui cursor-pointer ${
-              previewDevice === 'desktop'
-                ? 'bg-card text-foreground shadow-2xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            group="form-builder-342"
+            active={previewDevice === 'desktop'}
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5"
           >
             <Monitor className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Desktop</span>
-          </button>
-          <button
+          </SegmentedItem>
+          <SegmentedItem
             type="button"
             onClick={() => setPreviewDevice('mobile')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-ui cursor-pointer ${
-              previewDevice === 'mobile'
-                ? 'bg-card text-foreground shadow-2xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            group="form-builder-342"
+            active={previewDevice === 'mobile'}
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5"
           >
             <Smartphone className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Celular</span>
-          </button>
+          </SegmentedItem>
         </div>
 
         {/* Ações da Direita */}

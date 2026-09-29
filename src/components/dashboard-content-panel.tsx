@@ -1,4 +1,5 @@
 'use client';
+import { SegmentedItem } from '@/components/ui/segmented';
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -107,19 +108,17 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
             const Icon = tab.icon;
             const active = activeFormat === tab.id;
             return (
-              <button
+              <SegmentedItem
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveFormat(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-ui cursor-pointer ${
-                  active
-                    ? 'bg-card text-foreground shadow-2xs border border-border'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                group="dashboard-content-panel-99"
+                active={active}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
               >
                 {Icon && <Icon className="w-3.5 h-3.5" />}
                 <span>{tab.label}</span>
-              </button>
+              </SegmentedItem>
             );
           })}
         </div>

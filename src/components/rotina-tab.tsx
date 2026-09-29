@@ -1,4 +1,5 @@
 'use client';
+import { SegmentedItem } from '@/components/ui/segmented';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -434,18 +435,18 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
               aria-label="Tipo da tarefa"
             >
               {(Object.keys(TIPO_TAREFA_LABELS) as TipoTarefa[]).map((tipo) => (
-                <button
+                <SegmentedItem
                   key={tipo}
                   type="button"
                   role="radio"
                   aria-checked={novoTipo === tipo}
                   onClick={() => setNovoTipo(tipo)}
-                  className={`px-2.5 py-1.5 rounded-lg font-semibold transition-ui cursor-pointer ${
-                    novoTipo === tipo ? 'bg-card text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  group="rotina-tab-430"
+                  active={novoTipo === tipo}
+                  className="px-2.5 py-1.5 rounded-lg font-semibold"
                 >
                   {TIPO_TAREFA_LABELS[tipo]}
-                </button>
+                </SegmentedItem>
               ))}
             </div>
             <Input

@@ -1,4 +1,5 @@
 'use client';
+import { SegmentedItem } from '@/components/ui/segmented';
 
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
@@ -1832,30 +1833,26 @@ export default function EsteiraTab({
 
                 {/* Alternador de Modo: Abas vs Dividido */}
                 <div className="hidden sm:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border text-xs shrink-0">
-                  <button
+                  <SegmentedItem
                     type="button"
                     onClick={() => setFormModoVisualizacao('abas')}
-                    className={`px-2 py-0.5 rounded-md font-semibold transition-ui cursor-pointer text-xs ${
-                      formModoVisualizacao === 'abas'
-                        ? 'bg-card text-foreground shadow-2xs font-bold'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    group="esteira-tab-1833"
+                    active={formModoVisualizacao === 'abas'}
+                    className="px-2 py-0.5 rounded-md font-semibold text-xs"
                     title="Visualização em Abas (Espaço Máximo para Redação)"
                   >
                     Abas
-                  </button>
-                  <button
+                  </SegmentedItem>
+                  <SegmentedItem
                     type="button"
                     onClick={() => setFormModoVisualizacao('split')}
-                    className={`px-2 py-0.5 rounded-md font-semibold transition-ui cursor-pointer text-xs ${
-                      formModoVisualizacao === 'split'
-                        ? 'bg-card text-foreground shadow-2xs font-bold'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    group="esteira-tab-1833"
+                    active={formModoVisualizacao === 'split'}
+                    className="px-2 py-0.5 rounded-md font-semibold text-xs"
                     title="Visualização Dividida (Legenda + Briefing Visíveis Juntos)"
                   >
                     Dividido
-                  </button>
+                  </SegmentedItem>
                 </div>
               </div>
 
@@ -1864,69 +1861,69 @@ export default function EsteiraTab({
                 <div className="flex flex-col gap-2.5 flex-1 min-h-0">
                   {/* Seletor de Abas de Conteúdo */}
                   <div className="flex items-center gap-1 p-1 bg-accent/30 rounded-xl border border-border shrink-0">
-                    <button
+                    <SegmentedItem
                       type="button"
                       onClick={() => setFormAbaConteudo('legenda')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
-                        formAbaConteudo === 'legenda'
-                          ? 'bg-card text-foreground shadow-2xs border border-border'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
-                      }`}
+                      group="esteira-tab-1861"
+                      active={formAbaConteudo === 'legenda'}
+                      className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
                     >
                       <FileText className="w-3.5 h-3.5 text-primary" />
                       <span>Legenda da Postagem</span>
                       <span className="text-xs font-mono text-muted-foreground ml-1">
                         ({formLegenda.length}/2.200)
                       </span>
-                    </button>
+                    </SegmentedItem>
 
-                    <button
+                    <SegmentedItem
                       type="button"
                       onClick={() => setFormAbaConteudo('briefing')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
-                        formAbaConteudo === 'briefing'
-                          ? 'bg-card text-foreground shadow-2xs border border-border'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
-                      }`}
+
+                      group="esteira-tab-1861"
+
+                      active={formAbaConteudo === 'briefing'}
+
+                      className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
+
                     >
                       <Sparkles className="w-3.5 h-3.5 text-primary" />
                       <span>Briefing & Roteiro</span>
                       {formBriefing.trim() && (
                         <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                       )}
-                    </button>
+                    </SegmentedItem>
 
                     {formTipo === 'reel' && (
-                      <button
+                      <SegmentedItem
                         type="button"
                         onClick={() => setFormAbaConteudo('capa')}
-                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
-                          formAbaConteudo === 'capa'
-                            ? 'bg-card text-foreground shadow-2xs border border-border'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
-                        }`}
+                        group="esteira-tab-1861"
+                        active={formAbaConteudo === 'capa'}
+                        className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
                       >
                         <ImageIcon className="w-3.5 h-3.5 text-primary" />
                         <span>Capa</span>
                         {formCapaUrl && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                      </button>
+                      </SegmentedItem>
                     )}
 
-                    <button
+                    <SegmentedItem
                       type="button"
                       onClick={() => setFormAbaConteudo('anexos')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
-                        formAbaConteudo === 'anexos'
-                          ? 'bg-card text-foreground shadow-2xs border border-border'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
-                      }`}
+
+                      group="esteira-tab-1861"
+
+                      active={formAbaConteudo === 'anexos'}
+
+                      className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
+
                     >
                       <Paperclip className="w-3.5 h-3.5 text-primary" />
                       <span>{formTipo === 'reel' ? 'Vídeo' : 'Mídias & Anexos'}</span>
                       <span className="text-xs font-mono text-muted-foreground ml-0.5">
                         ({formArquivos.length})
                       </span>
-                    </button>
+                    </SegmentedItem>
                   </div>
 
                   {/* Conteúdo Aba: Legenda */}
@@ -2595,30 +2592,26 @@ export default function EsteiraTab({
 
                   {/* Alternador de Modo: Abas vs Dividido */}
                   <div className="hidden sm:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border text-xs shrink-0">
-                    <button
+                    <SegmentedItem
                       type="button"
                       onClick={() => setEditModoVisualizacao('abas')}
-                      className={`px-2 py-0.5 rounded-md font-semibold transition-ui cursor-pointer text-xs ${
-                        editModoVisualizacao === 'abas'
-                          ? 'bg-card text-foreground shadow-2xs font-bold'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
+                      group="esteira-tab-2592"
+                      active={editModoVisualizacao === 'abas'}
+                      className="px-2 py-0.5 rounded-md font-semibold text-xs"
                       title="Visualização em Abas (Espaço Máximo para Redação)"
                     >
                       Abas
-                    </button>
-                    <button
+                    </SegmentedItem>
+                    <SegmentedItem
                       type="button"
                       onClick={() => setEditModoVisualizacao('split')}
-                      className={`px-2 py-0.5 rounded-md font-semibold transition-ui cursor-pointer text-xs ${
-                        editModoVisualizacao === 'split'
-                          ? 'bg-card text-foreground shadow-2xs font-bold'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
+                      group="esteira-tab-2592"
+                      active={editModoVisualizacao === 'split'}
+                      className="px-2 py-0.5 rounded-md font-semibold text-xs"
                       title="Visualização Dividida (Legenda + Briefing Visíveis Juntos)"
                     >
                       Dividido
-                    </button>
+                    </SegmentedItem>
                   </div>
                 </div>
 
@@ -2627,69 +2620,69 @@ export default function EsteiraTab({
                   <div className="flex flex-col gap-2.5 flex-1 min-h-0">
                     {/* Seletor de Abas de Conteúdo */}
                     <div className="flex items-center gap-1 p-1 bg-accent/30 rounded-xl border border-border shrink-0">
-                      <button
+                      <SegmentedItem
                         type="button"
                         onClick={() => setEditAbaConteudo('legenda')}
-                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
-                          editAbaConteudo === 'legenda'
-                            ? 'bg-card text-foreground shadow-2xs border border-border'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
-                        }`}
+                        group="esteira-tab-2620"
+                        active={editAbaConteudo === 'legenda'}
+                        className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
                       >
                         <FileText className="w-3.5 h-3.5 text-primary" />
                         <span>Legenda da Postagem</span>
                         <span className="text-xs font-mono text-muted-foreground ml-1">
                           ({editLegenda.length}/2.200)
                         </span>
-                      </button>
+                      </SegmentedItem>
 
-                      <button
+                      <SegmentedItem
                         type="button"
                         onClick={() => setEditAbaConteudo('briefing')}
-                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
-                          editAbaConteudo === 'briefing'
-                            ? 'bg-card text-foreground shadow-2xs border border-border'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
-                        }`}
+
+                        group="esteira-tab-2620"
+
+                        active={editAbaConteudo === 'briefing'}
+
+                        className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
+
                       >
                         <Sparkles className="w-3.5 h-3.5 text-primary" />
                         <span>Briefing & Roteiro</span>
                         {editBriefing.trim() && (
                           <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                         )}
-                      </button>
+                      </SegmentedItem>
 
                       {editTipo === 'reel' && (
-                        <button
+                        <SegmentedItem
                           type="button"
                           onClick={() => setEditAbaConteudo('capa')}
-                          className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
-                            editAbaConteudo === 'capa'
-                              ? 'bg-card text-foreground shadow-2xs border border-border'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
-                          }`}
+                          group="esteira-tab-2620"
+                          active={editAbaConteudo === 'capa'}
+                          className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
                         >
                           <ImageIcon className="w-3.5 h-3.5 text-primary" />
                           <span>Capa</span>
                           {editCapaUrl && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                        </button>
+                        </SegmentedItem>
                       )}
 
-                      <button
+                      <SegmentedItem
                         type="button"
                         onClick={() => setEditAbaConteudo('anexos')}
-                        className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition-ui cursor-pointer ${
-                          editAbaConteudo === 'anexos'
-                            ? 'bg-card text-foreground shadow-2xs border border-border'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-card/40'
-                        }`}
+
+                        group="esteira-tab-2620"
+
+                        active={editAbaConteudo === 'anexos'}
+
+                        className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
+
                       >
                         <Paperclip className="w-3.5 h-3.5 text-primary" />
                         <span>{editTipo === 'reel' ? 'Vídeo' : 'Mídias & Anexos'}</span>
                         <span className="text-xs font-mono text-muted-foreground ml-0.5">
                           ({editArquivos.length})
                         </span>
-                      </button>
+                      </SegmentedItem>
                     </div>
 
                     {/* Conteúdo Aba: Legenda */}
