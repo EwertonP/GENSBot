@@ -2,6 +2,29 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // 1. Rotas de API gerenciam sua própria autenticação (getContextoAgencia, getAuthUser, etc.)
+  // e retornam respostas JSON customizadas. Executar getUser() aqui para /api causa perda
+  // de Set-Cookie de refresh de token pelo Next.js e corrida de Refresh Token Reuse no Supabase.
+  if (pathname.startsWith('/api')) {
+    return NextResponse.next();
+  }
+
+  // 2. Rotas públicas de conteúdo/visualização que não necessitam de checagem de sessão
+  const publicContentRoutes = [
+    '/privacidade',
+    '/exclusao-de-dados',
+    '/aprovacao',
+    '/relatorio',
+    '/r',
+    '/f',
+    '/.well-known',
+  ];
+  if (publicContentRoutes.some((r) => pathname.startsWith(r))) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -23,22 +46,19 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
+  const isAuthRoute = pathname === '/login' || pathname === '/register';
 
-  // Public routes that don't require auth
-  const publicRoutes = ['/login', '/register', '/privacidade', '/exclusao-de-dados', '/aprovacao', '/relatorio', '/r', '/f', '/oauth', '/.well-known'];
-  const isPublicRoute = publicRoutes.some(r => pathname.startsWith(r));
-  const isApiRoute = pathname.startsWith('/api');
-
-  if (!user && !isPublicRoute && !isApiRoute) {
+  if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  if (user && (pathname === '/login' || pathname === '/register')) {
+  if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
     // Já logado vindo do fluxo OAuth do MCP: volta direto para a tela de autorização.
     const next = request.nextUrl.searchParams.get('next');
@@ -52,6 +72,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
