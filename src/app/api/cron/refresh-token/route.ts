@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { cacheProfilePicture } from '@/lib/profile-picture';
+import { sendEmail } from '@/lib/email';
+
+// A Meta deixa renovar qualquer token com mais de 24h. Renovar com 30 dias de folga
+// dá ~30 tentativas diárias antes de vencer se a renovação falhar.
+const JANELA_RENOVACAO_DIAS = 30;
 
 async function handleRefresh(req: Request) {
   const authHeader = req.headers.get('Authorization');
@@ -11,21 +16,20 @@ async function handleRefresh(req: Request) {
   }
 
   try {
-    // Renovar todas as contas cujo token expira nos próximos 7 dias (a Meta
-    // exige refresh entre 24h e 60 dias antes do vencimento). Antes esta rota
-    // só olhava uma única linha da tabela `config`, o que quebrava qualquer
-    // conta além da primeira em um cenário multi-tenant.
+    // Renova toda conta cujo token vence nos próximos JANELA_RENOVACAO_DIAS dias
+    // (um token novo tem 60 dias, então só entra aqui depois de ~30 dias de uso).
     const soon = new Date();
-    soon.setDate(soon.getDate() + 7);
+    soon.setDate(soon.getDate() + JANELA_RENOVACAO_DIAS);
 
     const { data: accounts, error: accountsError } = await supabase
       .from('instagram_accounts')
-      .select('id, instagram_user_id, access_token, token_expires_at')
+      .select('id, user_id, instagram_user_id, instagram_username, access_token, token_expires_at')
       .lte('token_expires_at', soon.toISOString());
 
     if (accountsError) throw accountsError;
 
     const results = [];
+    const falhas: { user_id: string; conta: string; vence_em: string | null; motivo: string }[] = [];
 
     // `return` cedo aqui (versão anterior) impedia o loop de foto de perfil logo
     // abaixo de rodar sempre que nenhum token estivesse perto de expirar — ou
@@ -47,7 +51,13 @@ async function handleRefresh(req: Request) {
 
           if (!refreshResponse.ok || !refreshData.access_token) {
             console.error('Erro ao renovar token:', account.instagram_user_id, refreshData);
-            results.push({ instagram_user_id: account.instagram_user_id, status: 'failed' });
+            results.push({ instagram_user_id: account.instagram_user_id, status: 'failed', error: refreshData?.error?.message });
+            falhas.push({
+              user_id: account.user_id,
+              conta: account.instagram_username || account.instagram_user_id,
+              vence_em: account.token_expires_at,
+              motivo: refreshData?.error?.message || `HTTP ${refreshResponse.status}`,
+            });
             continue;
           }
 
@@ -70,9 +80,17 @@ async function handleRefresh(req: Request) {
         } catch (err: any) {
           console.error('Erro ao renovar token da conta', account.instagram_user_id, err);
           results.push({ instagram_user_id: account.instagram_user_id, status: 'failed', error: err.message });
+          falhas.push({
+            user_id: account.user_id,
+            conta: account.instagram_username || account.instagram_user_id,
+            vence_em: account.token_expires_at,
+            motivo: err.message || 'erro desconhecido',
+          });
         }
       }
     }
+
+    const avisos = await avisarFalhas(falhas);
 
     // Foto de perfil da Meta expira em poucos dias (bem antes do token), então
     // atualiza independente de expiração de token — pra toda conta, não só as
@@ -113,7 +131,7 @@ async function handleRefresh(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, results, photoResults });
+    return NextResponse.json({ success: true, results, avisos, photoResults });
   } catch (err: any) {
     console.error('Erro na renovação de token cron:', err);
     return NextResponse.json({ error: err.message || 'Erro desconhecido' }, { status: 500 });
@@ -126,4 +144,53 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   return handleRefresh(req);
+}
+
+/**
+ * Renovação que falha não pode ficar só no log: avisa o dono da conta por e-mail
+ * (no máximo 1x por dia por conta, controlado em alert_notifications).
+ */
+async function avisarFalhas(falhas: { user_id: string; conta: string; vence_em: string | null; motivo: string }[]) {
+  const avisos: { user_id: string; enviado: boolean }[] = [];
+  const porDono = new Map<string, typeof falhas>();
+  for (const f of falhas) porDono.set(f.user_id, [...(porDono.get(f.user_id) || []), f]);
+
+  const umDiaAtras = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
+  for (const [userId, lista] of porDono) {
+    const chaves = lista.map((f) => `token_refresh_falhou:${f.conta}`);
+    const { data: recentes } = await supabase
+      .from('alert_notifications')
+      .select('alert_key')
+      .eq('user_id', userId)
+      .in('alert_key', chaves)
+      .gte('last_sent_at', umDiaAtras);
+    const jaAvisadas = new Set((recentes || []).map((r) => r.alert_key));
+    const pendentes = lista.filter((f) => !jaAvisadas.has(`token_refresh_falhou:${f.conta}`));
+    if (pendentes.length === 0) continue;
+
+    const { data: dono } = await supabase.auth.admin.getUserById(userId);
+    const email = dono?.user?.email;
+    if (!email) {
+      avisos.push({ user_id: userId, enviado: false });
+      continue;
+    }
+
+    const linhas = pendentes.map((f) => {
+      const vence = f.vence_em ? new Date(f.vence_em).toLocaleDateString('pt-BR') : 'data desconhecida';
+      return `@${f.conta}: vence em ${vence} (${f.motivo})`;
+    });
+    const res = await sendEmail({
+      to: email,
+      subject: `GENSBot: a renovação do token do Instagram falhou (${pendentes.length} conta${pendentes.length > 1 ? 's' : ''})`,
+      text: `A renovação automática do acesso ao Instagram falhou hoje:\n\n${linhas.join('\n')}\n\nO GENSBot tenta de novo todo dia. Se continuar falhando até a data de vencimento, a conta precisa ser reconectada em Clientes.`,
+    });
+    if (res.ok) {
+      await supabase.from('alert_notifications').upsert(
+        pendentes.map((f) => ({ user_id: userId, alert_key: `token_refresh_falhou:${f.conta}`, last_sent_at: new Date().toISOString() })),
+        { onConflict: 'user_id,alert_key' }
+      );
+    }
+    avisos.push({ user_id: userId, enviado: res.ok });
+  }
+  return avisos;
 }
