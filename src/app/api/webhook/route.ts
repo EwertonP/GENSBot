@@ -488,7 +488,12 @@ async function processWebhookEvent(payload: any) {
         // arriscar deduplicar por engano com uma chave fraca.
         if (messageData.mid && (await isDuplicateWebhookEvent(`dm:${messageData.mid}`))) continue;
 
-        const isStoryMention = !!messageData.story?.mention;
+        // A Meta entrega menção no Story como um anexo `story_mention` — o
+        // `message.story.mention` que era lido aqui nunca aparece nos payloads
+        // reais, então esse gatilho nunca disparava.
+        const isStoryMention =
+          Array.isArray(messageData.attachments) &&
+          messageData.attachments.some((a: { type?: string }) => a?.type === 'story_mention');
         const text = messageData.text || (isStoryMention ? '[Menção no Story]' : '');
 
         // Garante que o contato exista antes de logar a mensagem — mesma
