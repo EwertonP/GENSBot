@@ -96,7 +96,7 @@ describe('C2: formulários e aprovações', async () => {
     expect(entrouEmAprovacao(null)).toBeNull();
   });
   it('servidor expõe as 24 ferramentas', () => {
-    expect(listarFerramentas()).toHaveLength(25);
+    expect(listarFerramentas()).toHaveLength(26);
   });
 });
 
