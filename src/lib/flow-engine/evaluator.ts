@@ -1,4 +1,4 @@
-import type { TriggerNodeConfig, ConditionNodeConfig, ActionNodeConfig, WaitForReplyNodeConfig } from '@/types/flow';
+import type { TriggerNodeConfig, ConditionNodeConfig, ActionNodeConfig, WaitForReplyNodeConfig, CaptureLeadNodeConfig, CaptureLeadField } from '@/types/flow';
 
 /** Remove acentos/diacríticos (NFD + strip dos marks) pra "verão" bater com "verao" e afins — comum em digitação
  * rápida no Instagram, especialmente em DM/comentário mobile. */
@@ -142,4 +142,93 @@ export function applyActionNode(
     default:
       return {};
   }
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** E-mail normalizado (minúsculo, sem espaços nas pontas) ou null se não parece um e-mail. */
+export function validateEmail(text: string): string | null {
+  const candidate = text.trim().toLowerCase();
+  return EMAIL_REGEX.test(candidate) ? candidate : null;
+}
+
+/**
+ * Telefone normalizado em E.164 ou null. Pensado pra número brasileiro digitado de
+ * qualquer jeito na DM ("(81) 99999-8888", "081999998888", "+55 81 9 9999 8888"):
+ * sobra DDD + número (10 dígitos fixo, 11 celular) e vira "+55DDNNNNNNNNN".
+ * Número com "+" e outro código de país é aceito como está (10 a 15 dígitos).
+ */
+export function normalizePhone(text: string): string | null {
+  const trimmed = text.trim();
+  let digits = trimmed.replace(/\D/g, '');
+
+  if (trimmed.startsWith('+') && !digits.startsWith('55')) {
+    return digits.length >= 10 && digits.length <= 15 ? `+${digits}` : null;
+  }
+
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) digits = digits.slice(2);
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  if (digits.length !== 10 && digits.length !== 11) return null;
+  if (digits[0] === '0' || digits[1] === '0') return null; // DDD vai de 11 a 99
+  if (digits.length === 11 && digits[2] !== '9') return null; // celular com 11 dígitos começa com 9
+  return `+55${digits}`;
+}
+
+/** Estado interno do bloco "Capturar Lead" — guardado em `contacts.flow_state._capture` enquanto o contato está pausado nele. */
+export interface CaptureLeadState {
+  node_id: string;
+  field: CaptureLeadField | null;
+  attempts: number;
+  collected: CaptureLeadField[];
+  reminded?: boolean;
+}
+
+export type CaptureLeadStep =
+  /** Mandar `text` e continuar pausado no bloco. */
+  | { kind: 'ask'; text: string; state: CaptureLeadState; mutation: Partial<Record<CaptureLeadField, string>> }
+  /** Todos os campos coletados — seguir pelo ramo `done`. */
+  | { kind: 'done'; collected: CaptureLeadField[]; mutation: Partial<Record<CaptureLeadField, string>> }
+  /** Desistiu (tentativas esgotadas) — seguir pelo ramo `failed`. */
+  | { kind: 'failed'; mutation: Partial<Record<CaptureLeadField, string>> };
+
+function nextMissingField(config: CaptureLeadNodeConfig, contact: ContactSnapshot | null, collected: CaptureLeadField[]): CaptureLeadField | null {
+  for (const field of config.fields) {
+    if (collected.includes(field)) continue;
+    if (config.skipIfKnown && contact?.[field]) continue;
+    return field;
+  }
+  return null;
+}
+
+/**
+ * Decide o próximo passo do bloco "Capturar Lead". Sem `reply` = o contato acabou de
+ * chegar no bloco; com `reply` = a resposta à pergunta do campo em `state.field`.
+ * Não escreve nada — quem chama (runner.ts) envia a mensagem e persiste.
+ */
+export function stepCaptureLead(
+  nodeId: string,
+  config: CaptureLeadNodeConfig,
+  contact: ContactSnapshot | null,
+  state: CaptureLeadState | null,
+  reply?: string,
+): CaptureLeadStep {
+  const current: CaptureLeadState =
+    state && state.node_id === nodeId ? { ...state, collected: [...state.collected] } : { node_id: nodeId, field: null, attempts: 0, collected: [] };
+  const mutation: Partial<Record<CaptureLeadField, string>> = {};
+
+  if (reply !== undefined && current.field) {
+    const field = current.field;
+    const value = field === 'email' ? validateEmail(reply) : normalizePhone(reply);
+    if (!value) {
+      const attempts = current.attempts + 1;
+      if (attempts >= Math.max(1, config.maxAttempts)) return { kind: 'failed', mutation };
+      return { kind: 'ask', text: config.invalidText[field], state: { ...current, attempts }, mutation };
+    }
+    mutation[field] = value;
+    current.collected.push(field);
+  }
+
+  const next = nextMissingField(config, { ...contact, ...mutation }, current.collected);
+  if (!next) return { kind: 'done', collected: current.collected, mutation };
+  return { kind: 'ask', text: config.askText[next], state: { ...current, field: next, attempts: 0 }, mutation };
 }

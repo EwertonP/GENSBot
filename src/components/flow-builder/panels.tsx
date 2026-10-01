@@ -12,7 +12,10 @@ import type {
   DelayNodeConfig,
   ActionNodeConfig,
   WaitForReplyNodeConfig,
+  CaptureLeadNodeConfig,
+  CaptureLeadField,
 } from '@/types/flow';
+import { CAPTURE_FIELD_LABELS } from '@/lib/flow-engine/captureLeadDefaults';
 import { fieldInputClass as inputCls, fieldLabelClass as labelCls } from '@/lib/form-styles';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -468,6 +471,81 @@ function WaitForReplyPanel({ data, onChange }: { data: WaitForReplyNodeConfig; o
   );
 }
 
+function TogglePill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-colors ${
+        active ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function CaptureLeadPanel({ data, onChange }: { data: CaptureLeadNodeConfig; onChange: (d: CaptureLeadNodeConfig) => void }) {
+  const hasTimeout = !!data.timeoutMinutes;
+  const toggleField = (field: CaptureLeadField) => {
+    const fields = data.fields.includes(field) ? data.fields.filter((f) => f !== field) : (['email', 'phone'] as CaptureLeadField[]).filter((f) => f === field || data.fields.includes(f));
+    onChange({ ...data, fields });
+  };
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        Pede os dados pela DM e confere cada resposta antes de seguir. Conecte a saída de cima
+        (&quot;coletado&quot;) à entrega do material, e a de baixo (&quot;desistiu&quot;) ao que acontece se a
+        pessoa errar demais ou sumir.
+      </p>
+      <Field label="Dados pedidos">
+        <div className="flex flex-wrap gap-1.5">
+          {(['email', 'phone'] as CaptureLeadField[]).map((field) => (
+            <TogglePill key={field} active={data.fields.includes(field)} onClick={() => toggleField(field)}>
+              {CAPTURE_FIELD_LABELS[field]}
+            </TogglePill>
+          ))}
+        </div>
+      </Field>
+      {data.fields.map((field) => (
+        <React.Fragment key={field}>
+          <Field label={`Pergunta do ${field === 'email' ? 'e-mail' : 'telefone'}`}>
+            <textarea rows={3} className={inputCls} value={data.askText[field]} onChange={(e) => onChange({ ...data, askText: { ...data.askText, [field]: e.target.value } })} />
+          </Field>
+          <Field label={`Se o ${field === 'email' ? 'e-mail' : 'telefone'} vier errado`}>
+            <textarea rows={3} className={inputCls} value={data.invalidText[field]} onChange={(e) => onChange({ ...data, invalidText: { ...data.invalidText, [field]: e.target.value } })} />
+          </Field>
+        </React.Fragment>
+      ))}
+      <Field label="Tentativas por dado antes de desistir">
+        <Input type="number" min={1} max={10} className={inputCls} value={data.maxAttempts} onChange={(e) => onChange({ ...data, maxAttempts: Math.max(1, Number(e.target.value) || 1) })} />
+      </Field>
+      <Field label="Quem já informou o dado antes">
+        <div className="flex flex-wrap gap-1.5">
+          <TogglePill active={data.skipIfKnown} onClick={() => onChange({ ...data, skipIfKnown: true })}>Não pergunta de novo</TogglePill>
+          <TogglePill active={!data.skipIfKnown} onClick={() => onChange({ ...data, skipIfKnown: false })}>Pergunta sempre</TogglePill>
+        </div>
+      </Field>
+      <Field label="Se a pessoa sumir no meio">
+        <div className="flex flex-wrap gap-1.5">
+          <TogglePill active={hasTimeout} onClick={() => onChange({ ...data, timeoutMinutes: data.timeoutMinutes || 720 })}>Lembrar depois de um tempo</TogglePill>
+          <TogglePill active={!hasTimeout} onClick={() => onChange({ ...data, timeoutMinutes: null })}>Esperar sem lembrar</TogglePill>
+        </div>
+      </Field>
+      {hasTimeout && (
+        <>
+          <Field label="Minutos até lembrar">
+            <Input type="number" min={1} className={inputCls} value={data.timeoutMinutes ?? 720} onChange={(e) => onChange({ ...data, timeoutMinutes: Number(e.target.value) })} />
+          </Field>
+          <Field label="Lembrete (vazio = segue pelo ramo 'desistiu')">
+            <textarea rows={3} className={inputCls} value={data.reminderText || ''} onChange={(e) => onChange({ ...data, reminderText: e.target.value })} />
+          </Field>
+        </>
+      )}
+    </div>
+  );
+}
+
 function ActionPanel({ data, onChange }: { data: ActionNodeConfig; onChange: (d: ActionNodeConfig) => void }) {
   return (
     <div className="flex flex-col gap-4">
@@ -558,6 +636,7 @@ export function NodeConfigPanel({
       {node.type === 'delay' && <DelayPanel key={node.id} data={node.data as DelayNodeConfig} onChange={onChange as any} />}
       {node.type === 'waitForReply' && <WaitForReplyPanel key={node.id} data={node.data as WaitForReplyNodeConfig} onChange={onChange as any} />}
       {node.type === 'action' && <ActionPanel key={node.id} data={node.data as ActionNodeConfig} onChange={onChange as any} />}
+      {node.type === 'captureLead' && <CaptureLeadPanel key={node.id} data={node.data as CaptureLeadNodeConfig} onChange={onChange as any} />}
     </div>
   );
 }

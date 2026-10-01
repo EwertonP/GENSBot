@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildFlowFromAdvancedForm, decompileFlow, type QualificationStep, type WizardCondition, type WizardTail } from './wizardCompiler';
 import type { Automation } from '@/types/automation';
+import { defaultCaptureLeadConfig } from './captureLeadDefaults';
 
 // O decompilador é o caminho inverso de buildFlowFromAdvancedForm — essencial
 // pra editar pelo Formulário Avançado uma automação sem perder o que já existe
@@ -245,5 +246,44 @@ describe('decompileFlow', () => {
 
     const result = decompileFlow(flow);
     expect(result.compatible).toBe(false);
+  });
+});
+
+describe('passo "Capturar Lead" no formulário guiado', () => {
+  const capture: QualificationStep = { kind: 'capture', config: defaultCaptureLeadConfig() };
+
+  it('compila pro nó captureLead seguindo pelo ramo "done", sem conectar o "failed"', () => {
+    const flow = buildFlowFromAdvancedForm(baseForm, [baseQuestions[0], capture]);
+    const node = flow.nodes.find((n) => n.type === 'captureLead');
+    expect(node).toBeDefined();
+    const outs = flow.edges.filter((e) => e.source === node!.id);
+    expect(outs).toHaveLength(1);
+    expect(outs[0].sourceHandle).toBe('done');
+    // o ramo "done" leva à mensagem de link (o material só sai depois da captura)
+    const next = flow.nodes.find((n) => n.id === outs[0].target);
+    expect((next?.data as { link_url?: string }).link_url).toBe(baseForm.link_url);
+  });
+
+  it('round-trip: preserva o passo e a config inteira', () => {
+    const steps: QualificationStep[] = [baseQuestions[0], capture, baseQuestions[2]];
+    const result = decompileFlow(buildFlowFromAdvancedForm(baseForm, steps));
+    expect(result.compatible).toBe(true);
+    if (!result.compatible) return;
+    expect(result.questions).toEqual(steps);
+  });
+
+  it('round-trip: captura logo depois da mensagem inicial', () => {
+    const result = decompileFlow(buildFlowFromAdvancedForm(baseForm, [capture]));
+    expect(result.compatible).toBe(true);
+    if (!result.compatible) return;
+    expect(result.questions).toEqual([capture]);
+  });
+
+  it('marca como incompatível quando o ramo "desistiu" foi conectado pelo Canvas', () => {
+    const flow = buildFlowFromAdvancedForm(baseForm, [capture]);
+    const node = flow.nodes.find((n) => n.type === 'captureLead')!;
+    const linkId = flow.edges.find((e) => e.source === node.id)!.target;
+    flow.edges.push({ id: 'e-failed', source: node.id, target: linkId, sourceHandle: 'failed' });
+    expect(decompileFlow(flow).compatible).toBe(false);
   });
 });

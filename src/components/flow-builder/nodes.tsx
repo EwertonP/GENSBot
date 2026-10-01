@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Zap, MessageSquare, GitBranch, Clock, Tag, MessageCircleQuestion } from 'lucide-react';
+import { Zap, MessageSquare, GitBranch, Clock, Tag, MessageCircleQuestion, UserCheck } from 'lucide-react';
 import type { FlowNodeType } from '@/types/flow';
 
 const NODE_META: Record<FlowNodeType, { label: string; icon: React.ElementType; color: string }> = {
@@ -12,6 +12,7 @@ const NODE_META: Record<FlowNodeType, { label: string; icon: React.ElementType; 
   delay: { label: 'Espera', icon: Clock, color: 'border-sky-500 bg-sky-500/10 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300' },
   action: { label: 'Ação', icon: Tag, color: 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300' },
   waitForReply: { label: 'Aguardar Resposta', icon: MessageCircleQuestion, color: 'border-fuchsia-500 bg-fuchsia-500/10 dark:bg-fuchsia-500/20 text-fuchsia-800 dark:text-fuchsia-300' },
+  captureLead: { label: 'Capturar Lead', icon: UserCheck, color: 'border-teal-500 bg-teal-500/10 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300' },
 };
 
 /** Extrai as classes `bg-*`/`text-*` de `meta.color` pra colorir o quadrado do ícone — `meta.color` continua servindo o resto do app (borda de seleção, handles). */
@@ -53,6 +54,11 @@ function BaseNode({ type, selected, subtitle, hasTimeout }: { type: FlowNodeType
         <>
           <Handle type="source" position={Position.Right} id="reply" style={{ top: '35%' }} className="!bg-emerald-500 !w-2 !h-2" />
           <Handle type="source" position={Position.Right} id="timeout" style={{ top: '65%' }} className={`!w-2 !h-2 ${hasTimeout ? '!bg-amber-500' : '!bg-muted-foreground/30'}`} />
+        </>
+      ) : type === 'captureLead' ? (
+        <>
+          <Handle type="source" position={Position.Right} id="done" style={{ top: '35%' }} className="!bg-emerald-500 !w-2 !h-2" />
+          <Handle type="source" position={Position.Right} id="failed" style={{ top: '65%' }} className="!bg-destructive !w-2 !h-2" />
         </>
       ) : (
         <Handle type="source" position={Position.Right} className="!bg-border !w-2 !h-2" />
@@ -102,6 +108,13 @@ export function WaitForReplyNode({ data, selected }: NodeProps) {
   return <BaseNode type="waitForReply" selected={selected} subtitle={subtitle} hasTimeout={!!d.timeoutMinutes} />;
 }
 
+export function CaptureLeadNode({ data, selected }: NodeProps) {
+  const d = data as any;
+  const fields = (d.fields || []).map((f: string) => (f === 'email' ? 'e-mail' : 'telefone')).join(' e ');
+  const subtitle = fields ? `pede ${fields} · ${d.maxAttempts ?? 3} tentativas` : 'nenhum campo escolhido';
+  return <BaseNode type="captureLead" selected={selected} subtitle={subtitle} />;
+}
+
 export const nodeTypes = {
   trigger: TriggerNode,
   sendMessage: SendMessageNode,
@@ -109,12 +122,14 @@ export const nodeTypes = {
   delay: DelayNode,
   action: ActionNode,
   waitForReply: WaitForReplyNode,
+  captureLead: CaptureLeadNode,
 };
 
 export const NODE_PALETTE_ITEMS: { type: FlowNodeType; label: string; icon: React.ElementType }[] = [
   { type: 'sendMessage', label: NODE_META.sendMessage.label, icon: NODE_META.sendMessage.icon },
   { type: 'condition', label: NODE_META.condition.label, icon: NODE_META.condition.icon },
   { type: 'waitForReply', label: NODE_META.waitForReply.label, icon: NODE_META.waitForReply.icon },
+  { type: 'captureLead', label: NODE_META.captureLead.label, icon: NODE_META.captureLead.icon },
   { type: 'delay', label: NODE_META.delay.label, icon: NODE_META.delay.icon },
   { type: 'action', label: NODE_META.action.label, icon: NODE_META.action.icon },
 ];

@@ -7,6 +7,9 @@ import {
   evaluateConditionNode,
   applyActionNode,
   applyWaitForReplyCapture,
+  validateEmail,
+  normalizePhone,
+  stepCaptureLead,
 } from './evaluator';
 
 // Cobre só as funções puras do motor de fluxo (sem I/O) — a parte que já causou
@@ -170,5 +173,98 @@ describe('applyWaitForReplyCapture', () => {
   it('saveReplyToField com nome fora de email/phone/name vira chave em flow_state, não coluna solta', () => {
     const config = { saveReplyToField: 'regiao' };
     expect(applyWaitForReplyCapture(config, '  Recife  ', null)).toEqual({ flow_state: { regiao: 'Recife' } });
+  });
+});
+
+describe('validateEmail', () => {
+  it('aceita e normaliza e-mail válido', () => {
+    expect(validateEmail('  Fulano.Silva@Gmail.com ')).toBe('fulano.silva@gmail.com');
+  });
+  it('recusa texto que não é e-mail', () => {
+    expect(validateEmail('não')).toBeNull();
+    expect(validateEmail('fulano@gmail')).toBeNull();
+    expect(validateEmail('fulano gmail.com')).toBeNull();
+    expect(validateEmail('fulano@gmail.c')).toBeNull();
+  });
+});
+
+describe('normalizePhone', () => {
+  it.each([
+    ['(81) 99999-8888', '+5581999998888'],
+    ['81999998888', '+5581999998888'],
+    ['081999998888', '+5581999998888'],
+    ['+55 81 9 9999 8888', '+5581999998888'],
+    ['5581999998888', '+5581999998888'],
+    ['(81) 3333-4444', '+558133334444'],
+  ])('normaliza %s', (input, expected) => {
+    expect(normalizePhone(input)).toBe(expected);
+  });
+  it('aceita número estrangeiro com +', () => {
+    expect(normalizePhone('+351 912 345 678')).toBe('+351912345678');
+  });
+  it('recusa o que não é telefone', () => {
+    expect(normalizePhone('quero o raio-x')).toBeNull();
+    expect(normalizePhone('99998888')).toBeNull(); // sem DDD
+    expect(normalizePhone('81899998888')).toBeNull(); // 11 dígitos sem o 9
+    expect(normalizePhone('(00) 99999-8888')).toBeNull(); // DDD inválido
+  });
+});
+
+describe('stepCaptureLead', () => {
+  const config = {
+    fields: ['email', 'phone'] as ('email' | 'phone')[],
+    askText: { email: 'qual seu e-mail?', phone: 'qual seu WhatsApp?' },
+    invalidText: { email: 'e-mail inválido', phone: 'telefone inválido' },
+    maxAttempts: 2,
+    skipIfKnown: true,
+  };
+
+  it('ao entrar, pergunta o primeiro campo', () => {
+    const step = stepCaptureLead('n1', config, null, null);
+    expect(step).toMatchObject({ kind: 'ask', text: 'qual seu e-mail?', state: { field: 'email', attempts: 0 } });
+  });
+
+  it('pula o campo que o contato já tem', () => {
+    const step = stepCaptureLead('n1', config, { email: 'ja@tem.com' }, null);
+    expect(step).toMatchObject({ kind: 'ask', text: 'qual seu WhatsApp?', state: { field: 'phone' } });
+  });
+
+  it('segue direto pelo done quando já tem tudo', () => {
+    const step = stepCaptureLead('n1', config, { email: 'ja@tem.com', phone: '+5581999998888' }, null);
+    expect(step).toEqual({ kind: 'done', collected: [], mutation: {} });
+  });
+
+  it('e-mail válido grava e pergunta o telefone', () => {
+    const entry = stepCaptureLead('n1', config, null, null);
+    if (entry.kind !== 'ask') throw new Error('esperava ask');
+    const step = stepCaptureLead('n1', config, null, entry.state, 'Fulano@Gmail.com');
+    expect(step).toMatchObject({ kind: 'ask', text: 'qual seu WhatsApp?', mutation: { email: 'fulano@gmail.com' }, state: { field: 'phone', collected: ['email'] } });
+  });
+
+  it('resposta inválida reenvia o aviso e conta a tentativa', () => {
+    const state = { node_id: 'n1', field: 'email' as const, attempts: 0, collected: [] };
+    const step = stepCaptureLead('n1', config, null, state, 'não tenho');
+    expect(step).toMatchObject({ kind: 'ask', text: 'e-mail inválido', state: { field: 'email', attempts: 1 } });
+  });
+
+  it('esgotou as tentativas: segue pelo failed', () => {
+    const state = { node_id: 'n1', field: 'email' as const, attempts: 1, collected: [] };
+    expect(stepCaptureLead('n1', config, null, state, 'não tenho').kind).toBe('failed');
+  });
+
+  it('último campo válido: done com tudo que foi coletado', () => {
+    const state = { node_id: 'n1', field: 'phone' as const, attempts: 0, collected: ['email' as const] };
+    const step = stepCaptureLead('n1', config, { email: 'fulano@gmail.com' }, state, '81 99999-8888');
+    expect(step).toEqual({ kind: 'done', collected: ['email', 'phone'], mutation: { phone: '+5581999998888' } });
+  });
+
+  it('com skipIfKnown desligado, pergunta mesmo já tendo o dado', () => {
+    const step = stepCaptureLead('n1', { ...config, skipIfKnown: false }, { email: 'ja@tem.com' }, null);
+    expect(step).toMatchObject({ kind: 'ask', text: 'qual seu e-mail?' });
+  });
+
+  it('estado de outro bloco é ignorado (começa do zero)', () => {
+    const state = { node_id: 'outro', field: 'phone' as const, attempts: 1, collected: ['email' as const] };
+    expect(stepCaptureLead('n1', config, null, state)).toMatchObject({ kind: 'ask', text: 'qual seu e-mail?' });
   });
 });

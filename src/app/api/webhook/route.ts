@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { after } from 'next/server';
 import { getInstagramAccountByInstagramUserId } from '@/lib/instagram-account';
 import { drainQueue } from '@/lib/drain';
-import { runFlow, resumeFlow } from '@/lib/flow-engine/runner';
+import { runFlow, resumeFlow, flowHasCaptureLead } from '@/lib/flow-engine/runner';
 import { matchesKeywords } from '@/lib/flow-engine/evaluator';
 import { logDbError } from '@/lib/db-log';
 import { triggerExternalWebhook } from '@/lib/external-webhook';
@@ -539,7 +539,7 @@ async function processWebhookEvent(payload: any) {
 
           const pausedNode = pausedAuto?.flow_definition?.nodes?.find((n: { id: string }) => n.id === contact.flow_node_id);
 
-          if (pausedAuto?.flow_definition && pausedNode?.type === 'waitForReply') {
+          if (pausedAuto?.flow_definition && (pausedNode?.type === 'waitForReply' || pausedNode?.type === 'captureLead')) {
             // Quem entrou na automação sem @ ganha outra tentativa a cada resposta:
             // com a mensagem dele no topo da caixa, a Conversations API costuma achá-lo.
             let recoveredUsername: string | null = null;
@@ -588,6 +588,34 @@ async function processWebhookEvent(payload: any) {
             .select('*')
             .eq('id', autoId)
             .single();
+
+          // Botão de um fluxo com "Capturar Lead" clicado fora da execução (ex: mensagem
+          // antiga): o caminho legado abaixo mandaria o link direto, pulando a captura.
+          // Em vez disso reinicia o fluxo — quem já deu e-mail/telefone passa direto.
+          if (auto && auto.active && auto.instagram_user_id === myIgId && flowHasCaptureLead(auto)) {
+            const { error: restartContactError } = await supabase
+              .from('contacts')
+              .update({ last_response_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+              .eq('instagram_user_id', myIgId)
+              .eq('instagram_id', senderId);
+            logDbError('contacts.update (last_response_at, reinício Capturar Lead)', restartContactError);
+
+            await runFlow(
+              auto,
+              {
+                ownerUserId,
+                instagramUserId: myIgId,
+                contactId: senderId,
+                text,
+                triggerType: 'dm',
+                recipientRef: { id: senderId },
+                resolveProfile: (id) => fetchInstagramUserProfile(myIgId, id, igToken),
+              },
+              { skipTriggerMatch: true },
+            );
+            queueDrainNeeded = true;
+            continue;
+          }
 
           if (auto) {
             // Registrar clique no botão nos eventos

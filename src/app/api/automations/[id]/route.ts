@@ -53,6 +53,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         link_url: body.link_url || null,
         reminder_text: body.reminder_text || null,
         reminder_delay_minutes: body.reminder_delay_minutes || null,
+        // Make/Zapier avisado quando o "Capturar Lead" fecha — só mexe se veio no corpo.
+        ...(body.webhook_url !== undefined ? { webhook_url: body.webhook_url || null } : {}),
         updated_at: new Date().toISOString(),
         ...flowVersionUpdate,
       })

@@ -1,7 +1,7 @@
 import type { Followup } from './automation';
 
 /** Os tipos de nó do canvas visual. `aiResponse` fica fora por decisão de escopo. */
-export type FlowNodeType = 'trigger' | 'sendMessage' | 'condition' | 'delay' | 'action' | 'waitForReply';
+export type FlowNodeType = 'trigger' | 'sendMessage' | 'condition' | 'delay' | 'action' | 'waitForReply' | 'captureLead';
 
 export interface TriggerNodeConfig {
   triggerTypes: ('dm' | 'story' | 'story_mention' | 'comment')[];
@@ -54,6 +54,28 @@ export interface WaitForReplyNodeConfig {
   saveReplyToField?: string | null;
 }
 
+export type CaptureLeadField = 'email' | 'phone';
+
+/**
+ * Pede e-mail e/ou telefone pela DM, valida cada resposta e só segue pelo ramo `done`
+ * quando todos os campos foram coletados — é o "porteiro" antes de entregar um material.
+ * Resposta inválida reenvia `invalidText` e continua esperando; depois de `maxAttempts`
+ * tentativas inválidas no mesmo campo, segue pelo ramo `failed`.
+ */
+export interface CaptureLeadNodeConfig {
+  /** Campos a coletar, na ordem em que são perguntados. */
+  fields: CaptureLeadField[];
+  askText: Record<CaptureLeadField, string>;
+  invalidText: Record<CaptureLeadField, string>;
+  /** Tentativas inválidas por campo antes de desistir (ramo `failed`). */
+  maxAttempts: number;
+  /** Pula o campo que o contato já tem salvo (ex: deu o e-mail numa automação anterior). */
+  skipIfKnown: boolean;
+  /** Minutos sem resposta até mandar `reminderText` (uma vez); sem lembrete, segue pelo ramo `failed`. null/0 = espera para sempre. */
+  timeoutMinutes?: number | null;
+  reminderText?: string | null;
+}
+
 export interface ActionNodeConfig {
   actionType: 'add_tag' | 'remove_tag' | 'set_field';
   tag?: string;
@@ -67,7 +89,8 @@ export type FlowNodeConfig =
   | { type: 'condition'; data: ConditionNodeConfig }
   | { type: 'delay'; data: DelayNodeConfig }
   | { type: 'action'; data: ActionNodeConfig }
-  | { type: 'waitForReply'; data: WaitForReplyNodeConfig };
+  | { type: 'waitForReply'; data: WaitForReplyNodeConfig }
+  | { type: 'captureLead'; data: CaptureLeadNodeConfig };
 
 /** Nó persistido em automations.flow_definition — espelha a shape de Node do @xyflow/react sem acoplar ao pacote. */
 export interface FlowNode {
