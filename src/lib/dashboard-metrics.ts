@@ -1,13 +1,14 @@
 import { supabase } from '@/lib/supabase';
+import { getUserIdsInSameAgency } from '@/lib/instagram-account';
 
 const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 // Conta linhas de `table` criadas entre [from, to) dentro do escopo de contas.
-async function countBetween(table: string, userId: string, accountIds: string[], from: Date, to: Date, dateColumn = 'created_at', onlyEngagedContacts = false) {
+async function countBetween(table: string, userIds: string[], accountIds: string[], from: Date, to: Date, dateColumn = 'created_at', onlyEngagedContacts = false) {
   let query = supabase
     .from(table)
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
+    .in('user_id', userIds)
     .in('instagram_user_id', accountIds)
     .gte(dateColumn, from.toISOString())
     .lt(dateColumn, to.toISOString());
@@ -31,10 +32,13 @@ function percentChange(current: number, previous: number): number | null {
  * coisa que passa batido se só aparecer quando ela está em foco.
  */
 export async function getTokenHealth(userId: string) {
+  const agencyUserIds = await getUserIdsInSameAgency(userId);
+  const userIds = agencyUserIds.length > 0 ? agencyUserIds : [userId];
+
   const { data, error } = await supabase
     .from('instagram_accounts')
     .select('instagram_user_id, instagram_username, token_expires_at')
-    .eq('user_id', userId);
+    .in('user_id', userIds);
 
   if (error) throw error;
 
@@ -81,8 +85,11 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     };
   }
 
-  const base = (table: string) => supabase.from(table).select('*').eq('user_id', userId).in('instagram_user_id', accountIds);
-  const baseCount = (table: string) => supabase.from(table).select('*', { count: 'exact', head: true }).eq('user_id', userId).in('instagram_user_id', accountIds);
+  const agencyUserIds = await getUserIdsInSameAgency(userId);
+  const userIds = agencyUserIds.length > 0 ? agencyUserIds : [userId];
+
+  const base = (table: string) => supabase.from(table).select('*').in('user_id', userIds).in('instagram_user_id', accountIds);
+  const baseCount = (table: string) => supabase.from(table).select('*', { count: 'exact', head: true }).in('user_id', userIds).in('instagram_user_id', accountIds);
 
   const [
     { count: automationsCount },
@@ -102,7 +109,7 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     baseCount('events'),
     base('events').order('created_at', { ascending: false }).limit(20),
     supabase.from('queue').select('id, contact_id, type, status, error_message, created_at, sent_at, contacts(username, name, profile_picture_url)')
-      .eq('user_id', userId).in('instagram_user_id', accountIds)
+      .in('user_id', userIds).in('instagram_user_id', accountIds)
       .order('created_at', { ascending: false }).limit(20),
     supabase.from('analytics_events').select('event_type, automation_id, contact_id, created_at').in('instagram_user_id', accountIds),
     base('automations').select('*'),
@@ -150,7 +157,7 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
   );
 
   const { data: weekDms } = await supabase.from('queue').select('sent_at')
-    .eq('user_id', userId).in('instagram_user_id', accountIds)
+    .in('user_id', userIds).in('instagram_user_id', accountIds)
     .eq('status', 'sent').neq('type', 'public_reply')
     .gte('sent_at', sevenDaysAgo.toISOString());
 
@@ -165,9 +172,9 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
 
   // Saúde das entregas (todo o histórico da fila, exceto respostas públicas)
   const [{ count: sentCount }, { count: pendingHealthCount }, { count: failedCount }] = await Promise.all([
-    supabase.from('queue').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('instagram_user_id', accountIds).eq('status', 'sent').neq('type', 'public_reply'),
-    supabase.from('queue').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('instagram_user_id', accountIds).eq('status', 'pending').neq('type', 'public_reply'),
-    supabase.from('queue').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('instagram_user_id', accountIds).eq('status', 'failed').neq('type', 'public_reply'),
+    supabase.from('queue').select('*', { count: 'exact', head: true }).in('user_id', userIds).in('instagram_user_id', accountIds).eq('status', 'sent').neq('type', 'public_reply'),
+    supabase.from('queue').select('*', { count: 'exact', head: true }).in('user_id', userIds).in('instagram_user_id', accountIds).eq('status', 'pending').neq('type', 'public_reply'),
+    supabase.from('queue').select('*', { count: 'exact', head: true }).in('user_id', userIds).in('instagram_user_id', accountIds).eq('status', 'failed').neq('type', 'public_reply'),
   ]);
 
   const healthTotal = (sentCount || 0) + (pendingHealthCount || 0) + (failedCount || 0);
@@ -192,12 +199,12 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
     automationsCurrent, automationsPrevious,
     eventsCurrent, eventsPrevious,
   ] = await Promise.all([
-    countBetween('contacts', userId, accountIds, periodStart, now, 'first_contact_at', true),
-    countBetween('contacts', userId, accountIds, previousPeriodStart, periodStart, 'first_contact_at', true),
-    countBetween('automations', userId, accountIds, periodStart, now),
-    countBetween('automations', userId, accountIds, previousPeriodStart, periodStart),
-    countBetween('events', userId, accountIds, periodStart, now),
-    countBetween('events', userId, accountIds, previousPeriodStart, periodStart),
+    countBetween('contacts', userIds, accountIds, periodStart, now, 'first_contact_at', true),
+    countBetween('contacts', userIds, accountIds, previousPeriodStart, periodStart, 'first_contact_at', true),
+    countBetween('automations', userIds, accountIds, periodStart, now),
+    countBetween('automations', userIds, accountIds, previousPeriodStart, periodStart),
+    countBetween('events', userIds, accountIds, periodStart, now),
+    countBetween('events', userIds, accountIds, previousPeriodStart, periodStart),
   ]);
 
   let leadsGeneratedCurrent = 0;
@@ -228,7 +235,7 @@ export async function getDashboardMetrics(userId: string, accountIds: string[]) 
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
   const { data: failedJobs } = await supabase.from('queue').select('error_message')
-    .eq('user_id', userId).in('instagram_user_id', accountIds)
+    .in('user_id', userIds).in('instagram_user_id', accountIds)
     .eq('status', 'failed')
     .gte('created_at', ninetyDaysAgo.toISOString());
 

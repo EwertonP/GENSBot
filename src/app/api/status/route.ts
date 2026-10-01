@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getActiveInstagramAccountForUser, listInstagramAccountsForUser } from '@/lib/instagram-account';
+import { getActiveInstagramAccountForUser, listInstagramAccountsForUser, getUserIdsInSameAgency } from '@/lib/instagram-account';
 import { getDashboardMetrics, getTokenHealth, buildAlerts } from '@/lib/dashboard-metrics';
 
 export async function GET(req: Request) {
@@ -75,10 +75,13 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Parâmetro account é obrigatório.' }, { status: 400 });
     }
 
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
+
     const { error } = await supabase
       .from('instagram_accounts')
       .delete()
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .eq('instagram_user_id', accountParam);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getAccountForUserOrAgency, listInstagramAccountsForUser } from '@/lib/instagram-account';
+import { getAccountForUserOrAgency, listInstagramAccountsForUser, getUserIdsInSameAgency } from '@/lib/instagram-account';
 import { publishPost, PublishMediaType, erroLimiteColaboradores } from '@/lib/instagram-publish';
 import { supabase } from '@/lib/supabase';
 import { createAutomationForPublishedPost, PublishAutomationConfig } from '@/lib/publish-automation';
@@ -244,6 +244,9 @@ export async function GET(req: Request) {
     const accounts = await listInstagramAccountsForUser(user.id);
     const agencyAccountIds = accounts.map((a) => a.instagram_user_id);
 
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
+
     let query = supabase
       .from('scheduled_posts')
       .select('*')
@@ -255,7 +258,7 @@ export async function GET(req: Request) {
     } else if (agencyAccountIds.length > 0) {
       query = query.in('instagram_user_id', agencyAccountIds);
     } else {
-      query = query.eq('user_id', user.id);
+      query = query.in('user_id', userIds);
     }
 
     const { data, error } = await query;

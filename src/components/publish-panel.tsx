@@ -571,7 +571,12 @@ export default function PublishPanel({
   const [filaContaFiltro, setFilaContaFiltro] = useState<'target' | 'all'>('target');
 
   useEffect(() => {
-    if (selectedAccountId && selectedAccountId !== 'all') {
+    if (selectedAccountId === 'all') {
+      setFilaContaFiltro('all');
+      if (accounts.length > 0 && !targetAccount) {
+        setTargetAccount(accounts[0].instagram_user_id);
+      }
+    } else if (selectedAccountId) {
       setTargetAccount(selectedAccountId);
     } else if (accounts.length > 0 && !targetAccount) {
       setTargetAccount(accounts[0].instagram_user_id);

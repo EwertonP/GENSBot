@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getInstagramAccountByInstagramUserId, listInstagramAccountsForUser } from '@/lib/instagram-account';
+import { getInstagramAccountByInstagramUserId, listInstagramAccountsForUser, getUserIdsInSameAgency } from '@/lib/instagram-account';
 import { supabase } from '@/lib/supabase';
 import { ALLOWED_PERIODS, buildEmptySparkline, computeContentPerformance, type Period } from '@/lib/content-performance';
 
@@ -8,6 +8,9 @@ export async function GET(req: Request) {
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
+
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
 
     const url = new URL(req.url);
     const accountParam = url.searchParams.get('account');
@@ -22,12 +25,12 @@ export async function GET(req: Request) {
       const { data: withTokens } = await supabase
         .from('instagram_accounts')
         .select('instagram_user_id, access_token')
-        .eq('user_id', user.id)
+        .in('user_id', userIds)
         .in('instagram_user_id', accounts.map((a) => a.instagram_user_id));
       targets = withTokens || [];
     } else {
       const account = await getInstagramAccountByInstagramUserId(accountParam);
-      if (account && account.user_id === user.id) {
+      if (account && userIds.includes(account.user_id)) {
         targets = [{ instagram_user_id: account.instagram_user_id, access_token: account.access_token }];
       }
     }
@@ -57,7 +60,7 @@ export async function GET(req: Request) {
     const { data: utmLinks } = await supabase
       .from('utm_links')
       .select('automation_id, click_count, instagram_user_id')
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .in('instagram_user_id', accountIds);
 
     let bioClicks = 0;

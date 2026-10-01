@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
+import { getUserIdsInSameAgency } from '@/lib/instagram-account';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
+
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
 
     const { id } = await params;
     const body = await req.json();
@@ -59,7 +63,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         ...flowVersionUpdate,
       })
       .eq('id', id)
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .select()
       .single();
 
@@ -75,13 +79,16 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
 
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
+
     const { id } = await params;
 
     const { error } = await supabase
       .from('automations')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id);
+      .in('user_id', userIds);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });

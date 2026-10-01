@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
+import { getUserIdsInSameAgency } from '@/lib/instagram-account';
 
 /**
  * Restaura uma versão antiga como o flow_definition atual da automação.
@@ -13,6 +14,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
 
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
+
     const { id, versionId } = await params;
 
     const { data: version, error: versionError } = await supabase
@@ -20,14 +24,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .select('flow_definition')
       .eq('id', versionId)
       .eq('automation_id', id)
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .single();
 
     if (versionError || !version) {
       return NextResponse.json({ error: 'Versão não encontrada.' }, { status: 404 });
     }
 
-    const { data: current } = await supabase.from('automations').select('flow_definition, flow_version').eq('id', id).single();
+    const { data: current } = await supabase
+      .from('automations')
+      .select('flow_definition, flow_version')
+      .eq('id', id)
+      .in('user_id', userIds)
+      .single();
     const previousVersion = current?.flow_version || 0;
 
     if (current?.flow_definition) {
@@ -48,7 +57,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .select()
       .single();
 

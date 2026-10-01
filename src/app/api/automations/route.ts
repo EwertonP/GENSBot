@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
+import { getActiveInstagramAccountForUser, getUserIdsInSameAgency } from '@/lib/instagram-account';
 
 export async function GET(req: Request) {
   try {
@@ -17,10 +17,13 @@ export async function GET(req: Request) {
       return NextResponse.json([]);
     }
 
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
+
     const { data, error } = await supabase
       .from('automations')
       .select('*')
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .eq('instagram_user_id', config.instagram_user_id)
       .order('created_at', { ascending: false });
 

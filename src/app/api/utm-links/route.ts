@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getActiveInstagramAccountForUser, listInstagramAccountsForUser } from '@/lib/instagram-account';
+import { getActiveInstagramAccountForUser, listInstagramAccountsForUser, getUserIdsInSameAgency } from '@/lib/instagram-account';
 import { buildUtmUrl } from '@/lib/utm';
 
 function withShortUrl<T extends { short_code?: string | null }>(req: Request, link: T) {
@@ -19,6 +19,9 @@ export async function GET(req: Request) {
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
+
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
 
     const accountParam = new URL(req.url).searchParams.get('account');
     const isAggregate = accountParam === 'all';
@@ -37,7 +40,7 @@ export async function GET(req: Request) {
     const { data, error } = await supabase
       .from('utm_links')
       .select('*')
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .in('instagram_user_id', accountIds)
       .order('created_at', { ascending: false });
 
