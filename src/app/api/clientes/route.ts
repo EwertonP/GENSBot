@@ -79,7 +79,7 @@ export async function POST(req: Request) {
   // Se foto_url não foi informada manualmente, herda a foto de perfil do Instagram conectado
   let fotoUrl = parsed.data.foto_url;
   if (!fotoUrl && contaId) {
-    const { data: conta } = await supabase
+    const { data: conta } = await serviceSupabase
       .from('instagram_accounts')
       .select('profile_picture_url')
       .eq('id', contaId)

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { supabase as serviceSupabase } from '@/lib/supabase';
 import { ehUuid, parseClienteInput } from '@/lib/clientes';
 import {
   getContextoAgencia,
@@ -29,7 +30,7 @@ export async function GET(_req: Request, { params }: Params) {
 
   let clienteFinal = cliente;
   if (!clienteFinal.foto_url && clienteFinal.instagram_account_id) {
-    const { data: conta } = await supabase
+    const { data: conta } = await serviceSupabase
       .from('instagram_accounts')
       .select('profile_picture_url, instagram_username')
       .eq('id', clienteFinal.instagram_account_id)
@@ -91,7 +92,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const updateData = { ...parsed.data };
   if (!updateData.foto_url && contaId) {
-    const { data: conta } = await supabase
+    const { data: conta } = await serviceSupabase
       .from('instagram_accounts')
       .select('profile_picture_url')
       .eq('id', contaId)

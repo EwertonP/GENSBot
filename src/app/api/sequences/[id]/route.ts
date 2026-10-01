@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
+import { getActiveInstagramAccountForUser, getUserIdsInSameAgency } from '@/lib/instagram-account';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
+
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
 
     const { id } = await params;
     const body = await req.json();
@@ -24,7 +27,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .eq('instagram_user_id', config.instagram_user_id)
       .select()
       .single();
@@ -41,6 +44,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
 
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
+
     const { id } = await params;
     const accountParam = new URL(req.url).searchParams.get('account');
     const config = await getActiveInstagramAccountForUser(user.id, accountParam);
@@ -52,7 +58,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       .from('sequences')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .eq('instagram_user_id', config.instagram_user_id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getActiveInstagramAccountForUser, listInstagramAccountsForUser } from '@/lib/instagram-account';
+import { getActiveInstagramAccountForUser, listInstagramAccountsForUser, getUserIdsInSameAgency } from '@/lib/instagram-account';
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
@@ -13,6 +13,9 @@ export async function GET(req: Request) {
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
+
+    const agencyUserIds = await getUserIdsInSameAgency(user.id);
+    const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
 
     const { searchParams } = new URL(req.url);
     const accountParam = searchParams.get('account');
@@ -47,7 +50,7 @@ export async function GET(req: Request) {
     let query = supabase
       .from('contacts')
       .select('*, origem:automations!contacts_last_automation_id_fkey(id, name)', { count: 'exact' })
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .in('instagram_user_id', accountIds)
       .not('last_automation_id', 'is', null)
       .order('updated_at', { ascending: false })
@@ -71,7 +74,7 @@ export async function GET(req: Request) {
     const { data: tagRows } = await supabase
       .from('contacts')
       .select('tags')
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .in('instagram_user_id', accountIds)
       .not('last_automation_id', 'is', null)
       .limit(5000);
