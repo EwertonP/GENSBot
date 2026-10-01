@@ -38,8 +38,15 @@ function outgoingEdges(flow: FlowDefinition, nodeId: string, handle?: string) {
   return flow.edges.filter((e) => e.source === nodeId && (handle === undefined || (e.sourceHandle ?? null) === handle));
 }
 
-async function loadContact(contactId: string): Promise<ContactRow | null> {
-  const { data } = await supabase.from('contacts').select('*').eq('instagram_id', contactId).single();
+// A ficha do contato é por conta do Instagram: a mesma pessoa falando com dois
+// clientes tem duas linhas, então toda leitura/escrita filtra pelo par (conta, pessoa).
+async function loadContact(ctx: FlowRunContext): Promise<ContactRow | null> {
+  const { data } = await supabase
+    .from('contacts')
+    .select('*')
+    .eq('instagram_user_id', ctx.instagramUserId)
+    .eq('instagram_id', ctx.contactId)
+    .maybeSingle();
   return (data as ContactRow) || null;
 }
 
@@ -48,6 +55,7 @@ async function persistContact(ctx: FlowRunContext, mutation: Record<string, unkn
   const { error } = await supabase
     .from('contacts')
     .update({ ...mutation, updated_at: new Date().toISOString() })
+    .eq('instagram_user_id', ctx.instagramUserId)
     .eq('instagram_id', ctx.contactId);
   if (error) console.error('[flow-engine] Erro ao atualizar contato:', error);
 }
@@ -236,7 +244,7 @@ async function enqueuePublicReply(automation: Automation, ctx: FlowRunContext, p
  */
 async function walk(automation: Automation, flow: FlowDefinition, ctx: FlowRunContext, startNodeId: string, flowRunId: string, allowRecipientRefOnFirstMessage = false) {
   let currentId: string | undefined = startNodeId;
-  let contact = await loadContact(ctx.contactId);
+  let contact = await loadContact(ctx);
   let guard = 0;
   let commentIdAvailable = allowRecipientRefOnFirstMessage && 'comment_id' in ctx.recipientRef;
 
@@ -308,7 +316,7 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
 
   // Versões antigas gravavam o IGSID no lugar do @ quando não achavam o username —
   // esse valor conta como "sem @" pra que a busca rode de novo.
-  const existing = await loadContact(ctx.contactId);
+  const existing = await loadContact(ctx);
   let profileName = existing?.name || null;
   const storedUsername = existing?.username && existing.username !== ctx.contactId ? existing.username : null;
   let profileUsername = ctx.username || storedUsername;
@@ -349,7 +357,7 @@ export async function resumeFlow(automation: Automation, ctx: FlowRunContext, pa
   const flow = automation.flow_definition;
   if (!flow) return;
 
-  const contact = await loadContact(ctx.contactId);
+  const contact = await loadContact(ctx);
 
   // Guarda contra corrida: se o contato já não está mais pausado nesse nó (ex: a pessoa
   // respondeu e o job de timeout chegou depois, ou vice-versa), essa retomada é obsoleta.

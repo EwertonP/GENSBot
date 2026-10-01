@@ -9,7 +9,8 @@ import { matchesKeywords } from '@/lib/flow-engine/evaluator';
 import { logDbError } from '@/lib/db-log';
 import { triggerExternalWebhook } from '@/lib/external-webhook';
 
-// `messages.contact_id` tem FK pra `contacts.instagram_id` — pra um
+// `messages (instagram_user_id, contact_id)` tem FK pra ficha do contato
+// naquela conta, `contacts (instagram_user_id, instagram_id)` — pra um
 // comentarista/remetente de primeira vez (ainda sem linha em `contacts`,
 // já que o upsert completo só acontece depois, ao bater uma automação),
 // inserir em `messages` antes disso violava a FK. Como o client do
@@ -31,7 +32,7 @@ async function ensureContactExists(
 ) {
   const { error } = await supabase.from('contacts').upsert(
     { ...fields, ...(username ? { username } : {}) },
-    { onConflict: 'instagram_id', ignoreDuplicates: true },
+    { onConflict: 'instagram_user_id,instagram_id', ignoreDuplicates: true },
   );
   logDbError('contacts.upsert (ensureContactExists)', error);
 
@@ -39,6 +40,7 @@ async function ensureContactExists(
     const { error: usernameError } = await supabase
       .from('contacts')
       .update({ username })
+      .eq('instagram_user_id', fields.instagram_user_id)
       .eq('instagram_id', fields.instagram_id);
     logDbError('contacts.update (username do comentário)', usernameError);
   }
@@ -378,6 +380,7 @@ async function processWebhookEvent(payload: any) {
               const { data: existingContact } = await supabase
                 .from('contacts')
                 .select('name, username, profile_picture_url')
+                .eq('instagram_user_id', myIgId)
                 .eq('instagram_id', fromUserId)
                 .single();
 
@@ -406,7 +409,7 @@ async function processWebhookEvent(payload: any) {
                 last_active_automation_id: auto.id,
                 conversation_state: nextState,
                 updated_at: new Date().toISOString(),
-              }, { onConflict: 'instagram_id' });
+              }, { onConflict: 'instagram_user_id,instagram_id' });
               logDbError('contacts.upsert (comment, legado)', contactUpsertError);
 
               // Enfileirar a resposta privada (welcome_dm)
@@ -518,6 +521,7 @@ async function processWebhookEvent(payload: any) {
         const { data: contact } = await supabase
           .from('contacts')
           .select('*')
+          .eq('instagram_user_id', myIgId)
           .eq('instagram_id', senderId)
           .single();
 
@@ -550,6 +554,7 @@ async function processWebhookEvent(payload: any) {
                 updated_at: new Date().toISOString(),
                 ...(recoveredUsername ? { username: recoveredUsername } : {}),
               })
+              .eq('instagram_user_id', myIgId)
               .eq('instagram_id', senderId);
             logDbError('contacts.update (last_response_at, waitForReply)', contactUpdateError);
 
@@ -604,7 +609,7 @@ async function processWebhookEvent(payload: any) {
               last_automation_id: auto.id,
               conversation_state: 'idle',
               updated_at: new Date().toISOString(),
-            }, { onConflict: 'instagram_id' });
+            }, { onConflict: 'instagram_user_id,instagram_id' });
             logDbError('contacts.upsert (quick_reply)', contactQuickReplyError);
 
             // Enfileirar os followups (link e lembrete)
@@ -618,7 +623,7 @@ async function processWebhookEvent(payload: any) {
 
         // Tratar solicitação de exclusão de dados da Meta
         if (text.trim().toUpperCase() === 'EXCLUIR MEUS DADOS') {
-          const { error: deleteContactError } = await supabase.from('contacts').delete().eq('instagram_id', senderId);
+          const { error: deleteContactError } = await supabase.from('contacts').delete().eq('instagram_user_id', myIgId).eq('instagram_id', senderId);
           logDbError('contacts.delete (EXCLUIR MEUS DADOS)', deleteContactError);
           const deletePayload = {
             recipient: { id: senderId },
@@ -663,6 +668,7 @@ async function processWebhookEvent(payload: any) {
                       last_response_at: new Date().toISOString(),
                       updated_at: new Date().toISOString()
                     })
+                    .eq('instagram_user_id', myIgId)
                     .eq('instagram_id', senderId);
                   logDbError('contacts.update (email capturado)', emailUpdateError);
 
@@ -736,6 +742,7 @@ async function processWebhookEvent(payload: any) {
                       last_response_at: new Date().toISOString(),
                       updated_at: new Date().toISOString()
                     })
+                    .eq('instagram_user_id', myIgId)
                     .eq('instagram_id', senderId);
                   logDbError('contacts.update (telefone capturado)', phoneUpdateError);
 
@@ -861,6 +868,7 @@ async function processWebhookEvent(payload: any) {
             const { data: existingContact } = await supabase
               .from('contacts')
               .select('name, username, profile_picture_url')
+              .eq('instagram_user_id', myIgId)
               .eq('instagram_id', senderId)
               .single();
 
@@ -887,7 +895,7 @@ async function processWebhookEvent(payload: any) {
               last_active_automation_id: auto.id,
               conversation_state: nextState,
               updated_at: new Date().toISOString(),
-            }, { onConflict: 'instagram_id' });
+            }, { onConflict: 'instagram_user_id,instagram_id' });
             logDbError('contacts.upsert (dm, legado)', contactDmUpsertError);
 
             const welcomePayload = {
@@ -933,7 +941,7 @@ async function processWebhookEvent(payload: any) {
         // registro "vazio" que ensureContactExists criou só pra permitir
         // o log da mensagem, em vez de deixar poluir "Leads & Público".
         if (!matchedTrigger && !contact?.last_automation_id && !contact?.conversation_state) {
-          const { error: noiseCleanupError } = await supabase.from('contacts').delete().eq('instagram_id', senderId);
+          const { error: noiseCleanupError } = await supabase.from('contacts').delete().eq('instagram_user_id', myIgId).eq('instagram_id', senderId);
           logDbError('contacts.delete (contato sem automação)', noiseCleanupError);
         }
       }
@@ -986,6 +994,7 @@ async function enqueueFollowups(contactId: string, auto: any, userId: string, in
     const { error: followupInsertError } = await supabase.from('followups').insert({
       automation_id: auto.id,
       contact_id: contactId,
+      instagram_user_id: instagramUserId,
       step: 1,
       status: 'queued',
     });
@@ -1048,6 +1057,7 @@ async function enqueueFollowups(contactId: string, auto: any, userId: string, in
       const { error: sequenceFollowupError } = await supabase.from('followups').insert({
         automation_id: auto.id,
         contact_id: contactId,
+        instagram_user_id: instagramUserId,
         step: i + 2, // Começa do step 2 (assumindo que o link imediato foi step 1)
         status: 'queued',
       });
@@ -1082,6 +1092,7 @@ async function enqueueFollowups(contactId: string, auto: any, userId: string, in
     const { error: reminderFollowupError } = await supabase.from('followups').insert({
       automation_id: auto.id,
       contact_id: contactId,
+      instagram_user_id: instagramUserId,
       step: 2,
       status: 'queued',
     });
