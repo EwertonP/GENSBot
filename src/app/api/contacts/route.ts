@@ -18,6 +18,9 @@ export async function GET(req: Request) {
     const accountParam = searchParams.get('account');
     const isAggregate = accountParam === 'all';
     const tag = searchParams.get('tag');
+    // Busca livre: nome, @, e-mail ou telefone. Tira os caracteres que quebrariam o
+    // filtro `or()` do PostgREST (vírgula, parênteses, curinga) em vez de escapá-los.
+    const search = (searchParams.get('search') || '').replace(/[%,()*\\]/g, ' ').replace(/^@/, '').trim().slice(0, 80);
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
     const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(searchParams.get('pageSize') || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE));
 
@@ -39,9 +42,11 @@ export async function GET(req: Request) {
 
     // Mesma regra do dashboard: só contatos que de fato interagiram com uma
     // automação entram em "Leads & Público" (ver src/lib/dashboard-metrics.ts).
+    // `origem` = automação pela qual o contato entrou por último (contacts tem duas FKs
+    // pra automations, por isso o nome da constraint explícito no embed).
     let query = supabase
       .from('contacts')
-      .select('*', { count: 'exact' })
+      .select('*, origem:automations!contacts_last_automation_id_fkey(id, name)', { count: 'exact' })
       .eq('user_id', user.id)
       .in('instagram_user_id', accountIds)
       .not('last_automation_id', 'is', null)
@@ -49,6 +54,12 @@ export async function GET(req: Request) {
       .range(from, to);
 
     if (tag) query = query.contains('tags', [tag]);
+    if (search) {
+      const digits = search.replace(/\D/g, '');
+      const clauses = [`name.ilike.%${search}%`, `username.ilike.%${search}%`, `email.ilike.%${search}%`];
+      if (digits.length >= 4) clauses.push(`phone.ilike.%${digits}%`);
+      query = query.or(clauses.join(','));
+    }
 
     const { data, error, count } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
