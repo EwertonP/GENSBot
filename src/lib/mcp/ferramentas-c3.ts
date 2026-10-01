@@ -44,7 +44,7 @@ async function membrosDaAgencia(ctx: ContextoMcp): Promise<string[]> {
 }
 
 /** Contas de Instagram conectadas por membros da agência (sem token). */
-async function contasDaAgencia(ctx: ContextoMcp) {
+export async function contasDaAgencia(ctx: ContextoMcp) {
   const membros = await membrosDaAgencia(ctx);
   const { data } = await db
     .from('instagram_accounts')
@@ -53,7 +53,7 @@ async function contasDaAgencia(ctx: ContextoMcp) {
   return data || [];
 }
 
-async function resolverConta(ctx: ContextoMcp, conta: string) {
+export async function resolverConta(ctx: ContextoMcp, conta: string) {
   const alvo = conta.replace(/^@/, '').toLowerCase();
   const contas = await contasDaAgencia(ctx);
   const achada = contas.find((c) => c.instagram_user_id === conta || (c.instagram_username || '').toLowerCase() === alvo);
