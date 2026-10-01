@@ -1,8 +1,8 @@
 import { randomUUID } from 'crypto';
 import { supabase } from '@/lib/supabase';
 import type { Automation } from '@/types/automation';
-import type { FlowDefinition, FlowNode, FlowEdge, SendMessageNodeConfig, ActionNodeConfig, ConditionNodeConfig, DelayNodeConfig, WaitForReplyNodeConfig } from '@/types/flow';
-import { evaluateTriggerNode, evaluateConditionNode, applyActionNode, applyWaitForReplyCapture, matchesKeywords, personalizeText, deriveAutomationTag, type ContactSnapshot } from './evaluator';
+import type { FlowDefinition, FlowNode, FlowEdge, SendMessageNodeConfig, ActionNodeConfig, ConditionNodeConfig, DelayNodeConfig, WaitForReplyNodeConfig, CaptureLeadNodeConfig } from '@/types/flow';
+import { evaluateTriggerNode, evaluateConditionNode, applyActionNode, applyWaitForReplyCapture, matchesKeywords, personalizeText, deriveAutomationTag, stepCaptureLead, type ContactSnapshot, type CaptureLeadState, type CaptureLeadStep } from './evaluator';
 import { triggerExternalWebhook } from '@/lib/external-webhook';
 
 export interface FlowRunContext {
@@ -213,6 +213,99 @@ async function scheduleWaitForReply(automation: Automation, ctx: FlowRunContext,
   if (error) console.error('[flow-engine] Erro ao agendar timeout de waitForReply:', error);
 }
 
+/** Mensagem de texto simples da própria engine (pergunta/aviso/lembrete do "Capturar Lead"). */
+async function enqueueText(automation: Automation, ctx: FlowRunContext, text: string, contact: ContactSnapshot | null, recipient: { comment_id: string } | { id: string }) {
+  const { error } = await supabase.from('queue').insert({
+    user_id: ctx.ownerUserId,
+    instagram_user_id: ctx.instagramUserId,
+    contact_id: ctx.contactId,
+    automation_id: automation.id,
+    type: 'flow_send',
+    recipient_id: 'comment_id' in recipient ? recipient.comment_id : recipient.id,
+    payload: { recipient, message: { text: personalizeText(text, contact) } },
+    status: 'pending',
+    scheduled_at: new Date().toISOString(),
+  });
+  if (error) console.error('[flow-engine] Erro ao enfileirar mensagem do Capturar Lead:', error);
+}
+
+/** `flow_state` com o estado do "Capturar Lead" trocado (ou removido, com `null`) — preserva as respostas de outras perguntas. */
+function flowStateWithCapture(contact: ContactSnapshot | null, capture: CaptureLeadState | null): Record<string, unknown> {
+  const rest: Record<string, unknown> = { ...((contact?.flow_state as Record<string, unknown>) || {}) };
+  delete rest._capture;
+  return capture ? { ...rest, _capture: capture } : rest;
+}
+
+async function scheduleCaptureTimeout(automation: Automation, ctx: FlowRunContext, node: FlowNode) {
+  const timeoutMinutes = (node.data as CaptureLeadNodeConfig).timeoutMinutes;
+  if (!timeoutMinutes || timeoutMinutes <= 0) return;
+  const scheduledAt = new Date();
+  scheduledAt.setMinutes(scheduledAt.getMinutes() + timeoutMinutes);
+  const { error } = await supabase.from('queue').insert({
+    user_id: ctx.ownerUserId,
+    instagram_user_id: ctx.instagramUserId,
+    contact_id: ctx.contactId,
+    automation_id: automation.id,
+    type: 'flow_resume',
+    recipient_id: ctx.contactId,
+    payload: { node_id: node.id, kind: 'timeout' },
+    status: 'pending',
+    scheduled_at: scheduledAt.toISOString(),
+  });
+  if (error) console.error('[flow-engine] Erro ao agendar timeout do Capturar Lead:', error);
+}
+
+/** Evento `lead_captured` (conta no funil do dashboard) + webhook externo, uma vez só, com tudo que foi coletado. */
+async function recordLeadCaptured(automation: Automation, ctx: FlowRunContext, contact: ContactSnapshot | null) {
+  const { error } = await supabase.from('analytics_events').insert({
+    user_id: ctx.ownerUserId,
+    instagram_user_id: ctx.instagramUserId,
+    contact_id: ctx.contactId,
+    automation_id: automation.id,
+    event_type: 'lead_captured',
+  });
+  if (error) console.error('[flow-engine] Erro ao registrar lead_captured:', error);
+  if (automation.webhook_url) triggerExternalWebhook(automation.webhook_url, contact, automation);
+}
+
+/**
+ * Aplica um passo do "Capturar Lead": grava o que foi validado e, conforme o resultado,
+ * pergunta/avisa e continua pausado (devolve undefined) ou devolve o próximo nó a executar.
+ */
+async function applyCaptureStep(
+  automation: Automation,
+  flow: FlowDefinition,
+  ctx: FlowRunContext,
+  node: FlowNode,
+  contact: ContactSnapshot | null,
+  step: CaptureLeadStep,
+  recipient: { comment_id: string } | { id: string },
+  flowRunId: string,
+  isEntry: boolean,
+): Promise<{ pause: true } | { pause: false; nextId: string | undefined; contact: ContactSnapshot | null }> {
+  const updated = { ...(contact || {}), ...step.mutation } as ContactSnapshot;
+
+  if (step.kind === 'ask') {
+    await enqueueText(automation, ctx, step.text, updated, recipient);
+    await persistContact(ctx, {
+      ...step.mutation,
+      flow_state: flowStateWithCapture(contact, step.state),
+      flow_node_id: node.id,
+      flow_run_id: flowRunId,
+    });
+    if (isEntry) await scheduleCaptureTimeout(automation, ctx, node);
+    return { pause: true };
+  }
+
+  const flowState = flowStateWithCapture(contact, null);
+  await persistContact(ctx, { ...step.mutation, flow_state: flowState });
+  const after = { ...updated, flow_state: flowState };
+
+  if (step.kind === 'done' && step.collected.length > 0) await recordLeadCaptured(automation, ctx, after);
+  const handle = step.kind === 'done' ? 'done' : 'failed';
+  return { pause: false, nextId: outgoingEdges(flow, node.id, handle)[0]?.target, contact: after };
+}
+
 /** Sorteia e enfileira uma resposta pública no comentário — mesmo formato do bloco legado (route.ts, dentro do loop de comentários). Só se aplica a `triggerType === 'comment'`. */
 async function enqueuePublicReply(automation: Automation, ctx: FlowRunContext, publicReplies: string[]) {
   if (!publicReplies.length || !('comment_id' in ctx.recipientRef)) return;
@@ -275,6 +368,17 @@ async function walk(automation: Automation, flow: FlowDefinition, ctx: FlowRunCo
       continue;
     }
 
+    if (node.type === 'captureLead') {
+      const recipient = commentIdAvailable ? ctx.recipientRef : { id: ctx.contactId };
+      const step = stepCaptureLead(node.id, node.data as CaptureLeadNodeConfig, contact, null);
+      if (step.kind === 'ask') commentIdAvailable = false;
+      const result = await applyCaptureStep(automation, flow, ctx, node, contact, step, recipient, flowRunId, true);
+      if (result.pause) return; // retoma via resposta (webhook) ou timeout (flow_resume)
+      contact = result.contact as ContactRow;
+      currentId = result.nextId;
+      continue;
+    }
+
     if (node.type === 'delay') {
       await scheduleDelay(automation, ctx, node, flowRunId);
       return; // pausa aqui — a execução retoma via job `flow_resume` (ver src/lib/drain.ts)
@@ -294,19 +398,21 @@ async function walk(automation: Automation, flow: FlowDefinition, ctx: FlowRunCo
 }
 
 /** Ponto de entrada quando uma mensagem/comentário chega e ainda não há execução em andamento pra essa automação. */
-export async function runFlow(automation: Automation, ctx: FlowRunContext): Promise<RunResult> {
+export async function runFlow(automation: Automation, ctx: FlowRunContext, options: { skipTriggerMatch?: boolean } = {}): Promise<RunResult> {
   const flow = automation.flow_definition;
   if (!flow) return { matched: false };
 
   const triggerNode = flow.nodes.find((n) => n.type === 'trigger');
   if (!triggerNode) return { matched: false };
 
-  const matched = evaluateTriggerNode(triggerNode.data as import('@/types/flow').TriggerNodeConfig, {
-    triggerType: ctx.triggerType,
-    text: ctx.text,
-    mediaId: ctx.mediaId,
-    storyId: ctx.storyId,
-  });
+  const matched =
+    options.skipTriggerMatch ||
+    evaluateTriggerNode(triggerNode.data as import('@/types/flow').TriggerNodeConfig, {
+      triggerType: ctx.triggerType,
+      text: ctx.text,
+      mediaId: ctx.mediaId,
+      storyId: ctx.storyId,
+    });
   if (!matched) return { matched: false };
 
   const triggerConfig = triggerNode.data as import('@/types/flow').TriggerNodeConfig;
@@ -366,6 +472,37 @@ export async function resumeFlow(automation: Automation, ctx: FlowRunContext, pa
   const flowRunId = contact?.flow_run_id || randomUUID();
   const pausedNode = findNode(flow, pausedNodeId);
 
+  if (pausedNode?.type === 'captureLead') {
+    const config = pausedNode.data as CaptureLeadNodeConfig;
+    const state = ((contact?.flow_state as Record<string, unknown> | null)?._capture as CaptureLeadState | undefined) || null;
+    const recipient = { id: ctx.contactId };
+
+    let step: CaptureLeadStep;
+    if (resumeKind === 'timeout') {
+      // Primeiro timeout com lembrete configurado: manda o lembrete e continua esperando
+      // (sem novo timeout). Sem lembrete, ou já lembrado, desiste pelo ramo `failed`.
+      if (config.reminderText?.trim() && state && !state.reminded) {
+        await enqueueText(automation, ctx, config.reminderText, contact, recipient);
+        await persistContact(ctx, { flow_state: flowStateWithCapture(contact, { ...state, reminded: true }) });
+        return;
+      }
+      step = { kind: 'failed', mutation: {} };
+    } else if (resumeKind === 'reply') {
+      step = stepCaptureLead(pausedNode.id, config, contact, state, ctx.text);
+    } else {
+      return; // `delay` não pausa num Capturar Lead
+    }
+
+    const result = await applyCaptureStep(automation, flow, ctx, pausedNode, contact, step, recipient, flowRunId, false);
+    if (result.pause) return;
+    if (!result.nextId) {
+      await persistContact(ctx, { flow_node_id: null, flow_run_id: null });
+      return;
+    }
+    await walk(automation, flow, ctx, result.nextId, flowRunId);
+    return;
+  }
+
   let next: FlowEdge | undefined;
   if (resumeKind === 'timeout') {
     next = outgoingEdges(flow, pausedNodeId, 'timeout')[0];
@@ -398,6 +535,11 @@ export async function resumeFlow(automation: Automation, ctx: FlowRunContext, pa
   }
 
   await walk(automation, flow, ctx, next.target, flowRunId);
+}
+
+/** O fluxo tem um bloco "Capturar Lead" — material atrás dele não pode ser entregue por atalho. */
+export function flowHasCaptureLead(automation: Automation): boolean {
+  return !!automation.flow_definition?.nodes.some((n) => n.type === 'captureLead');
 }
 
 // Reexport pra quem só precisa da função de match, sem puxar o resto do motor.

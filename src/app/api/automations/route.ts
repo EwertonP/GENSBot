@@ -71,6 +71,7 @@ export async function POST(req: Request) {
         link_url: body.link_url || null,
         reminder_text: body.reminder_text || null,
         reminder_delay_minutes: body.reminder_delay_minutes || null,
+        webhook_url: body.webhook_url || null,
         flow_definition: body.flow_definition || null,
       })
       .select()

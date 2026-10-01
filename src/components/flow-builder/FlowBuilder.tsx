@@ -23,6 +23,7 @@ import NodePalette from './NodePalette';
 import { NodeConfigPanel } from './panels';
 import { validateFlow, type FlowValidationIssue } from './flowValidation';
 import { legacyAutomationToFlowDefinition } from '@/lib/flow-engine/compat';
+import { defaultCaptureLeadConfig } from '@/lib/flow-engine/captureLeadDefaults';
 import VersionHistoryPanel from './VersionHistoryPanel';
 
 let idCounter = 0;
@@ -45,6 +46,8 @@ function defaultDataFor(type: FlowNodeType): FlowNodeConfig['data'] {
       return { actionType: 'add_tag', tag: '' };
     case 'waitForReply':
       return { timeoutMinutes: 720, saveReplyAsTagPrefix: null, saveReplyToField: null };
+    case 'captureLead':
+      return defaultCaptureLeadConfig();
   }
 }
 
@@ -56,7 +59,7 @@ function toRfEdges(flow: FlowDefinition): Edge[] {
 }
 
 /** Rótulo por handle de origem — mostrado em cima da própria linha em vez de embaixo do nó. */
-const EDGE_HANDLE_LABELS: Record<string, string> = { true: 'sim', false: 'não', reply: 'resposta', timeout: 'sem resposta' };
+const EDGE_HANDLE_LABELS: Record<string, string> = { true: 'sim', false: 'não', reply: 'resposta', timeout: 'sem resposta', done: 'coletado', failed: 'desistiu' };
 
 /** Deixa as arestas curvas (em vez de retas/em ângulo) e sobe o rótulo de condição/resposta pra cima da linha. */
 function decorateEdges(rfEdges: Edge[]): Edge[] {

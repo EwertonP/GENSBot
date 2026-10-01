@@ -1,10 +1,11 @@
 'use client';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 
 import React, { useState } from 'react';
-import { Plus, Trash2, ChevronDown, MessageSquare, HelpCircle, Link2, Clock, Settings2, GripVertical, GitBranch } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, MessageSquare, HelpCircle, Link2, Clock, Settings2, GripVertical, GitBranch, UserCheck } from 'lucide-react';
+import { CaptureLeadPanel } from '@/components/flow-builder/panels';
+import { defaultCaptureLeadConfig } from '@/lib/flow-engine/captureLeadDefaults';
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { Automation } from '@/types/automation';
@@ -196,6 +197,10 @@ function InsertSlot({ id, onInsert }: { id: string; onInsert: (template: Qualifi
                 <Link2 className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-semibold text-foreground">Mensagem com link</span>
               </button>
+              <button type="button" onClick={() => { onInsert(newCaptureStep()); setMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer">
+                <UserCheck className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-foreground">Capturar e-mail/telefone</span>
+              </button>
             </div>
           </>
         )}
@@ -208,6 +213,12 @@ const NEW_QUESTION: QualificationStep = { kind: 'question', text: '', buttons: [
 const NEW_OPEN_QUESTION: QualificationStep = { kind: 'question', text: '', buttons: [], timeoutMinutes: 720, reminderText: '', saveReplyAsTagPrefix: '', saveReplyToField: '' };
 const NEW_MESSAGE: QualificationStep = { kind: 'message', text: '' };
 const NEW_LINK: QualificationStep = { kind: 'link', text: '', link_url: null, link_button_label: null };
+const newCaptureStep = (): QualificationStep => ({ kind: 'capture', config: defaultCaptureLeadConfig() });
+
+function stepText(step: QualificationStep): string {
+  if (step.kind !== 'capture') return step.text;
+  return `Pede ${step.config.fields.map((f) => (f === 'email' ? 'e-mail' : 'telefone')).join(' e ') || 'nada'}`;
+}
 
 export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utmLinkPicker, startNumber, onAddCondition }: StepTimelineProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ welcome: true });
@@ -332,28 +343,29 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
           )}
           <div className="flex flex-col gap-3">
             <span className="text-xs font-bold text-foreground">Captura de Leads & Integração</span>
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <Checkbox checked={form.ask_email || false} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, ask_email: checked }))} />
-                <span className="text-xs text-muted-foreground font-semibold">Solicitar E-mail</span>
-              </label>
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <Checkbox checked={form.ask_phone || false} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, ask_phone: checked }))} />
-                <span className="text-xs text-muted-foreground font-semibold">Solicitar Telefone</span>
-              </label>
-            </div>
-            {(form.ask_email || form.ask_phone) && (
-              <div className="flex flex-col gap-1.5 animate-fade-in mt-1">
-                <label className="text-xs font-bold text-muted-foreground">URL do Webhook Externo (POST para Make/Zapier)</label>
-                <input
-                  type="url"
-                  placeholder="https://hook.us1.make.com/..."
-                  value={form.webhook_url || ''}
-                  onChange={(e) => setForm((prev) => ({ ...prev, webhook_url: e.target.value }))}
-                  className="bg-accent border border-input focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-xl px-4 py-2 text-xs focus:outline-none text-foreground placeholder-muted-foreground font-mono"
-                />
-              </div>
+            <p className="text-xs text-muted-foreground">
+              Pra pedir e-mail e telefone antes de entregar o material, use o passo &quot;Capturar e-mail/telefone&quot;:
+              ele confere cada resposta e só segue pro link com os dados certos.
+            </p>
+            {!tail.questions.some((q) => q.kind === 'capture') && (
+              <button
+                type="button"
+                onClick={() => insertQuestionAt(0, newCaptureStep())}
+                className="self-start text-xs font-bold text-primary hover:underline cursor-pointer"
+              >
+                + Adicionar logo depois da mensagem inicial
+              </button>
             )}
+            <div className="flex flex-col gap-1.5 mt-1">
+              <label className="text-xs font-bold text-muted-foreground">URL do Webhook Externo (opcional, recebe e-mail e telefone quando o lead é capturado)</label>
+              <input
+                type="url"
+                placeholder="https://hook.us1.make.com/..."
+                value={form.webhook_url || ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, webhook_url: e.target.value }))}
+                className="bg-accent border border-input focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-xl px-4 py-2 text-xs focus:outline-none text-foreground placeholder-muted-foreground font-mono"
+              />
+            </div>
           </div>
         </AdvancedOptions>
       </StepCard>
@@ -365,6 +377,34 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
         <InsertSlot id="slot-0" onInsert={(t) => insertQuestionAt(0, t)} />
         {tail.questions.map((step, i) => {
         const key = `q-${i}`;
+        if (step.kind === 'capture') {
+          return (
+            <React.Fragment key={i}>
+              <StepCard
+                n={questionNumbers[i]}
+                icon={<UserCheck className="w-4 h-4" />}
+                kind="Capturar Lead"
+                summary={`${stepText(step)} · só segue com dado válido`}
+                expanded={!!expanded[key]}
+                onToggle={() => toggle(key)}
+                onDelete={() => setQuestions((prev) => prev.filter((_, x) => x !== i))}
+                dragHandle={<DragHandle id={`drag-q-${i}`} />}
+              >
+                <CaptureLeadPanel
+                  data={step.config}
+                  onChange={(config) =>
+                    setQuestions((prev) => {
+                      const next = [...prev];
+                      next[i] = { kind: 'capture', config };
+                      return next;
+                    })
+                  }
+                />
+              </StepCard>
+              <InsertSlot id={`slot-${i + 1}`} onInsert={(t) => insertQuestionAt(i + 1, t)} />
+            </React.Fragment>
+          );
+        }
         const kindLabel = step.kind === 'question' ? (step.buttons.length === 0 ? 'Pergunta aberta' : 'Pergunta com botões') : step.kind === 'link' ? 'Mensagem com link' : 'Mensagem simples';
         const summary = step.kind === 'question' && step.buttons.length > 0
           ? `${truncate(step.text, 44)} · ${step.buttons.length} botão${step.buttons.length > 1 ? 'ões' : ''}`
@@ -390,7 +430,7 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
                 onChange={(e) =>
                   setQuestions((prev) => {
                     const next = [...prev];
-                    next[i] = { ...next[i], text: e.target.value };
+                    next[i] = { ...(next[i] as typeof step), text: e.target.value };
                     return next;
                   })
                 }
@@ -402,7 +442,7 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
                 onClick={() =>
                   setQuestions((prev) => {
                     const next = [...prev];
-                    next[i] = { ...next[i], text: `{{primeiro_nome}}, ${next[i].text}` };
+                    next[i] = { ...(next[i] as typeof step), text: `{{primeiro_nome}}, ${(next[i] as typeof step).text}` };
                     return next;
                   })
                 }
@@ -598,7 +638,7 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
           {draggingIndex !== null && tail.questions[draggingIndex] ? (
             <div className="bg-card border border-primary rounded-2xl shadow-xl px-6 py-4 flex items-center gap-3 opacity-90">
               {tail.questions[draggingIndex].kind === 'question' ? <HelpCircle className="w-4 h-4 text-muted-foreground" /> : <MessageSquare className="w-4 h-4 text-muted-foreground" />}
-              <p className="text-sm font-semibold text-foreground truncate">{truncate(tail.questions[draggingIndex].text)}</p>
+              <p className="text-sm font-semibold text-foreground truncate">{truncate(stepText(tail.questions[draggingIndex]))}</p>
             </div>
           ) : null}
         </DragOverlay>
@@ -633,6 +673,10 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
               <button type="button" onClick={() => addQuestion(NEW_LINK)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer">
                 <Link2 className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-semibold text-foreground">Mensagem com link</span>
+              </button>
+              <button type="button" onClick={() => addQuestion(newCaptureStep())} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-accent transition-colors cursor-pointer">
+                <UserCheck className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-foreground">Capturar e-mail/telefone</span>
               </button>
               {onAddCondition && (
                 <button

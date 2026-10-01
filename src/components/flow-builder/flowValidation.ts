@@ -38,6 +38,21 @@ export function validateFlow(flow: FlowDefinition): FlowValidationIssue[] {
       issues.push({ nodeId: node.id, message: 'Nó de mensagem precisa de um texto.' });
     }
 
+    if (node.type === 'captureLead') {
+      const data = node.data as { fields?: string[]; askText?: Record<string, string>; invalidText?: Record<string, string> };
+      if (!data.fields?.length) {
+        issues.push({ nodeId: node.id, message: 'Nó "Capturar Lead" precisa pedir pelo menos um dado (e-mail ou telefone).' });
+      }
+      for (const field of data.fields || []) {
+        if (!data.askText?.[field]?.trim() || !data.invalidText?.[field]?.trim()) {
+          issues.push({ nodeId: node.id, message: `Nó "Capturar Lead" precisa da pergunta e do aviso de resposta inválida pro ${field === 'email' ? 'e-mail' : 'telefone'}.` });
+        }
+      }
+      if (!outgoing.some((e) => e.sourceHandle === 'done')) {
+        issues.push({ nodeId: node.id, message: 'Nó "Capturar Lead" precisa ter o ramo "coletado" conectado — é por ele que o material é entregue.' });
+      }
+    }
+
     if (node.type === 'waitForReply') {
       const hasReplyEdge = outgoing.some((e) => (e.sourceHandle ?? null) !== 'timeout');
       if (!hasReplyEdge) {

@@ -1,4 +1,4 @@
-import type { FlowDefinition, FlowNode, FlowEdge, FlowNodeType, TriggerNodeConfig, SendMessageNodeConfig, WaitForReplyNodeConfig, DelayNodeConfig, ConditionNodeConfig } from '@/types/flow';
+import type { FlowDefinition, FlowNode, FlowEdge, FlowNodeType, TriggerNodeConfig, SendMessageNodeConfig, WaitForReplyNodeConfig, DelayNodeConfig, ConditionNodeConfig, CaptureLeadNodeConfig } from '@/types/flow';
 import type { Automation, Followup } from '@/types/automation';
 
 export interface QualificationMessageStep {
@@ -44,7 +44,18 @@ export interface QualificationQuestionStep {
   saveReplyToField?: string;
 }
 
-export type QualificationStep = QualificationMessageStep | QualificationQuestionStep | QualificationLinkStep;
+/**
+ * Bloco "Capturar Lead" no meio do formulário: pede e-mail/telefone, valida e só
+ * deixa o fluxo seguir (ramo `done`) com os dados certos. O ramo `failed` fica sem
+ * conexão no formulário guiado — o fluxo termina ali; quem quiser tratar a
+ * desistência conecta pelo Canvas (aí o fluxo deixa de ser editável pelo formulário).
+ */
+export interface QualificationCaptureStep {
+  kind: 'capture';
+  config: CaptureLeadNodeConfig;
+}
+
+export type QualificationStep = QualificationMessageStep | QualificationQuestionStep | QualificationLinkStep | QualificationCaptureStep;
 
 /**
  * "Cauda" do fluxo: tudo que vem depois da mensagem inicial (ou depois de uma
@@ -168,6 +179,12 @@ function createFlowBuilder() {
   }
 
   function appendQualificationStep(step: QualificationStep) {
+    if (step.kind === 'capture') {
+      const captureId = addNode('captureLead', step.config);
+      attach(captureId);
+      setPending([{ source: captureId, handle: 'done' }]);
+      return;
+    }
     if (step.kind === 'message') {
       appendMessageStep(step.text, []);
       return;
@@ -432,6 +449,17 @@ export function decompileFlow(flow: FlowDefinition): DecompileResult {
           return { error: `O nó de condição "${node.id}" precisa ter exatamente uma saída "verdadeiro" e uma "falso" — isso só é editável pelo Canvas.` };
         }
         return { kind: 'condition', questions, conditionNode: node, trueId: trueEdge.target, falseId: falseEdge.target };
+      }
+
+      if (node.type === 'captureLead') {
+        const outs = outgoingAll(node.id);
+        const doneEdge = outs.find((e) => e.sourceHandle === 'done');
+        if (outs.length !== 1 || !doneEdge) {
+          return { error: `O "Capturar Lead" "${node.id}" tem o ramo "desistiu" conectado ou saídas inesperadas — isso só é editável pelo Canvas.` };
+        }
+        questions.push({ kind: 'capture', config: node.data as CaptureLeadNodeConfig });
+        cursorId = doneEdge.target;
+        continue;
       }
 
       if (node.type !== 'sendMessage') return { error: `Nó do tipo "${node.type}" fora de lugar — isso só é editável pelo Canvas.` };

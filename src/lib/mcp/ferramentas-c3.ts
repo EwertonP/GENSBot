@@ -12,6 +12,7 @@ import { supabase as db } from '../supabase';
 import type { ContextoMcp } from './oauth';
 import { ErroFerramenta, type Ferramenta } from './ferramentas';
 import { buildFlowFromAdvancedForm, decompileFlow, type QualificationStep } from '../flow-engine/wizardCompiler';
+import { defaultCaptureLeadConfig } from '../flow-engine/captureLeadDefaults';
 import type { Automation, Followup } from '../../types/automation';
 
 type Args = Record<string, unknown>;
@@ -104,6 +105,18 @@ export function montarFormulario(args: Args): { form: Automation; perguntas: Qua
     };
   });
 
+  // Porteiro antes do material: pede e-mail/telefone e só segue com dado válido.
+  // Sem posição, entra logo antes da mensagem de link (depois de todas as perguntas).
+  if (args.capturar_lead) {
+    const captura = args.capturar_lead as Args;
+    const campos = lista(captura.campos, 2, 10);
+    if (campos.length === 0 || campos.some((c) => c !== 'email' && c !== 'phone')) {
+      throw new ErroFerramenta('"capturar_lead.campos" precisa ter "email" e/ou "phone".');
+    }
+    const posicao = captura.depois_da_pergunta === undefined ? perguntas.length : Math.min(Math.max(Number(captura.depois_da_pergunta) || 0, 0), perguntas.length);
+    perguntas.splice(posicao, 0, { kind: 'capture', config: { ...defaultCaptureLeadConfig(), fields: campos as ('email' | 'phone')[] } });
+  }
+
   const link = (args.link || {}) as Args;
   const followups: Followup[] = (Array.isArray(args.followups) ? args.followups : []).slice(0, 5).map((f, i) => {
     const fu = (f || {}) as Args;
@@ -175,6 +188,15 @@ const SCHEMA_FLUXO = {
       },
       required: ['texto'],
     },
+  },
+  capturar_lead: {
+    type: 'object',
+    properties: {
+      campos: { type: 'array', items: { type: 'string', enum: ['email', 'phone'] }, description: 'Dados pedidos, na ordem.' },
+      depois_da_pergunta: { type: 'number', description: 'Quantas perguntas vêm antes da captura. Padrão: todas (fica logo antes do link).' },
+    },
+    required: ['campos'],
+    description: 'Pede e-mail/telefone pela DM, valida cada resposta e só entrega o link com os dados certos. Usa as mensagens padrão do bloco (editáveis depois no GENSBot).',
   },
   link: {
     type: 'object',
@@ -341,7 +363,7 @@ export const FERRAMENTAS_C3: Ferramenta[] = [
     name: 'editar_automacao',
     title: 'Editar automação (só pausada)',
     description:
-      'Reescreve uma automação PAUSADA no formato do formulário guiado (mesmos campos do criar_automacao, exceto a conta). A versão anterior vai para o histórico e pode ser restaurada na tela. Automação ativa precisa ser pausada antes (pausar_automacao). Exige copy_humanizada = true.',
+      'Reescreve uma automação PAUSADA no formato do formulário guiado (mesmos campos do criar_automacao, exceto a conta). A versão anterior vai para o histórico e pode ser restaurada na tela. Automação ativa precisa ser pausada antes (pausar_automacao). Exige copy_humanizada = true. Reescreve tudo: se a automação tem "Capturar Lead" (passo kind "capture" no ler_automacao), reenvie capturar_lead, senão a captura some.',
     inputSchema: {
       type: 'object',
       properties: { automacao_id: { type: 'string' }, ...SCHEMA_FLUXO },

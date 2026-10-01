@@ -5,6 +5,7 @@ import { Select } from '@/components/ui/select';
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { QualificationStep, WizardTail } from '@/lib/flow-engine/wizardCompiler';
+import { CaptureLeadPanel } from '@/components/flow-builder/panels';
 
 /**
  * Cauda do fluxo (perguntas de qualificação + mensagem de link + follow-ups),
@@ -58,7 +59,28 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
         </p>
 
         <div className="flex flex-col gap-3">
-          {tail.questions.map((step, i) => (
+          {tail.questions.map((step, i) => step.kind === 'capture' ? (
+            <div key={i} className="border border-border bg-accent p-4 rounded-xl flex flex-col gap-3 relative animate-fade-in">
+              <button
+                type="button"
+                onClick={() => setQuestions((prev) => prev.filter((_, x) => x !== i))}
+                className="absolute top-3 right-3 text-muted-foreground hover:text-destructive cursor-pointer p-1"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <label className="text-xs font-bold text-muted-foreground pr-8">{i + 1}. Capturar Lead (só segue com dado válido)</label>
+              <CaptureLeadPanel
+                data={step.config}
+                onChange={(config) =>
+                  setQuestions((prev) => {
+                    const next = [...prev];
+                    next[i] = { kind: 'capture', config };
+                    return next;
+                  })
+                }
+              />
+            </div>
+          ) : (
             <div key={i} className="border border-border bg-accent p-4 rounded-xl flex flex-col gap-3 relative animate-fade-in">
               <button
                 type="button"
@@ -77,7 +99,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                   onChange={(e) =>
                     setQuestions((prev) => {
                       const next = [...prev];
-                      next[i] = { ...next[i], text: e.target.value };
+                      next[i] = { ...(next[i] as typeof step), text: e.target.value };
                       return next;
                     })
                   }
@@ -90,7 +112,7 @@ export function TailEditor({ tail, onChange, showToast, utmLinkPicker, title, se
                     onClick={() =>
                       setQuestions((prev) => {
                         const next = [...prev];
-                        next[i] = { ...next[i], text: `{{primeiro_nome}}, ${next[i].text}` };
+                        next[i] = { ...(next[i] as typeof step), text: `{{primeiro_nome}}, ${(next[i] as typeof step).text}` };
                         return next;
                       })
                     }
