@@ -3,30 +3,26 @@ import { ScrollShadow } from '@/components/ui/scroll-shadow';
 import { Select } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 
-import { useEffect, useState, type KeyboardEvent } from 'react';
-import { FileText, Trash2, ExternalLink, Plus, X, Pencil, StickyNote, Info } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { FileText, Trash2, Info, Search, Users, StickyNote } from 'lucide-react';
 import { tagColorClasses } from '@/lib/tag-colors';
-import { Sheet } from '@/components/ui/sheet';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Avatar } from '@/components/ui/avatar';
+import { Tip } from '@/components/ui/tooltip';
+import { EmptyState } from '@/components/ui/empty-state';
 import { confirmDialog } from '@/components/ui/dialog';
 import { SkeletonRows } from '@/components/ui/skeleton';
+import { ContactFicha, type FichaContact } from '@/components/contact-ficha';
+import { formatDateTime, formatPhone, respostasDe } from '@/lib/contact-format';
 
 const PAGE_SIZE = 50;
+const EXPORT_PAGE_SIZE = 200;
 
-interface Contact {
-  instagram_id: string;
-  name: string | null;
-  username: string | null;
-  email: string | null;
-  phone: string | null;
-  notes: string | null;
-  tags: string[] | null;
-  profile_picture_url: string | null;
-  last_response_at: string | null;
-  first_contact_at: string | null;
-  created_at?: string;
+interface Contact extends FichaContact {
+  flow_state?: Record<string, unknown> | null;
 }
 
 interface ContactsTabProps {
@@ -37,17 +33,30 @@ interface ContactsTabProps {
   accountKey: string;
 }
 
-function exportToCsv(filename: string, rows: Record<string, any>[], showToast: ContactsTabProps['showToast']) {
-  if (rows.length === 0) {
+/** CSV com uma coluna por resposta de pergunta (cargo, cidade...), além dos dados fixos do lead. */
+function exportToCsv(filename: string, contacts: Contact[], showToast: ContactsTabProps['showToast']) {
+  if (contacts.length === 0) {
     showToast('Nada para exportar ainda.', 'error');
     return;
   }
+  const respostas = contacts.map((c) => respostasDe(c.flow_state));
+  const campos = Array.from(new Set(respostas.flatMap((r) => Object.keys(r)))).sort();
+  const rows = contacts.map((c, i) => ({
+    nome: c.name || '',
+    instagram: c.username ? `@${c.username}` : '',
+    email: c.email || '',
+    telefone: c.phone || '',
+    origem: c.origem?.name || '',
+    tags: (c.tags || []).join('; '),
+    ...Object.fromEntries(campos.map((campo) => [campo, respostas[i][campo] || ''])),
+    observacoes: c.notes || '',
+    ultima_interacao: c.last_response_at || '',
+    primeiro_contato: c.first_contact_at || '',
+    instagram_id: c.instagram_id,
+  }));
   const headers = Object.keys(rows[0]);
-  const escapeCell = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-  const csv = [
-    headers.join(','),
-    ...rows.map(row => headers.map(h => escapeCell(row[h])).join(',')),
-  ].join('\n');
+  const escapeCell = (val: unknown) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+  const csv = [headers.join(','), ...rows.map((row) => headers.map((h) => escapeCell(row[h as keyof typeof row])).join(','))].join('\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -57,25 +66,14 @@ function exportToCsv(filename: string, rows: Record<string, any>[], showToast: C
   URL.revokeObjectURL(url);
 }
 
-function contactCsvRow(c: Contact) {
-  return {
-    nome: c.name || '',
-    username: c.username || '',
-    instagram_id: c.instagram_id,
-    email: c.email || '',
-    telefone: c.phone || '',
-    tags: (c.tags || []).join('; '),
-    observacoes: c.notes || '',
-    ultima_interacao: c.last_response_at || '',
-    cadastrado_em: c.first_contact_at || c.created_at || '',
-  };
+function Vazio() {
+  return <span className="text-muted-foreground">—</span>;
 }
 
 /**
- * "Leads & Público" extraído de src/app/page.tsx (que tinha ~2500 linhas concentrando
- * todas as abas). Ao contrário da versão anterior, busca sua própria página de
- * contatos via GET /api/contacts (paginado) em vez de depender da lista completa e
- * sem limite que vinha embutida no payload gigante do dashboard.
+ * Audiência: quem entrou nas automações da conta. A tabela mostra só o que a equipe
+ * consulta no dia a dia (quem é, e-mail, telefone, de onde veio); o resto — respostas,
+ * jornada, conversa, ID do Instagram — fica na ficha que abre ao clicar na linha.
  */
 export default function ContactsTab({ withAccount, showToast, accountKey }: ContactsTabProps) {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -83,23 +81,32 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [tagFilter, setTagFilter] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
-  const [editingTagsFor, setEditingTagsFor] = useState<string | null>(null);
-  const [tagInputValue, setTagInputValue] = useState('');
-  const [editingContact, setEditingContact] = useState<Contact | null>(null);
-  const [editForm, setEditForm] = useState<{ name: string; email: string; phone: string; notes: string; tags: string[] }>({ name: '', email: '', phone: '', notes: '', tags: [] });
-  const [tagDraft, setTagDraft] = useState('');
-  const [savingEdit, setSavingEdit] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [fichaId, setFichaId] = useState<string | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Busca só depois de uma pausa na digitação, pra não disparar uma requisição por tecla.
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const queryParams = (p: number, size: number) => {
+    const params = new URLSearchParams({ page: String(p), pageSize: String(size) });
+    if (tagFilter) params.set('tag', tagFilter);
+    if (search) params.set('search', search);
+    return params.toString();
+  };
 
   const fetchContacts = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
-      if (tagFilter) params.set('tag', tagFilter);
-      const res = await fetch(withAccount(`/api/contacts?${params.toString()}`));
+      const res = await fetch(withAccount(`/api/contacts?${queryParams(page, PAGE_SIZE)}`));
       const data = await res.json();
       if (res.ok) {
         setContacts(data.contacts || []);
@@ -115,379 +122,215 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
     }
   };
 
-  // Reseta pra página 1 sempre que a conta ou o filtro de tag mudam — ajustado
-  // durante a própria renderização (padrão recomendado pelo React pra "resetar
-  // estado quando uma prop muda"), não num efeito à parte, que forçaria um
-  // ciclo extra de render só pra aplicar o reset antes do fetch de fato rodar.
-  const resetKey = `${accountKey}:${tagFilter}`;
+  // Reseta pra página 1 sempre que a conta, a tag ou a busca mudam — ajustado durante a
+  // própria renderização (padrão recomendado pelo React pra "resetar estado quando uma
+  // prop muda"), não num efeito à parte, que forçaria um ciclo extra de render.
+  const resetKey = `${accountKey}:${tagFilter}:${search}`;
   const [prevResetKey, setPrevResetKey] = useState(resetKey);
   if (resetKey !== prevResetKey) {
     setPrevResetKey(resetKey);
     setPage(1);
-    setSelectedContactIds(new Set());
+    setSelectedIds(new Set());
   }
 
   useEffect(() => {
     fetchContacts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountKey, tagFilter, page]);
+  }, [accountKey, tagFilter, search, page]);
 
-  const selectedContacts = contacts.filter(c => selectedContactIds.has(c.instagram_id));
-  const allSelected = contacts.length > 0 && contacts.every(c => selectedContactIds.has(c.instagram_id));
+  const selectedContacts = contacts.filter((c) => selectedIds.has(c.id));
+  const allSelected = contacts.length > 0 && contacts.every((c) => selectedIds.has(c.id));
 
-  const toggleAll = () => {
-    setSelectedContactIds(allSelected ? new Set() : new Set(contacts.map(c => c.instagram_id)));
-  };
-  const toggleOne = (id: string) => {
-    setSelectedContactIds(prev => {
+  const toggleAll = () => setSelectedIds(allSelected ? new Set() : new Set(contacts.map((c) => c.id)));
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
+
+  /** Exporta TODOS os contatos do filtro atual (não só a página na tela), buscando de 200 em 200. */
+  const exportAll = async () => {
+    setExporting(true);
+    try {
+      const all: Contact[] = [];
+      for (let p = 1; ; p++) {
+        const res = await fetch(withAccount(`/api/contacts?${queryParams(p, EXPORT_PAGE_SIZE)}`));
+        const data = await res.json();
+        if (!res.ok) throw new Error();
+        all.push(...(data.contacts || []));
+        if (all.length >= (data.total || 0) || (data.contacts || []).length === 0) break;
+      }
+      exportToCsv('audiencia.csv', all, showToast);
+    } catch {
+      showToast('Erro ao exportar a audiência.', 'error');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleDeleteSelected = async () => {
     if (selectedContacts.length === 0) return;
     if (!(await confirmDialog({ title: `Excluir ${selectedContacts.length} contato${selectedContacts.length > 1 ? 's' : ''}?`, description: 'Eles saem da audiência e das automações. Essa ação não pode ser desfeita.', confirmLabel: 'Excluir', tone: 'destructive' }))) return;
-    // Em paralelo, contando o que de fato foi excluído — antes o aviso dizia
-    // "excluídos" mesmo quando o servidor recusava.
+    // Em paralelo, contando o que de fato foi excluído.
     const results = await Promise.allSettled(
       selectedContacts.map(async (c) => {
-        const res = await fetch(withAccount(`/api/contacts/${c.instagram_id}`), { method: 'DELETE' });
-        if (!res.ok) throw new Error(c.instagram_id);
-        return c.instagram_id;
-      })
+        const res = await fetch(`/api/contacts/${c.id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error(c.id);
+        return c.id;
+      }),
     );
-    const falharam = new Set(
-      results.flatMap((r, i) => (r.status === 'rejected' ? [selectedContacts[i].instagram_id] : []))
-    );
+    const falharam = new Set(results.flatMap((r, i) => (r.status === 'rejected' ? [selectedContacts[i].id] : [])));
     const ok = results.length - falharam.size;
     // Mantém selecionados só os que falharam, pra tentar de novo com um clique.
-    setSelectedContactIds(new Set(selectedContacts.filter((c) => falharam.has(c.instagram_id)).map((c) => c.instagram_id)));
+    setSelectedIds(new Set(falharam));
     await fetchContacts();
-    if (falharam.size === 0) {
-      showToast(ok === 1 ? 'Contato excluído.' : `${ok} contatos excluídos.`, 'success');
-    } else if (ok === 0) {
-      showToast('Nenhum contato foi excluído. Tente novamente.', 'error');
-    } else {
-      showToast(`${ok} excluídos, ${falharam.size} falharam — eles continuam selecionados.`, 'error');
-    }
+    if (falharam.size === 0) showToast(ok === 1 ? 'Contato excluído.' : `${ok} contatos excluídos.`, 'success');
+    else if (ok === 0) showToast('Nenhum contato foi excluído. Tente novamente.', 'error');
+    else showToast(`${ok} excluídos, ${falharam.size} falharam — eles continuam selecionados.`, 'error');
   };
 
-  const patchTags = async (contactId: string, nextTags: string[]) => {
-    try {
-      const res = await fetch(withAccount(`/api/contacts/${contactId}`), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags: nextTags }),
-      });
-      if (res.ok) {
-        setContacts(prev => prev.map(c => c.instagram_id === contactId ? { ...c, tags: nextTags } : c));
-      } else {
-        showToast('Erro ao atualizar tag.', 'error');
-      }
-    } catch {
-      showToast('Erro de conexão ao atualizar tag.', 'error');
-    }
-  };
-
-  const handleAddTag = (contactId: string, currentTags: string[], newTag: string) => {
-    const tag = newTag.trim();
-    if (!tag || currentTags.includes(tag)) return;
-    patchTags(contactId, [...currentTags, tag]);
-  };
-
-  const handleRemoveTag = (contactId: string, currentTags: string[], tagToRemove: string) => {
-    patchTags(contactId, currentTags.filter(t => t !== tagToRemove));
-  };
-
-  const openEdit = (contact: Contact) => {
-    setEditingContact(contact);
-    setEditForm({
-      name: contact.name || '',
-      email: contact.email || '',
-      phone: contact.phone || '',
-      notes: contact.notes || '',
-      tags: contact.tags || [],
-    });
-    setTagDraft('');
-  };
-
-  const closeEdit = () => {
-    if (savingEdit) return;
-    setEditingContact(null);
-  };
-
-  const addEditTag = (raw: string) => {
-    const tag = raw.trim();
-    if (!tag) return;
-    setEditForm(prev => prev.tags.includes(tag) ? prev : { ...prev, tags: [...prev.tags, tag] });
-  };
-
-  const removeEditTag = (tag: string) => {
-    setEditForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
-  };
-
-  // Digitar "cabelo, " (vírgula, com ou sem espaço depois) cria a tag e limpa o
-  // campo — dá pra colar várias de uma vez também ("cabelo, botox, acne").
-  const handleTagDraftChange = (value: string) => {
-    if (!value.includes(',')) {
-      setTagDraft(value);
-      return;
-    }
-    const parts = value.split(',');
-    const remainder = parts.pop() || '';
-    parts.forEach(addEditTag);
-    setTagDraft(remainder.trimStart());
-  };
-
-  const handleTagDraftKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addEditTag(tagDraft);
-      setTagDraft('');
-    } else if (e.key === 'Backspace' && !tagDraft && editForm.tags.length > 0) {
-      removeEditTag(editForm.tags[editForm.tags.length - 1]);
-    }
-  };
-
-  const saveEdit = async () => {
-    if (!editingContact) return;
-    setSavingEdit(true);
-    try {
-      const tags = tagDraft.trim() ? [...editForm.tags, tagDraft.trim()] : editForm.tags;
-      const res = await fetch(withAccount(`/api/contacts/${editingContact.instagram_id}`), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editForm.name.trim() || null,
-          email: editForm.email.trim() || null,
-          phone: editForm.phone.trim() || null,
-          notes: editForm.notes.trim() || null,
-          tags,
-        }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setContacts(prev => prev.map(c => c.instagram_id === updated.instagram_id ? { ...c, ...updated } : c));
-        setEditingContact(null);
-        showToast('Lead atualizado.', 'success');
-      } else {
-        showToast('Erro ao salvar as alterações do lead.', 'error');
-      }
-    } catch {
-      showToast('Erro de conexão ao salvar o lead.', 'error');
-    } finally {
-      setSavingEdit(false);
-    }
-  };
+  const filtrando = !!(search || tagFilter);
 
   return (
     <Card padding="lg" className="rounded-2xl shadow-sm flex flex-col gap-4 text-foreground">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-bold text-foreground text-base">Audiência Cadastrada</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Lista de usuários que interagiram com as suas automações.</p>
+          <h3 className="text-title font-bold text-foreground">Audiência</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">Quem entrou nas suas automações. Clique numa pessoa pra ver a ficha completa.</p>
         </div>
-        <div className="flex items-center gap-2">
-          {allTags.length > 0 && (
-            <Select
-              value={tagFilter}
-              onChange={e => setTagFilter(e.target.value)}
-              className="bg-accent border border-input rounded-xl px-3 py-1.5 text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
-            >
-              <option value="">Todas as tags</option>
-              {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
-            </Select>
-          )}
+        <Badge variant="muted" className="tabular-nums">
+          {total} contato{total !== 1 ? 's' : ''}
+        </Badge>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[220px] max-w-sm">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Buscar por nome, @, e-mail ou telefone" aria-label="Buscar contatos" className="pl-9" />
+        </div>
+        {allTags.length > 0 && (
+          <Select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} aria-label="Filtrar por tag" className="max-w-[220px]">
+            <option value="">Todas as tags</option>
+            {allTags.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </Select>
+        )}
+        <div className="flex items-center gap-2 ml-auto">
           {selectedContacts.length > 0 && (
             <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => exportToCsv('contatos_selecionados.csv', selectedContacts.map(contactCsvRow), showToast)}
-                className="rounded-xl"
-              >
+              <Button variant="secondary" size="sm" onClick={() => exportToCsv('contatos_selecionados.csv', selectedContacts, showToast)}>
                 <FileText className="w-3.5 h-3.5" />
-                Exportar {selectedContacts.length} selecionado{selectedContacts.length > 1 ? 's' : ''}
+                Exportar {selectedContacts.length}
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleDeleteSelected}
-                className="rounded-xl text-destructive hover:bg-destructive/10 hover:border-destructive/40"
-              >
+              <Button variant="secondary" size="sm" onClick={handleDeleteSelected} className="text-destructive">
                 <Trash2 className="w-3.5 h-3.5" />
-                Excluir {selectedContacts.length} selecionado{selectedContacts.length > 1 ? 's' : ''}
+                Excluir {selectedContacts.length}
               </Button>
             </>
           )}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => exportToCsv('contatos_pagina_atual.csv', contacts.map(contactCsvRow), showToast)}
-            title="Exporta só os contatos carregados nesta página"
-            className="rounded-xl"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            Exportar página
-          </Button>
-          <Badge variant="info" className="text-xs px-3 py-1.5 rounded-xl">
-            {total} Contato{total !== 1 ? 's' : ''}
-          </Badge>
+          <Tip label={filtrando ? 'Exporta todos os contatos deste filtro, com as respostas das perguntas' : 'Exporta toda a audiência, com as respostas das perguntas'}>
+            <Button variant="secondary" size="sm" onClick={exportAll} loading={exporting} disabled={total === 0}>
+              <FileText className="w-3.5 h-3.5" />
+              Exportar CSV
+            </Button>
+          </Tip>
         </div>
       </div>
 
       <ScrollShadow>
-        <table className="w-full text-sm text-left text-muted-foreground">
-          <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-accent">
-            <tr>
-              <th className="py-3 px-4 w-8">
+        <table className="w-full text-sm text-left">
+          <thead className="border-b border-border">
+            <tr className="text-xs text-muted-foreground">
+              <th className="py-2.5 px-3 w-8">
                 <Checkbox checked={allSelected} onCheckedChange={() => toggleAll()} aria-label="Selecionar todos os contatos desta página" />
               </th>
-              <th className="py-3 px-4"><span className="sr-only">Foto</span></th>
-              <th className="py-3 px-4">Nome</th>
-              <th className="py-3 px-4">Instagram</th>
-              <th className="py-3 px-4">ID do Usuário</th>
-              <th className="py-3 px-4">Dados Capturados</th>
-              <th className="py-3 px-4">Tags</th>
-              <th className="py-3 px-4">Última Interação</th>
-              <th className="py-3 px-4">Cadastrado em</th>
-              <th className="py-3 px-4"><span className="sr-only">Ações</span></th>
+              <th className="py-2.5 px-3 font-medium">Contato</th>
+              <th className="py-2.5 px-3 font-medium">E-mail</th>
+              <th className="py-2.5 px-3 font-medium">Telefone</th>
+              <th className="py-2.5 px-3 font-medium">Origem</th>
+              <th className="py-2.5 px-3 font-medium">Tags</th>
+              <th className="py-2.5 px-3 font-medium text-right">Última interação</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-accent">
+          <tbody className="divide-y divide-border">
             {loading ? (
               <tr>
-                <td colSpan={10} className="p-4"><SkeletonRows rows={6} /></td>
+                <td colSpan={7} className="p-4">
+                  <SkeletonRows rows={6} />
+                </td>
               </tr>
             ) : contacts.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-12 text-center text-muted-foreground">Nenhum contato cadastrado no banco de dados até o momento.</td>
+                <td colSpan={7}>
+                  {filtrando ? (
+                    <EmptyState size="compact" icon={Search} title="Ninguém encontrado" description="Nenhum contato bate com essa busca ou tag." action={{ label: 'Limpar filtros', onClick: () => { setSearchInput(''); setSearch(''); setTagFilter(''); } }} />
+                  ) : (
+                    <EmptyState size="compact" icon={Users} title="Ninguém entrou nas automações ainda" description="Quem comentar, responder story ou mandar DM com a palavra-chave de uma automação ativa aparece aqui." />
+                  )}
+                </td>
               </tr>
             ) : (
-              contacts.map(item => (
-                <tr key={item.instagram_id} className="hover:bg-card/70 transition-colors">
-                  <td className="py-3.5 px-4">
-                    <Checkbox checked={selectedContactIds.has(item.instagram_id)} onCheckedChange={() => toggleOne(item.instagram_id)} aria-label={`Selecionar ${item.name || item.username || item.instagram_id}`} />
-                  </td>
-                  <td className="py-3.5 px-4">
-                    {item.profile_picture_url ? (
-                      <img
-                        src={item.profile_picture_url}
-                        alt=""
-                        className="w-8 h-8 rounded-full object-cover border border-border"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-accent border border-border flex items-center justify-center text-xs font-bold text-muted-foreground">
-                        {(item.name || item.username || '?').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-foreground text-sm">
-                    <div className="flex items-center gap-1.5">
-                      {item.name || (
-                        <span
-                          title="A Meta bloqueia o nome de exibição pra esse tipo de contato até o GENSBot ter uma permissão específica aprovada por eles (App Review). O @usuário ao lado é o dado confiável — clique nele pra ver o perfil real."
-                          className="text-muted-foreground font-normal italic inline-flex items-center gap-1 cursor-help"
-                        >
-                          Nome não liberado pela Meta
-                          <Info className="w-3 h-3" />
-                        </span>
-                      )}
-                      {item.notes && (
-                        <span title={item.notes}>
-                          <StickyNote className="w-3 h-3 text-warning flex-shrink-0" />
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-xs font-semibold text-primary">
-                    {item.username && item.username !== item.instagram_id ? (
-                      <a
-                        href={`https://instagram.com/${item.username}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline inline-flex items-center gap-1"
-                      >
-                        @{item.username}
-                        <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                      </a>
-                    ) : (
-                      <span
-                        title="Essa pessoa ainda não comentou num post e a Meta não libera o @ de quem só mandou DM enquanto o app não for aprovado no App Review. O @ aparece sozinho assim que ela comentar ou responder de novo."
-                        className="text-muted-foreground italic inline-flex items-center gap-1 cursor-help"
-                      >
-                        @ pendente
-                        <Info className="w-3 h-3" />
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">{item.instagram_id}</td>
-                  <td className="py-3.5 px-4 text-xs text-muted-foreground">
-                    <div className="flex flex-col gap-0.5">
-                      {item.email && <span className="text-muted-foreground">📧 {item.email}</span>}
-                      {item.phone && <span className="text-muted-foreground">📱 {item.phone}</span>}
-                      {!item.email && !item.phone && <span className="text-muted-foreground italic">Nenhum</span>}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-xs">
-                    <div className="flex flex-wrap items-center gap-1 max-w-[220px]">
-                      {(item.tags || []).map((tag: string) => (
-                        <span key={tag} className={`flex items-center gap-1 font-bold px-2 py-0.5 rounded-full border ${tagColorClasses(tag)}`}>
-                          {tag}
-                          <button onClick={() => handleRemoveTag(item.instagram_id, item.tags || [], tag)} className="hover:text-destructive cursor-pointer">
-                            <X className="w-2.5 h-2.5" />
+              contacts.map((c) => {
+                const temArroba = !!c.username && c.username !== c.instagram_id;
+                const tags = c.tags || [];
+                return (
+                  <tr key={c.id} onClick={() => setFichaId(c.id)} className="cursor-pointer hover:bg-accent transition-colors">
+                    <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked={selectedIds.has(c.id)} onCheckedChange={() => toggleOne(c.id)} aria-label={`Selecionar ${c.name || c.username || 'contato'}`} />
+                    </td>
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-2.5 min-w-[180px]">
+                        <Avatar nome={c.name || c.username || '?'} src={c.profile_picture_url} size="md" />
+                        <div className="min-w-0">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setFichaId(c.id); }} className="font-semibold text-foreground truncate block max-w-[220px] text-left hover:underline cursor-pointer">
+                            {c.name || (temArroba ? `@${c.username}` : 'Sem nome')}
                           </button>
-                        </span>
-                      ))}
-                      {editingTagsFor === item.instagram_id ? (
-                        <input
-                          autoFocus
-                          value={tagInputValue}
-                          onChange={e => setTagInputValue(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              handleAddTag(item.instagram_id, item.tags || [], tagInputValue);
-                              setTagInputValue('');
-                              setEditingTagsFor(null);
-                            } else if (e.key === 'Escape') {
-                              setEditingTagsFor(null);
-                              setTagInputValue('');
-                            }
-                          }}
-                          onBlur={() => { setEditingTagsFor(null); setTagInputValue(''); }}
-                          placeholder="nova tag..."
-                          className="w-20 bg-accent border border-input rounded-full px-2 py-0.5 text-xs focus:outline-none focus:border-primary"
-                        />
-                      ) : (
-                        <button
-                          onClick={() => setEditingTagsFor(item.instagram_id)}
-                          className="w-5 h-5 rounded-full bg-accent hover:bg-muted flex items-center justify-center text-muted-foreground cursor-pointer"
-                          title="Adicionar tag"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-xs text-muted-foreground">
-                    {item.last_response_at ? new Date(item.last_response_at).toLocaleString('pt-BR') : 'Sem interação'}
-                  </td>
-                  <td className="py-3.5 px-4 text-xs text-muted-foreground">
-                    {item.first_contact_at || item.created_at ? new Date((item.first_contact_at || item.created_at) as string).toLocaleDateString('pt-BR') : '—'}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <button
-                      onClick={() => openEdit(item)}
-                      title="Editar lead"
-                      className="w-7 h-7 rounded-lg bg-accent hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))
+                          <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                            {temArroba ? (
+                              c.name ? `@${c.username}` : null
+                            ) : (
+                              <Tip label="A Meta só libera o @ de quem comentou num post (ou depois do App Review). Ele aparece sozinho na próxima interação.">
+                                <span className="italic inline-flex items-center gap-1 cursor-help">
+                                  @ pendente <Info className="w-3 h-3" />
+                                </span>
+                              </Tip>
+                            )}
+                            {c.notes && (
+                              <Tip label={c.notes}>
+                                <StickyNote className="w-3 h-3 text-warning" aria-label="Tem observações" />
+                              </Tip>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-3 text-foreground max-w-[220px] truncate">{c.email || <Vazio />}</td>
+                    <td className="py-3 px-3 text-foreground tabular-nums whitespace-nowrap">{c.phone ? formatPhone(c.phone) : <Vazio />}</td>
+                    <td className="py-3 px-3 text-muted-foreground max-w-[200px] truncate">{c.origem?.name || <Vazio />}</td>
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-1 max-w-[220px]">
+                        {tags.slice(0, 2).map((tag) => (
+                          <span key={tag} className={`font-semibold text-xs px-2 py-0.5 rounded-full border truncate max-w-[110px] ${tagColorClasses(tag)}`}>
+                            {tag}
+                          </span>
+                        ))}
+                        {tags.length > 2 && (
+                          <Tip label={tags.slice(2).join(', ')}>
+                            <span className="text-xs text-muted-foreground font-medium">+{tags.length - 2}</span>
+                          </Tip>
+                        )}
+                        {tags.length === 0 && <Vazio />}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3 text-xs text-muted-foreground tabular-nums whitespace-nowrap text-right">{formatDateTime(c.last_response_at) || <Vazio />}</td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -495,130 +338,31 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
-          <span className="text-xs text-muted-foreground">Página {page} de {totalPages}</span>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            Página {page} de {totalPages}
+          </span>
           <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="rounded-xl"
-            >
+            <Button variant="secondary" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
               Anterior
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="rounded-xl"
-            >
+            <Button variant="secondary" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
               Próxima
             </Button>
           </div>
         </div>
       )}
 
-      <Sheet
-        open={!!editingContact}
-        onClose={closeEdit}
-        aria-label="Editar Lead"
-        className="w-full max-w-md p-6 flex flex-col gap-4"
-      >
-        {editingContact && (
-          <>
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-foreground text-base">Editar Lead</h3>
-              <button onClick={closeEdit} className="text-muted-foreground hover:text-foreground cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground -mt-2">
-              @{editingContact.username || editingContact.instagram_id}
-            </p>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground">Nome</label>
-              <input
-                type="text"
-                value={editForm.name}
-                onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                className="bg-accent border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-muted-foreground">E-mail</label>
-                <input
-                  type="email"
-                  value={editForm.email}
-                  onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="bg-accent border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-muted-foreground">Telefone</label>
-                <input
-                  type="text"
-                  value={editForm.phone}
-                  onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                  className="bg-accent border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground">Tags</label>
-              <div className="bg-accent border border-border rounded-xl px-2 py-2 flex flex-wrap items-center gap-1.5 focus-within:border-primary">
-                {editForm.tags.map(tag => (
-                  <span key={tag} className={`flex items-center gap-1 font-bold px-2 py-0.5 rounded-full border text-xs ${tagColorClasses(tag)}`}>
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => removeEditTag(tag)}
-                      className="hover:text-destructive cursor-pointer"
-                    >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  </span>
-                ))}
-                <input
-                  type="text"
-                  value={tagDraft}
-                  onChange={e => handleTagDraftChange(e.target.value)}
-                  onKeyDown={handleTagDraftKeyDown}
-                  onBlur={() => { if (tagDraft.trim()) { addEditTag(tagDraft); setTagDraft(''); } }}
-                  placeholder={editForm.tags.length === 0 ? 'ex: cabelo, botox' : 'nova tag...'}
-                  className="flex-1 min-w-[100px] bg-transparent text-sm focus:outline-none text-foreground placeholder-muted-foreground py-0.5"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">Digite e use vírgula (ou Enter) pra criar cada tag.</p>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-muted-foreground">Observações</label>
-              <textarea
-                value={editForm.notes}
-                onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                rows={4}
-                placeholder='ex: "Cirurgião plástico, dor principal é captar pacientes particulares"'
-                className="bg-accent border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary text-foreground placeholder-muted-foreground resize-none"
-              />
-              <p className="text-xs text-muted-foreground">Anotações livres — só você vê, não é enviado ao lead.</p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <Button variant="secondary" size="sm" onClick={closeEdit} disabled={savingEdit} className="rounded-xl">
-                Cancelar
-              </Button>
-              <Button size="sm" onClick={saveEdit} loading={savingEdit} className="rounded-xl">
-                {savingEdit ? 'Salvando...' : 'Salvar'}
-              </Button>
-            </div>
-          </>
-        )}
-      </Sheet>
+      <ContactFicha
+        contactId={fichaId}
+        onClose={() => setFichaId(null)}
+        onSaved={(updated) => setContacts((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)))}
+        onDeleted={(id) => {
+          setFichaId(null);
+          setContacts((prev) => prev.filter((c) => c.id !== id));
+          setTotal((t) => Math.max(0, t - 1));
+        }}
+        showToast={showToast}
+      />
     </Card>
   );
 }
