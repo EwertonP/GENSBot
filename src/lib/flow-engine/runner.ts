@@ -15,6 +15,8 @@ export interface FlowRunContext {
   storyId?: string | null;
   /** Onde enviar mensagens: comentário responde por comment_id, DM/story por id do contato. */
   recipientRef: { comment_id: string } | { id: string };
+  /** @ que já veio no próprio payload (comentário traz `from.username`) — dispensa a Graph API. */
+  username?: string | null;
   /** Injetado pelo caller (route.ts) — evita duplicar a chamada à Graph API pra buscar perfil. */
   resolveProfile: (id: string) => Promise<{ username: string | null; name: string | null; profile_picture_url: string | null }>;
 }
@@ -304,15 +306,17 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
     await enqueuePublicReply(automation, ctx, triggerConfig.publicReplies);
   }
 
-  // Mesma lógica de "só busca perfil se ainda não tem nome" do caminho legado (route.ts).
+  // Versões antigas gravavam o IGSID no lugar do @ quando não achavam o username —
+  // esse valor conta como "sem @" pra que a busca rode de novo.
   const existing = await loadContact(ctx.contactId);
   let profileName = existing?.name || null;
-  let profileUsername = existing?.username || null;
+  const storedUsername = existing?.username && existing.username !== ctx.contactId ? existing.username : null;
+  let profileUsername = ctx.username || storedUsername;
   let profilePictureUrl: string | null = null;
-  if (!profileName) {
+  if (!profileName || !profileUsername) {
     const profile = await ctx.resolveProfile(ctx.contactId);
-    profileName = profile.name;
-    if (profile.username) profileUsername = profile.username;
+    if (!profileName) profileName = profile.name;
+    if (!profileUsername && profile.username) profileUsername = profile.username;
     if (profile.profile_picture_url) profilePictureUrl = profile.profile_picture_url;
   }
   const automationTag = deriveAutomationTag(automation.name);
@@ -321,7 +325,7 @@ export async function runFlow(automation: Automation, ctx: FlowRunContext): Prom
 
   await persistContact(ctx, {
     name: profileName,
-    username: profileUsername || ctx.contactId,
+    username: profileUsername,
     last_response_at: new Date().toISOString(),
     ...(profilePictureUrl ? { profile_picture_url: profilePictureUrl } : {}),
     last_automation_id: automation.id,

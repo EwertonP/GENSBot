@@ -17,16 +17,31 @@ import { triggerExternalWebhook } from '@/lib/external-webhook';
 // que este arquivo não checava em nenhum insert), a falha era 100%
 // silenciosa: a mensagem nunca aparecia no histórico e ninguém via erro
 // nenhum. Isso garante a linha mínima antes de qualquer insert em `messages`.
-async function ensureContactExists(fields: {
-  user_id: string;
-  instagram_id: string;
-  instagram_user_id: string;
-}) {
-  const { error } = await supabase.from('contacts').upsert(fields, {
-    onConflict: 'instagram_id',
-    ignoreDuplicates: true,
-  });
+//
+// `username` vem só quando o próprio payload já traz o @ (comentário traz
+// `from.username`). Como o upsert ignora duplicatas, um contato que já existia
+// recebe o @ num update separado — é o dado mais confiável que a Meta entrega.
+async function ensureContactExists(
+  fields: {
+    user_id: string;
+    instagram_id: string;
+    instagram_user_id: string;
+  },
+  username?: string | null,
+) {
+  const { error } = await supabase.from('contacts').upsert(
+    { ...fields, ...(username ? { username } : {}) },
+    { onConflict: 'instagram_id', ignoreDuplicates: true },
+  );
   logDbError('contacts.upsert (ensureContactExists)', error);
+
+  if (username) {
+    const { error: usernameError } = await supabase
+      .from('contacts')
+      .update({ username })
+      .eq('instagram_id', fields.instagram_id);
+    logDbError('contacts.update (username do comentário)', usernameError);
+  }
 }
 
 // A Meta reenvia a entrega do webhook quando não recebe 200 rápido o
@@ -155,7 +170,11 @@ async function fetchUsernameFromConversation(igUserId: string, senderId: string,
     const res = await fetch(
       `https://graph.instagram.com/v25.0/${igUserId}/conversations?platform=instagram&fields=messages.limit(1){from}&limit=15&access_token=${accessToken}`
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      console.error('Erro na Conversations API ao buscar username:', errData);
+      return null;
+    }
     const data = await res.json();
     for (const conversation of data.data || []) {
       const from = conversation.messages?.data?.[0]?.from;
@@ -163,6 +182,27 @@ async function fetchUsernameFromConversation(igUserId: string, senderId: string,
     }
   } catch (err) {
     console.error('Erro ao buscar username via Conversations API:', err);
+  }
+  return null;
+}
+
+// Todo comentário recebido é salvo em `messages` com o payload cru da Meta,
+// que traz `from.username`. Quem comentou antes e depois manda DM (ou responde
+// uma pergunta da automação) já tem o @ guardado ali — sem depender da Graph API.
+async function findUsernameFromPastComments(igUserId: string, senderId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('payload')
+    .eq('instagram_user_id', igUserId)
+    .eq('contact_id', senderId)
+    .eq('direction', 'inbound')
+    .like('text', '[Comentário no Post]%')
+    .order('created_at', { ascending: false })
+    .limit(5);
+  logDbError('messages.select (username de comentário anterior)', error);
+  for (const row of data || []) {
+    const username = (row.payload as { from?: { username?: string } } | null)?.from?.username;
+    if (username) return username;
   }
   return null;
 }
@@ -194,6 +234,9 @@ async function fetchInstagramUserProfile(igUserId: string, senderId: string, acc
     console.error('Erro ao buscar perfil do Instagram:', err);
   }
 
+  if (!username) {
+    username = await findUsernameFromPastComments(igUserId, senderId);
+  }
   if (!username) {
     username = await fetchUsernameFromConversation(igUserId, senderId, accessToken);
   }
@@ -243,11 +286,14 @@ async function processWebhookEvent(payload: any) {
           // Garante que o contato exista antes de logar a mensagem (ver
           // ensureContactExists) — evita violar a FK messages.contact_id
           // pra quem comenta pela primeira vez.
-          await ensureContactExists({
-            user_id: ownerUserId,
-            instagram_id: fromUserId,
-            instagram_user_id: myIgId,
-          });
+          await ensureContactExists(
+            {
+              user_id: ownerUserId,
+              instagram_id: fromUserId,
+              instagram_user_id: myIgId,
+            },
+            fromUsername,
+          );
 
           // Salvar comentário recebido no histórico de mensagens (inbound)
           const { error: commentMsgError } = await supabase.from('messages').insert({
@@ -283,6 +329,7 @@ async function processWebhookEvent(payload: any) {
                 triggerType: 'comment',
                 mediaId,
                 recipientRef: { comment_id: commentId },
+                username: fromUsername || null,
                 resolveProfile: (id) => fetchInstagramUserProfile(myIgId, id, igToken),
               });
               if (result.matched) {
@@ -335,7 +382,9 @@ async function processWebhookEvent(payload: any) {
                 .single();
 
               let profileName = existingContact?.name || null;
-              let profileUsername = fromUsername || existingContact?.username || fromUserId;
+              let profileUsername =
+                fromUsername ||
+                (existingContact?.username && existingContact.username !== fromUserId ? existingContact.username : null);
               let profilePictureUrl = existingContact?.profile_picture_url || null;
 
               if (!profileName) {
@@ -482,9 +531,20 @@ async function processWebhookEvent(payload: any) {
           const pausedNode = pausedAuto?.flow_definition?.nodes?.find((n: { id: string }) => n.id === contact.flow_node_id);
 
           if (pausedAuto?.flow_definition && pausedNode?.type === 'waitForReply') {
+            // Quem entrou na automação sem @ ganha outra tentativa a cada resposta:
+            // com a mensagem dele no topo da caixa, a Conversations API costuma achá-lo.
+            let recoveredUsername: string | null = null;
+            if (!contact.username || contact.username === senderId) {
+              recoveredUsername = (await fetchInstagramUserProfile(myIgId, senderId, igToken)).username;
+            }
+
             const { error: contactUpdateError } = await supabase
               .from('contacts')
-              .update({ last_response_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+              .update({
+                last_response_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                ...(recoveredUsername ? { username: recoveredUsername } : {}),
+              })
               .eq('instagram_id', senderId);
             logDbError('contacts.update (last_response_at, waitForReply)', contactUpdateError);
 
@@ -800,10 +860,11 @@ async function processWebhookEvent(payload: any) {
               .single();
 
             let profileName = existingContact?.name || null;
-            let profileUsername = existingContact?.username || senderId;
+            let profileUsername =
+              existingContact?.username && existingContact.username !== senderId ? existingContact.username : null;
             let profilePictureUrl = existingContact?.profile_picture_url || null;
 
-            if (!profileName || profileUsername === senderId) {
+            if (!profileName || !profileUsername) {
               const profile = await fetchInstagramUserProfile(myIgId, senderId, igToken);
               if (profile.name) profileName = profile.name;
               if (profile.username) profileUsername = profile.username;
