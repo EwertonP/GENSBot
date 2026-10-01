@@ -40,6 +40,7 @@ export async function GET(req: Request) {
     const { data: contacts } = await supabase
       .from('contacts')
       .select('instagram_id, name, username, profile_picture_url')
+      .eq('instagram_user_id', config.instagram_user_id)
       .in('instagram_id', contactIds);
     const contactById = new Map((contacts || []).map((c) => [c.instagram_id, c]));
 

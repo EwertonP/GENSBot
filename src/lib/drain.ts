@@ -117,8 +117,9 @@ export async function drainQueue() {
         const { data: contact } = await supabase
           .from('contacts')
           .select('last_response_at')
+          .eq('instagram_user_id', job.instagram_user_id)
           .eq('instagram_id', job.contact_id)
-          .single();
+          .maybeSingle();
 
         if (!contact || !contact.last_response_at) {
           await markJobFailed(job.id, 'Sem interação registrada para abrir janela de 24h.', job.automation_id, job.contact_id, job.type);

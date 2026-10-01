@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Supabase falso: `select().eq().single()` devolve o contato da vez e todo
-// `update(...)` fica registrado pra conferir o que o runner tentou gravar.
-const state: { contact: Record<string, unknown> | null; updates: Record<string, unknown>[] } = {
+// Supabase falso: `select().eq().maybeSingle()` devolve o contato da vez e todo
+// `update(...)` fica registrado (com os filtros usados) pra conferir o que o runner gravou.
+const state: {
+  contact: Record<string, unknown> | null;
+  updates: Record<string, unknown>[];
+  updateFilters: [string, unknown][][];
+} = {
   contact: null,
   updates: [],
+  updateFilters: [],
 };
 
 vi.mock('@/lib/supabase', () => {
@@ -12,10 +17,19 @@ vi.mock('@/lib/supabase', () => {
     const c: Record<string, unknown> = {};
     c.select = () => c;
     c.eq = () => c;
-    c.single = async () => ({ data: state.contact, error: null });
+    c.maybeSingle = async () => ({ data: state.contact, error: null });
     c.update = (values: Record<string, unknown>) => {
       state.updates.push(values);
-      return { eq: async () => ({ error: null }) };
+      const filters: [string, unknown][] = [];
+      state.updateFilters.push(filters);
+      const filtered = {
+        eq: (col: string, val: unknown) => {
+          filters.push([col, val]);
+          return filtered;
+        },
+        then: (resolve: (v: { error: null }) => void) => resolve({ error: null }),
+      };
+      return filtered;
     };
     c.insert = async () => ({ error: null });
     return c;
@@ -56,6 +70,17 @@ describe('runFlow: @ do contato', () => {
   beforeEach(() => {
     state.contact = null;
     state.updates = [];
+    state.updateFilters = [];
+  });
+
+  it('grava só na ficha da conta que recebeu a interação', async () => {
+    state.contact = { instagram_id: '111', username: null, name: null, tags: [] };
+    await runFlow(automation, ctx({ username: 'fulano.silva' }));
+    expect(state.updateFilters.length).toBeGreaterThan(0);
+    for (const filters of state.updateFilters) {
+      expect(filters).toContainEqual(['instagram_user_id', 'ig-conta']);
+      expect(filters).toContainEqual(['instagram_id', '111']);
+    }
   });
 
   it('grava o @ que veio no comentário, mesmo sem a Graph API', async () => {

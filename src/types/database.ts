@@ -82,11 +82,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "analytics_events_contact_id_fkey"
-            columns: ["contact_id"]
+            foreignKeyName: "analytics_events_contact_fkey"
+            columns: ["instagram_user_id", "contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
-            referencedColumns: ["instagram_id"]
+            referencedColumns: ["instagram_user_id", "instagram_id"]
           },
         ]
       }
@@ -256,8 +256,9 @@ export type Database = {
           flow_node_id: string | null
           flow_run_id: string | null
           flow_state: Json
+          id: string
           instagram_id: string
-          instagram_user_id: string | null
+          instagram_user_id: string
           last_active_automation_id: string | null
           last_automation_id: string | null
           last_response_at: string | null
@@ -277,8 +278,9 @@ export type Database = {
           flow_node_id?: string | null
           flow_run_id?: string | null
           flow_state?: Json
+          id?: string
           instagram_id: string
-          instagram_user_id?: string | null
+          instagram_user_id: string
           last_active_automation_id?: string | null
           last_automation_id?: string | null
           last_response_at?: string | null
@@ -298,8 +300,9 @@ export type Database = {
           flow_node_id?: string | null
           flow_run_id?: string | null
           flow_state?: Json
+          id?: string
           instagram_id?: string
-          instagram_user_id?: string | null
+          instagram_user_id?: string
           last_active_automation_id?: string | null
           last_automation_id?: string | null
           last_response_at?: string | null
@@ -362,6 +365,7 @@ export type Database = {
           contact_id: string | null
           created_at: string | null
           id: string
+          instagram_user_id: string | null
           status: string
           step: number
         }
@@ -370,6 +374,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string | null
           id?: string
+          instagram_user_id?: string | null
           status?: string
           step: number
         }
@@ -378,6 +383,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string | null
           id?: string
+          instagram_user_id?: string | null
           status?: string
           step?: number
         }
@@ -390,11 +396,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "followups_contact_id_fkey"
-            columns: ["contact_id"]
+            foreignKeyName: "followups_contact_fkey"
+            columns: ["instagram_user_id", "contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
-            referencedColumns: ["instagram_id"]
+            referencedColumns: ["instagram_user_id", "instagram_id"]
           },
         ]
       }
@@ -464,11 +470,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "messages_contact_id_fkey"
-            columns: ["contact_id"]
+            foreignKeyName: "messages_contact_fkey"
+            columns: ["instagram_user_id", "contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
-            referencedColumns: ["instagram_id"]
+            referencedColumns: ["instagram_user_id", "instagram_id"]
           },
         ]
       }
@@ -545,11 +551,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "queue_contact_id_fkey"
-            columns: ["contact_id"]
+            foreignKeyName: "queue_contact_fkey"
+            columns: ["instagram_user_id", "contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
-            referencedColumns: ["instagram_id"]
+            referencedColumns: ["instagram_user_id", "instagram_id"]
           },
         ]
       }
