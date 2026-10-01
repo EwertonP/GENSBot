@@ -8,8 +8,9 @@ import { ErroFerramenta, FERRAMENTAS as FERRAMENTAS_C1 } from './ferramentas';
 import { FERRAMENTAS_C2 } from './ferramentas-c2';
 import { FERRAMENTAS_C3 } from './ferramentas-c3';
 import { FERRAMENTAS_C4 } from './ferramentas-c4';
+import { FERRAMENTAS_C5 } from './ferramentas-c5';
 
-const FERRAMENTAS = [...FERRAMENTAS_C1, ...FERRAMENTAS_C2, ...FERRAMENTAS_C3, ...FERRAMENTAS_C4];
+const FERRAMENTAS = [...FERRAMENTAS_C1, ...FERRAMENTAS_C2, ...FERRAMENTAS_C3, ...FERRAMENTAS_C4, ...FERRAMENTAS_C5];
 
 export const VERSOES_PROTOCOLO = ['2025-06-18', '2025-03-26', '2024-11-05'];
 

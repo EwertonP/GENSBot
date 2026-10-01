@@ -38,7 +38,7 @@ function urlOuNull(v: unknown, campo: string): string | null {
   }
 }
 
-async function membrosDaAgencia(ctx: ContextoMcp): Promise<string[]> {
+export async function membrosDaAgencia(ctx: ContextoMcp): Promise<string[]> {
   const { data } = await db.from('membros').select('id').eq('agencia_id', ctx.agenciaId);
   return (data || []).map((m) => m.id);
 }
