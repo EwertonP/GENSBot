@@ -414,7 +414,13 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                         <ExternalLink className="w-3 h-3 text-muted-foreground" />
                       </a>
                     ) : (
-                      <span className="text-muted-foreground italic">Desconhecido</span>
+                      <span
+                        title="Essa pessoa ainda não comentou num post e a Meta não libera o @ de quem só mandou DM enquanto o app não for aprovado no App Review. O @ aparece sozinho assim que ela comentar ou responder de novo."
+                        className="text-muted-foreground italic inline-flex items-center gap-1 cursor-help"
+                      >
+                        @ pendente
+                        <Info className="w-3 h-3" />
+                      </span>
                     )}
                   </td>
                   <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">{item.instagram_id}</td>
