@@ -10,8 +10,9 @@ import { FERRAMENTAS_C3 } from './ferramentas-c3';
 import { FERRAMENTAS_C4 } from './ferramentas-c4';
 import { FERRAMENTAS_C5 } from './ferramentas-c5';
 import { FERRAMENTAS_C6 } from './ferramentas-c6';
+import { FERRAMENTAS_C7 } from './ferramentas-c7';
 
-const FERRAMENTAS = [...FERRAMENTAS_C1, ...FERRAMENTAS_C2, ...FERRAMENTAS_C3, ...FERRAMENTAS_C4, ...FERRAMENTAS_C5, ...FERRAMENTAS_C6];
+const FERRAMENTAS = [...FERRAMENTAS_C1, ...FERRAMENTAS_C2, ...FERRAMENTAS_C3, ...FERRAMENTAS_C4, ...FERRAMENTAS_C5, ...FERRAMENTAS_C6, ...FERRAMENTAS_C7];
 
 export const VERSOES_PROTOCOLO = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
