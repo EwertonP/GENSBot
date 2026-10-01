@@ -20,13 +20,13 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const GATILHOS = ['dm', 'comment', 'story', 'story_mention'] as const;
 const MATCH = ['contains', 'exact', 'any'] as const;
 
-function str(v: unknown, max = 1000): string {
+export function str(v: unknown, max = 1000): string {
   return typeof v === 'string' ? v.trim().slice(0, max) : '';
 }
-function lista(v: unknown, max = 20, tam = 300): string[] {
+export function lista(v: unknown, max = 20, tam = 300): string[] {
   return Array.isArray(v) ? v.map((x) => str(x, tam)).filter(Boolean).slice(0, max) : [];
 }
-function urlOuNull(v: unknown, campo: string): string | null {
+export function urlOuNull(v: unknown, campo: string): string | null {
   const s = str(v, 2000);
   if (!s) return null;
   try {
@@ -61,7 +61,7 @@ export async function resolverConta(ctx: ContextoMcp, conta: string) {
   return achada;
 }
 
-async function automacaoDaAgencia(ctx: ContextoMcp, id: string) {
+export async function automacaoDaAgencia(ctx: ContextoMcp, id: string) {
   if (!UUID_RE.test(id)) throw new ErroFerramenta('"automacao_id" precisa ser um id (uuid) válido.');
   const membros = await membrosDaAgencia(ctx);
   const { data: a } = await db.from('automations').select('*').eq('id', id).maybeSingle();
@@ -151,7 +151,7 @@ export function montarFormulario(args: Args): { form: Automation; perguntas: Qua
 }
 
 /** Palavras-chave que já disparam outra automação ATIVA na mesma conta (conflito de gatilho). */
-async function conflitos(instagramUserId: string, palavras: string[], ignorarId?: string) {
+export async function conflitos(instagramUserId: string, palavras: string[], ignorarId?: string) {
   if (palavras.length === 0) return [];
   const { data } = await db.from('automations').select('id, name, keywords').eq('instagram_user_id', instagramUserId).eq('active', true);
   const minhas = new Set(palavras.map((p) => p.toLowerCase()));
