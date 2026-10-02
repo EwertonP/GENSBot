@@ -31,7 +31,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
-import { confirmDialog } from '@/components/ui/dialog';
+import { confirmDialog, DialogShell } from '@/components/ui/dialog';
+import { QrCodeStyled } from '@/components/qr-code-styled';
 
 interface UtmLinkBuilderProps {
   withAccount: (url: string) => string;
@@ -79,6 +80,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
   const [automationId, setAutomationId] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [qrLink, setQrLink] = useState<{ url: string; name: string } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -512,19 +514,11 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
 
               {/* QR Code */}
               <div className="p-4 rounded-xl bg-accent/30 border border-border flex flex-col items-center justify-center text-center gap-2.5">
-                <div className="p-2 bg-white rounded-xl shadow-xs border border-border">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(
-                      preview
-                    )}`}
-                    alt="QR Code do Link"
-                    className="w-32 h-32"
-                  />
-                </div>
+                <QrCodeStyled data={preview} size={128} />
                 <div className="leading-tight">
-                  <p className="text-xs font-bold text-foreground">QR Code Dinâmico</p>
+                  <p className="text-xs font-bold text-foreground">Prévia do QR Code</p>
                   <p className="text-xs text-muted-foreground">
-                    Aponte a câmera para testar ou use em artes e stories.
+                    Depois de salvar, baixe o QR do link curto na tabela abaixo. Ele conta os cliques.
                   </p>
                 </div>
               </div>
@@ -648,6 +642,21 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
 
                         <td className="py-3 px-3 text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {l.short_code && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setQrLink({
+                                    url: shortUrl,
+                                    name: `qr-${l.short_code}`,
+                                  })
+                                }
+                                className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+                                title="QR Code do link curto"
+                              >
+                                <QrCode className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => startEdit(l)}
@@ -675,6 +684,21 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
           )}
         </div>
       </Card>
+
+      <DialogShell open={!!qrLink} onRequestClose={() => setQrLink(null)} aria-label="QR Code do link" className="w-full max-w-sm">
+        {qrLink && (
+          <div className="p-6 flex flex-col items-center gap-4 text-center">
+            <div className="leading-tight">
+              <h3 className="text-sm font-bold font-display text-foreground">QR Code do link curto</h3>
+              <p className="text-xs text-muted-foreground font-mono mt-1 break-all">{qrLink.url}</p>
+            </div>
+            <QrCodeStyled data={qrLink.url} size={220} fileName={qrLink.name} />
+            <p className="text-xs text-muted-foreground">
+              Cada leitura conta como clique. Dá pra mudar o destino depois sem reimprimir.
+            </p>
+          </div>
+        )}
+      </DialogShell>
     </div>
   );
 }
