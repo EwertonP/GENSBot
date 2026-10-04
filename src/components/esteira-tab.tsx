@@ -44,7 +44,10 @@ import {
   Minimize2,
   Pencil,
   Eye,
+  MoreHorizontal,
+  Copy,
 } from 'lucide-react';
+import { Menu } from '@base-ui/react/menu';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,6 +68,11 @@ import {
   PRIORIDADE_CONFIG,
   ehResponsavel,
   idsResponsaveis,
+  dataLocal,
+  ehDataSemHora,
+  paraInputData,
+  deInputData,
+  distanciaEmDias,
   type PrioridadeConteudo,
   type ConteudoItem,
   type StatusConteudo,
@@ -92,6 +100,24 @@ export const ETAPAS_PIPELINE: { status: StatusConteudo; label: string; short: st
   { status: 'agendamento', label: 'Agendamento', short: 'Agendamento', step: 5 },
   { status: 'publicado', label: 'Publicado', short: 'Publicado', step: 6 },
 ];
+
+/** Nome curto do formato, usado no cabeçalho do modal da demanda. */
+const FORMATO_LABEL: Record<TipoConteudo, string> = {
+  post: 'Feed',
+  reel: 'Reels',
+  story: 'Story',
+  avulso: 'Avulso',
+};
+
+/** Limite de caracteres da legenda no Instagram. */
+const LIMITE_LEGENDA = 2200;
+
+/** Contador da legenda: amarelo perto do limite, vermelho quando passa. */
+function classeContadorLegenda(tamanho: number): string {
+  if (tamanho > LIMITE_LEGENDA) return 'text-destructive font-semibold';
+  if (tamanho > LIMITE_LEGENDA - 200) return 'text-warning';
+  return 'text-muted-foreground';
+}
 
 export function getEtapaIndex(status: StatusConteudo): number {
   switch (status) {
@@ -221,6 +247,8 @@ export default function EsteiraTab({
   const [editModoVisualizacao, setEditModoVisualizacao] = useState<'abas' | 'split'>('abas');
   // Roteiro abre em modo leitura (formatado); "Editar" troca pelo campo de texto.
   const [editRoteiroEditando, setEditRoteiroEditando] = useState(false);
+  // Campo da legenda (abas ou dividido): os botões da barra inserem onde está o cursor.
+  const legendaRef = useRef<HTMLTextAreaElement>(null);
   const [previewCapaLightbox, setPreviewCapaLightbox] = useState<string | null>(null);
 
   // Rola a página para o topo ao trocar o modo de visualização (Kanban/Lista/Feed) ou ao alternar cliente/item
@@ -581,8 +609,8 @@ export default function EsteiraTab({
           responsavel_id: formResponsavelId || null,
           co_responsaveis_ids: formCoResponsaveis.filter((id) => id !== formResponsavelId),
           editor_id: formEditorId || null,
-          data_programada: formDataProgramada ? new Date(formDataProgramada).toISOString() : null,
-          prazo: formPrazoInterno ? new Date(formPrazoInterno).toISOString() : null,
+          data_programada: deInputData(formDataProgramada),
+          prazo: deInputData(formPrazoInterno),
           arquivos: arquivosFinais,
           cover_url: formTipo === 'reel' ? formCapaUrl : null,
         }),
@@ -664,8 +692,8 @@ export default function EsteiraTab({
       editResponsavelId !== (itemEmEdicao.responsavel_id || '') ||
       [...editCoResponsaveis].sort().join() !== [...(itemEmEdicao.co_responsaveis_ids ?? [])].sort().join() ||
       editEditorId !== (itemEmEdicao.editor_id || '') ||
-      editDataProgramada !== (itemEmEdicao.data_programada ? itemEmEdicao.data_programada.slice(0, 10) : '') ||
-      editPrazoInterno !== (itemEmEdicao.prazo ? itemEmEdicao.prazo.slice(0, 10) : '') ||
+      editDataProgramada !== paraInputData(itemEmEdicao.data_programada) ||
+      editPrazoInterno !== paraInputData(itemEmEdicao.prazo) ||
       editClienteId !== itemEmEdicao.cliente_id ||
       editUrls.trim() !== '' ||
       (editCapaUrl || null) !== (itemEmEdicao.cover_url || null) ||
@@ -699,7 +727,7 @@ export default function EsteiraTab({
       legenda: editLegenda,
       tipo: editTipo,
       arquivos: editArquivos,
-      data_programada: editDataProgramada || item.data_programada,
+      data_programada: deInputData(editDataProgramada, item.data_programada) ?? item.data_programada,
     };
   }
 
@@ -715,8 +743,8 @@ export default function EsteiraTab({
     setEditResponsavelId(item.responsavel_id || '');
     setEditCoResponsaveis(item.co_responsaveis_ids ?? []);
     setEditEditorId(item.editor_id || '');
-    setEditDataProgramada(item.data_programada ? item.data_programada.slice(0, 10) : '');
-    setEditPrazoInterno(item.prazo ? item.prazo.slice(0, 10) : '');
+    setEditDataProgramada(paraInputData(item.data_programada));
+    setEditPrazoInterno(paraInputData(item.prazo));
     setEditUrls('');
     setEditArquivos(item.arquivos || []);
     setEditCapaUrl(item.cover_url || null);
@@ -763,8 +791,9 @@ export default function EsteiraTab({
           responsavel_id: editResponsavelId || null,
           co_responsaveis_ids: editCoResponsaveis.filter((id) => id !== editResponsavelId),
           editor_id: editEditorId || null,
-          data_programada: editDataProgramada ? new Date(editDataProgramada).toISOString() : null,
-          prazo: editPrazoInterno ? new Date(editPrazoInterno).toISOString() : null,
+          // Dia inalterado devolve o valor original: salvar o modal não apaga o horário agendado.
+          data_programada: deInputData(editDataProgramada, itemEmEdicao.data_programada),
+          prazo: deInputData(editPrazoInterno, itemEmEdicao.prazo),
           arquivos: arquivosFinais,
           cover_url: editTipo === 'reel' ? editCapaUrl : null,
         }),
@@ -780,6 +809,32 @@ export default function EsteiraTab({
       showToast(err.message || 'Erro ao salvar alterações.', 'error');
     } finally {
       setSalvandoEdicao(false);
+    }
+  }
+
+  /** Insere emoji/marcador onde está o cursor da legenda (não no fim do texto). */
+  function inserirNaLegenda(trecho: string) {
+    const el = legendaRef.current;
+    if (!el) {
+      setEditLegenda((prev) => prev + trecho);
+      return;
+    }
+    const inicio = el.selectionStart ?? editLegenda.length;
+    const fim = el.selectionEnd ?? inicio;
+    setEditLegenda(editLegenda.slice(0, inicio) + trecho + editLegenda.slice(fim));
+    const posicao = inicio + trecho.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(posicao, posicao);
+    });
+  }
+
+  async function handleCopiarLegenda() {
+    try {
+      await navigator.clipboard.writeText(editLegenda);
+      showToast('Legenda copiada.', 'success');
+    } catch {
+      showToast('Não foi possível copiar a legenda.', 'error');
     }
   }
 
@@ -1332,14 +1387,14 @@ export default function EsteiraTab({
                           <div className="flex items-center gap-1.5 shrink-0">
                             {item.prioridade && item.prioridade !== 'media' && PRIORIDADE_CONFIG[item.prioridade] && (
                               <span
-                                className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold border flex items-center gap-1 ${
+                                className={`px-2 py-0.5 rounded-md text-xs font-semibold border flex items-center gap-1.5 ${
                                   PRIORIDADE_CONFIG[item.prioridade].bg
                                 } ${PRIORIDADE_CONFIG[item.prioridade].text} ${
                                   PRIORIDADE_CONFIG[item.prioridade].border
                                 }`}
                                 title={`Prioridade ${PRIORIDADE_CONFIG[item.prioridade].label}`}
                               >
-                                <span>{PRIORIDADE_CONFIG[item.prioridade].flag}</span>
+                                <span aria-hidden className={`size-1.5 rounded-full ${PRIORIDADE_CONFIG[item.prioridade].dot}`} />
                                 <span>{PRIORIDADE_CONFIG[item.prioridade].label}</span>
                               </span>
                             )}
@@ -1379,7 +1434,7 @@ export default function EsteiraTab({
                             <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono flex items-center gap-1 border border-border">
                               <Clock className="w-3 h-3" />
                               <span>
-                                {new Date(item.prazo).toLocaleDateString('pt-BR', {
+                                {dataLocal(item.prazo).toLocaleDateString('pt-BR', {
                                   day: '2-digit',
                                   month: '2-digit',
                                 })}
@@ -1443,7 +1498,11 @@ export default function EsteiraTab({
                                 <Calendar className="w-3.5 h-3.5 shrink-0" />
                                 <span className="truncate">
                                   {item.data_programada
-                                    ? `Agendado: ${new Date(item.data_programada).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às ${new Date(item.data_programada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                                    ? `Agendado: ${dataLocal(item.data_programada).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}${
+                                        ehDataSemHora(item.data_programada)
+                                          ? ''
+                                          : ` às ${new Date(item.data_programada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                                      }`
                                     : 'Agendado no Instagram'}
                                 </span>
                               </div>
@@ -2315,34 +2374,25 @@ export default function EsteiraTab({
 
                 {/* Linha 2: Prioridade (4 Chips em 1 Linha Contínua) */}
                 <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
-                  <span className="text-xs font-bold uppercase font-mono text-muted-foreground shrink-0">
-                    Prioridade:
-                  </span>
-                  <div className="grid grid-cols-4 gap-1 flex-1 max-w-[270px]">
-                    {(
-                      [
-                        { id: 'urgente', label: 'Urgente', flag: '🔴' },
-                        { id: 'alta', label: 'Alta', flag: '🟠' },
-                        { id: 'media', label: 'Média', flag: '🔵' },
-                        { id: 'baixa', label: 'Baixa', flag: '🟢' },
-                      ] as const
-                    ).map((p) => {
-                      const isSelected = formPrioridade === p.id;
-                      const conf = PRIORIDADE_CONFIG[p.id];
+                  <span className="text-xs font-semibold text-muted-foreground shrink-0">Prioridade</span>
+                  <div className="grid grid-cols-4 gap-1 flex-1 max-w-[290px]">
+                    {(['urgente', 'alta', 'media', 'baixa'] as const).map((id) => {
+                      const isSelected = formPrioridade === id;
+                      const conf = PRIORIDADE_CONFIG[id];
                       return (
                         <button
-                          key={p.id}
+                          key={id}
                           type="button"
-                          onClick={() => setFormPrioridade(p.id)}
-                          className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-ui text-xs ${
+                          aria-pressed={isSelected}
+                          onClick={() => setFormPrioridade(id)}
+                          className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1.5 cursor-pointer transition-ui text-xs font-semibold ${
                             isSelected
-                              ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs ring-1 ring-primary/20`
-                              : 'bg-card hover:bg-accent/50 border-border text-foreground font-semibold hover:border-foreground/30'
+                              ? `${conf.bg} ${conf.border} ${conf.text}`
+                              : 'bg-card hover:bg-accent/50 border-border text-foreground hover:border-foreground/30'
                           }`}
-                          title={p.label}
                         >
-                          <span className="text-xs">{p.flag}</span>
-                          <span className="text-xs font-semibold">{p.label}</span>
+                          <span aria-hidden className={`size-1.5 rounded-full shrink-0 ${conf.dot}`} />
+                          <span>{conf.label}</span>
                         </button>
                       );
                     })}
@@ -2454,48 +2504,30 @@ export default function EsteiraTab({
         className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden"
       >
         {itemEmEdicao && (
-          <form onSubmit={handleSalvarEdicao} className="flex flex-col max-h-[92vh] w-full bg-card">
+          <form
+            onSubmit={handleSalvarEdicao}
+            onKeyDown={(e) => {
+              // Ctrl+S / ⌘+S salva sem tirar a mão do teclado (e não abre o "salvar página" do navegador).
+              if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                if (!salvandoEdicao) e.currentTarget.requestSubmit();
+              }
+            }}
+            className="flex flex-col max-h-[92vh] w-full bg-card"
+          >
             {/* 1. Header Slim de Linha Única (48px - Ultra Compacto) */}
             <div className="px-4 pt-2.5 pb-3 border-b border-border flex flex-col gap-2 bg-card shrink-0">
              <div className="flex items-center justify-between gap-3">
-              {/* Esquerda: ID da Demanda + Chip de Capa + aviso de ajuste pedido */}
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-xs font-mono font-bold text-muted-foreground uppercase px-2 py-0.5 rounded-md bg-accent/60 border border-border shrink-0">
-                  #{itemEmEdicao.id.slice(0, 8)}
-                </span>
-
-                {/* Se houver capa/mídia, chip compacto com preview e zoom */}
-                {editTipo === 'reel' && editCapaUrl ? (
-                  <button
-                    type="button"
-                    onClick={() => setPreviewCapaLightbox(editCapaUrl)}
-                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-accent/60 hover:bg-accent border border-border text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer group"
-                    title="Clique para ampliar a capa"
-                  >
-                    <div className="w-4 h-4 rounded overflow-hidden bg-black shrink-0 border border-border">
-                      <img src={editCapaUrl} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    <span className="hidden sm:inline">Capa</span>
-                    <Maximize2 className="w-3 h-3 text-muted-foreground group-hover:text-foreground" />
-                  </button>
-                ) : editArquivos[0]?.url && (
-                  <button
-                    type="button"
-                    onClick={() => setPreviewCapaLightbox(editArquivos[0].url)}
-                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-accent/60 hover:bg-accent border border-border text-xs font-semibold text-foreground shrink-0 transition-colors cursor-pointer group"
-                    title="Clique para ampliar a capa"
-                  >
-                    <div className="w-4 h-4 rounded overflow-hidden bg-black shrink-0 border border-border">
-                      {editArquivos[0].tipo === 'video' ? (
-                        <video src={editArquivos[0].url} className="w-full h-full object-cover" muted />
-                      ) : (
-                        <img src={editArquivos[0].url} alt="" className="w-full h-full object-cover" />
-                      )}
-                    </div>
-                    <span className="hidden sm:inline">Capa</span>
-                    <Maximize2 className="w-3 h-3 text-muted-foreground group-hover:text-foreground" />
-                  </button>
+              {/* Esquerda: cliente e formato (contexto da demanda) + aviso de ajuste pedido */}
+              <div className="flex items-center gap-2 flex-1 min-w-0 text-xs text-muted-foreground">
+                {editClienteObj && (
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <ClienteAvatar nome={editClienteObj.nome} cor={editClienteObj.cor} fotoUrl={editClienteObj.foto_url} tamanho="xs" />
+                    <span className="hidden sm:inline truncate font-medium text-foreground max-w-[180px]">{editClienteObj.nome}</span>
+                  </span>
                 )}
+                <span aria-hidden className="hidden sm:inline text-border-strong">·</span>
+                <span className="shrink-0">{FORMATO_LABEL[editTipo]}</span>
 
                 {editStatus === 'travado' && (
                   <Badge variant="destructive" dot className="shrink-0">
@@ -2587,6 +2619,44 @@ export default function EsteiraTab({
                   </button>
                 )}
 
+                {/* Ações secundárias: ficam fora do caminho do Salvar */}
+                <Menu.Root>
+                  <Menu.Trigger
+                    aria-label="Mais ações da demanda"
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors data-popup-open:bg-accent data-popup-open:text-foreground"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Menu.Trigger>
+                  <Menu.Portal>
+                    <Menu.Positioner side="bottom" align="end" sideOffset={6} className="z-[80]">
+                      <Menu.Popup className="min-w-48 rounded-xl border border-border-strong bg-popover p-1 text-popover-foreground shadow-lg outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0">
+                        <Menu.Item
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(itemEmEdicao.id);
+                              showToast('ID da demanda copiado.', 'success');
+                            } catch {
+                              showToast('Não foi possível copiar o ID.', 'error');
+                            }
+                          }}
+                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer outline-none data-highlighted:bg-accent"
+                        >
+                          <Copy className="size-3.5 text-muted-foreground" />
+                          <span className="flex-1">Copiar ID</span>
+                          <span className="font-mono text-xs text-muted-foreground">#{itemEmEdicao.id.slice(0, 8)}</span>
+                        </Menu.Item>
+                        <Menu.Item
+                          onClick={() => handleExcluirDemanda(itemEmEdicao.id)}
+                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer outline-none text-destructive data-highlighted:bg-destructive-soft"
+                        >
+                          <Trash2 className="size-3.5" />
+                          <span>Excluir demanda</span>
+                        </Menu.Item>
+                      </Menu.Popup>
+                    </Menu.Positioner>
+                  </Menu.Portal>
+                </Menu.Root>
+
                 <button
                   type="button"
                   onClick={fecharEdicao}
@@ -2618,40 +2688,9 @@ export default function EsteiraTab({
             <div className="p-3.5 sm:p-5 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5">
               {/* COLUNA DA ESQUERDA (7 Cols): Formato Rápido, Abas/Split de Redação, Legenda e Briefing */}
               <div className="lg:col-span-7 flex flex-col gap-3">
-                {/* 1. Barra de Formato (28px) + Toggle Abas vs Split */}
-                <div className="flex items-center justify-between gap-2 pb-2 border-b border-border shrink-0">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground font-display shrink-0">
-                    <Layers className="w-3.5 h-3.5 text-primary" />
-                    <span>Formato:</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border max-w-sm flex-1">
-                    {[
-                      { id: 'post' as const, label: 'Feed (4:5)', descricao: 'Post único ou carrossel (4:5)', icon: ImageIcon },
-                      { id: 'reel' as const, label: 'Reels (9:16)', descricao: 'Reels (9:16)', icon: Video },
-                      { id: 'story' as const, label: 'Story', descricao: 'Story', icon: Smartphone },
-                      { id: 'avulso' as const, label: 'Avulso', descricao: 'Avulso', icon: Sparkles },
-                    ].map((fmt) => (
-                      <button
-                        key={fmt.id}
-                        type="button"
-                        aria-label={fmt.descricao}
-                        aria-pressed={editTipo === fmt.id}
-                        title={fmt.descricao}
-                        onClick={() => setEditTipo(fmt.id)}
-                        className={`h-6.5 px-2 rounded-md flex items-center justify-center gap-1 text-xs font-bold transition-ui cursor-pointer ${
-                          editTipo === fmt.id
-                            ? 'bg-primary text-primary-foreground shadow-2xs font-bold'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
-                        }`}
-                      >
-                        <fmt.icon className="w-3 h-3 shrink-0" />
-                        <span className="hidden sm:inline truncate">{fmt.label}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Alternador de Modo: Abas vs Dividido */}
-                  <div className="hidden sm:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border text-xs shrink-0">
+                {/* 1. Alternador de modo (Abas vs Dividido). O formato foi para o painel de propriedades. */}
+                <div className="hidden sm:flex items-center justify-end shrink-0">
+                  <div className="flex items-center bg-accent/30 rounded-lg p-0.5 border border-border text-xs">
                     <SegmentedItem
                       type="button"
                       onClick={() => setEditModoVisualizacao('abas')}
@@ -2679,36 +2718,33 @@ export default function EsteiraTab({
                 {editModoVisualizacao === 'abas' && (
                   <div className="flex flex-col gap-2.5 flex-1 min-h-0">
                     {/* Seletor de Abas de Conteúdo */}
-                    <div className="flex items-center gap-1 p-1 bg-accent/30 rounded-xl border border-border shrink-0">
+                    <div className="flex items-center gap-0.5 sm:gap-1 p-1 bg-accent/30 rounded-xl border border-border shrink-0 overflow-x-auto scrollbar-none">
                       <SegmentedItem
                         type="button"
                         onClick={() => setEditAbaConteudo('legenda')}
                         group="esteira-tab-2620"
                         active={editAbaConteudo === 'legenda'}
-                        className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
+                        className="flex-1 shrink-0 whitespace-nowrap py-1.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 text-xs font-semibold"
                       >
                         <FileText className="w-3.5 h-3.5 text-primary" />
-                        <span>Legenda da Postagem</span>
-                        <span className="text-xs font-mono text-muted-foreground ml-1">
-                          ({editLegenda.length}/2.200)
+                        <span>Legenda</span>
+                        <span className={`hidden sm:inline text-xs font-mono tabular-nums ${classeContadorLegenda(editLegenda.length)}`}>
+                          {editLegenda.length.toLocaleString('pt-BR')}/2.200
                         </span>
                       </SegmentedItem>
 
                       <SegmentedItem
                         type="button"
                         onClick={() => setEditAbaConteudo('briefing')}
-
                         group="esteira-tab-2620"
-
                         active={editAbaConteudo === 'briefing'}
-
-                        className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
-
+                        className="flex-1 shrink-0 whitespace-nowrap py-1.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 text-xs font-semibold"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-primary" />
-                        <span>Briefing & Roteiro</span>
+                        <span className="sm:hidden">Roteiro</span>
+                        <span className="hidden sm:inline">Briefing & Roteiro</span>
                         {editBriefing.trim() && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-primary" />
                         )}
                       </SegmentedItem>
 
@@ -2718,29 +2754,32 @@ export default function EsteiraTab({
                           onClick={() => setEditAbaConteudo('capa')}
                           group="esteira-tab-2620"
                           active={editAbaConteudo === 'capa'}
-                          className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
+                          className="flex-1 shrink-0 whitespace-nowrap py-1.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 text-xs font-semibold"
                         >
                           <ImageIcon className="w-3.5 h-3.5 text-primary" />
                           <span>Capa</span>
-                          {editCapaUrl && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                          {editCapaUrl && <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-primary" />}
                         </SegmentedItem>
                       )}
 
                       <SegmentedItem
                         type="button"
                         onClick={() => setEditAbaConteudo('anexos')}
-
                         group="esteira-tab-2620"
-
                         active={editAbaConteudo === 'anexos'}
-
-                        className="flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold"
-
+                        className="flex-1 shrink-0 whitespace-nowrap py-1.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 text-xs font-semibold"
                       >
                         <Paperclip className="w-3.5 h-3.5 text-primary" />
-                        <span>{editTipo === 'reel' ? 'Vídeo' : 'Mídias & Anexos'}</span>
-                        <span className="text-xs font-mono text-muted-foreground ml-0.5">
-                          ({editArquivos.length})
+                        {editTipo === 'reel' ? (
+                          <span>Vídeo</span>
+                        ) : (
+                          <>
+                            <span className="sm:hidden">Mídias</span>
+                            <span className="hidden sm:inline">Mídias & Anexos</span>
+                          </>
+                        )}
+                        <span className="hidden sm:inline text-xs font-mono tabular-nums text-muted-foreground">
+                          {editArquivos.length}
                         </span>
                       </SegmentedItem>
                     </div>
@@ -2749,61 +2788,54 @@ export default function EsteiraTab({
                     {editAbaConteudo === 'legenda' && (
                       <div className="flex flex-col gap-1.5 flex-1 min-h-0">
                         {/* Toolbar de Formatação */}
+                        {/* Barra da legenda: tudo entra onde está o cursor */}
                         <div className="flex items-center gap-1 p-1.5 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground flex-wrap shrink-0">
                           <button
                             type="button"
-                            onClick={() => setEditLegenda((prev) => `${prev} **texto em destaque**`)}
-                            className="px-2 py-0.5 rounded hover:bg-card font-bold text-foreground cursor-pointer text-xs"
-                            title="Negrito"
+                            onClick={() => inserirNaLegenda('\n• ')}
+                            className="px-2 py-0.5 rounded hover:bg-card text-foreground cursor-pointer text-xs"
+                            aria-label="Inserir item de lista"
                           >
-                            B
+                            • Lista
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditLegenda((prev) => `${prev} *texto itálico*`)}
-                            className="px-2 py-0.5 rounded hover:bg-card italic text-foreground cursor-pointer text-xs"
-                            title="Itálico"
-                          >
-                            I
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditLegenda((prev) => `${prev}\n• `)}
-                            className="px-2 py-0.5 rounded hover:bg-card font-mono text-foreground cursor-pointer text-xs"
-                            title="Lista com tópicos"
-                          >
-                            := Lista
-                          </button>
-                          <span className="w-px h-3 bg-border mx-1" />
+                          <span aria-hidden className="w-px h-3 bg-border mx-1" />
                           {['🚀', '👉', '💡', '🔥', '✅', '💪', '🎯', '📲', '📸', '📅'].map((emoji) => (
                             <button
                               key={emoji}
                               type="button"
-                              onClick={() => setEditLegenda((prev) => `${prev} ${emoji}`)}
+                              onClick={() => inserirNaLegenda(emoji)}
                               className="p-1 rounded hover:bg-card cursor-pointer text-xs"
+                              aria-label={`Inserir ${emoji}`}
                             >
                               {emoji}
                             </button>
                           ))}
-                          <span className="w-px h-3 bg-border mx-1" />
                           <button
                             type="button"
-                            onClick={() => setEditLegenda((prev) => `${prev}\n\n#marketing #conteudo`)}
-                            className="px-1.5 py-0.5 rounded hover:bg-card text-muted-foreground hover:text-foreground text-xs font-mono"
-                            title="Inserir Hashtags"
+                            onClick={handleCopiarLegenda}
+                            disabled={!editLegenda.trim()}
+                            className="ml-auto px-2 py-0.5 rounded hover:bg-card text-foreground cursor-pointer text-xs font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            #tags
+                            <Copy className="w-3 h-3" /> Copiar legenda
                           </button>
                         </div>
 
                         {/* Editor de Legenda Generoso */}
                         <AutoTextarea
+                          ref={legendaRef}
                           value={editLegenda}
                           onChange={(e) => setEditLegenda(e.target.value)}
                           placeholder="Escreva a legenda oficial da postagem com hashtags, quebras de linha e chamada para ação (CTA)..."
                           aria-label="Legenda da postagem"
+                          aria-invalid={editLegenda.length > LIMITE_LEGENDA || undefined}
                           className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card min-h-[260px]"
                         />
+                        {editLegenda.length > LIMITE_LEGENDA && (
+                          <p className="text-xs text-destructive">
+                            O Instagram não aceita legenda com mais de 2.200 caracteres. Corte{' '}
+                            {(editLegenda.length - LIMITE_LEGENDA).toLocaleString('pt-BR')} antes de publicar.
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -2994,45 +3026,42 @@ export default function EsteiraTab({
                           <FileText className="w-3.5 h-3.5 text-primary" />
                           <span>Legenda da Postagem (Instagram)</span>
                         </label>
-                        <span className="text-xs font-mono text-muted-foreground">
-                          {editLegenda.length} / 2.200
+                        <span className={`text-xs font-mono tabular-nums ${classeContadorLegenda(editLegenda.length)}`}>
+                          {editLegenda.length.toLocaleString('pt-BR')}/2.200
                         </span>
                       </div>
                       <div className="flex items-center gap-1 p-1 bg-accent/40 rounded-t-xl border border-border border-b-0 text-xs text-muted-foreground flex-wrap">
                         <button
                           type="button"
-                          onClick={() => setEditLegenda((prev) => `${prev} **texto em destaque**`)}
-                          className="px-1.5 py-0.5 rounded hover:bg-card font-bold text-foreground text-xs"
+                          onClick={() => inserirNaLegenda('\n• ')}
+                          className="px-1.5 py-0.5 rounded hover:bg-card text-foreground text-xs"
+                          aria-label="Inserir item de lista"
                         >
-                          B
+                          • Lista
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditLegenda((prev) => `${prev} *texto itálico*`)}
-                          className="px-1.5 py-0.5 rounded hover:bg-card italic text-foreground text-xs"
-                        >
-                          I
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditLegenda((prev) => `${prev}\n• `)}
-                          className="px-1.5 py-0.5 rounded hover:bg-card font-mono text-foreground text-xs"
-                        >
-                          :=
-                        </button>
-                        <span className="w-px h-3 bg-border mx-1" />
+                        <span aria-hidden className="w-px h-3 bg-border mx-1" />
                         {['🚀', '👉', '💡', '🔥', '✅'].map((emoji) => (
                           <button
                             key={emoji}
                             type="button"
-                            onClick={() => setEditLegenda((prev) => `${prev} ${emoji}`)}
+                            onClick={() => inserirNaLegenda(emoji)}
                             className="p-1 rounded hover:bg-card text-xs"
+                            aria-label={`Inserir ${emoji}`}
                           >
                             {emoji}
                           </button>
                         ))}
+                        <button
+                          type="button"
+                          onClick={handleCopiarLegenda}
+                          disabled={!editLegenda.trim()}
+                          className="ml-auto px-1.5 py-0.5 rounded hover:bg-card text-foreground text-xs font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Copy className="w-3 h-3" /> Copiar
+                        </button>
                       </div>
                       <Textarea
+                        ref={legendaRef}
                         value={editLegenda}
                         onChange={(e) => setEditLegenda(e.target.value)}
                         placeholder="Escreva a legenda..."
@@ -3050,9 +3079,9 @@ export default function EsteiraTab({
                 <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 shrink-0">
                   {/* Linha 1: Cliente */}
                   <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
-                    <span className="text-xs font-bold uppercase font-mono text-muted-foreground flex items-center gap-1.5 shrink-0">
+                    <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 shrink-0">
                       <Users className="w-3.5 h-3.5 text-primary" />
-                      Cliente:
+                      Cliente
                     </span>
                     <div className="flex items-center gap-2 min-w-0">
                       {editClienteObj && !trocarClienteAbertoEdit ? (
@@ -3123,36 +3152,57 @@ export default function EsteiraTab({
                     </div>
                   )}
 
-                  {/* Linha 2: Prioridade (4 Chips em 1 Linha Contínua) */}
-                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
-                    <span className="text-xs font-bold uppercase font-mono text-muted-foreground shrink-0">
-                      Prioridade:
-                    </span>
-                    <div className="grid grid-cols-4 gap-1 flex-1 max-w-[270px]">
-                      {(
-                        [
-                          { id: 'urgente', label: 'Urgente', flag: '🔴' },
-                          { id: 'alta', label: 'Alta', flag: '🟠' },
-                          { id: 'media', label: 'Média', flag: '🔵' },
-                          { id: 'baixa', label: 'Baixa', flag: '🟢' },
-                        ] as const
-                      ).map((p) => {
-                        const isSelected = editPrioridade === p.id;
-                        const conf = PRIORIDADE_CONFIG[p.id];
+                  {/* Linha 2: Formato (veio do topo do editor: é propriedade da demanda) */}
+                  <div className="flex flex-col gap-1 pb-2 border-b border-border">
+                    <span className="text-xs font-semibold text-muted-foreground">Formato</span>
+                    <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border">
+                      {[
+                        { id: 'post' as const, label: 'Feed', descricao: 'Post único ou carrossel (4:5)', icon: ImageIcon },
+                        { id: 'reel' as const, label: 'Reels', descricao: 'Reels (9:16)', icon: Video },
+                        { id: 'story' as const, label: 'Story', descricao: 'Story', icon: Smartphone },
+                        { id: 'avulso' as const, label: 'Avulso', descricao: 'Avulso', icon: Sparkles },
+                      ].map((fmt) => (
+                        <button
+                          key={fmt.id}
+                          type="button"
+                          aria-label={fmt.descricao}
+                          aria-pressed={editTipo === fmt.id}
+                          title={fmt.descricao}
+                          onClick={() => setEditTipo(fmt.id)}
+                          className={`h-7 px-2 rounded-md flex items-center justify-center gap-1.5 text-xs font-semibold transition-ui cursor-pointer ${
+                            editTipo === fmt.id
+                              ? 'bg-primary text-primary-foreground shadow-2xs'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
+                          }`}
+                        >
+                          <fmt.icon className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{fmt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Linha 3: Prioridade com as cores de status do design system */}
+                  <div className="flex flex-col gap-1 pb-2 border-b border-border">
+                    <span className="text-xs font-semibold text-muted-foreground">Prioridade</span>
+                    <div className="grid grid-cols-4 gap-1">
+                      {(['urgente', 'alta', 'media', 'baixa'] as const).map((id) => {
+                        const isSelected = editPrioridade === id;
+                        const conf = PRIORIDADE_CONFIG[id];
                         return (
                           <button
-                            key={p.id}
+                            key={id}
                             type="button"
-                            onClick={() => setEditPrioridade(p.id)}
-                            className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-ui text-xs ${
+                            aria-pressed={isSelected}
+                            onClick={() => setEditPrioridade(id)}
+                            className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1.5 cursor-pointer transition-ui text-xs font-semibold ${
                               isSelected
-                                ? `${conf.bg} ${conf.border} ${conf.text} font-bold shadow-2xs ring-1 ring-primary/20`
-                                : 'bg-card hover:bg-accent/50 border-border text-foreground font-semibold hover:border-foreground/30'
+                                ? `${conf.bg} ${conf.border} ${conf.text}`
+                                : 'bg-card hover:bg-accent/50 border-border text-foreground hover:border-foreground/30'
                             }`}
-                            title={p.label}
                           >
-                            <span className="text-xs">{p.flag}</span>
-                            <span className="text-xs font-semibold">{p.label}</span>
+                            <span aria-hidden className={`size-1.5 rounded-full shrink-0 ${conf.dot}`} />
+                            <span>{conf.label}</span>
                           </button>
                         );
                       })}
@@ -3181,62 +3231,51 @@ export default function EsteiraTab({
                     />
                   </div>
 
-                  {/* Linha 4: Prazos (Prazo Interno & Data Programada) */}
+                  {/* Linha 5: Prazos, com a distância até a data ("em 8 dias", "atrasado há 2 dias") */}
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col gap-0.5">
-                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-muted-foreground" />
-                        <span>Prazo Interno</span>
-                      </label>
-                      <Input
-                        type="date"
-                        value={editPrazoInterno}
-                        onChange={(e) => setEditPrazoInterno(e.target.value)}
-                        className="h-7.5 text-xs"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                        <Calendar className="w-3 h-3 text-muted-foreground" />
-                        <span>Data Programada</span>
-                      </label>
-                      <Input
-                        type="date"
-                        value={editDataProgramada}
-                        onChange={(e) => setEditDataProgramada(e.target.value)}
-                        className="h-7.5 text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Miniatura da Capa com Ação de Zoom (se houver mídia) */}
-                  {editArquivos[0]?.url && (
-                    <div className="pt-2 border-t border-border flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-black shrink-0 border border-border relative">
-                          {editArquivos[0].tipo === 'video' ? (
-                            <video src={editArquivos[0].url} className="w-full h-full object-cover" muted />
-                          ) : (
-                            <img src={editArquivos[0].url} alt="" className="w-full h-full object-cover" />
+                    {[
+                      {
+                        id: 'edit-prazo-interno',
+                        rotulo: 'Prazo interno',
+                        icon: Clock,
+                        valor: editPrazoInterno,
+                        set: setEditPrazoInterno,
+                        // Prazo vencido só é problema enquanto a demanda não foi publicada.
+                        atrasoConta: editStatus !== 'publicado',
+                      },
+                      {
+                        id: 'edit-data-programada',
+                        rotulo: 'Data programada',
+                        icon: Calendar,
+                        valor: editDataProgramada,
+                        set: setEditDataProgramada,
+                        atrasoConta: false,
+                      },
+                    ].map((campo) => {
+                      const distancia = distanciaEmDias(campo.valor);
+                      const atrasado = !!distancia && distancia.dias < 0 && campo.atrasoConta;
+                      return (
+                        <div key={campo.id} className="flex flex-col gap-0.5">
+                          <label htmlFor={campo.id} className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                            <campo.icon className="w-3 h-3 text-muted-foreground" />
+                            <span>{campo.rotulo}</span>
+                          </label>
+                          <Input
+                            id={campo.id}
+                            type="date"
+                            value={campo.valor}
+                            onChange={(e) => campo.set(e.target.value)}
+                            className="h-7.5 text-xs tabular-nums"
+                          />
+                          {distancia && (
+                            <span className={`text-xs ${atrasado ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                              {atrasado ? `Atrasado, venceu ${distancia.texto}` : distancia.texto}
+                            </span>
                           )}
                         </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-bold text-foreground">⭐ Capa da Postagem</span>
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {editArquivos[0].tipo === 'video' ? 'Vídeo MP4' : 'Imagem'}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewCapaLightbox(editArquivos[0].url)}
-                        className="px-2 py-0.5 rounded-md bg-accent/60 hover:bg-accent border border-border text-xs font-semibold text-foreground flex items-center gap-1 cursor-pointer transition-colors"
-                      >
-                        <Maximize2 className="w-3 h-3" />
-                        <span>Ampliar</span>
-                      </button>
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Área de Comentários & Atividades (Aproveitando a Altura Livre) */}
@@ -3316,19 +3355,21 @@ export default function EsteiraTab({
 
             {/* 4. Footer Fixo com Ações da Demanda */}
             <div className="p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex items-center justify-between gap-2 z-20">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => handleExcluirDemanda(itemEmEdicao.id)}
-                loading={excluindoItem}
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive text-xs cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5 mr-1" />
-                Excluir Demanda
-              </Button>
+              {/* Excluir foi para o menu "⋯" do cabeçalho; aqui fica o estado do formulário */}
+              <span aria-live="polite" className="text-xs min-w-0">
+                {excluindoItem ? (
+                  <span className="text-muted-foreground">Excluindo…</span>
+                ) : editSujo ? (
+                  <span className="flex items-center gap-1.5 text-warning font-medium">
+                    <span aria-hidden className="size-1.5 rounded-full bg-warning shrink-0" />
+                    Alterações não salvas
+                  </span>
+                ) : (
+                  <span className="hidden sm:inline text-muted-foreground">Nenhuma alteração pendente</span>
+                )}
+              </span>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   type="button"
                   variant="outline"
@@ -3345,8 +3386,12 @@ export default function EsteiraTab({
                   size="sm"
                   loading={salvandoEdicao}
                   className="rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-2xs px-4"
+                  title="Salvar (Ctrl+S)"
                 >
-                  Salvar Alterações
+                  Salvar alterações
+                  <kbd className="hidden sm:inline ml-2 rounded border border-primary-foreground/30 px-1 font-mono text-xs font-medium opacity-70">
+                    Ctrl S
+                  </kbd>
                 </Button>
               </div>
             </div>

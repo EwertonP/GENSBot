@@ -8,8 +8,57 @@ import {
   motivoBloqueioCliente,
   STATUS_LABELS,
   COLUNAS_KANBAN,
+  dataLocal,
+  deInputData,
+  distanciaEmDias,
+  ehDataSemHora,
+  paraInputData,
   type StatusConteudo,
 } from './conteudo';
+
+describe('datas só de dia (prazo e data programada)', () => {
+  it('reconhece a meia-noite UTC como data sem horário', () => {
+    expect(ehDataSemHora('2026-09-23T00:00:00Z')).toBe(true);
+    expect(ehDataSemHora('2026-09-23T00:00:00+00:00')).toBe(true);
+    expect(ehDataSemHora('2026-09-23T00:00:00.000Z')).toBe(true);
+    expect(ehDataSemHora('2026-09-22T14:50:00+00:00')).toBe(false);
+  });
+
+  it('mostra o dia gravado, não o dia anterior do fuso local', () => {
+    expect(dataLocal('2026-09-23T00:00:00+00:00').getDate()).toBe(23);
+    expect(paraInputData('2026-09-23T00:00:00+00:00')).toBe('2026-09-23');
+    expect(paraInputData(null)).toBe('');
+  });
+
+  it('não mexe na data programada quando o dia não mudou (preserva o horário)', () => {
+    const agendado = new Date(2026, 8, 22, 11, 50).toISOString();
+    expect(deInputData(paraInputData(agendado), agendado)).toBe(agendado);
+  });
+
+  it('ao trocar o dia, mantém o horário que o post já tinha', () => {
+    const agendado = new Date(2026, 8, 22, 11, 50).toISOString();
+    const novo = new Date(deInputData('2026-09-25', agendado)!);
+    expect([novo.getDate(), novo.getHours(), novo.getMinutes()]).toEqual([25, 11, 50]);
+  });
+
+  it('grava dia novo sem horário na convenção de meia-noite UTC', () => {
+    expect(deInputData('2026-10-12', null)).toBe('2026-10-12T00:00:00.000Z');
+    expect(deInputData('2026-10-12', '2026-10-01T00:00:00+00:00')).toBe('2026-10-12T00:00:00.000Z');
+    expect(deInputData('', '2026-10-01T00:00:00+00:00')).toBeNull();
+  });
+
+  it('descreve a distância em dias', () => {
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const hoje = new Date();
+    const amanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+    const ha3 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 3);
+    expect(distanciaEmDias(fmt(hoje))?.texto).toBe('hoje');
+    expect(distanciaEmDias(fmt(amanha))?.texto).toBe('amanhã');
+    expect(distanciaEmDias(fmt(ha3))).toEqual({ dias: -3, texto: 'há 3 dias' });
+    expect(distanciaEmDias('')).toBeNull();
+  });
+});
 
 describe('acesso do cliente pelo link público', () => {
   const EM_PRODUCAO: StatusConteudo[] = [
