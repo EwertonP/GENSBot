@@ -1,7 +1,9 @@
 'use client';
 import { ScrollShadow } from '@/components/ui/scroll-shadow';
 import { AvatarGroup } from '@/components/ui/avatar';
-import { MemberMultiSelect } from '@/components/ui/member-multi-select';
+import { ResponsaveisSelect } from '@/components/ui/responsaveis-select';
+import { AutoTextarea } from '@/components/ui/auto-textarea';
+import { RoteiroView } from '@/components/roteiro-view';
 import { SegmentedItem } from '@/components/ui/segmented';
 
 import React, { useEffect, useMemo, useState, useRef } from 'react';
@@ -40,6 +42,8 @@ import {
   Flag,
   Maximize2,
   Minimize2,
+  Pencil,
+  Eye,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -215,6 +219,8 @@ export default function EsteiraTab({
   const [editAbaConteudo, setEditAbaConteudo] = useState<'legenda' | 'briefing' | 'capa' | 'anexos'>('legenda');
   const [editCapaUrl, setEditCapaUrl] = useState<string | null>(null);
   const [editModoVisualizacao, setEditModoVisualizacao] = useState<'abas' | 'split'>('abas');
+  // Roteiro abre em modo leitura (formatado); "Editar" troca pelo campo de texto.
+  const [editRoteiroEditando, setEditRoteiroEditando] = useState(false);
   const [previewCapaLightbox, setPreviewCapaLightbox] = useState<string | null>(null);
 
   // Rola a página para o topo ao trocar o modo de visualização (Kanban/Lista/Feed) ou ao alternar cliente/item
@@ -721,6 +727,7 @@ export default function EsteiraTab({
     setTrocarClienteAbertoEdit(false);
     setEditAbaConteudo('legenda');
     setEditModoVisualizacao('abas');
+    setEditRoteiroEditando(!(item.briefing || '').trim());
     setPreviewCapaLightbox(null);
   }
 
@@ -780,15 +787,11 @@ export default function EsteiraTab({
     if (!itemEmEdicao || !novoComentarioTexto.trim()) return;
     setEnviandoComentario(true);
     try {
-      const membro = membros.find((m) => m.id === editResponsavelId || m.id === editEditorId);
-      const autorNome = membro?.nome || 'Equipe';
+      // O autor é quem está logado; o servidor resolve pelo login.
       const res = await fetch(`/api/conteudo/${itemEmEdicao.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          novo_comentario_equipe: novoComentarioTexto.trim(),
-          autor_nome: autorNome,
-        }),
+        body: JSON.stringify({ novo_comentario_equipe: novoComentarioTexto.trim() }),
       });
 
       const data = await res.json();
@@ -1741,7 +1744,7 @@ export default function EsteiraTab({
         aria-label="Nova Demanda"
         className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden"
       >
-        <form onSubmit={handleSalvarNovo} className="flex flex-col max-h-[92vh] w-full bg-card select-none">
+        <form onSubmit={handleSalvarNovo} className="flex flex-col max-h-[92vh] w-full bg-card">
           {/* 1. Header Slim de Linha Única (48px - Ultra Compacto) */}
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between gap-3 bg-card shrink-0">
             {/* Esquerda: Tag Nova Demanda + Título Inline */}
@@ -1838,14 +1841,17 @@ export default function EsteiraTab({
                 </div>
                 <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border max-w-sm flex-1">
                   {[
-                    { id: 'post' as const, label: 'Carrossel (4:5)', icon: ImageIcon },
-                    { id: 'reel' as const, label: 'Reels (9:16)', icon: Video },
-                    { id: 'story' as const, label: 'Story', icon: Smartphone },
-                    { id: 'avulso' as const, label: 'Avulso', icon: Sparkles },
+                    { id: 'post' as const, label: 'Feed (4:5)', descricao: 'Post único ou carrossel (4:5)', icon: ImageIcon },
+                    { id: 'reel' as const, label: 'Reels (9:16)', descricao: 'Reels (9:16)', icon: Video },
+                    { id: 'story' as const, label: 'Story', descricao: 'Story', icon: Smartphone },
+                    { id: 'avulso' as const, label: 'Avulso', descricao: 'Avulso', icon: Sparkles },
                   ].map((fmt) => (
                     <button
                       key={fmt.id}
                       type="button"
+                      aria-label={fmt.descricao}
+                      aria-pressed={formTipo === fmt.id}
+                      title={fmt.descricao}
                       onClick={() => setFormTipo(fmt.id)}
                       className={`h-6.5 px-2 rounded-md flex items-center justify-center gap-1 text-xs font-bold transition-ui cursor-pointer ${
                         formTipo === fmt.id
@@ -1854,7 +1860,7 @@ export default function EsteiraTab({
                       }`}
                     >
                       <fmt.icon className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{fmt.label}</span>
+                      <span className="hidden sm:inline truncate">{fmt.label}</span>
                     </button>
                   ))}
                 </div>
@@ -2345,12 +2351,16 @@ export default function EsteiraTab({
 
                 {/* Linha 3: Equipe (Responsável & Designer Lado a Lado) */}
                 <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border">
-                  <MemberChipSelect
-                    label="Responsável Principal"
-                    value={formResponsavelId}
-                    onChange={setFormResponsavelId}
+                  <ResponsaveisSelect
+                    label="Responsáveis"
+                    value={[formResponsavelId, ...formCoResponsaveis].filter(
+                      (id, i, ids) => !!id && ids.indexOf(id) === i
+                    )}
+                    onChange={(ids) => {
+                      setFormResponsavelId(ids[0] || '');
+                      setFormCoResponsaveis(ids.slice(1));
+                    }}
                     membros={membros}
-                    placeholder="Atribuir..."
                   />
                   <MemberChipSelect
                     label="Designer / Editor"
@@ -2358,14 +2368,6 @@ export default function EsteiraTab({
                     onChange={setFormEditorId}
                     membros={membros}
                     placeholder="Atribuir..."
-                  />
-                  <MemberMultiSelect
-                    label="Também responsáveis"
-                    value={formCoResponsaveis}
-                    onChange={setFormCoResponsaveis}
-                    membros={membros}
-                    excluirId={formResponsavelId}
-                    className="col-span-2"
                   />
                 </div>
 
@@ -2452,11 +2454,12 @@ export default function EsteiraTab({
         className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden"
       >
         {itemEmEdicao && (
-          <form onSubmit={handleSalvarEdicao} className="flex flex-col max-h-[92vh] w-full bg-card select-none">
+          <form onSubmit={handleSalvarEdicao} className="flex flex-col max-h-[92vh] w-full bg-card">
             {/* 1. Header Slim de Linha Única (48px - Ultra Compacto) */}
-            <div className="px-4 py-2.5 border-b border-border flex items-center justify-between gap-3 bg-card shrink-0">
-              {/* Esquerda: ID da Demanda + Título Inline + Chip de Capa */}
-              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="px-4 pt-2.5 pb-3 border-b border-border flex flex-col gap-2 bg-card shrink-0">
+             <div className="flex items-center justify-between gap-3">
+              {/* Esquerda: ID da Demanda + Chip de Capa + aviso de ajuste pedido */}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
                 <span className="text-xs font-mono font-bold text-muted-foreground uppercase px-2 py-0.5 rounded-md bg-accent/60 border border-border shrink-0">
                   #{itemEmEdicao.id.slice(0, 8)}
                 </span>
@@ -2494,14 +2497,11 @@ export default function EsteiraTab({
                   </button>
                 )}
 
-                {/* Título da Demanda Editável Direto */}
-                <Input
-                  value={editTitulo}
-                  onChange={(e) => setEditTitulo(e.target.value)}
-                  placeholder="Título da Demanda..."
-                  className="text-base sm:text-lg font-bold font-display text-foreground bg-transparent border-none focus:outline-none focus:ring-0 p-0 h-auto placeholder:text-muted-foreground flex-1 min-w-0"
-                  required
-                />
+                {editStatus === 'travado' && (
+                  <Badge variant="destructive" dot className="shrink-0">
+                    Ajuste pedido
+                  </Badge>
+                )}
               </div>
 
               {/* Centro/Direita: Stepper de Status Compacto + Ações */}
@@ -2547,10 +2547,15 @@ export default function EsteiraTab({
                 {/* Dropdown de status para telas menores */}
                 <div className="md:hidden">
                   <Select
-                    value={editStatus}
+                    value={
+                      editStatus === 'travado'
+                        ? 'travado'
+                        : ETAPAS_PIPELINE[getEtapaIndex(editStatus) - 1]?.status ?? editStatus
+                    }
                     onChange={(e) => setEditStatus(e.target.value as StatusConteudo)}
                     className="h-8 text-xs font-bold"
                   >
+                    {editStatus === 'travado' && <option value="travado">Ajuste pedido</option>}
                     {ETAPAS_PIPELINE.map((etapa) => (
                       <option key={etapa.status} value={etapa.status}>
                         {etapa.step}. {etapa.label}
@@ -2587,10 +2592,26 @@ export default function EsteiraTab({
                   onClick={fecharEdicao}
                   className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
                   title="Fechar"
+                  aria-label="Fechar"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
+             </div>
+
+              {/* Título em linha própria: quebra linha em vez de cortar */}
+              <AutoTextarea
+                bare
+                value={editTitulo}
+                onChange={(e) => setEditTitulo(e.target.value.replace(/\n+/g, ' '))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.preventDefault();
+                }}
+                placeholder="Título da demanda"
+                aria-label="Título da demanda"
+                required
+                className="w-full bg-transparent text-lg sm:text-xl font-bold font-display leading-snug text-foreground placeholder:text-muted-foreground rounded-lg px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+              />
             </div>
 
             {/* 2. Body Rolável Dividido em 2 Colunas */}
@@ -2605,14 +2626,17 @@ export default function EsteiraTab({
                   </div>
                   <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border max-w-sm flex-1">
                     {[
-                      { id: 'post' as const, label: 'Carrossel (4:5)', icon: ImageIcon },
-                      { id: 'reel' as const, label: 'Reels (9:16)', icon: Video },
-                      { id: 'story' as const, label: 'Story', icon: Smartphone },
-                      { id: 'avulso' as const, label: 'Avulso', icon: Sparkles },
+                      { id: 'post' as const, label: 'Feed (4:5)', descricao: 'Post único ou carrossel (4:5)', icon: ImageIcon },
+                      { id: 'reel' as const, label: 'Reels (9:16)', descricao: 'Reels (9:16)', icon: Video },
+                      { id: 'story' as const, label: 'Story', descricao: 'Story', icon: Smartphone },
+                      { id: 'avulso' as const, label: 'Avulso', descricao: 'Avulso', icon: Sparkles },
                     ].map((fmt) => (
                       <button
                         key={fmt.id}
                         type="button"
+                        aria-label={fmt.descricao}
+                        aria-pressed={editTipo === fmt.id}
+                        title={fmt.descricao}
                         onClick={() => setEditTipo(fmt.id)}
                         className={`h-6.5 px-2 rounded-md flex items-center justify-center gap-1 text-xs font-bold transition-ui cursor-pointer ${
                           editTipo === fmt.id
@@ -2621,7 +2645,7 @@ export default function EsteiraTab({
                         }`}
                       >
                         <fmt.icon className="w-3 h-3 shrink-0" />
-                        <span className="truncate">{fmt.label}</span>
+                        <span className="hidden sm:inline truncate">{fmt.label}</span>
                       </button>
                     ))}
                   </div>
@@ -2773,30 +2797,55 @@ export default function EsteiraTab({
                         </div>
 
                         {/* Editor de Legenda Generoso */}
-                        <Textarea
+                        <AutoTextarea
                           value={editLegenda}
                           onChange={(e) => setEditLegenda(e.target.value)}
                           placeholder="Escreva a legenda oficial da postagem com hashtags, quebras de linha e chamada para ação (CTA)..."
-                          rows={11}
-                          className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card flex-1 min-h-[260px] sm:min-h-[300px] xl:min-h-[350px] resize-y"
+                          aria-label="Legenda da postagem"
+                          className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card min-h-[260px]"
                         />
                       </div>
                     )}
 
                     {/* Conteúdo Aba: Briefing & Roteiro */}
                     {editAbaConteudo === 'briefing' && (
-                      <div className="flex flex-col gap-2 flex-1 min-h-0">
-                        <div className="p-2.5 rounded-xl bg-accent/20 border border-border text-xs text-muted-foreground flex items-center justify-between">
-                          <span>Instruções para designer, editor de vídeo, copywriter ou roteiro cena a cena da peça.</span>
-                          <span className="font-mono text-xs">{editBriefing.length} caracteres</span>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                          <span>Roteiro cena a cena e instruções para quem grava, edita ou cria a arte.</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-mono tabular-nums">{editBriefing.length} caracteres</span>
+                            {editBriefing.trim() && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setEditRoteiroEditando((v) => !v)}
+                                className="h-7 rounded-lg text-xs"
+                              >
+                                {editRoteiroEditando ? (
+                                  <>
+                                    <Eye className="w-3.5 h-3.5 mr-1" /> Visualizar
+                                  </>
+                                ) : (
+                                  <>
+                                    <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <Textarea
-                          value={editBriefing}
-                          onChange={(e) => setEditBriefing(e.target.value)}
-                          placeholder="Exemplo de Roteiro / Briefing:&#10;&#10;Cena 1 (Gancho): Mostrar o antes e depois do procedimento com zoom...&#10;Cena 2: Explicar por que acontece em 3 tópicos...&#10;Cena 3 (CTA): Direcionar pro link na bio ou direct..."
-                          rows={12}
-                          className="rounded-xl text-sm font-sans leading-relaxed bg-card flex-1 min-h-[280px] sm:min-h-[320px] xl:min-h-[360px] resize-y"
-                        />
+                        {editRoteiroEditando || !editBriefing.trim() ? (
+                          <AutoTextarea
+                            value={editBriefing}
+                            onChange={(e) => setEditBriefing(e.target.value)}
+                            placeholder="Exemplo de Roteiro / Briefing:&#10;&#10;Cena 1 (Gancho): Mostrar o antes e depois do procedimento com zoom...&#10;Cena 2: Explicar por que acontece em 3 tópicos...&#10;Cena 3 (CTA): Direcionar pro link na bio ou direct..."
+                            aria-label="Briefing e roteiro"
+                            className="rounded-xl text-sm font-sans leading-relaxed bg-card min-h-[280px]"
+                          />
+                        ) : (
+                          <RoteiroView texto={editBriefing} />
+                        )}
                       </div>
                     )}
 
@@ -3112,12 +3161,16 @@ export default function EsteiraTab({
 
                   {/* Linha 3: Equipe (Responsável & Designer Lado a Lado) */}
                   <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border">
-                    <MemberChipSelect
-                      label="Responsável Principal"
-                      value={editResponsavelId}
-                      onChange={setEditResponsavelId}
+                    <ResponsaveisSelect
+                      label="Responsáveis"
+                      value={[editResponsavelId, ...editCoResponsaveis].filter(
+                        (id, i, ids) => !!id && ids.indexOf(id) === i
+                      )}
+                      onChange={(ids) => {
+                        setEditResponsavelId(ids[0] || '');
+                        setEditCoResponsaveis(ids.slice(1));
+                      }}
                       membros={membros}
-                      placeholder="Atribuir..."
                     />
                     <MemberChipSelect
                       label="Designer / Editor"
@@ -3125,14 +3178,6 @@ export default function EsteiraTab({
                       onChange={setEditEditorId}
                       membros={membros}
                       placeholder="Atribuir..."
-                    />
-                    <MemberMultiSelect
-                      label="Também responsáveis"
-                      value={editCoResponsaveis}
-                      onChange={setEditCoResponsaveis}
-                      membros={membros}
-                      excluirId={editResponsavelId}
-                      className="col-span-2"
                     />
                   </div>
 
