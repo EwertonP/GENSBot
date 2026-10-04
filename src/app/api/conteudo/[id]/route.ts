@@ -179,7 +179,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
       if (itemAtual) {
         const historico = Array.isArray(itemAtual.historico_atividades) ? [...itemAtual.historico_atividades] : [];
-        const autorNome = body.autor_nome || auth.ctx.user.email?.split('@')[0] || 'Equipe';
+        // O autor do histórico é quem está logado, nunca um nome vindo do cliente
+        // (antes a tela mandava o nome do responsável da demanda).
+        let autorNome = auth.ctx.user.email?.split('@')[0] || 'Equipe';
+        if (membro?.id) {
+          const { data: eu } = await serviceSupabase.from('membros').select('nome').eq('id', membro.id).maybeSingle();
+          if (eu?.nome) autorNome = eu.nome;
+        }
 
         if ('status' in updates && updates.status !== itemAtual.status) {
           historico.push({
