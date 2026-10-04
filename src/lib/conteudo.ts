@@ -6,43 +6,101 @@ export type TipoConteudo = 'post' | 'reel' | 'story' | 'avulso';
 
 export type PrioridadeConteudo = 'baixa' | 'media' | 'alta' | 'urgente';
 
+/**
+ * Prioridade nos tokens de status do design system (receita soft/ring do
+ * DESIGN.md §1): urgente = destructive, alta = warning, média = info,
+ * baixa = neutro. `dot` é a bolinha de cor no lugar dos antigos emojis.
+ */
 export const PRIORIDADE_CONFIG: Record<
   PrioridadeConteudo,
-  { label: string; flag: string; color: string; bg: string; border: string; text: string }
+  { label: string; dot: string; bg: string; border: string; text: string }
 > = {
   urgente: {
     label: 'Urgente',
-    flag: '🔴',
-    color: '#e11d48',
-    bg: 'bg-rose-100 dark:bg-rose-950/80',
-    border: 'border-rose-500 dark:border-rose-400',
-    text: 'text-rose-950 dark:text-rose-100 font-bold',
+    dot: 'bg-destructive',
+    bg: 'bg-destructive-soft',
+    border: 'border-destructive-ring',
+    text: 'text-destructive',
   },
   alta: {
     label: 'Alta',
-    flag: '🟠',
-    color: '#f59e0b',
-    bg: 'bg-amber-100 dark:bg-amber-950/80',
-    border: 'border-amber-500 dark:border-amber-400',
-    text: 'text-amber-950 dark:text-amber-100 font-bold',
+    dot: 'bg-warning',
+    bg: 'bg-warning-soft',
+    border: 'border-warning-ring',
+    text: 'text-warning',
   },
   media: {
     label: 'Média',
-    flag: '🔵',
-    color: '#3b82f6',
-    bg: 'bg-blue-100 dark:bg-blue-950/80',
-    border: 'border-blue-500 dark:border-blue-400',
-    text: 'text-blue-950 dark:text-blue-100 font-bold',
+    dot: 'bg-info',
+    bg: 'bg-info-soft',
+    border: 'border-info-ring',
+    text: 'text-info',
   },
   baixa: {
     label: 'Baixa',
-    flag: '🟢',
-    color: '#10b981',
-    bg: 'bg-emerald-100 dark:bg-emerald-950/80',
-    border: 'border-emerald-500 dark:border-emerald-400',
-    text: 'text-emerald-950 dark:text-emerald-100 font-bold',
+    dot: 'bg-muted-foreground',
+    bg: 'bg-muted',
+    border: 'border-border-strong',
+    text: 'text-muted-foreground',
   },
 };
+
+/*
+ * Datas só de dia (prazo interno, data programada sem horário) são gravadas
+ * como meia-noite UTC (`2026-09-23T00:00:00Z`). Lidas com `new Date()` no
+ * fuso de Brasília elas viram 21h do dia anterior, e o card mostrava o prazo
+ * um dia antes. Estas funções tratam essa convenção sem migrar dados.
+ */
+
+/** A data foi gravada sem horário (meia-noite UTC exata)? */
+export function ehDataSemHora(iso: string): boolean {
+  return /T00:00:00(\.0+)?(Z|\+00:00)$/.test(iso);
+}
+
+/** Data para exibir no fuso local, sem o deslocamento das datas só de dia. */
+export function dataLocal(iso: string): Date {
+  if (ehDataSemHora(iso)) {
+    const [ano, mes, dia] = iso.slice(0, 10).split('-').map(Number);
+    return new Date(ano, mes - 1, dia, 12);
+  }
+  return new Date(iso);
+}
+
+/** ISO do banco → valor de `<input type="date">` (AAAA-MM-DD no fuso local). */
+export function paraInputData(iso?: string | null): string {
+  if (!iso) return '';
+  const d = dataLocal(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Valor de `<input type="date">` → ISO para gravar. Se o dia não mudou,
+ * devolve o original intacto (não apaga o horário de um post agendado). Se
+ * mudou e o original tinha horário, mantém esse horário no novo dia.
+ */
+export function deInputData(valor: string, isoOriginal?: string | null): string | null {
+  if (!valor) return null;
+  if (isoOriginal && paraInputData(isoOriginal) === valor) return isoOriginal;
+  if (isoOriginal && !ehDataSemHora(isoOriginal)) {
+    const original = new Date(isoOriginal);
+    const [ano, mes, dia] = valor.split('-').map(Number);
+    return new Date(ano, mes - 1, dia, original.getHours(), original.getMinutes()).toISOString();
+  }
+  return `${valor}T00:00:00.000Z`;
+}
+
+/** "hoje", "amanhã", "em 8 dias", "ontem", "há 3 dias" a partir de AAAA-MM-DD. */
+export function distanciaEmDias(valor: string): { dias: number; texto: string } | null {
+  if (!valor) return null;
+  const [ano, mes, dia] = valor.split('-').map(Number);
+  const alvo = new Date(ano, mes - 1, dia);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dias = Math.round((alvo.getTime() - hoje.getTime()) / 86_400_000);
+  const texto =
+    dias === 0 ? 'hoje' : dias === 1 ? 'amanhã' : dias === -1 ? 'ontem' : dias > 0 ? `em ${dias} dias` : `há ${-dias} dias`;
+  return { dias, texto };
+}
 
 export type StatusConteudo =
   | 'planejamento'
