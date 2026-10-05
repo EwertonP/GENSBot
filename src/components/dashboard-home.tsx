@@ -1,5 +1,6 @@
 'use client';
-import { ScrollShadow } from '@/components/ui/scroll-shadow';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Avatar } from '@/components/ui/avatar';
 import { Select } from '@/components/ui/select';
 import { SegmentedItem } from '@/components/ui/segmented';
 
@@ -31,7 +32,9 @@ import {
   Check,
   User,
   Zap,
+  Send,
 } from 'lucide-react';
+import { DataTable } from '@/components/ui/data-table';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1111,62 +1114,49 @@ export default function DashboardHome({
             </div>
           </div>
 
-          <ScrollShadow>
-            <table className="w-full text-sm text-left text-muted-foreground">
-              <thead className="text-xs uppercase text-muted-foreground font-bold border-b border-border">
-                <tr>
-                  <th className="py-2.5 px-3">Contato</th>
-                  <th className="py-2.5 px-3">Ação</th>
-                  <th className="py-2.5 px-3">Horário</th>
-                  <th className="py-2.5 px-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {recentQueue.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-xs text-muted-foreground">
-                      Nenhum disparo na fila recentemente.
-                    </td>
-                  </tr>
-                ) : (
-                  recentQueue.slice(0, 4).map((item) => (
-                    <tr key={item.id} className="hover:bg-accent/40 transition-colors">
-                      <td className="py-2.5 px-3 font-mono text-xs text-foreground font-bold flex items-center gap-2">
-                        {item.contacts?.profile_picture_url ? (
-                          <img src={item.contacts.profile_picture_url} alt="" className="w-6 h-6 rounded-full object-cover border border-border shrink-0" />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-accent border border-border flex items-center justify-center text-xs text-muted-foreground shrink-0">
-                            @
-                          </div>
-                        )}
-                        <span className="truncate max-w-[140px]">
-                          {item.contacts?.username ? `@${item.contacts.username}` : `@${item.contact_id.substring(0, 8)}...`}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 font-medium text-foreground text-xs">
-                        {item.type === 'private_reply' && 'Boas-Vindas'}
-                        {item.type === 'link_dm' && 'Link DM'}
-                        {item.type === 'reminder_dm' && 'Lembrete'}
-                      </td>
-                      <td className="py-2.5 px-3 text-xs text-muted-foreground font-mono">
-                        {new Date(item.created_at).toLocaleTimeString('pt-BR')}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <Badge
-                          variant={item.status === 'sent' ? 'success' : item.status === 'pending' ? 'warning' : 'destructive'}
-                          className="text-xs font-bold"
-                        >
-                          {item.status === 'sent' && 'Enviado'}
-                          {item.status === 'pending' && 'Pendente'}
-                          {item.status === 'failed' && 'Falhou'}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </ScrollShadow>
+          <DataTable
+            rows={recentQueue.slice(0, 4)}
+            getRowId={(item) => item.id}
+            empty={<EmptyState size="compact" icon={Send} title="Nenhum disparo recente" description="As mensagens enviadas pelas automações aparecem aqui." />}
+            columns={[
+              {
+                id: 'contato',
+                header: 'Contato',
+                mobile: 'primary',
+                cell: (item) => {
+                  const nome = item.contacts?.username ? `@${item.contacts.username}` : `@${item.contact_id.substring(0, 8)}…`;
+                  return (
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Avatar nome={nome.slice(1)} src={item.contacts?.profile_picture_url} size="sm" />
+                      <span className="font-medium text-foreground truncate max-w-[160px]">{nome}</span>
+                    </span>
+                  );
+                },
+              },
+              {
+                id: 'acao',
+                header: 'Ação',
+                className: 'text-foreground whitespace-nowrap',
+                cell: (item) => ({ private_reply: 'Boas-vindas', link_dm: 'Link na DM', reminder_dm: 'Lembrete' } as Record<string, string>)[item.type] || item.type,
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (item) => (
+                  <Badge variant={item.status === 'sent' ? 'success' : item.status === 'pending' ? 'warning' : 'destructive'}>
+                    {item.status === 'sent' ? 'Enviado' : item.status === 'pending' ? 'Pendente' : 'Falhou'}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'horario',
+                header: 'Horário',
+                align: 'right',
+                className: 'text-xs text-muted-foreground tabular-nums whitespace-nowrap',
+                cell: (item) => new Date(item.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+              },
+            ]}
+          />
         </Card>
 
         {/* Ranking de Automações */}

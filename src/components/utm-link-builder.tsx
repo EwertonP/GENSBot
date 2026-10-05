@@ -1,5 +1,6 @@
 'use client';
-import { ScrollShadow } from '@/components/ui/scroll-shadow';
+import { DataTable, DataTablePagination } from '@/components/ui/data-table';
+import { IconButton } from '@/components/ui/icon-button';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -9,7 +10,6 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  Pencil,
   ExternalLink,
   QrCode,
   Sparkles,
@@ -20,6 +20,7 @@ import {
   Phone,
   Mail,
   Megaphone,
+  Search,
 } from 'lucide-react';
 import { Instagram } from '@/components/instagram-icon';
 import { ClienteAvatar } from '@/components/cliente-avatar';
@@ -60,6 +61,12 @@ const PRESETS: PresetCanal[] = [
   { id: 'ads', label: 'Meta Ads (Tráfego)', source: 'facebook_ads', medium: 'cpc', icon: Megaphone, color: 'text-info' },
   { id: 'email', label: 'E-mail Marketing', source: 'email', medium: 'newsletter', icon: Mail, color: 'text-indigo-700 dark:text-indigo-300' },
 ];
+
+const LINKS_POR_PAGINA = 25;
+
+function Vazio() {
+  return <span className="text-muted-foreground">—</span>;
+}
 
 export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
   const [links, setLinks] = useState<UtmLink[]>([]);
@@ -216,9 +223,27 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
     return links.reduce((acc, l) => acc + (l.click_count || 0), 0);
   }, [links]);
 
-  const linksOrdenados = useMemo(() => {
-    return [...links].sort((a, b) => (b.click_count || 0) - (a.click_count || 0));
-  }, [links]);
+  const [busca, setBusca] = useState('');
+  const [filtroCliente, setFiltroCliente] = useState('');
+  const [pagina, setPagina] = useState(1);
+
+  const clientesDosLinks = useMemo(
+    () => Array.from(new Set(links.map((l) => l.cliente?.nome).filter((n): n is string => !!n))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [links]
+  );
+
+  const linksFiltrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return links
+      .filter((l) => !filtroCliente || l.cliente?.nome === filtroCliente)
+      .filter((l) => !termo || [l.name, l.utm_campaign, l.base_url, l.short_code].some((v) => v?.toLowerCase().includes(termo)))
+      .sort((a, b) => (b.click_count || 0) - (a.click_count || 0));
+  }, [links, busca, filtroCliente]);
+
+  const totalPaginas = Math.max(1, Math.ceil(linksFiltrados.length / LINKS_POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const linksPagina = linksFiltrados.slice((paginaAtual - 1) * LINKS_POR_PAGINA, paginaAtual * LINKS_POR_PAGINA);
+  const urlCurta = (l: UtmLink) => l.short_url || `${typeof window !== 'undefined' ? window.location.origin : ''}/r/${l.short_code}`;
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
@@ -534,155 +559,123 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
         </Card>
       </div>
 
-      {/* 3. Tabela de Links Cadastrados com Ranking de Cliques */}
-      <Card padding="lg" className="rounded-2xl border border-border bg-card shadow-2xs">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold font-display text-foreground">
-              Histórico de Links UTM ({links.length})
-            </h3>
-            <span className="text-xs text-muted-foreground font-mono">
-              Ordenado por maior engajamento
-            </span>
+      {/* 3. Links cadastrados, no padrão de tabela da Audiência */}
+      <Card padding="lg" className="rounded-2xl shadow-sm flex flex-col gap-4 text-foreground">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-title font-bold text-foreground">Links cadastrados</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">Do mais clicado para o menos clicado. Clique num link para editar.</p>
           </div>
-
-          {loading ? (
-            <div className="py-8 text-center text-xs text-muted-foreground animate-pulse">
-              Carregando links...
-            </div>
-          ) : linksOrdenados.length === 0 ? (
-            <EmptyState
-              icon={Link2}
-              title="Nenhum link UTM cadastrado"
-              description="Crie o primeiro link acima para começar a rastrear acessos."
-            />
-          ) : (
-            <ScrollShadow>
-              <table className="w-full text-left text-xs text-muted-foreground">
-                <thead className="uppercase text-xs font-bold border-b border-border">
-                  <tr>
-                    <th className="py-2.5 px-3">Campanha / Nome</th>
-                    <th className="py-2.5 px-3">Cliente</th>
-                    <th className="py-2.5 px-3">Canal</th>
-                    <th className="py-2.5 px-3">Cliques</th>
-                    <th className="py-2.5 px-3">Link Curto</th>
-                    <th className="py-2.5 px-3">Destino</th>
-                    <th className="py-2.5 px-3 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {linksOrdenados.map((l) => {
-                    const shortUrl = l.short_url || `${typeof window !== 'undefined' ? window.location.origin : ''}/r/${l.short_code}`;
-                    const isCopied = copiedId === l.id;
-
-                    return (
-                      <tr key={l.id} className="hover:bg-accent/30 transition-colors">
-                        <td className="py-3 px-3 font-semibold text-foreground">
-                          <p className="font-bold truncate max-w-xs">{l.name || 'Sem nome'}</p>
-                          {l.utm_campaign && (
-                            <span className="text-xs text-muted-foreground font-mono">
-                              {l.utm_campaign}
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-3">
-                          {l.cliente?.nome ? (
-                            <span className="flex items-center gap-1.5 font-semibold text-foreground whitespace-nowrap">
-                              <ClienteAvatar nome={l.cliente.nome} cor={l.cliente.cor} fotoUrl={l.cliente.foto_url} tamanho="xs" />
-                              <span className="truncate max-w-[160px]">{l.cliente.nome}</span>
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-3">
-                          <Badge variant="muted" className="text-xs font-bold">
-                            {l.utm_source || 'link'} / {l.utm_medium || 'geral'}
-                          </Badge>
-                        </td>
-
-                        <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-md bg-brand-soft text-brand-text font-mono font-bold border border-brand-ring">
-                            {l.click_count || 0} cliques
-                          </span>
-                        </td>
-
-                        <td className="py-3 px-3 font-mono">
-                          {l.short_code ? (
-                            <button
-                              type="button"
-                              onClick={() => handleCopyText(shortUrl, l.id || '')}
-                              className="text-primary hover:underline flex items-center gap-1 cursor-pointer font-bold"
-                              title="Clique para copiar o link curto"
-                            >
-                              <span>/r/{l.short_code}</span>
-                              {isCopied ? (
-                                <Check className="w-3 h-3 text-success" />
-                              ) : (
-                                <Copy className="w-3 h-3" />
-                              )}
-                            </button>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-3 truncate max-w-xs font-mono text-xs">
-                          <a
-                            href={l.generated_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="hover:text-foreground truncate block"
-                          >
-                            {l.base_url}
-                          </a>
-                        </td>
-
-                        <td className="py-3 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {l.short_code && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setQrLink({
-                                    url: shortUrl,
-                                    name: `qr-${l.short_code}`,
-                                  })
-                                }
-                                className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
-                                title="QR Code do link curto"
-                              >
-                                <QrCode className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => startEdit(l)}
-                              className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
-                              title="Editar"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => l.id && handleDelete(l.id)}
-                              className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
-                              title="Excluir"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </ScrollShadow>
-          )}
+          <Badge variant="muted" className="tabular-nums">
+            {links.length} link{links.length !== 1 ? 's' : ''}
+          </Badge>
         </div>
+
+        {links.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[220px] max-w-sm">
+              <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Input value={busca} onChange={(e) => { setBusca(e.target.value); setPagina(1); }} placeholder="Buscar por nome, campanha ou destino" aria-label="Buscar links" className="pl-9" />
+            </div>
+            {clientesDosLinks.length > 1 && (
+              <Select value={filtroCliente} onChange={(e) => { setFiltroCliente(e.target.value); setPagina(1); }} aria-label="Filtrar por cliente" className="max-w-[220px]">
+                <option value="">Todos os clientes</option>
+                {clientesDosLinks.map((nome) => (
+                  <option key={nome} value={nome}>
+                    {nome}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </div>
+        )}
+
+        <DataTable
+          rows={linksPagina}
+          loading={loading}
+          getRowId={(l) => l.id || l.generated_url}
+          onRowClick={startEdit}
+          empty={
+            links.length === 0 ? (
+              <EmptyState size="compact" icon={Link2} title="Nenhum link UTM cadastrado" description="Crie o primeiro link acima para começar a rastrear acessos." />
+            ) : (
+              <EmptyState size="compact" icon={Search} title="Nenhum link encontrado" description="Nenhum link bate com essa busca ou cliente." action={{ label: 'Limpar filtros', onClick: () => { setBusca(''); setFiltroCliente(''); } }} />
+            )
+          }
+          columns={[
+            {
+              id: 'nome',
+              header: 'Link',
+              mobile: 'primary',
+              cell: (l) => (
+                <div className="min-w-0 sm:min-w-[180px]">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); startEdit(l); }} className="font-semibold text-foreground truncate block max-w-[240px] text-left hover:underline cursor-pointer">
+                    {l.name || 'Sem nome'}
+                  </button>
+                  {l.utm_campaign && <span className="text-xs text-muted-foreground font-mono truncate block max-w-[240px]">{l.utm_campaign}</span>}
+                </div>
+              ),
+            },
+            {
+              id: 'cliente',
+              header: 'Cliente',
+              cell: (l) =>
+                l.cliente?.nome ? (
+                  <span className="flex items-center gap-1.5 whitespace-nowrap">
+                    <ClienteAvatar nome={l.cliente.nome} cor={l.cliente.cor} fotoUrl={l.cliente.foto_url} tamanho="xs" />
+                    <span className="truncate max-w-[160px]">{l.cliente.nome}</span>
+                  </span>
+                ) : (
+                  <Vazio />
+                ),
+            },
+            { id: 'canal', header: 'Canal', className: 'text-muted-foreground whitespace-nowrap', cell: (l) => `${l.utm_source || 'link'} / ${l.utm_medium || 'geral'}` },
+            {
+              id: 'curto',
+              header: 'Link curto',
+              cell: (l) =>
+                l.short_code ? (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleCopyText(urlCurta(l), l.id || ''); }}
+                    className="inline-flex items-center gap-1 font-mono text-brand-text hover:underline cursor-pointer whitespace-nowrap"
+                    aria-label={`Copiar link curto /r/${l.short_code}`}
+                  >
+                    /r/{l.short_code}
+                    {copiedId === l.id ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                ) : (
+                  <Vazio />
+                ),
+            },
+            {
+              id: 'destino',
+              header: 'Destino',
+              mobile: 'hidden',
+              className: 'text-muted-foreground max-w-[240px] truncate',
+              cell: (l) => (
+                <a href={l.generated_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="hover:text-foreground hover:underline">
+                  {l.base_url}
+                </a>
+              ),
+            },
+            { id: 'cliques', header: 'Cliques', align: 'right', className: 'font-semibold text-foreground tabular-nums', cell: (l) => (l.click_count || 0).toLocaleString('pt-BR') },
+          ]}
+          actions={(l) => (
+            <>
+              {l.short_code && (
+                <IconButton label="QR Code do link curto" onClick={() => setQrLink({ url: urlCurta(l), name: `qr-${l.short_code}` })}>
+                  <QrCode />
+                </IconButton>
+              )}
+              <IconButton label="Excluir link" tone="destructive" onClick={() => l.id && handleDelete(l.id)}>
+                <Trash2 />
+              </IconButton>
+            </>
+          )}
+        />
+
+        <DataTablePagination page={paginaAtual} totalPages={totalPaginas} onPage={setPagina} />
       </Card>
 
       <DialogShell open={!!qrLink} onRequestClose={() => setQrLink(null)} aria-label="QR Code do link" className="w-full max-w-sm">

@@ -1,5 +1,8 @@
 'use client';
 import { ScrollShadow } from '@/components/ui/scroll-shadow';
+import { DataTable } from '@/components/ui/data-table';
+import { IconButton } from '@/components/ui/icon-button';
+import { Tip } from '@/components/ui/tooltip';
 import { AvatarGroup } from '@/components/ui/avatar';
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
@@ -1155,155 +1158,78 @@ export default function EsteiraTab({
       ) : (
         /* Visualização em Lista */
         <Card padding="lg" className="rounded-2xl">
-          <ScrollShadow>
-            <table className="w-full text-left text-xs text-muted-foreground">
-              <thead className="uppercase text-xs font-bold border-b border-border">
-                <tr>
-                  <th className="py-2.5 px-3">Cliente</th>
-                  <th className="py-2.5 px-3">Título / Formato</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3">Responsável</th>
-                  <th className="py-2.5 px-3">Mídia</th>
-                  <th className="py-2.5 px-3 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {itemsFiltrados.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => handleAbrirModalEditar(item)}
-                    className="hover:bg-accent/30 transition-colors cursor-pointer"
-                  >
-                    <td className="py-3 px-3 font-semibold text-foreground">
-                      <div className="flex items-center gap-2">
-                        <ClienteAvatar
-                          nome={item.cliente?.nome || 'Cliente'}
-                          cor={item.cliente?.cor}
-                          tamanho="sm"
-                        />
-                        <span>{item.cliente?.nome}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-foreground font-medium">
-                      {item.titulo || 'Sem título'} ({item.tipo})
-                    </td>
-                    <td className="py-3 px-3">
-                      <Badge variant={STATUS_LABELS[item.status].variant}>
-                        {STATUS_LABELS[item.status].label}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-3">
-                      {item.responsavel?.nome ? (
-                        <span className="inline-flex items-center gap-2">
-                          <AvatarGroup pessoas={pessoasResponsaveis(item)} size="xs" max={3} />
-                          {pessoasResponsaveis(item).map((p) => p.nome).join(', ')}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-3 font-mono">{item.arquivos?.length || 0} arquivos</td>
-                    <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopiarLinkAprovacao(item.token_aprovacao);
-                          }}
-                          title="Copiar Link"
-                          className="p-1.5 rounded-lg border border-border hover:bg-accent"
-                        >
-                          <Share2 className="w-3.5 h-3.5 text-muted-foreground" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAbrirModalEditar(item);
-                          }}
-                          title="Editar Demanda"
-                          className="p-1.5 rounded-lg border border-border hover:bg-accent"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
-                        </button>
-                        {(() => {
-                          const isPublicado = item.status === 'publicado';
-                          const isAgendadoCol = item.status === 'agendamento' || item.status === 'pronto_publicar';
-                          const isAgendadoComData = isAgendadoCol && Boolean(item.scheduled_post_id || item.data_programada);
-
-                          if (isPublicado) {
-                            return (
-                              <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-success-soft text-success border border-success-ring">
-                                <CheckCircle2 className="w-3 h-3" />
-                                <span>Publicado</span>
-                              </span>
-                            );
-                          }
-
-                          if (isAgendadoCol) {
-                            if (isAgendadoComData) {
-                              return (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleLevarParaAgendamento(item);
-                                  }}
-                                  title="Ver ou reagendar publicação agendada"
-                                  className="px-2.5 py-1 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
-                                >
-                                  <Calendar className="w-3 h-3" />
-                                  <span>Agendado</span>
-                                </button>
-                              );
-                            }
-                            return (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleLevarParaAgendamento(item);
-                                }}
-                                title="Levar demanda aprovada para a tela de Agendamento"
-                                className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs"
-                              >
-                                <Sparkles className="w-3 h-3" />
-                                <span>Agendar</span>
-                              </button>
-                            );
-                          }
-
-                          return (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAbrirModalAprovacao(item);
-                              }}
-                              title={
-                                item.status === 'revisao_cliente'
-                                  ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
-                                  : 'Enviar para aprovação no WhatsApp'
-                              }
-                              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 shadow-2xs cursor-pointer text-xs ${
-                                item.status === 'revisao_cliente'
-                                  ? 'bg-warning hover:bg-warning/90 text-warning-foreground border border-warning-ring'
-                                  : 'bg-lime hover:bg-lime/90 text-lime-foreground border border-foreground/15 shadow-xs active:scale-[0.98]'
-                              }`}
-                            >
-                              <Send className="w-3 h-3" />
-                              <span>{item.status === 'revisao_cliente' ? 'Reenviar' : 'WhatsApp'}</span>
-                            </button>
-                          );
-                        })()}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </ScrollShadow>
+          <DataTable
+            rows={itemsFiltrados}
+            getRowId={(item) => item.id}
+            onRowClick={handleAbrirModalEditar}
+            empty={<EmptyState size="compact" icon={Search} title="Nenhuma demanda aqui" description="Nenhuma demanda bate com o cliente ou o filtro escolhido." />}
+            columns={[
+              {
+                id: 'demanda',
+                header: 'Demanda',
+                mobile: 'primary',
+                cell: (item) => (
+                  <div className="flex items-center gap-2.5 min-w-0 sm:min-w-[220px]">
+                    <ClienteAvatar nome={item.cliente?.nome || 'Cliente'} cor={item.cliente?.cor} tamanho="sm" />
+                    <div className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAbrirModalEditar(item);
+                        }}
+                        className="font-semibold text-foreground truncate block max-w-[280px] text-left hover:underline cursor-pointer"
+                      >
+                        {item.titulo || 'Sem título'}
+                      </button>
+                      <span className="text-xs text-muted-foreground truncate block">
+                        {item.cliente?.nome} · {item.tipo}
+                      </span>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                id: 'status',
+                header: 'Etapa',
+                cell: (item) => <Badge variant={STATUS_LABELS[item.status].variant}>{STATUS_LABELS[item.status].label}</Badge>,
+              },
+              {
+                id: 'responsavel',
+                header: 'Responsável',
+                cell: (item) =>
+                  item.responsavel?.nome ? (
+                    <span className="inline-flex items-center gap-2 min-w-0">
+                      <AvatarGroup pessoas={pessoasResponsaveis(item)} size="xs" max={3} />
+                      <span className="truncate max-w-[180px]">{pessoasResponsaveis(item).map((p) => p.nome).join(', ')}</span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  ),
+              },
+              {
+                id: 'midia',
+                header: 'Mídia',
+                align: 'right',
+                className: 'text-muted-foreground tabular-nums whitespace-nowrap',
+                cell: (item) => {
+                  const n = item.arquivos?.length || 0;
+                  return n === 0 ? '—' : `${n} arquivo${n !== 1 ? 's' : ''}`;
+                },
+              },
+              {
+                id: 'proximo',
+                header: 'Próximo passo',
+                mobileLabel: 'Próximo',
+                cell: (item) => <ProximoPassoLista item={item} onAgendar={handleLevarParaAgendamento} onAprovacao={handleAbrirModalAprovacao} />,
+              },
+            ]}
+            actions={(item) => (
+              <IconButton label="Copiar link de aprovação" onClick={() => handleCopiarLinkAprovacao(item.token_aprovacao)}>
+                <Share2 />
+              </IconButton>
+            )}
+          />
         </Card>
       )}
 
@@ -1366,5 +1292,44 @@ export default function EsteiraTab({
         showToast={showToast}
       />
     </div>
+  );
+}
+
+/** Botão do próximo passo da demanda na lista: aprovação, agendamento ou selo de publicado. */
+function ProximoPassoLista({ item, onAgendar, onAprovacao }: { item: ConteudoItem; onAgendar: (item: ConteudoItem) => void; onAprovacao: (item: ConteudoItem) => void }) {
+  const parar = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn();
+  };
+
+  if (item.status === 'publicado') {
+    return (
+      <Badge variant="success">
+        <CheckCircle2 className="w-3 h-3" />
+        Publicado
+      </Badge>
+    );
+  }
+
+  if (item.status === 'agendamento' || item.status === 'pronto_publicar') {
+    const temData = Boolean(item.scheduled_post_id || item.data_programada);
+    return (
+      <Tip label={temData ? 'Ver ou reagendar a publicação' : 'Levar a demanda aprovada para o Agendamento'}>
+        <Button size="sm" variant={temData ? 'secondary' : 'primary'} onClick={parar(() => onAgendar(item))} className="whitespace-nowrap">
+          {temData ? <Calendar className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+          {temData ? 'Agendado' : 'Agendar'}
+        </Button>
+      </Tip>
+    );
+  }
+
+  const reenviar = item.status === 'revisao_cliente';
+  return (
+    <Tip label={reenviar ? 'Reenviar a mensagem e o link de aprovação no WhatsApp' : 'Enviar para aprovação no WhatsApp'}>
+      <Button size="sm" variant={reenviar ? 'secondary' : 'lime'} onClick={parar(() => onAprovacao(item))} className="whitespace-nowrap">
+        <Send className="w-3.5 h-3.5" />
+        {reenviar ? 'Reenviar' : 'WhatsApp'}
+      </Button>
+    </Tip>
   );
 }
