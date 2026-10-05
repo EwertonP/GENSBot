@@ -1,5 +1,6 @@
 'use client';
 
+import { Tip } from '@/components/ui/tooltip';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Users,
@@ -460,10 +461,8 @@ function AudienceActivityCard({
             const isPeak = peakHour && h.hour === peakHour.hour;
 
             return (
-              <div
-                key={h.hour}
+              <Tip key={h.hour} label={`${h.hour}h: ${h.followersOnline.toLocaleString('pt-BR')} seguidores online`}><div
                 className="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer"
-                title={`${h.hour}h: ${h.followersOnline.toLocaleString('pt-BR')} seguidores online`}
               >
                 <div
                   className={`w-full rounded-t-md transition-ui duration-200 ${
@@ -472,7 +471,7 @@ function AudienceActivityCard({
                   style={{ height: `${heightPercent}%` }}
                 />
                 {h.hour % 3 === 0 && <span className="text-xs text-muted-foreground font-mono mt-1.5">{h.hour}h</span>}
-              </div>
+              </div></Tip>
             );
           })}
         </div>

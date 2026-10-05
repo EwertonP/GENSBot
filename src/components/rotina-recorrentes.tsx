@@ -1,5 +1,6 @@
 'use client';
 
+import { Tip } from '@/components/ui/tooltip';
 import React, { useEffect, useState } from 'react';
 import { Pause, Play, Plus, Repeat, Trash2 } from 'lucide-react';
 import { Sheet } from '@/components/ui/sheet';
@@ -264,8 +265,8 @@ export function RotinaRecorrentesSheet({
                 >
                   <div className="flex flex-col gap-1 min-w-0">
                     <span className="text-xs font-semibold text-foreground">{r.titulo}</span>
-                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <Badge variant={r.ativo ? 'info' : 'muted'} className="text-[11px]">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                      <Badge variant={r.ativo ? 'info' : 'muted'} className="text-xs">
                         {r.ativo ? descreverRegra(r) : 'Pausada'}
                       </Badge>
                       {r.cliente?.nome && <span>{r.cliente.nome}</span>}
@@ -274,15 +275,14 @@ export function RotinaRecorrentesSheet({
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
+                    <Tip label={r.ativo ? 'Pausar' : 'Retomar'}><button
                       type="button"
                       onClick={() => alternarAtivo(r)}
                       className="grid place-items-center size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
                       aria-label={r.ativo ? 'Pausar rotina' : 'Retomar rotina'}
-                      title={r.ativo ? 'Pausar' : 'Retomar'}
                     >
                       {r.ativo ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                    </button>
+                    </button></Tip>
                     <button
                       type="button"
                       onClick={() => apagar(r)}

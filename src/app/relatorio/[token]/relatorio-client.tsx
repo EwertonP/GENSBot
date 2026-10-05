@@ -257,7 +257,7 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
                       <div className="relative aspect-[4/5] bg-muted">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         {p.media_url && <img src={p.media_url} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />}
-                        <span className="absolute top-2 left-2 text-[11px] font-semibold bg-black/60 text-white px-2 py-0.5 rounded-full">
+                        <span className="absolute top-2 left-2 text-xs font-semibold bg-black/60 text-white px-2 py-0.5 rounded-full">
                           {tipoLabel(p.media_type)}
                         </span>
                       </div>

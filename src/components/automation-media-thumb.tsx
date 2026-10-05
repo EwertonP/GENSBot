@@ -1,5 +1,6 @@
 'use client';
 
+import { Tip } from '@/components/ui/tooltip';
 import React, { useEffect, useState } from 'react';
 import { Image as ImageIcon, Camera, MessageCircle, Play, Layers, ImageOff } from 'lucide-react';
 
@@ -55,12 +56,11 @@ export default function AutomationMediaThumb({ mediaId, kind, triggers }: Automa
     const GenericIcon = triggers.includes('story') || triggers.includes('story_mention') ? Camera : triggers.includes('comment') ? ImageIcon : MessageCircle;
     const label = triggers.includes('story') || triggers.includes('story_mention') ? 'Qualquer story' : triggers.includes('comment') ? 'Qualquer publicação' : 'Só DM';
     return (
-      <div
+      <Tip label={label}><div
         className="w-11 h-11 rounded-lg bg-muted border border-border flex items-center justify-center shrink-0"
-        title={label}
       >
         <GenericIcon className="w-4 h-4 text-muted-foreground" />
-      </div>
+      </div></Tip>
     );
   }
 
@@ -70,12 +70,11 @@ export default function AutomationMediaThumb({ mediaId, kind, triggers }: Automa
 
   if (state.status === 'error') {
     return (
-      <div
+      <Tip label={"Mídia indisponível (pode ter expirado ou sido removida)"}><div
         className="w-11 h-11 rounded-lg bg-muted border border-border flex items-center justify-center shrink-0"
-        title="Mídia indisponível (pode ter expirado ou sido removida)"
       >
         <ImageOff className="w-4 h-4 text-muted-foreground" />
-      </div>
+      </div></Tip>
     );
   }
 
@@ -85,9 +84,9 @@ export default function AutomationMediaThumb({ mediaId, kind, triggers }: Automa
 
   if (!imageSrc) {
     return (
-      <div className="w-11 h-11 rounded-lg bg-muted border border-border flex items-center justify-center shrink-0" title="Prévia indisponível">
+      <Tip label={"Prévia indisponível"}><div className="w-11 h-11 rounded-lg bg-muted border border-border flex items-center justify-center shrink-0">
         <ImageOff className="w-4 h-4 text-muted-foreground" />
-      </div>
+      </div></Tip>
     );
   }
 
@@ -106,14 +105,13 @@ export default function AutomationMediaThumb({ mediaId, kind, triggers }: Automa
   if (!permalink) return content;
 
   return (
-    <a
+    <Tip label={"Ver no Instagram"}><a
       href={permalink}
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      title="Ver no Instagram"
     >
       {content}
-    </a>
+    </a></Tip>
   );
 }

@@ -1,4 +1,5 @@
 'use client';
+import { Tip } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 
@@ -605,14 +606,13 @@ export function NodeConfigPanel({
         <h3 className="text-xs font-bold text-foreground">Configurar nó</h3>
         <div className="flex items-center gap-3">
           {onDelete && node.type !== 'trigger' && (
-            <button
+            <Tip label={"Excluir nó"}><button
               onClick={onDelete}
               className="text-muted-foreground hover:text-destructive cursor-pointer"
               aria-label="Excluir nó"
-              title="Excluir nó"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </button></Tip>
           )}
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground cursor-pointer" aria-label="Fechar painel">
             <X className="w-4 h-4" />

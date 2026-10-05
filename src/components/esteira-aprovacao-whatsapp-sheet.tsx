@@ -149,7 +149,7 @@ export function AprovacaoWhatsappSheet({
                         ) : (
                           <img src={arq.url} alt="" className="w-full h-full object-cover" />
                         )}
-                        <span className="absolute bottom-0.5 left-0.5 text-[11px] bg-black/80 text-white font-mono px-1 rounded">
+                        <span className="absolute bottom-0.5 left-0.5 text-xs bg-black/80 text-white font-mono px-1 rounded">
                           #{idx + 1}
                         </span>
                       </div>

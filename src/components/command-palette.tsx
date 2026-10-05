@@ -122,7 +122,7 @@ export function CommandPalette({
                 aria-activedescendant={filtrados[ativo] ? `cmd-${filtrados[ativo].id}` : undefined}
                 className="flex-1 h-12 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
               />
-              <kbd className="hidden sm:inline rounded border border-border-strong bg-muted px-1.5 text-[11px] text-muted-foreground">Esc</kbd>
+              <kbd className="hidden sm:inline rounded border border-border-strong bg-muted px-1.5 text-xs text-muted-foreground">Esc</kbd>
             </div>
 
             <div ref={listaRef} id="command-palette-list" role="listbox" aria-label="Resultados" className="max-h-[min(60vh,420px)] overflow-y-auto p-2">

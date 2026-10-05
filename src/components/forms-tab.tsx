@@ -1,5 +1,6 @@
 'use client';
 
+import { Tip } from '@/components/ui/tooltip';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -399,15 +400,14 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
                       )}
                     </Button>
 
-                    <a
+                    <Tip label={"Abrir no navegador"}><a
                       href={`/f/${form.slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title="Abrir no navegador"
                       className="inline-flex items-center justify-center p-2 rounded-lg border border-border-strong text-foreground hover:bg-accent transition-ui text-xs font-medium"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    </a></Tip>
 
                     <Button
                       type="button"
@@ -612,7 +612,7 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
                             href={`https://wa.me/55${phoneFound}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold hover:bg-emerald-500/20 transition-colors"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-success-soft text-success font-bold hover:bg-success-soft/70 transition-colors"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                             <span>Chamar no WhatsApp</span>

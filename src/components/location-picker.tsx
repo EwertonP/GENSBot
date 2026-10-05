@@ -1,5 +1,6 @@
 'use client';
 
+import { Tip } from '@/components/ui/tooltip';
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, X, Search, Check, Building2, Navigation } from 'lucide-react';
 import type { LocationResult } from '@/app/api/instagram/search-locations/route';
@@ -78,21 +79,20 @@ export function LocationPicker({
               <span className="text-xs font-bold text-foreground truncate">
                 {locationName}
               </span>
-              <span className="text-[10px] text-muted-foreground truncate">
+              <span className="text-xs text-muted-foreground truncate">
                 Localização marcada no Instagram
               </span>
             </div>
           </div>
 
-          <button
+          <Tip label={"Remover localização"}><button
             type="button"
             onClick={handleClear}
             disabled={disabled}
-            className="w-7 h-7 rounded-xl hover:bg-destructive/20 hover:text-destructive flex items-center justify-center transition-colors text-muted-foreground shrink-0"
-            title="Remover localização"
+            className="w-7 h-7 rounded-xl hover:bg-destructive/20 hover:text-destructive flex items-center justify-center transition-colors text-muted-foreground shrink-0" aria-label={"Remover localização"}
           >
             <X className="w-3.5 h-3.5" />
-          </button>
+          </button></Tip>
         </div>
       ) : (
         /* Campo de Busca */
@@ -147,13 +147,13 @@ export function LocationPicker({
                         {loc.name}
                       </span>
                       {loc.subtitle && (
-                        <span className="text-[10px] text-muted-foreground truncate">
+                        <span className="text-xs text-muted-foreground truncate">
                           {loc.subtitle}
                         </span>
                       )}
                     </div>
                   </div>
-                  <Check className="w-3.5 h-3.5 text-muted-foreground/30 hover:text-primary shrink-0 ml-2" />
+                  <Check className="w-3.5 h-3.5 text-muted-foreground hover:text-primary shrink-0 ml-2" />
                 </div>
               ))}
             </div>

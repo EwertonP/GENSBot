@@ -1,4 +1,5 @@
 'use client';
+import { Tip } from '@/components/ui/tooltip';
 import { ScrollShadow } from '@/components/ui/scroll-shadow';
 
 import React, { useState, useEffect, useRef, useTransition } from 'react';
@@ -193,7 +194,7 @@ export function AudioPickerModal({
               <h2 className="text-base font-bold text-foreground">
                 Músicas & Áudios em Alta no Instagram
               </h2>
-              <Badge variant="info" className="text-[10px] gap-1 px-1.5 py-0">
+              <Badge variant="info" className="text-xs gap-1 px-1.5 py-0">
                 <Volume2 className="w-3 h-3" />
                 Prévia 30s
               </Badge>
@@ -217,7 +218,7 @@ export function AudioPickerModal({
       </div>
 
       {/* Barra de Pesquisa e Filtros */}
-      <div className="p-4 border-b border-border/80 flex flex-col gap-3 bg-accent/5">
+      <div className="p-4 border-b border-border flex flex-col gap-3 bg-accent/5">
         {/* Input de Busca */}
         <div className="relative flex items-center">
           <Search className="absolute left-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -230,14 +231,13 @@ export function AudioPickerModal({
             autoFocus
           />
           {searchQuery && (
-            <button
+            <Tip label={"Limpar busca"}><button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent/60"
-              title="Limpar busca"
+              className="absolute right-3 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent/60" aria-label={"Limpar busca"}
             >
               <X className="w-3.5 h-3.5" />
-            </button>
+            </button></Tip>
           )}
         </div>
 
@@ -305,7 +305,7 @@ export function AudioPickerModal({
                   'pt-2.5 first:pt-0 flex items-center justify-between gap-3 p-2 rounded-2xl transition-all border border-transparent',
                   isPlaying && 'bg-primary/5 border-primary/20 shadow-2xs',
                   isSelected && 'bg-primary/10 border-primary/30',
-                  !isPlaying && !isSelected && 'hover:bg-accent/20 hover:border-border/60'
+                  !isPlaying && !isSelected && 'hover:bg-accent/20 hover:border-border'
                 )}
               >
                 {/* Artwork & Informações da Faixa */}
@@ -327,14 +327,13 @@ export function AudioPickerModal({
 
                     {/* Botão Play / Pause overlay */}
                     {track.preview_url && (
-                      <button
+                      <Tip label={isPlaying ? 'Pausar prévia' : 'Ouvir prévia (30s)'}><button
                         type="button"
                         onClick={() => handleTogglePlay(track)}
                         className={cn(
                           'absolute inset-0 flex items-center justify-center transition-all bg-black/40 text-white cursor-pointer',
                           isPlaying ? 'opacity-100 bg-black/60' : 'opacity-0 group-hover:opacity-100'
                         )}
-                        title={isPlaying ? 'Pausar prévia' : 'Ouvir prévia (30s)'}
                         aria-label={isPlaying ? 'Pausar prévia' : 'Ouvir prévia'}
                       >
                         {isPlaying ? (
@@ -342,7 +341,7 @@ export function AudioPickerModal({
                         ) : (
                           <Play className="w-5 h-5 text-white fill-white ml-0.5" />
                         )}
-                      </button>
+                      </button></Tip>
                     )}
                   </div>
 
@@ -353,37 +352,36 @@ export function AudioPickerModal({
                         {track.title}
                       </span>
                       {isPlaying && (
-                        <div className="flex items-center gap-0.5 h-3 ml-1" title="Reproduzindo">
+                        <Tip label={"Reproduzindo"}><div className="flex items-center gap-0.5 h-3 ml-1">
                           <span className="w-0.5 bg-primary h-3 animate-pulse" />
                           <span className="w-0.5 bg-primary h-2 animate-pulse [animation-delay:150ms]" />
                           <span className="w-0.5 bg-primary h-3.5 animate-pulse [animation-delay:300ms]" />
                           <span className="w-0.5 bg-primary h-1.5 animate-pulse [animation-delay:450ms]" />
-                        </div>
+                        </div></Tip>
                       )}
                     </div>
 
-                    <span className="text-[11px] text-muted-foreground truncate">
+                    <span className="text-xs text-muted-foreground truncate">
                       {track.artist}
                     </span>
 
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[9px] font-semibold text-muted-foreground/80 bg-accent/40 px-1.5 py-0.5 rounded-md">
+                      <span className="text-xs font-semibold text-muted-foreground bg-accent/40 px-1.5 py-0.5 rounded-md">
                         {track.category_label || track.genre || 'Música'}
                       </span>
 
                       {/* Link direto para o Instagram */}
-                      <a
+                      <Tip label={"Ver no Instagram"}><a
                         href={track.instagram_search_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[10px] text-primary hover:underline flex items-center gap-1 inline-flex"
-                        title="Ver no Instagram"
+                        className="text-xs text-primary hover:underline flex items-center gap-1 inline-flex"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Instagram className="w-2.5 h-2.5" />
                         Instagram
                         <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
+                      </a></Tip>
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { Tip } from '@/components/ui/tooltip';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -967,27 +968,25 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
             borderColor: resolvedBorder,
           }}
         >
-          <button
+          <Tip label={"Pergunta anterior (Shift + Enter ou ↑)"}><button
             type="button"
             onClick={handleBack}
-            disabled={history.length <= 1}
-            title="Pergunta anterior (Shift + Enter ou ↑)"
+            disabled={history.length <= 1} aria-label={"Pergunta anterior (Shift + Enter ou ↑)"}
             style={{ color: resolvedMutedFg }}
             className="p-1.5 rounded-lg disabled:opacity-30 cursor-pointer transition-colors hover:opacity-100"
           >
             <ChevronUp className="w-4 h-4" />
-          </button>
+          </button></Tip>
           <div className="w-px h-3.5" style={{ backgroundColor: resolvedBorder }} />
-          <button
+          <Tip label={"Próxima pergunta (Enter ou ↓)"}><button
             type="button"
             onClick={handleNext}
-            disabled={currentIndex >= fields.length - 1}
-            title="Próxima pergunta (Enter ou ↓)"
+            disabled={currentIndex >= fields.length - 1} aria-label={"Próxima pergunta (Enter ou ↓)"}
             style={{ color: resolvedMutedFg }}
             className="p-1.5 rounded-lg disabled:opacity-30 cursor-pointer transition-colors hover:opacity-100"
           >
             <ChevronDown className="w-4 h-4" />
-          </button>
+          </button></Tip>
         </div>
       </footer>
     </div>

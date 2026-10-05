@@ -198,7 +198,7 @@ export function CollaboratorsTagsInput({
                 {collab.username[0] || 'U'}
               </div>
             )}
-            <span className="font-semibold text-foreground/90 font-mono text-[11px]">
+            <span className="font-semibold text-foreground/90 font-mono text-xs">
               @{collab.username}
             </span>
             <button
@@ -239,10 +239,10 @@ export function CollaboratorsTagsInput({
       </div>
 
       {/* Contador e Dica de Teclado */}
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
         <span>
-          Aperte <kbd className="px-1.5 py-0.5 bg-accent rounded-md border text-[10px] font-mono">Espaço</kbd> ou{' '}
-          <kbd className="px-1.5 py-0.5 bg-accent rounded-md border text-[10px] font-mono">Enter</kbd> para criar a tag
+          Aperte <kbd className="px-1.5 py-0.5 bg-accent rounded-md border text-xs font-mono">Espaço</kbd> ou{' '}
+          <kbd className="px-1.5 py-0.5 bg-accent rounded-md border text-xs font-mono">Enter</kbd> para criar a tag
         </span>
         <span className={`font-mono font-semibold ${isMaxReached ? 'text-primary' : ''}`}>
           {value.length}/{max} colaboradores
@@ -277,7 +277,7 @@ export function CollaboratorsTagsInput({
                   Adicionar tag <strong className="font-mono">@{cleanHandle(inputValue)}</strong>
                 </span>
               </div>
-              <span className="text-[10px] text-primary font-semibold">Pressione Espaço</span>
+              <span className="text-xs text-primary font-semibold">Pressione Espaço</span>
             </div>
           )}
 
@@ -318,14 +318,14 @@ export function CollaboratorsTagsInput({
                   <span className="text-xs font-semibold text-foreground truncate">
                     {item.name}
                   </span>
-                  <span className="text-[11px] text-muted-foreground font-mono truncate">
+                  <span className="text-xs text-muted-foreground font-mono truncate">
                     @{item.username}
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/80 text-secondary-foreground font-medium">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/80 text-secondary-foreground font-medium">
                   {item.badge}
                 </span>
                 {selectedIndex === idx && (

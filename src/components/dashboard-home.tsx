@@ -1,4 +1,5 @@
 'use client';
+import { Tip } from '@/components/ui/tooltip';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Avatar } from '@/components/ui/avatar';
 import { Select } from '@/components/ui/select';
@@ -802,14 +803,13 @@ export default function DashboardHome({
                       className="p-3 rounded-2xl bg-accent/30 border border-border hover:border-foreground/30 transition-ui flex items-center justify-between gap-3 shadow-2xs"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <button
+                        <Tip label={"Marcar como concluída"}><button
                           type="button"
                           onClick={() => handleToggleTarefaHome(tarefa)}
-                          className="w-5 h-5 rounded-lg border border-border bg-card flex items-center justify-center hover:border-primary text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
-                          title="Marcar como concluída"
+                          className="w-5 h-5 rounded-lg border border-border bg-card flex items-center justify-center hover:border-primary text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0" aria-label={"Marcar como concluída"}
                         >
                           <Check className="w-3 h-3 opacity-0 hover:opacity-100" />
-                        </button>
+                        </button></Tip>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-foreground truncate">
                             {tarefa.titulo}
@@ -1024,10 +1024,8 @@ export default function DashboardHome({
                   const isPeak = percent >= 85;
 
                   return (
-                    <div
-                      key={h.hour}
+                    <Tip key={h.hour} label={`${h.hour}h — ${h.followersOnline} seguidores ativos`}><div
                       className="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer"
-                      title={`${h.hour}h — ${h.followersOnline} seguidores ativos`}
                     >
                       <div
                         className={`w-full rounded-t-sm transition-all duration-300 ${
@@ -1038,7 +1036,7 @@ export default function DashboardHome({
                       {h.hour % 6 === 0 && (
                         <span className="text-xs font-mono text-muted-foreground mt-1.5">{h.hour}h</span>
                       )}
-                    </div>
+                    </div></Tip>
                   );
                 })}
               </div>

@@ -1,4 +1,5 @@
 'use client';
+import { Tip } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -288,7 +289,7 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                   <div className="relative">
                     <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={conta?.profile_picture_url} tamanho="md" className="ring-2 ring-background shadow-2xs" />
                     {c.ativo && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-lime border-2 border-card" title="Cliente Ativo" />
+                      <Tip label={"Cliente Ativo"}><span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-lime border-2 border-card" /></Tip>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">

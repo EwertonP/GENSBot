@@ -1,5 +1,6 @@
 'use client';
 
+import { Tip } from '@/components/ui/tooltip';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   User,
@@ -232,13 +233,12 @@ export default function UserProfilePopover({
                 tamanho="lg"
                 className="w-16 h-16 rounded-full ring-2 ring-primary"
               />
-              <label
+              <Tip label={"Alterar foto de perfil"}><label
                 htmlFor="user-avatar-upload"
                 className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white"
-                title="Alterar foto de perfil"
               >
                 <Camera className="w-5 h-5" />
-              </label>
+              </label></Tip>
               <input
                 id="user-avatar-upload"
                 type="file"

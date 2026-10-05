@@ -866,11 +866,10 @@ export default function Dashboard() {
           {/* Seletor de Conta do Instagram (perfil ativo) */}
           {accounts.length > 0 ? (
             <div className="relative mt-2 w-full">
-              <button
+              <Tip label={selectedAccountId === 'all' ? 'Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}><button
                 onClick={() => setAccountMenuOpen(o => !o)}
                 aria-haspopup="listbox"
                 aria-expanded={accountMenuOpen}
-                title={selectedAccountId === 'all' ? 'Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}
                 className={`w-full flex items-center ${sidebarCompacta ? 'justify-center p-2' : 'gap-2.5 p-2'} rounded-xl bg-accent/60 hover:bg-accent border border-border hover:border-foreground/20 transition-ui cursor-pointer text-left shadow-2xs group`}
               >
                 {selectedAccountId === 'all' ? (
@@ -902,7 +901,7 @@ export default function Dashboard() {
                     <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} />
                   </>
                 )}
-              </button>
+              </button></Tip>
 
               {accountMenuOpen && (
                 <>
@@ -949,10 +948,9 @@ export default function Dashboard() {
                               </div>
                             )}
                             {health && (health.status === 'warning' || health.status === 'expired') && (
-                              <span
-                                title={health.status === 'expired' ? 'Token expirado' : `Token expira em ${health.daysRemaining} dia(s)`}
+                              <Tip label={health.status === 'expired' ? 'Token expirado' : `Token expira em ${health.daysRemaining} dia(s)`}><span
                                 className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-card ${health.status === 'expired' ? 'bg-destructive' : 'bg-warning'}`}
-                              />
+                              /></Tip>
                             )}
                           </div>
                           <span className="text-xs text-foreground flex-1 truncate">
@@ -988,14 +986,13 @@ export default function Dashboard() {
               )}
             </div>
           ) : (
-            <button
+            <Tip label={"Conectar Instagram"}><button
               onClick={handleConnectInstagram}
-              title="Conectar Instagram"
               className={`mt-2 w-full flex items-center justify-center ${sidebarCompacta ? 'p-2.5' : 'gap-2 px-3 py-2.5'} rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-ui shadow-xs cursor-pointer`}
             >
               <Instagram className="w-3.5 h-3.5 flex-shrink-0" />
               {!sidebarCompacta && <span>Conectar Instagram</span>}
-            </button>
+            </button></Tip>
           )}
         </div>
 
@@ -1145,7 +1142,7 @@ export default function Dashboard() {
             >
               <Search aria-hidden className="w-4 h-4" />
               <span className="flex-1 text-left">Buscar ou ir para…</span>
-              <kbd className="rounded border border-border-strong bg-muted px-1.5 text-[11px]">Ctrl K</kbd>
+              <kbd className="rounded border border-border-strong bg-muted px-1.5 text-xs">Ctrl K</kbd>
             </button>
             <Tip label="Busca rápida" shortcut="Ctrl+K" side="bottom">
               <button
