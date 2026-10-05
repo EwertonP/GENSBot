@@ -102,7 +102,7 @@ export function MemberChipSelect({
 
       {/* Popover Ultra-Enxuto com Membros */}
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-full min-w-[210px] rounded-xl border border-border bg-card/98 backdrop-blur-md shadow-xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-0.5">
+        <div className="absolute top-full left-0 mt-1 w-full min-w-[210px] rounded-xl border border-border bg-popover shadow-xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-0.5">
           {/* Opção: Desatribuir / Nenhum */}
           <button
             type="button"
@@ -123,7 +123,7 @@ export function MemberChipSelect({
             {!value && <Check className="w-3.5 h-3.5 text-primary shrink-0 font-bold" />}
           </button>
 
-          <div className="h-px bg-border/50 my-0.5" />
+          <div className="h-px bg-border my-0.5" />
 
           {/* Lista de Membros da Equipe */}
           <div className="max-h-44 overflow-y-auto flex flex-col gap-0.5">
