@@ -1,5 +1,6 @@
 'use client';
 
+import { Tip } from '@/components/ui/tooltip';
 import React, { useMemo, useRef, useState } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import {
@@ -502,13 +503,11 @@ export function DemandaSheet({
                   const ehAtual = etapa.step === atual;
                   const feita = etapa.step < atual;
                   return (
-                    <button
-                      key={etapa.status}
+                    <Tip key={etapa.status} label={etapa.label}><button
                       type="button"
                       onClick={() => setStatus(etapa.status)}
                       aria-pressed={ehAtual}
                       aria-label={etapa.label}
-                      title={etapa.label}
                       className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-ui cursor-pointer ${
                         ehAtual
                           ? 'bg-primary text-primary-foreground shadow-2xs'
@@ -526,7 +525,7 @@ export function DemandaSheet({
                         {feita ? <Check className="w-2.5 h-2.5" /> : etapa.step}
                       </span>
                       <span className="hidden xl:inline">{etapa.short}</span>
-                    </button>
+                    </button></Tip>
                   );
                 })}
               </div>
@@ -988,12 +987,10 @@ export function DemandaSheet({
                 <span className="text-xs font-semibold text-muted-foreground">Formato</span>
                 <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border">
                   {FORMATOS.map((fmt) => (
-                    <button
-                      key={fmt.id}
+                    <Tip key={fmt.id} label={fmt.descricao}><button
                       type="button"
                       aria-label={fmt.descricao}
                       aria-pressed={tipo === fmt.id}
-                      title={fmt.descricao}
                       onClick={() => setTipo(fmt.id)}
                       className={`h-7 px-2 rounded-md flex items-center justify-center gap-1.5 text-xs font-semibold transition-ui cursor-pointer ${
                         tipo === fmt.id
@@ -1003,7 +1000,7 @@ export function DemandaSheet({
                     >
                       <fmt.icon className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">{fmt.label}</span>
-                    </button>
+                    </button></Tip>
                   ))}
                 </div>
               </div>

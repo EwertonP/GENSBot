@@ -46,11 +46,11 @@ export default async function FormPage({ params }: PageProps) {
   // Se não estiver publicado, mostra tela de formulário indisponível
   if (!form.publicado) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-zinc-50 dark:bg-zinc-950 font-sans">
-        <div className="max-w-md w-full bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm space-y-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-background font-sans">
+        <div className="max-w-md w-full bg-card p-8 rounded-3xl border border-border shadow-sm space-y-4">
           <span className="text-4xl">🔒</span>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{form.titulo}</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <h1 className="text-2xl font-bold text-foreground">{form.titulo}</h1>
+          <p className="text-sm text-muted-foreground">
             Este formulário ainda não foi publicado ou está pausado no momento.
           </p>
         </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { Tip } from '@/components/ui/tooltip';
 import React, { useEffect, useRef, useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -328,10 +329,9 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           >
             {sucessoAprovado ? 'Aprovado' : item.status === 'travado' ? 'Ajustes Solicitados' : 'Aguardando Aprovação'}
           </Badge>
-          <button
+          <Tip label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}><button
             type="button"
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
             aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
             className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-ui duration-150 cursor-pointer shadow-2xs flex items-center justify-center ml-1 active:scale-[0.98]"
           >
@@ -340,7 +340,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             ) : (
               <Moon className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
             )}
-          </button>
+          </button></Tip>
         </div>
       </header>
 
@@ -490,7 +490,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-bold text-foreground tracking-tight leading-tight">{clienteNome}</span>
-                  <span className="w-4 h-4 bg-info text-info-foreground rounded-full inline-flex items-center justify-center text-xs font-bold" title="Perfil Verificado">✓</span>
+                  <Tip label={"Perfil Verificado"}><span className="w-4 h-4 bg-info text-info-foreground rounded-full inline-flex items-center justify-center text-xs font-bold">✓</span></Tip>
                 </div>
                 <span className="text-xs text-muted-foreground font-medium">Agência GENS • Central de Aprovação</span>
               </div>
@@ -591,34 +591,31 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             {/* Barra de Ações Ícones (Curtir, Comentar, Compartilhar, Salvar) */}
             <div className="px-4 pt-3 pb-2 flex items-center justify-between text-foreground">
               <div className="flex items-center gap-4">
-                <button
+                <Tip label={"Curtir"}><button
                   type="button"
                   onClick={() => setCurtido(!curtido)}
-                  className="hover:text-muted-foreground transition-transform active:scale-125"
-                  title="Curtir"
+                  className="hover:text-muted-foreground transition-transform active:scale-125" aria-label={"Curtir"}
                 >
                   <Heart className={`w-6 h-6 ${curtido ? 'fill-destructive text-destructive' : ''}`} />
-                </button>
-                <button
+                </button></Tip>
+                <Tip label={"Comentar / Sugerir Ajuste"}><button
                   type="button"
                   onClick={() => comNome(() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirAjusteSlide(slideAtual + 1)))}
-                  className="hover:text-muted-foreground transition-transform active:scale-110"
-                  title="Comentar / Sugerir Ajuste"
+                  className="hover:text-muted-foreground transition-transform active:scale-110" aria-label={"Comentar / Sugerir Ajuste"}
                 >
                   <MessageCircle className="w-6 h-6" />
-                </button>
-                <button type="button" className="hover:text-muted-foreground transition-transform active:scale-110" title="Compartilhar">
+                </button></Tip>
+                <Tip label={"Compartilhar"}><button type="button" className="hover:text-muted-foreground transition-transform active:scale-110" aria-label={"Compartilhar"}>
                   <Send className="w-6 h-6" />
-                </button>
+                </button></Tip>
               </div>
-              <button
+              <Tip label={"Salvar"}><button
                 type="button"
                 onClick={() => setSalvo(!salvo)}
-                className="hover:text-muted-foreground transition-transform active:scale-110"
-                title="Salvar"
+                className="hover:text-muted-foreground transition-transform active:scale-110" aria-label={"Salvar"}
               >
                 <Bookmark className={`w-6 h-6 ${salvo ? 'fill-foreground text-foreground' : ''}`} />
-              </button>
+              </button></Tip>
             </div>
 
             {/* Contador de Curtidas e Horário */}

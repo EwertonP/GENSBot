@@ -144,7 +144,7 @@ export function DatePicker({
               </button>
             </div>
 
-            <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-muted-foreground mb-1">
+            <div className="grid grid-cols-7 text-center text-xs font-semibold text-muted-foreground mb-1">
               {WEEKDAYS.map((d, i) => (
                 <span key={i} className="py-1">{d}</span>
               ))}

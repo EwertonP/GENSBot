@@ -182,7 +182,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                             <button
                               type="button"
                               onClick={() => setFlowBuilderAutomation(form)}
-                              className="self-start flex items-center gap-1.5 bg-destructive/90 hover:bg-destructive text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                              className="self-start flex items-center gap-1.5 bg-destructive/90 hover:bg-destructive text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                             >
                               Abrir no editor visual (Canvas)
                             </button>

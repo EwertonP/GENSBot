@@ -1,5 +1,6 @@
 'use client';
 
+import { Tip } from '@/components/ui/tooltip';
 import React, { useState } from 'react';
 import {
   Smartphone,
@@ -184,7 +185,7 @@ export function PublishAppKitModal({
               <h2 className="text-base font-bold text-foreground">
                 Kit de Publicação no App com Música
               </h2>
-              <Badge variant="brand" className="text-[10px] gap-1 px-1.5 py-0 font-bold">
+              <Badge variant="brand" className="text-xs gap-1 px-1.5 py-0 font-bold">
                 <Sparkles className="w-3 h-3" />
                 Oficial Meta
               </Badge>
@@ -218,7 +219,7 @@ export function PublishAppKitModal({
               </div>
               <span className="text-xs font-bold text-foreground">1. Trilha Sonora Oficial</span>
             </div>
-            <Badge variant="muted" className="text-[10px]">
+            <Badge variant="muted" className="text-xs">
               Biblioteca do Instagram
             </Badge>
           </div>
@@ -238,18 +239,17 @@ export function PublishAppKitModal({
                   </div>
                 )}
                 {selectedTrack?.preview_url && (
-                  <button
+                  <Tip label={isPlayingAudio ? 'Pausar prévia' : 'Ouvir prévia'}><button
                     type="button"
                     onClick={handleTogglePlay}
                     className="absolute inset-0 bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors cursor-pointer"
-                    title={isPlayingAudio ? 'Pausar prévia' : 'Ouvir prévia'}
                   >
                     {isPlayingAudio ? (
                       <Pause className="w-4 h-4 text-primary fill-primary" />
                     ) : (
                       <Play className="w-4 h-4 text-white fill-white ml-0.5" />
                     )}
-                  </button>
+                  </button></Tip>
                 )}
               </div>
               <div className="flex flex-col min-w-0">
@@ -257,7 +257,7 @@ export function PublishAppKitModal({
                   {selectedTrack?.title || displayAudioName}
                 </span>
                 {selectedTrack?.artist && (
-                  <span className="text-[11px] text-muted-foreground truncate">
+                  <span className="text-xs text-muted-foreground truncate">
                     {selectedTrack.artist}
                   </span>
                 )}
@@ -291,7 +291,7 @@ export function PublishAppKitModal({
 
           {/* Opção 1: Download do MP3 para quem quiser embutir em vídeo no Canva/CapCut */}
           {selectedTrack?.preview_url && (
-            <div className="flex items-center justify-between text-[11px] bg-accent/40 px-3 py-2 rounded-xl text-muted-foreground">
+            <div className="flex items-center justify-between text-xs bg-accent/40 px-3 py-2 rounded-xl text-muted-foreground">
               <span>Quer postar 100% automático? Baixe o áudio e coloque no slide 1 em vídeo (.mp4):</span>
               <a
                 href={selectedTrack.preview_url}
@@ -343,18 +343,17 @@ export function PublishAppKitModal({
                   ) : (
                     <img src={url} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
                   )}
-                  <span className="absolute bottom-1 right-1 text-[9px] font-mono font-bold bg-black/70 text-white px-1 rounded">
+                  <span className="absolute bottom-1 right-1 text-xs font-mono font-bold bg-black/70 text-white px-1 rounded">
                     {i + 1}
                   </span>
-                  <a
+                  <Tip label={`Baixar slide ${i + 1}`}><a
                     href={url}
                     download={`slide-${i + 1}`}
                     target="_blank"
                     className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"
-                    title={`Baixar slide ${i + 1}`}
                   >
                     <Download className="w-4 h-4" />
-                  </a>
+                  </a></Tip>
                 </div>
               );
             })}
@@ -395,7 +394,7 @@ export function PublishAppKitModal({
             {caption || <span className="italic text-muted-foreground">Sem legenda</span>}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {locationName && (
               <span className="flex items-center gap-1 bg-accent/40 px-2 py-0.5 rounded-md text-foreground">
                 <MapPin className="w-3 h-3 text-primary" /> {locationName}
@@ -411,16 +410,16 @@ export function PublishAppKitModal({
         </div>
 
         {/* Bloco 4: Envio Rápido para Celular / Equipe pelo WhatsApp */}
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-success-soft border border-success-ring flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-success-soft text-success flex items-center justify-center shrink-0">
               <Share2 className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
               <span className="text-xs font-bold text-foreground">
                 Enviar Kit Completo para o WhatsApp
               </span>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Manda a legenda, links de fotos e link da música direto pro seu celular ou social media.
               </span>
             </div>
@@ -429,7 +428,7 @@ export function PublishAppKitModal({
             type="button"
             size="sm"
             onClick={handleShareWhatsApp}
-            className="h-8 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shrink-0 gap-1.5"
+            className="h-8 text-xs rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-[#052e16] font-bold shrink-0 gap-1.5"
           >
             <Share2 className="w-3.5 h-3.5" />
             WhatsApp

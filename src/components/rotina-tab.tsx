@@ -1,4 +1,5 @@
 'use client';
+import { Tip } from '@/components/ui/tooltip';
 import { Avatar } from '@/components/ui/avatar';
 import { SegmentedItem } from '@/components/ui/segmented';
 
@@ -450,12 +451,11 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
             </span>
           )}
           {resumo.minutos > 0 && (
-            <span
+            <Tip label={"Soma das estimativas das tarefas em aberto"}><span
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-card font-mono"
-              title="Soma das estimativas das tarefas em aberto"
             >
               <Timer className="w-3.5 h-3.5 text-muted-foreground" /> ~{formatarEstimativa(resumo.minutos)}
-            </span>
+            </span></Tip>
           )}
         </div>
       </div>
@@ -701,7 +701,7 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
                     <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">{coluna.label}</h3>
                     <span className="text-xs font-mono text-muted-foreground">{itens.length}</span>
                   </div>
-                  <span className="text-[11px] text-muted-foreground truncate">{coluna.descricao}</span>
+                  <span className="text-xs text-muted-foreground truncate">{coluna.descricao}</span>
                 </header>
 
                 {itens.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Nada aqui.</p>}
@@ -838,16 +838,16 @@ function TarefaCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 mt-2 text-xs text-muted-foreground">
-        <Badge variant={t.tipo === 'peca_avulsa' ? 'brand' : 'muted'} className="text-[11px]">
+        <Badge variant={t.tipo === 'peca_avulsa' ? 'brand' : 'muted'} className="text-xs">
           {TIPO_TAREFA_LABELS[t.tipo] || 'Interno'}
         </Badge>
         {t.recorrencia_id && (
-          <span className="flex items-center" title="Tarefa recorrente">
+          <Tip label={"Tarefa recorrente"}><span className="flex items-center">
             <Repeat className="w-3 h-3" aria-label="Recorrente" />
-          </span>
+          </span></Tip>
         )}
         {t.prioridade !== 'normal' && (
-          <Badge variant={prio.variant} className="text-[11px] font-bold">
+          <Badge variant={prio.variant} className="text-xs font-bold">
             {prio.label}
           </Badge>
         )}
@@ -878,7 +878,7 @@ function TarefaCard({
         <button
           type="button"
           onClick={() => onAbrirDemanda?.(t.demanda!.id)}
-          className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground cursor-pointer text-left"
+          className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer text-left"
         >
           <ArrowUpRight className="w-3 h-3 shrink-0" /> {t.demanda.titulo || 'Demanda'} · {STATUS_LABELS[t.demanda.status]?.label}
         </button>
@@ -896,7 +896,7 @@ function TarefaCard({
             }}
             placeholder="Aguardando quem?"
             aria-label="Aguardando quem"
-            className="flex-1 min-w-0 bg-transparent text-[11px] text-foreground placeholder:text-muted-foreground border-b border-dashed border-border focus:border-primary focus:outline-none py-0.5"
+            className="flex-1 min-w-0 bg-transparent text-xs text-foreground placeholder:text-muted-foreground border-b border-dashed border-border focus:border-primary focus:outline-none py-0.5"
           />
         </div>
       )}
@@ -948,10 +948,10 @@ function DemandaCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 mt-2 text-xs text-muted-foreground">
-        <Badge variant={etapa?.variant || 'muted'} className="text-[11px]">
+        <Badge variant={etapa?.variant || 'muted'} className="text-xs">
           Demanda · {etapa?.label}
         </Badge>
-        <span className="uppercase font-mono text-[11px]">{d.tipo}</span>
+        <span className="uppercase font-mono text-xs">{d.tipo}</span>
         {d.cliente && (
           <span className="flex items-center gap-1 font-medium text-foreground">
             <ClienteAvatar nome={d.cliente.nome} cor={d.cliente.cor} tamanho="xs" />
@@ -965,9 +965,9 @@ function DemandaCard({
           </span>
         )}
         {sub && (
-          <span className="flex items-center gap-1 font-mono" title="Sub-tarefas concluídas / total">
+          <Tip label={"Sub-tarefas concluídas / total"}><span className="flex items-center gap-1 font-mono">
             <CheckSquare className="w-3 h-3" /> {sub.total - sub.abertas}/{sub.total}
-          </span>
+          </span></Tip>
         )}
       </div>
     </article>
@@ -1168,7 +1168,7 @@ function PromoverParaDemanda({
       <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
         <Rocket className="w-3.5 h-3.5 text-primary" /> Transformar em demanda
       </span>
-      <span className="text-[11px] text-muted-foreground">
+      <span className="text-xs text-muted-foreground">
         Cria a demanda na esteira (em Planejamento) com este título, descrição, prazo e responsável, e conclui esta tarefa.
       </span>
       <div className="flex flex-wrap items-center gap-2">

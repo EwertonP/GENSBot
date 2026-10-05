@@ -155,7 +155,8 @@ A equipe usa o sistema no celular. Toda tela nova é conferida em 375px antes do
 - **Tabela:** sempre `DataTable`. Rolagem lateral não é solução no celular; a linha vira cartão e as ações ficam visíveis.
 - **Largura fixa:** nada de `w-[300px]` ou maior sem `max-w-full` ou variante responsiva. Grade de 3+ colunas começa em `grid-cols-1` e cresce com `sm:`/`lg:`.
 - **Arrastar:** arrastar e soltar não funciona no toque. Toda ação de arrastar tem um caminho por menu (ex.: "Mover para…").
-- **Texto:** o piso de 12px vale no celular também. A única exceção é o conteúdo dentro de uma prévia que imita o Instagram.
+- **Texto:** o piso de 12px vale no celular também. Exceções: o conteúdo dentro de uma prévia que imita o Instagram ou o Direct, e a inicial dentro de avatar de 16 a 32px (um caractere que precisa caber no círculo).
+- **Dica:** `title=` não aparece no toque nem no foco do teclado. Use `Tip` (ou `IconButton`, que já traz um). `title` só em `iframe`, onde é o nome acessível.
 
 ---
 

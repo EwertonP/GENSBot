@@ -41,7 +41,7 @@ export function Tip({
           >
             {label}
             {shortcut && (
-              <kbd className="rounded border border-border-strong bg-muted px-1 font-sans text-[11px] text-muted-foreground">{shortcut}</kbd>
+              <kbd className="rounded border border-border-strong bg-muted px-1 font-sans text-xs text-muted-foreground">{shortcut}</kbd>
             )}
           </BaseTooltip.Popup>
         </BaseTooltip.Positioner>

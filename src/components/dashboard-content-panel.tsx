@@ -148,7 +148,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
               >
                 <img src={story.media_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 flex flex-col justify-between p-3 pointer-events-none">
-                  <span className="self-start text-[11px] font-mono font-bold bg-white/20 backdrop-blur-md text-white px-2 py-0.5 rounded-full">
+                  <span className="self-start text-xs font-mono font-bold bg-white/20 backdrop-blur-md text-white px-2 py-0.5 rounded-full">
                     Story
                   </span>
                   <div className="flex items-center gap-1.5 text-white text-xs font-bold font-mono">
@@ -195,7 +195,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
 
                 {/* Badges Superiores (Formato) */}
                 <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none z-10">
-                  <span className="text-[11px] font-bold font-mono bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                  <span className="text-xs font-bold font-mono bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
                     {isReel ? (
                       <>
                         <Clapperboard className="w-3 h-3 text-lime" />
@@ -218,7 +218,7 @@ export default function DashboardContentPanel({ selectedAccountId, withAccount }
                 {/* Overlay Inferior com Métricas do Instagram */}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3 pt-6 flex flex-col gap-1 text-white pointer-events-none z-10">
                   {pub.caption && (
-                    <p className="text-[11px] font-medium line-clamp-1 text-white/90 drop-shadow-xs">
+                    <p className="text-xs font-medium line-clamp-1 text-white/90 drop-shadow-xs">
                       {pub.caption}
                     </p>
                   )}

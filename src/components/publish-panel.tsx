@@ -1,4 +1,5 @@
 'use client';
+import { Tip } from '@/components/ui/tooltip';
 import { Select } from '@/components/ui/select';
 import { SegmentedItem } from '@/components/ui/segmented';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -1171,7 +1172,7 @@ export default function PublishPanel({
                   onClick={() => setPasso(pa.id)}
                   className={`flex items-center gap-2 h-10 px-3 rounded-xl text-sm font-medium transition-colors cursor-pointer ${ativo ? 'bg-card text-foreground shadow-xs ring-1 ring-border-strong' : 'text-muted-foreground hover:text-foreground'}`}
                 >
-                  <span className={`grid place-items-center size-5 rounded-full text-[11px] font-semibold shrink-0 ${ok ? 'bg-success-soft text-success ring-1 ring-success-ring' : ativo ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground ring-1 ring-border-strong'}`}>
+                  <span className={`grid place-items-center size-5 rounded-full text-xs font-semibold shrink-0 ${ok ? 'bg-success-soft text-success ring-1 ring-success-ring' : ativo ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground ring-1 ring-border-strong'}`}>
                     {ok ? <Check aria-hidden className="size-3" /> : i + 1}
                   </span>
                   <span className="truncate">{pa.label}</span>
@@ -1267,7 +1268,7 @@ export default function PublishPanel({
                       ) : (
                         <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
                       )}
-                      <span className="absolute bottom-1 left-1 text-[11px] font-mono font-bold bg-black/70 text-white px-1 rounded">
+                      <span className="absolute bottom-1 left-1 text-xs font-mono font-bold bg-black/70 text-white px-1 rounded">
                         #{idx + 1}
                       </span>
                       <button
@@ -1297,11 +1298,11 @@ export default function PublishPanel({
                   </label>
                 </div>
                 {coverPreview ? (
-                  <Badge variant="info" className="text-[10px] px-2 py-0">
+                  <Badge variant="info" className="text-xs px-2 py-0">
                     Capa Personalizada Ativa
                   </Badge>
                 ) : (
-                  <span className="text-[10px] text-muted-foreground">Padrão: 1º quadro</span>
+                  <span className="text-xs text-muted-foreground">Padrão: 1º quadro</span>
                 )}
               </div>
 
@@ -1317,23 +1318,22 @@ export default function PublishPanel({
                       <span className="text-xs font-semibold text-foreground truncate">
                         {coverFile ? coverFile.name : 'Imagem de capa personalizada'}
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         Exibida na grade do perfil e feed de Reels
                       </span>
                     </div>
                   </div>
-                  <button
+                  <Tip label={"Remover capa personalizada"}><button
                     type="button"
                     onClick={() => {
                       setCoverFile(null);
                       setCoverPreview(null);
                       setCoverUrl(null);
                     }}
-                    className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                    title="Remover capa personalizada"
+                    className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors shrink-0" aria-label={"Remover capa personalizada"}
                   >
                     <X className="w-4 h-4" />
-                  </button>
+                  </button></Tip>
                 </div>
               ) : (
                 <div className="relative flex items-center justify-between p-3 rounded-xl border border-dashed border-input hover:border-foreground/30 bg-accent/10 hover:bg-accent/20 transition-all cursor-pointer">
@@ -1355,7 +1355,7 @@ export default function PublishPanel({
                       <span className="text-xs font-semibold text-foreground">
                         Definir capa personalizada para o Reels
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         JPG ou PNG em 9:16 (se não escolher, a Meta usa o 1º quadro)
                       </span>
                     </div>
@@ -1379,7 +1379,7 @@ export default function PublishPanel({
                   <label className="text-xs font-bold text-foreground block">
                     Trilha Sonora / Música (Opcional)
                   </label>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {kind === 'reels'
                       ? 'Áudio de exibição no Reels.'
                       : kind === 'story'
@@ -1436,18 +1436,17 @@ export default function PublishPanel({
                         </div>
                       )}
                       {selectedTrack.preview_url && (
-                        <button
+                        <Tip label={panelAudioPlaying ? 'Pausar prévia' : 'Ouvir prévia (30s)'}><button
                           type="button"
                           onClick={handleTogglePanelAudio}
                           className="absolute inset-0 bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors cursor-pointer"
-                          title={panelAudioPlaying ? 'Pausar prévia' : 'Ouvir prévia (30s)'}
                         >
                           {panelAudioPlaying ? (
                             <Pause className="w-4 h-4 text-primary fill-primary" />
                           ) : (
                             <Play className="w-4 h-4 text-white fill-white ml-0.5" />
                           )}
-                        </button>
+                        </button></Tip>
                       )}
                     </div>
                     <div className="flex flex-col min-w-0">
@@ -1463,7 +1462,7 @@ export default function PublishPanel({
                           </div>
                         )}
                       </div>
-                      <span className="text-[11px] text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         {selectedTrack.artist}
                       </span>
                       <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
@@ -1471,7 +1470,7 @@ export default function PublishPanel({
                           href={selectedTrack.instagram_search_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[10px] text-primary hover:underline flex items-center gap-1 font-semibold"
+                          className="text-xs text-primary hover:underline flex items-center gap-1 font-semibold"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Instagram className="w-2.5 h-2.5" />
@@ -1480,39 +1479,36 @@ export default function PublishPanel({
                         </a>
 
                         {selectedTrack.preview_url && (
-                          <a
+                          <Tip label={"Baixar áudio de 30s para embutir no Canva ou CapCut"}><a
                             href={selectedTrack.preview_url}
                             download={`${selectedTrack.title}.mp3`}
                             target="_blank"
-                            className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium"
-                            title="Baixar áudio de 30s para embutir no Canva ou CapCut"
+                            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Download className="w-2.5 h-2.5 text-primary" />
                             Baixar MP3 (p/ Vídeo)
-                          </a>
+                          </a></Tip>
                         )}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
+                    <Tip label={"Trocar música"}><button
                       type="button"
                       onClick={() => setAudioPickerOpen(true)}
                       className="px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent/40 rounded-lg transition-colors cursor-pointer"
-                      title="Trocar música"
                     >
                       Trocar
-                    </button>
-                    <button
+                    </button></Tip>
+                    <Tip label={"Remover música"}><button
                       type="button"
                       onClick={handleClearAudio}
-                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
-                      title="Remover música"
+                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer" aria-label={"Remover música"}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    </button></Tip>
                   </div>
                 </div>
               ) : (
@@ -1530,20 +1526,19 @@ export default function PublishPanel({
                     className="h-9.5 pl-9 pr-8 w-full rounded-xl bg-accent/20 border border-input text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-sans"
                   />
                   {audioName.trim() && (
-                    <button
+                    <Tip label={"Limpar música"}><button
                       type="button"
                       onClick={handleClearAudio}
-                      className="absolute right-2.5 p-1 text-muted-foreground hover:text-foreground"
-                      title="Limpar música"
+                      className="absolute right-2.5 p-1 text-muted-foreground hover:text-foreground" aria-label={"Limpar música"}
                     >
                       <X className="w-3.5 h-3.5" />
-                    </button>
+                    </button></Tip>
                   )}
                 </div>
               )}
 
               {kind !== 'reels' && (
-                <div className="mt-1 pt-2.5 border-t border-border/40 flex flex-col gap-1.5 text-[11px] text-muted-foreground/90">
+                <div className="mt-1 pt-2.5 border-t border-border flex flex-col gap-1.5 text-xs text-muted-foreground">
                   <div className="flex items-start gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 shrink-0 text-primary mt-0.5" />
                     <div className="flex flex-col gap-1">
@@ -1595,7 +1590,7 @@ export default function PublishPanel({
                 <MapPin className="w-3.5 h-3.5 text-primary" />
                 Localização da Postagem
               </label>
-              <span className="text-[10px] text-muted-foreground">Opcional</span>
+              <span className="text-xs text-muted-foreground">Opcional</span>
             </div>
             <LocationPicker
               locationId={locationId}
@@ -1615,7 +1610,7 @@ export default function PublishPanel({
                   <User className="w-3.5 h-3.5 text-primary" />
                   Colaboradores do Post (até 5 perfis)
                 </label>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   Receberão convite de co-autoria
                 </span>
               </div>
@@ -2133,27 +2128,27 @@ export default function PublishPanel({
                   </p>
                   <div className="flex flex-wrap items-center gap-1.5 mt-2">
                     {locationName && (
-                      <span className="text-[11px] bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
+                      <span className="text-xs bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
                         <MapPin className="w-3 h-3 text-primary" /> {locationName}
                       </span>
                     )}
                     {audioName.trim() && (
-                      <span className="text-[11px] bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
+                      <span className="text-xs bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
                         <Music className="w-3 h-3 text-primary" /> {audioName}
                       </span>
                     )}
                     {collaboratorTags.length > 0 && (
-                      <span className="text-[11px] bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
+                      <span className="text-xs bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
                         <User className="w-3 h-3 text-primary" /> {collaboratorTags.map((c) => `@${c.username}`).join(', ')}
                       </span>
                     )}
                     {coverPreview && (
-                      <span className="text-[11px] bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
+                      <span className="text-xs bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
                         <ImagePlus className="w-3 h-3 text-primary" /> Capa personalizada
                       </span>
                     )}
                     {autoEnabled && (
-                      <span className="text-[11px] bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <span className="text-xs bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                         <Zap className="w-3 h-3" /> DM Automática ({autoKeywords})
                       </span>
                     )}
@@ -2179,7 +2174,7 @@ export default function PublishPanel({
                     <span className="text-xs font-bold text-foreground">
                       Quer a música oficial da Meta tocando no post?
                     </span>
-                    <span className="text-[11px] text-muted-foreground truncate">
+                    <span className="text-xs text-muted-foreground truncate">
                       Use o kit para baixar mídias, copiar legenda e abrir o áudio no app.
                     </span>
                   </div>
@@ -2345,16 +2340,15 @@ export default function PublishPanel({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <div
+                    <Tip label={isScheduled ? 'Clique para editar esta publicação no simulador' : undefined}><div
                       onClick={() => isScheduled && handleStartEdit(post)}
                       className={`flex items-center gap-3.5 min-w-0 ${isScheduled ? 'cursor-pointer group' : ''}`}
-                      title={isScheduled ? 'Clique para editar esta publicação no simulador' : undefined}
                     >
                       {/* Thumbnail */}
                       <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-accent shrink-0 border border-border group-hover:border-foreground/40 transition-colors">
                         <img src={post.cover_url || post.media_url} alt="" className="w-full h-full object-cover" />
                         {isCarouselPost && post.media_urls && (
-                          <span className="absolute bottom-0 right-0 bg-black/80 text-white text-[11px] font-mono font-bold px-1 rounded-tl">
+                          <span className="absolute bottom-0 right-0 bg-black/80 text-white text-xs font-mono font-bold px-1 rounded-tl">
                             {post.media_urls.length}
                           </span>
                         )}
@@ -2421,7 +2415,7 @@ export default function PublishPanel({
                           </div>
                         )}
                       </div>
-                    </div>
+                    </div></Tip>
 
                     {/* Ações e Badges */}
                     <div className="flex items-center gap-2.5 shrink-0">
@@ -2431,19 +2425,18 @@ export default function PublishPanel({
                       </Badge>
 
                       {isScheduled && (
-                        <button
+                        <Tip label={"Editar publicação no simulador"}><button
                           type="button"
                           onClick={() => handleStartEdit(post)}
                           className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-ui cursor-pointer shadow-2xs active:scale-[0.98] ${
                             isEditingThis
                               ? 'bg-warning text-warning-foreground border-warning-ring shadow-xs'
                               : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 hover:border-primary/50'
-                          }`}
-                          title="Editar publicação no simulador"
+                          }`} aria-label={"Editar publicação no simulador"}
                         >
                           <Pencil className="w-3.5 h-3.5" />
                           <span>{isEditingThis ? 'Editando' : 'Editar'}</span>
-                        </button>
+                        </button></Tip>
                       )}
 
                       {post.status === 'published' && post.ig_media_id && (
@@ -2458,20 +2451,21 @@ export default function PublishPanel({
                         </Button>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => handleDeletePost(post)}
-                        className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                        title={
-                          post.status === 'scheduled'
+                      <Tip label={post.status === 'scheduled'
                             ? 'Cancelar e excluir agendamento'
                             : post.status === 'published'
                             ? 'Excluir publicação do histórico'
-                            : 'Excluir registro da fila'
-                        }
+                            : 'Excluir registro da fila'}><button
+                        type="button"
+                        onClick={() => handleDeletePost(post)}
+                        className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer" aria-label={post.status === 'scheduled'
+                            ? 'Cancelar e excluir agendamento'
+                            : post.status === 'published'
+                            ? 'Excluir publicação do histórico'
+                            : 'Excluir registro da fila'}
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </button></Tip>
                     </div>
                   </div>
 

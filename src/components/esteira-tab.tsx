@@ -491,43 +491,40 @@ export default function EsteiraTab({
 
           {/* Alternador Kanban / Lista / Feed 3x3 (Pill Tab em Verde GENS) */}
           <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border">
-            <button
+            <Tip label={"Visualização em Kanban"}><button
               type="button"
               onClick={() => setViewMode('kanban')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
                 viewMode === 'kanban'
                   ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
-              title="Visualização em Kanban"
+              }`} aria-label={"Visualização em Kanban"}
             >
               <Columns3 className="w-4 h-4" />
-            </button>
-            <button
+            </button></Tip>
+            <Tip label={"Visualização em Lista"}><button
               type="button"
               onClick={() => setViewMode('list')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
                 viewMode === 'list'
                   ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
-              title="Visualização em Lista"
+              }`} aria-label={"Visualização em Lista"}
             >
               <Layers className="w-4 h-4" />
-            </button>
-            <button
+            </button></Tip>
+            <Tip label={"Visualização Preview de Feed 3x3"}><button
               type="button"
               onClick={() => setViewMode('feed')}
               className={`p-1.5 rounded-lg text-xs font-bold transition-ui cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'feed'
                   ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
-              title="Visualização Preview de Feed 3x3"
+              }`} aria-label={"Visualização Preview de Feed 3x3"}
             >
               <Grid3X3 className="w-4 h-4" />
               <span className="hidden sm:inline text-xs">Feed 3x3</span>
-            </button>
+            </button></Tip>
           </div>
 
           {/* Botão Sincronizar Notion */}
@@ -919,32 +916,30 @@ export default function EsteiraTab({
 
                           <div className="flex items-center gap-1.5 shrink-0">
                             {item.prioridade && item.prioridade !== 'media' && PRIORIDADE_CONFIG[item.prioridade] && (
-                              <span
+                              <Tip label={`Prioridade ${PRIORIDADE_CONFIG[item.prioridade].label}`}><span
                                 className={`px-2 py-0.5 rounded-md text-xs font-semibold border flex items-center gap-1.5 ${
                                   PRIORIDADE_CONFIG[item.prioridade].bg
                                 } ${PRIORIDADE_CONFIG[item.prioridade].text} ${
                                   PRIORIDADE_CONFIG[item.prioridade].border
                                 }`}
-                                title={`Prioridade ${PRIORIDADE_CONFIG[item.prioridade].label}`}
                               >
                                 <span aria-hidden className={`size-1.5 rounded-full ${PRIORIDADE_CONFIG[item.prioridade].dot}`} />
                                 <span>{PRIORIDADE_CONFIG[item.prioridade].label}</span>
-                              </span>
+                              </span></Tip>
                             )}
                             <Badge variant={info.variant} className="text-xs font-bold">
                               {info.label}
                             </Badge>
-                            <button
+                            <Tip label={"Editar Demanda"}><button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleAbrirModalEditar(item);
-                              }}
-                              title="Editar Demanda"
+                              }} aria-label={"Editar Demanda"}
                               className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
-                            </button>
+                            </button></Tip>
                           </div>
                         </div>
 
@@ -996,7 +991,7 @@ export default function EsteiraTab({
                             <span className="truncate">
                               {item.responsavel.nome}
                               {(item.co_responsaveis_ids?.length ?? 0) > 0 && (
-                                <span className="text-muted-foreground/70"> +{item.co_responsaveis_ids!.length}</span>
+                                <span className="text-muted-foreground"> +{item.co_responsaveis_ids!.length}</span>
                               )}
                             </span>
                           </div>
@@ -1009,17 +1004,16 @@ export default function EsteiraTab({
                               <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse shrink-0" />
                               <span className="truncate">Aguardando {item.cliente?.nome || 'Cliente'}</span>
                             </div>
-                            <button
+                            <Tip label={"Ver exatamente como o cliente visualiza a tela de aprovação"}><button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 window.open(`/aprovacao/${item.token_aprovacao}`, '_blank');
                               }}
-                              title="Ver exatamente como o cliente visualiza a tela de aprovação"
                               className="text-muted-foreground hover:text-foreground shrink-0 font-mono text-xs underline cursor-pointer"
                             >
                               Ver tela
-                            </button>
+                            </button></Tip>
                           </div>
                         )}
 
@@ -1067,31 +1061,29 @@ export default function EsteiraTab({
                         {/* Ações Rápidas: Link, Editar e Enviar p/ Aprovação / Agendar */}
                         <div className="border-t border-border pt-2.5 flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1">
-                            <button
+                            <Tip label={"Copiar link público de aprovação"}><button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleCopiarLinkAprovacao(item.token_aprovacao);
-                              }}
-                              title="Copiar link público de aprovação"
+                              }} aria-label={"Copiar link público de aprovação"}
                               className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
                             >
                               <Share2 className="w-3 h-3" />
                               <span>Link</span>
-                            </button>
+                            </button></Tip>
 
-                            <button
+                            <Tip label={"Editar Demanda"}><button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleAbrirModalEditar(item);
-                              }}
-                              title="Editar Demanda"
+                              }} aria-label={"Editar Demanda"}
                               className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
                             >
                               <Edit2 className="w-3 h-3" />
                               <span>Editar</span>
-                            </button>
+                            </button></Tip>
                           </div>
 
                           {(() => {
@@ -1111,48 +1103,45 @@ export default function EsteiraTab({
                             if (isAgendadoCol) {
                               if (isAgendadoComData) {
                                 return (
-                                  <button
+                                  <Tip label={"Ver ou reagendar publicação agendada"}><button
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleLevarParaAgendamento(item);
-                                    }}
-                                    title="Ver ou reagendar publicação agendada"
+                                    }} aria-label={"Ver ou reagendar publicação agendada"}
                                     className="text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 transition-ui cursor-pointer"
                                   >
                                     <Calendar className="w-3 h-3" />
                                     <span>Agendado</span>
-                                  </button>
+                                  </button></Tip>
                                 );
                               }
                               return (
-                                <button
+                                <Tip label={"Levar demanda aprovada direto para a tela de Agendamento do Instagram"}><button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleLevarParaAgendamento(item);
-                                  }}
-                                  title="Levar demanda aprovada direto para a tela de Agendamento do Instagram"
+                                  }} aria-label={"Levar demanda aprovada direto para a tela de Agendamento do Instagram"}
                                   className="text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-primary hover:bg-primary/85 text-primary-foreground border border-primary/40 shadow-xs transition-ui cursor-pointer"
                                 >
                                   <Sparkles className="w-3 h-3" />
                                   <span>Agendar</span>
-                                </button>
+                                </button></Tip>
                               );
                             }
 
                             return (
-                              <button
+                              <Tip label={item.status === 'revisao_cliente'
+                                    ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
+                                    : 'Enviar para aprovação no WhatsApp Web'}><button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleAbrirModalAprovacao(item);
-                                }}
-                                title={
-                                  item.status === 'revisao_cliente'
+                                }} aria-label={item.status === 'revisao_cliente'
                                     ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
-                                    : 'Enviar para aprovação no WhatsApp Web'
-                                }
+                                    : 'Enviar para aprovação no WhatsApp Web'}
                                 className={`text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-ui cursor-pointer ${
                                   item.status === 'revisao_cliente'
                                     ? 'bg-warning hover:bg-warning/90 text-warning-foreground border-warning-ring'
@@ -1161,7 +1150,7 @@ export default function EsteiraTab({
                               >
                                 <Send className="w-3 h-3" />
                                 <span>{item.status === 'revisao_cliente' ? 'Reenviar' : 'Aprovação'}</span>
-                              </button>
+                              </button></Tip>
                             );
                           })()}
                         </div>

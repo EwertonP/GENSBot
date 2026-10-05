@@ -1,4 +1,5 @@
 'use client';
+import { Tip } from '@/components/ui/tooltip';
 import { SegmentedItem } from '@/components/ui/segmented';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -501,41 +502,38 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                   </div>
 
                   <div className="flex items-center gap-0.5 lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    <button
+                    <Tip label={"Mover para cima"}><button
                       type="button"
                       disabled={idx === 0}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleMoveField(idx, 'up');
                       }}
-                      className="p-2.5 lg:p-1 hover:text-foreground disabled:opacity-20 transition-colors"
-                      title="Mover para cima"
+                      className="p-2.5 lg:p-1 hover:text-foreground disabled:opacity-20 transition-colors" aria-label={"Mover para cima"}
                     >
                       <ChevronUp className="w-3 h-3" />
-                    </button>
-                    <button
+                    </button></Tip>
+                    <Tip label={"Mover para baixo"}><button
                       type="button"
                       disabled={idx === fields.length - 1}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleMoveField(idx, 'down');
                       }}
-                      className="p-2.5 lg:p-1 hover:text-foreground disabled:opacity-20 transition-colors"
-                      title="Mover para baixo"
+                      className="p-2.5 lg:p-1 hover:text-foreground disabled:opacity-20 transition-colors" aria-label={"Mover para baixo"}
                     >
                       <ChevronDown className="w-3 h-3" />
-                    </button>
-                    <button
+                    </button></Tip>
+                    <Tip label={"Excluir pergunta"}><button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteField(f.id);
                       }}
-                      className="p-2.5 lg:p-1 text-muted-foreground hover:text-destructive transition-colors"
-                      title="Excluir pergunta"
+                      className="p-2.5 lg:p-1 text-muted-foreground hover:text-destructive transition-colors" aria-label={"Excluir pergunta"}
                     >
                       <Trash2 className="w-3 h-3" />
-                    </button>
+                    </button></Tip>
                   </div>
                 </div>
               );
