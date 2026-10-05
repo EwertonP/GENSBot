@@ -31,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Sheet } from '@/components/ui/sheet';
 import { ClienteAvatar } from '@/components/cliente-avatar';
-import { STATUS_LABELS, type ConteudoItem, type StatusConteudo, type PrefillAgendamento, gerarLinkWhatsAppAprovacao, ehResponsavel } from '@/lib/conteudo';
+import { STATUS_LABELS, type ConteudoItem, type StatusConteudo, type PrefillAgendamento, gerarLinkWhatsAppAprovacao, ehResponsavel, paraInputData, deInputData, dataLocal, horaLocal } from '@/lib/conteudo';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
 
@@ -159,8 +159,8 @@ export default function CalendarioGeral({
   async function reagendar(item: ConteudoItem, novaData: string) {
     const campo: 'data_programada' | 'prazo' = item.data_programada ? 'data_programada' : 'prazo';
     const anterior = item[campo];
-    if (!anterior || anterior.slice(0, 10) === novaData) return;
-    const novoValor = novaData + anterior.slice(10);
+    if (!anterior || paraInputData(anterior) === novaData) return;
+    const novoValor = deInputData(novaData, anterior)!;
 
     const aplicar = (valor: string) =>
       setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, [campo]: valor } : it)));
@@ -207,7 +207,7 @@ export default function CalendarioGeral({
       const itensDoDia = itemsFiltrados.filter((it) => {
         if (!it.data_programada && !it.prazo) return false;
         const dataAlvo = it.data_programada || it.prazo;
-        return dataAlvo?.startsWith(dataStr);
+        return paraInputData(dataAlvo) === dataStr;
       });
       dias.push({ dia: d, dataStr, itens: itensDoDia });
     }
@@ -237,7 +237,7 @@ export default function CalendarioGeral({
         const itensDoDia = itemsFiltrados.filter((it) => {
           if (!it.data_programada && !it.prazo) return false;
           const dataAlvoStr = it.data_programada || it.prazo;
-          return dataAlvoStr?.startsWith(dataStr);
+          return paraInputData(dataAlvoStr) === dataStr;
         });
 
         diasSemana.push({
@@ -256,7 +256,7 @@ export default function CalendarioGeral({
     const itensDoDia = itemsFiltrados.filter((it) => {
       if (!it.data_programada && !it.prazo) return false;
       const dataAlvoStr = it.data_programada || it.prazo;
-      return dataAlvoStr?.startsWith(dataStr);
+      return paraInputData(dataAlvoStr) === dataStr;
     });
 
     return [{
@@ -430,7 +430,7 @@ export default function CalendarioGeral({
       {/* 3. Grade do Calendário (Mês / Semana / Dia) */}
       <Card padding="none" className="rounded-3xl border border-border overflow-hidden shadow-xs bg-card">
         {viewMode !== 'dia' && (
-          <div className="grid grid-cols-7 border-b border-border bg-muted/40 text-center py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground font-mono">
+          <div className="hidden sm:grid grid-cols-7 border-b border-border bg-muted/40 text-center py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground font-mono">
             <span>Dom</span>
             <span>Seg</span>
             <span>Ter</span>
@@ -443,7 +443,9 @@ export default function CalendarioGeral({
 
         {/* Células em modo Mês ou Semana */}
         {viewMode !== 'dia' ? (
-          <div className="grid grid-cols-7 divide-x divide-y divide-border bg-card">
+          <>
+          <AgendaCelular dias={diasExibicao} onAbrir={setItemModal} />
+          <div className="hidden sm:grid grid-cols-7 divide-x divide-y divide-border bg-card">
             {diasExibicao.map((d, idx) => {
               if (d.dia === null) {
                 return <div key={`empty-${idx}`} className="bg-accent/10 min-h-[120px]" />;
@@ -498,7 +500,7 @@ export default function CalendarioGeral({
                   {/* Lista de Event Blocks no Dia */}
                   <div className="flex flex-col gap-1.5 mt-2 flex-1">
                     {d.itens.slice(0, viewMode === 'semana' ? 6 : 3).map((item) => {
-                      const horaFormatada = item.data_programada ? item.data_programada.slice(11, 16) : null;
+                      const horaFormatada = horaLocal(item.data_programada);
                       const capaUrl = item.arquivos?.[0]?.url;
 
                       return (
@@ -577,6 +579,7 @@ export default function CalendarioGeral({
               );
             })}
           </div>
+          </>
         ) : (
           /* Modo Dia Único Detalhado */
           <div className="p-6 flex flex-col gap-4">
@@ -600,7 +603,7 @@ export default function CalendarioGeral({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {diasExibicao[0]?.itens.map((item) => {
                   const statusInfo = STATUS_LABELS[item.status as StatusConteudo] || { label: item.status };
-                  const horaFormatada = item.data_programada ? item.data_programada.slice(11, 16) : null;
+                  const horaFormatada = horaLocal(item.data_programada);
                   const capaUrl = item.arquivos?.[0]?.url;
 
                   return (
@@ -772,14 +775,14 @@ export default function CalendarioGeral({
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground font-medium">Data de Postagem:</span>
                     <strong className="text-foreground font-mono">
-                      {itemModal.data_programada ? itemModal.data_programada.slice(0, 16).replace('T', ' ') : 'Não agendada'}
+                      {itemModal.data_programada ? `${dataLocal(itemModal.data_programada).toLocaleDateString('pt-BR')}${horaLocal(itemModal.data_programada) ? ` às ${horaLocal(itemModal.data_programada)}` : ''}` : 'Não agendada'}
                     </strong>
                   </div>
                   {(itemModal.data_programada || itemModal.prazo) && (
                     <label className="flex items-center justify-between gap-2 border-t border-border pt-1.5">
                       <span className="text-muted-foreground font-medium">Mudar data:</span>
                       <DatePicker
-                        value={(itemModal.data_programada || itemModal.prazo || '').slice(0, 10)}
+                        value={paraInputData(itemModal.data_programada || itemModal.prazo)}
                         onChange={(e) => e.target.value && reagendar(itemModal, e.target.value)}
                         className="h-8 w-auto rounded-lg px-2 text-xs"
                         aria-label="Mudar data"
@@ -789,7 +792,7 @@ export default function CalendarioGeral({
                   {itemModal.prazo && (
                     <div className="flex items-center justify-between border-t border-border pt-1.5">
                       <span className="text-muted-foreground font-medium">Prazo Interno:</span>
-                      <strong className="text-foreground font-mono">{itemModal.prazo.slice(0, 10)}</strong>
+                      <strong className="text-foreground font-mono">{dataLocal(itemModal.prazo).toLocaleDateString('pt-BR')}</strong>
                     </div>
                   )}
                 </div>
@@ -881,5 +884,50 @@ export default function CalendarioGeral({
         )}
       </Sheet>
     </div>
+  );
+}
+
+/** No celular a grade de 7 colunas não cabe: os dias com post viram uma agenda em lista. */
+function AgendaCelular({ dias, onAbrir }: { dias: DiaCalendario[]; onAbrir: (item: ConteudoItem) => void }) {
+  const comPosts = dias.filter((d) => d.dia !== null && d.itens.length > 0);
+  if (comPosts.length === 0) {
+    return <p className="sm:hidden px-4 py-10 text-center text-sm text-muted-foreground">Nenhuma publicação neste período.</p>;
+  }
+  const hojeStr = paraInputData(new Date().toISOString());
+  return (
+    <ol className="sm:hidden divide-y divide-border">
+      {comPosts.map((d) => {
+        const data = new Date(`${d.dataStr}T12:00:00`);
+        const eHoje = d.dataStr === hojeStr;
+        return (
+          <li key={d.dataStr} className="px-4 py-3 flex flex-col gap-2">
+            <h4 className="flex items-baseline gap-2 text-sm font-semibold text-foreground capitalize">
+              {data.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })}
+              {eHoje && <Badge variant="brand">Hoje</Badge>}
+            </h4>
+            <ul className="flex flex-col gap-1.5">
+              {d.itens.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => onAbrir(item)}
+                    className="w-full min-h-11 flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2 text-left active:bg-accent cursor-pointer"
+                  >
+                    <ClienteAvatar nome={item.cliente?.nome || 'Cliente'} cor={item.cliente?.cor} fotoUrl={item.cliente?.foto_url} tamanho="sm" className="shrink-0" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-foreground truncate">{item.titulo || item.tipo}</span>
+                      <span className="block text-xs text-muted-foreground truncate">
+                        {item.cliente?.nome} · {item.tipo}
+                      </span>
+                    </span>
+                    {horaLocal(item.data_programada) && <span className="text-xs text-muted-foreground tabular-nums">{horaLocal(item.data_programada)}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

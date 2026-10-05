@@ -12,6 +12,7 @@ import {
   deInputData,
   distanciaEmDias,
   ehDataSemHora,
+  horaLocal,
   paraInputData,
   type StatusConteudo,
 } from './conteudo';
@@ -45,6 +46,13 @@ describe('datas só de dia (prazo e data programada)', () => {
     expect(deInputData('2026-10-12', null)).toBe('2026-10-12T00:00:00.000Z');
     expect(deInputData('2026-10-12', '2026-10-01T00:00:00+00:00')).toBe('2026-10-12T00:00:00.000Z');
     expect(deInputData('', '2026-10-01T00:00:00+00:00')).toBeNull();
+  });
+
+  it('mostra a hora no fuso local e nenhuma hora em data só de dia', () => {
+    const agendado = new Date(2026, 8, 22, 11, 50).toISOString();
+    expect(horaLocal(agendado)).toBe('11:50');
+    expect(horaLocal('2026-09-22T00:00:00+00:00')).toBeNull();
+    expect(horaLocal(null)).toBeNull();
   });
 
   it('descreve a distância em dias', () => {

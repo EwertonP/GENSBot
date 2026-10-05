@@ -857,7 +857,7 @@ export default function Dashboard() {
               type="button"
               onClick={() => setIsMobileMenuOpen(false)}
               aria-label="Fechar menu"
-              className="md:hidden p-1.5 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+              className="md:hidden size-10 inline-flex items-center justify-center rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1017,7 +1017,7 @@ export default function Dashboard() {
                   </span>
                 )
               ) : (
-                gi > 0 && <div className="border-t border-sidebar-border/60 my-1 mx-2" />
+                gi > 0 && <div className="border-t border-sidebar-border my-1 mx-2" />
               )}
               {group.items.map(item => {
                 const Icon = item.icon;
@@ -1030,7 +1030,7 @@ export default function Dashboard() {
                     aria-current={active ? 'page' : undefined}
                     aria-label={sidebarCompacta ? item.label : undefined}
                     onClick={() => navegarPara(item.id)}
-                    className={`relative w-full flex items-center ${sidebarCompacta ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2'} rounded-xl text-sm font-medium transition-colors cursor-pointer text-left ${
+                    className={`relative w-full flex items-center ${sidebarCompacta ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-3 md:py-2'} rounded-xl text-sm font-medium transition-colors cursor-pointer text-left ${
                       active
                         ? 'text-sidebar-accent-foreground bg-sidebar-accent'
                         : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
@@ -1071,12 +1071,12 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-y-auto relative">
 
         {/* Mobile Top Bar */}
-        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-card/90 backdrop-blur-xl border-b border-border">
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-1.5 bg-card/90 backdrop-blur-xl border-b border-border">
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Abrir menu de navegação"
-              className="text-muted-foreground hover:text-foreground p-1"
+              className="-ml-2 size-10 inline-flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
@@ -1087,7 +1087,7 @@ export default function Dashboard() {
               type="button"
               onClick={() => setPaletteAberta(true)}
               aria-label="Busca rápida"
-              className="p-1.5 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+              className="size-10 inline-flex items-center justify-center rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <Search className="w-4 h-4" />
             </button>
@@ -1096,7 +1096,7 @@ export default function Dashboard() {
               type="button"
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
-              className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-ui duration-150 cursor-pointer shadow-2xs flex items-center justify-center"
+              className="size-10 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-ui duration-150 cursor-pointer shadow-2xs flex items-center justify-center"
             >
               {theme === 'dark' ? (
                 <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
@@ -1185,6 +1185,7 @@ export default function Dashboard() {
         <main aria-busy={trocandoConta} className="flex-1 p-4 sm:p-6 md:p-8 bg-background max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] w-full mx-auto space-y-6">
           {/* Entrada só com opacidade e sem esperar a saída da tela anterior: a troca
               é imediata (interrompível) e, com "reduzir movimento", segue sendo só fade. */}
+          <p className="md:hidden -mt-1 text-sm text-muted-foreground">{TELAS[activeTab].subtitulo}</p>
           <motion.div
             key={activeTab}
             initial={{ opacity: 0 }}

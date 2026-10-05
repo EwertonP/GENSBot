@@ -802,7 +802,7 @@ export function StepTimeline({ form, setForm, tail, onChangeTail, showToast, utm
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-muted-foreground">Aguardar (minutos)</label>
                 <Input
