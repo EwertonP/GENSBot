@@ -66,6 +66,13 @@ export function dataLocal(iso: string): Date {
   return new Date(iso);
 }
 
+/** Horário local (HH:mm) de uma data com hora; `null` para datas só de dia. */
+export function horaLocal(iso?: string | null): string | null {
+  if (!iso || ehDataSemHora(iso)) return null;
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 /** ISO do banco → valor de `<input type="date">` (AAAA-MM-DD no fuso local). */
 export function paraInputData(iso?: string | null): string {
   if (!iso) return '';

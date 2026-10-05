@@ -108,6 +108,8 @@ export default function AutomationsTab(props: AutomationsTabProps) {
   // dos passos numerados da timeline (StepCard), mas os dados/lógica dos ramos
   // continuam em wizardCondition (não fundidos no array único ainda).
   const [conditionExpanded, setConditionExpanded] = useState(true);
+  // No celular a prévia do Direct (300×600) ocuparia a tela toda: fica atrás de um botão.
+  const [previaCelular, setPreviaCelular] = useState(false);
 
   return (
     <>
@@ -591,7 +593,10 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                   </div>
 
                   {/* Right Column: Phone Simulator Mockup */}
-                  <div className="lg:col-span-4 sticky top-6 flex flex-col items-center gap-3">
+                  <Button type="button" variant="secondary" onClick={() => setPreviaCelular((v) => !v)} className="lg:hidden w-full">
+                    {previaCelular ? 'Esconder prévia do Direct' : 'Ver prévia do Direct'}
+                  </Button>
+                  <div className={`${previaCelular ? 'flex' : 'hidden'} lg:flex lg:col-span-4 lg:sticky top-6 flex-col items-center gap-3`}>
                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest bg-card border border-accent px-3 py-1.5 rounded-full shadow-xs">
                       Visualização em Tempo Real (Direct)
                     </span>

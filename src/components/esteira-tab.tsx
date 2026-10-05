@@ -731,7 +731,24 @@ export default function EsteiraTab({
           }}
         />
       ) : viewMode === 'kanban' ? (
-        <ScrollShadow className="flex gap-4 pb-6 pt-1 select-none">
+        <>
+        {/* No celular, uma coluna por tela: o seletor mostra em que etapa você está e pula direto */}
+        <nav aria-label="Etapas" className="sm:hidden -mx-4 px-4 flex gap-1.5 overflow-x-auto pb-1">
+          {COLUNAS_KANBAN.filter((col) => !ocultarPublicados || col !== 'publicado').map((colStatus) => (
+            <button
+              key={colStatus}
+              type="button"
+              onClick={() => document.getElementById(`coluna-${colStatus}`)?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })}
+              className="shrink-0 h-9 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm font-medium text-foreground active:bg-accent cursor-pointer"
+            >
+              {STATUS_LABELS[colStatus].label}
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === colStatus).length}
+              </span>
+            </button>
+          ))}
+        </nav>
+        <ScrollShadow className="flex gap-4 pb-6 pt-1 select-none snap-x snap-mandatory sm:snap-none">
           {COLUNAS_KANBAN.filter((col) => !ocultarPublicados || col !== 'publicado').map((colStatus) => {
             const itensDaColuna = itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === colStatus);
             const info = STATUS_LABELS[colStatus];
@@ -740,6 +757,7 @@ export default function EsteiraTab({
             return (
               <div
                 key={colStatus}
+                id={`coluna-${colStatus}`}
                 onDragOver={(e) => {
                   e.preventDefault();
                   e.dataTransfer.dropEffect = 'move';
@@ -755,7 +773,7 @@ export default function EsteiraTab({
                   const itemId = e.dataTransfer.getData('text/plain');
                   if (itemId) handleMudarStatus(itemId, colStatus);
                 }}
-                className={`w-72 shrink-0 flex flex-col gap-3 p-3 rounded-2xl border transition-all duration-200 min-h-[520px] ${
+                className={`w-[85vw] max-w-80 sm:w-72 snap-start shrink-0 flex flex-col gap-3 p-3 rounded-2xl border transition-all duration-200 min-h-60 sm:min-h-[520px] ${
                   isOver
                     ? 'bg-lime/10 border-primary ring-2 ring-primary/20 shadow-md'
                     : 'bg-accent/25 border-border'
@@ -1155,6 +1173,7 @@ export default function EsteiraTab({
             );
           })}
         </ScrollShadow>
+        </>
       ) : (
         /* Visualização em Lista */
         <Card padding="lg" className="rounded-2xl">

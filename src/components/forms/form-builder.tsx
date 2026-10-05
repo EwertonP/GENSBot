@@ -151,6 +151,8 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'pergunta' | 'tema' | 'ajustes'>('pergunta');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
+  // Abaixo de lg as três colunas não cabem lado a lado: uma de cada vez, por aba.
+  const [painelCelular, setPainelCelular] = useState<'perguntas' | 'previa' | 'ajustes'>('perguntas');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -319,7 +321,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
     <div className="flex flex-col h-[calc(100vh-68px)] bg-background overflow-hidden font-sans">
       {/* Topo do Construtor */}
       <header className="h-14 border-b border-border bg-card px-4 flex items-center justify-between shrink-0 z-20">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <Button
             type="button"
             variant="ghost"
@@ -335,13 +337,14 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
             type="text"
             value={form.titulo}
             onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-            className="font-display font-bold text-sm text-foreground bg-transparent hover:bg-accent px-2 py-1 rounded-lg transition-ui border border-transparent hover:border-border focus:border-input focus:bg-card focus:outline-none"
+            aria-label="Título do formulário"
+            className="min-w-0 w-full max-w-[160px] sm:max-w-none font-display font-bold text-sm text-foreground bg-transparent hover:bg-accent px-2 py-1 rounded-lg transition-ui border border-transparent hover:border-border focus:border-input focus:bg-card focus:outline-none"
             placeholder="Título do Formulário"
           />
         </div>
 
         {/* Alternador Desktop / Celular */}
-        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl">
+        <div className="hidden lg:flex items-center gap-1 bg-muted p-1 rounded-xl">
           <SegmentedItem
             type="button"
             onClick={() => setPreviewDevice('desktop')}
@@ -382,8 +385,8 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
             size="sm"
             onClick={() => setShowShareModal(true)}
           >
-            <Share2 className="w-3.5 h-3.5 mr-1.5" />
-            <span>Compartilhar</span>
+            <Share2 className="w-3.5 h-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline">Compartilhar</span>
           </Button>
 
           <Button
@@ -394,16 +397,37 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
             loading={saving}
             className="shadow-xs"
           >
-            <Save className="w-3.5 h-3.5 mr-1.5" />
-            <span>Salvar</span>
+            <Save className="w-3.5 h-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline">Salvar</span>
           </Button>
         </div>
       </header>
 
-      {/* Grid com 3 Colunas */}
+      <div role="tablist" aria-label="Partes do construtor" className="lg:hidden grid grid-cols-3 gap-1 p-1 m-2 bg-muted rounded-xl shrink-0">
+        {([
+          ['perguntas', 'Perguntas'],
+          ['previa', 'Prévia'],
+          ['ajustes', 'Ajustes'],
+        ] as const).map(([id, rotulo]) => (
+          <SegmentedItem
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={painelCelular === id}
+            onClick={() => setPainelCelular(id)}
+            group="form-builder-celular"
+            active={painelCelular === id}
+            className="h-10 rounded-lg text-sm font-semibold"
+          >
+            {rotulo}
+          </SegmentedItem>
+        ))}
+      </div>
+
+      {/* Grid com 3 Colunas (no celular, uma por vez) */}
       <div className="flex-1 flex overflow-hidden">
         {/* COLUNA 1: Lista Estruturada de Perguntas */}
-        <aside className="w-68 border-r border-border bg-card flex flex-col shrink-0">
+        <aside className={`${painelCelular === 'perguntas' ? 'flex' : 'hidden'} lg:flex w-full lg:w-68 lg:border-r border-border bg-card flex-col shrink-0`}>
           <div className="p-3 border-b border-border flex items-center justify-between">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
               Etapas ({fields.length})
@@ -462,6 +486,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                   onClick={() => {
                     setSelectedFieldId(f.id);
                     setActiveTab('pergunta');
+                    setPainelCelular('ajustes');
                   }}
                   className={`group p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-ui ${
                     isSelected
@@ -475,7 +500,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                     <span className="text-xs truncate">{f.label || 'Pergunta sem título'}</span>
                   </div>
 
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-0.5 lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                     <button
                       type="button"
                       disabled={idx === 0}
@@ -483,7 +508,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         e.stopPropagation();
                         handleMoveField(idx, 'up');
                       }}
-                      className="p-1 hover:text-foreground disabled:opacity-20 transition-colors"
+                      className="p-2.5 lg:p-1 hover:text-foreground disabled:opacity-20 transition-colors"
                       title="Mover para cima"
                     >
                       <ChevronUp className="w-3 h-3" />
@@ -495,7 +520,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         e.stopPropagation();
                         handleMoveField(idx, 'down');
                       }}
-                      className="p-1 hover:text-foreground disabled:opacity-20 transition-colors"
+                      className="p-2.5 lg:p-1 hover:text-foreground disabled:opacity-20 transition-colors"
                       title="Mover para baixo"
                     >
                       <ChevronDown className="w-3 h-3" />
@@ -506,7 +531,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                         e.stopPropagation();
                         handleDeleteField(f.id);
                       }}
-                      className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                      className="p-2.5 lg:p-1 text-muted-foreground hover:text-destructive transition-colors"
                       title="Excluir pergunta"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -519,9 +544,9 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
         </aside>
 
         {/* COLUNA 2: Canvas com Moldura macOS / Mobile */}
-        <main className="flex-1 flex flex-col items-center justify-center p-6 overflow-hidden bg-background">
+        <main className={`${painelCelular === 'previa' ? 'flex' : 'hidden'} lg:flex flex-1 flex-col items-center justify-center p-3 sm:p-6 overflow-hidden bg-background`}>
           {previewDevice === 'desktop' ? (
-            /* Moldura Janela macOS */
+            /* Moldura Janela macOS (no celular a prévia já é do tamanho do celular) */
             <div className="w-full max-w-4xl h-full flex flex-col rounded-2xl shadow-sm overflow-hidden border border-border bg-card transition-ui">
               <div className="h-9 bg-muted/50 border-b border-border px-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-1.5">
@@ -541,7 +566,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
             </div>
           ) : (
             /* Moldura Celular */
-            <div className="w-[360px] max-h-[700px] h-full flex flex-col rounded-2xl p-2 bg-card shadow-sm border border-border shrink-0 transition-ui">
+            <div className="w-full max-w-[360px] max-h-[700px] h-full flex flex-col rounded-2xl p-2 bg-card shadow-sm border border-border shrink-0 transition-ui">
               <div className="h-6 flex items-center justify-center shrink-0">
                 <div className="w-16 h-1 rounded-full bg-muted-foreground/30" />
               </div>
@@ -556,7 +581,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
         </main>
 
         {/* COLUNA 3: Inspetor de Propriedades */}
-        <aside className="w-80 border-l border-border bg-card flex flex-col shrink-0">
+        <aside className={`${painelCelular === 'ajustes' ? 'flex' : 'hidden'} lg:flex w-full lg:w-80 lg:border-l border-border bg-card flex-col shrink-0`}>
           <div className="h-12 border-b border-border flex items-center justify-around px-2 shrink-0">
             <button
               type="button"
