@@ -118,6 +118,8 @@ Receita:
 | `Tip` (`ui/tooltip.tsx`) | Tooltip acessível (hover + foco), com `shortcut` opcional. Substitui `title=`. Botão só de ícone continua precisando de `aria-label`. |
 | `Skeleton` / `SkeletonRows` | Carregamento com o formato do conteúdo, no lugar de spinner ou texto solto. |
 | `EmptyState` | Ícone, título, descrição, `action` (próximo passo) e `secondaryAction`. `size="compact"` para colunas e painéis. |
+| `DataTable` / `DataTablePagination` (`ui/data-table.tsx`) | Toda lista em tabela usa este componente (receita da Audiência): 14px, cabeçalho `text-xs font-medium` em caixa normal, linha clicável, `SkeletonRows` ao carregar, `empty` no lugar das linhas. Cada coluna diz seu papel no celular (`mobile: 'primary' \| 'meta' \| 'hidden'`); abaixo de `sm` a linha vira cartão. Ações da linha em `actions`, com `IconButton`. |
+| `IconButton` (`ui/icon-button.tsx`) | Botão só de ícone: `label` vira `aria-label` e `Tip`. Toque de 40px no celular, 32px a partir de `sm`. Use em vez de `<button className="p-1.5 …">`. |
 | `CalendarPicker`, `MemberChipSelect` | Ver o código. |
 | `CommandPalette` | Busca rápida (Ctrl/⌘+K), com itens `{ label, grupo, icon, keywords, run }`. A busca ignora acentos. |
 
@@ -143,6 +145,17 @@ Raios: card/modal `rounded-2xl`, campo/botão `rounded-xl`, pill/avatar `rounded
 - **DO:** texto secundário é `text-muted-foreground`, sem `/50` ou `/60`.
 - **DON'T:** `text-white` em fundo de status, `text-lime` em fundo claro, hex solto, paleta crua fora das exceções da seção 1.
 - **DON'T:** sombra "bloco" sem blur (`4px 4px 0`). A profundidade é sombra suave com offset e blur.
+
+### 5.1 Celular
+
+A equipe usa o sistema no celular. Toda tela nova é conferida em 375px antes do merge.
+
+- **Pontos de quebra:** `sm` (640px) separa celular de tablet; `lg` (1024px) é onde painéis laterais (prévia, propriedades) passam a ficar ao lado do conteúdo. Abaixo de `lg`, painel lateral vira aba ou botão "Ver prévia".
+- **Toque:** alvo mínimo de 40px abaixo de `sm` (`IconButton` já faz isso). Itens de menu e linhas de lista com 44px.
+- **Tabela:** sempre `DataTable`. Rolagem lateral não é solução no celular; a linha vira cartão e as ações ficam visíveis.
+- **Largura fixa:** nada de `w-[300px]` ou maior sem `max-w-full` ou variante responsiva. Grade de 3+ colunas começa em `grid-cols-1` e cresce com `sm:`/`lg:`.
+- **Arrastar:** arrastar e soltar não funciona no toque. Toda ação de arrastar tem um caminho por menu (ex.: "Mover para…").
+- **Texto:** o piso de 12px vale no celular também. A única exceção é o conteúdo dentro de uma prévia que imita o Instagram.
 
 ---
 

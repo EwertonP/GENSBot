@@ -1,7 +1,6 @@
 'use client';
-import { ScrollShadow } from '@/components/ui/scroll-shadow';
+import { DataTable, DataTablePagination } from '@/components/ui/data-table';
 import { Select } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 
 import { useEffect, useState } from 'react';
 import { FileText, Trash2, Info, Search, Users, StickyNote } from 'lucide-react';
@@ -14,7 +13,6 @@ import { Avatar } from '@/components/ui/avatar';
 import { Tip } from '@/components/ui/tooltip';
 import { EmptyState } from '@/components/ui/empty-state';
 import { confirmDialog } from '@/components/ui/dialog';
-import { SkeletonRows } from '@/components/ui/skeleton';
 import { ContactFicha, type FichaContact } from '@/components/contact-ficha';
 import { formatDateTime, formatPhone, respostasDe } from '@/lib/contact-format';
 
@@ -242,115 +240,84 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
         </div>
       </div>
 
-      <ScrollShadow>
-        <table className="w-full text-sm text-left">
-          <thead className="border-b border-border">
-            <tr className="text-xs text-muted-foreground">
-              <th className="py-2.5 px-3 w-8">
-                <Checkbox checked={allSelected} onCheckedChange={() => toggleAll()} aria-label="Selecionar todos os contatos desta página" />
-              </th>
-              <th className="py-2.5 px-3 font-medium">Contato</th>
-              <th className="py-2.5 px-3 font-medium">E-mail</th>
-              <th className="py-2.5 px-3 font-medium">Telefone</th>
-              <th className="py-2.5 px-3 font-medium">Origem</th>
-              <th className="py-2.5 px-3 font-medium">Tags</th>
-              <th className="py-2.5 px-3 font-medium text-right">Última interação</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="p-4">
-                  <SkeletonRows rows={6} />
-                </td>
-              </tr>
-            ) : contacts.length === 0 ? (
-              <tr>
-                <td colSpan={7}>
-                  {filtrando ? (
-                    <EmptyState size="compact" icon={Search} title="Ninguém encontrado" description="Nenhum contato bate com essa busca ou tag." action={{ label: 'Limpar filtros', onClick: () => { setSearchInput(''); setSearch(''); setTagFilter(''); } }} />
-                  ) : (
-                    <EmptyState size="compact" icon={Users} title="Ninguém entrou nas automações ainda" description="Quem comentar, responder story ou mandar DM com a palavra-chave de uma automação ativa aparece aqui." />
+      <DataTable
+        rows={contacts}
+        loading={loading}
+        getRowId={(c) => c.id}
+        onRowClick={(c) => setFichaId(c.id)}
+        selection={{ selectedIds, onToggle: toggleOne, onToggleAll: toggleAll, rowLabel: (c) => c.name || c.username || 'contato' }}
+        empty={
+          filtrando ? (
+            <EmptyState size="compact" icon={Search} title="Ninguém encontrado" description="Nenhum contato bate com essa busca ou tag." action={{ label: 'Limpar filtros', onClick: () => { setSearchInput(''); setSearch(''); setTagFilter(''); } }} />
+          ) : (
+            <EmptyState size="compact" icon={Users} title="Ninguém entrou nas automações ainda" description="Quem comentar, responder story ou mandar DM com a palavra-chave de uma automação ativa aparece aqui." />
+          )
+        }
+        columns={[
+          {
+            id: 'contato',
+            header: 'Contato',
+            mobile: 'primary',
+            cell: (c) => {
+              const temArroba = !!c.username && c.username !== c.instagram_id;
+              return (
+                <div className="flex items-center gap-2.5 sm:min-w-[180px]">
+                  <Avatar nome={c.name || c.username || '?'} src={c.profile_picture_url} size="md" />
+                  <div className="min-w-0">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setFichaId(c.id); }} className="font-semibold text-foreground truncate block max-w-[220px] text-left hover:underline cursor-pointer">
+                      {c.name || (temArroba ? `@${c.username}` : 'Sem nome')}
+                    </button>
+                    <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                      {temArroba ? (
+                        c.name ? `@${c.username}` : null
+                      ) : (
+                        <Tip label="A Meta só libera o @ de quem comentou num post (ou depois do App Review). Ele aparece sozinho na próxima interação.">
+                          <span className="italic inline-flex items-center gap-1 cursor-help">
+                            @ pendente <Info className="w-3 h-3" />
+                          </span>
+                        </Tip>
+                      )}
+                      {c.notes && (
+                        <Tip label={c.notes}>
+                          <StickyNote className="w-3 h-3 text-warning" aria-label="Tem observações" />
+                        </Tip>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              );
+            },
+          },
+          { id: 'email', header: 'E-mail', className: 'text-foreground max-w-[220px] truncate', cell: (c) => c.email || <Vazio /> },
+          { id: 'telefone', header: 'Telefone', className: 'text-foreground tabular-nums whitespace-nowrap', cell: (c) => (c.phone ? formatPhone(c.phone) : <Vazio />) },
+          { id: 'origem', header: 'Origem', className: 'text-muted-foreground max-w-[200px] truncate', cell: (c) => c.origem?.name || <Vazio /> },
+          {
+            id: 'tags',
+            header: 'Tags',
+            cell: (c) => {
+              const tags = c.tags || [];
+              return (
+                <div className="flex items-center gap-1 max-w-[220px]">
+                  {tags.slice(0, 2).map((tag) => (
+                    <span key={tag} className={`font-semibold text-xs px-2 py-0.5 rounded-full border truncate max-w-[110px] ${tagColorClasses(tag)}`}>
+                      {tag}
+                    </span>
+                  ))}
+                  {tags.length > 2 && (
+                    <Tip label={tags.slice(2).join(', ')}>
+                      <span className="text-xs text-muted-foreground font-medium">+{tags.length - 2}</span>
+                    </Tip>
                   )}
-                </td>
-              </tr>
-            ) : (
-              contacts.map((c) => {
-                const temArroba = !!c.username && c.username !== c.instagram_id;
-                const tags = c.tags || [];
-                return (
-                  <tr key={c.id} onClick={() => setFichaId(c.id)} className="cursor-pointer hover:bg-accent transition-colors">
-                    <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox checked={selectedIds.has(c.id)} onCheckedChange={() => toggleOne(c.id)} aria-label={`Selecionar ${c.name || c.username || 'contato'}`} />
-                    </td>
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2.5 min-w-[180px]">
-                        <Avatar nome={c.name || c.username || '?'} src={c.profile_picture_url} size="md" />
-                        <div className="min-w-0">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setFichaId(c.id); }} className="font-semibold text-foreground truncate block max-w-[220px] text-left hover:underline cursor-pointer">
-                            {c.name || (temArroba ? `@${c.username}` : 'Sem nome')}
-                          </button>
-                          <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                            {temArroba ? (
-                              c.name ? `@${c.username}` : null
-                            ) : (
-                              <Tip label="A Meta só libera o @ de quem comentou num post (ou depois do App Review). Ele aparece sozinho na próxima interação.">
-                                <span className="italic inline-flex items-center gap-1 cursor-help">
-                                  @ pendente <Info className="w-3 h-3" />
-                                </span>
-                              </Tip>
-                            )}
-                            {c.notes && (
-                              <Tip label={c.notes}>
-                                <StickyNote className="w-3 h-3 text-warning" aria-label="Tem observações" />
-                              </Tip>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-foreground max-w-[220px] truncate">{c.email || <Vazio />}</td>
-                    <td className="py-3 px-3 text-foreground tabular-nums whitespace-nowrap">{c.phone ? formatPhone(c.phone) : <Vazio />}</td>
-                    <td className="py-3 px-3 text-muted-foreground max-w-[200px] truncate">{c.origem?.name || <Vazio />}</td>
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-1 max-w-[220px]">
-                        {tags.slice(0, 2).map((tag) => (
-                          <span key={tag} className={`font-semibold text-xs px-2 py-0.5 rounded-full border truncate max-w-[110px] ${tagColorClasses(tag)}`}>
-                            {tag}
-                          </span>
-                        ))}
-                        {tags.length > 2 && (
-                          <Tip label={tags.slice(2).join(', ')}>
-                            <span className="text-xs text-muted-foreground font-medium">+{tags.length - 2}</span>
-                          </Tip>
-                        )}
-                        {tags.length === 0 && <Vazio />}
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-xs text-muted-foreground tabular-nums whitespace-nowrap text-right">{formatDateTime(c.last_response_at) || <Vazio />}</td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </ScrollShadow>
+                  {tags.length === 0 && <Vazio />}
+                </div>
+              );
+            },
+          },
+          { id: 'ultima', header: 'Última interação', align: 'right', mobileLabel: 'Última', className: 'text-xs text-muted-foreground tabular-nums whitespace-nowrap', cell: (c) => formatDateTime(c.last_response_at) || <Vazio /> },
+        ]}
+      />
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <span className="text-xs text-muted-foreground tabular-nums">
-            Página {page} de {totalPages}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
-              Anterior
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
-              Próxima
-            </Button>
-          </div>
-        </div>
-      )}
+      <DataTablePagination page={page} totalPages={totalPages} onPage={setPage} />
 
       <ContactFicha
         contactId={fichaId}
