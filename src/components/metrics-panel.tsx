@@ -1,5 +1,4 @@
 'use client';
-import { ScrollShadow } from '@/components/ui/scroll-shadow';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -23,6 +22,8 @@ import {
   Send,
   MessageSquare,
 } from 'lucide-react';
+import { DataTable } from '@/components/ui/data-table';
+import { IconButton } from '@/components/ui/icon-button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -826,83 +827,46 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             <Badge variant="brand" className="self-start sm:self-auto">Links protegidos</Badge>
           </div>
 
-          {relatoriosSalvos.length === 0 ? (
-            <EmptyState
-              icon={FileText}
-              title="Nenhum relatório gerado ainda"
-              description="Ao clicar em 'Copiar Link', 'Ver Relatório' ou 'Enviar no WhatsApp', os relatórios gerados aparecerão salvos nesta lista para consulta a qualquer momento."
-            />
-          ) : (
-            <ScrollShadow>
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground font-mono text-xs uppercase">
-                    <th className="py-2.5 px-3">Cliente / Perfil</th>
-                    <th className="py-2.5 px-3">Período</th>
-                    <th className="py-2.5 px-3">Data de Geração</th>
-                    <th className="py-2.5 px-3">Status de Validade</th>
-                    <th className="py-2.5 px-3 text-right">Ações Rápidas</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border font-sans">
-                  {relatoriosSalvos.map((rel) => (
-                    <tr key={rel.id} className="hover:bg-accent/30 transition-colors">
-                      <td className="py-3 px-3 font-bold text-foreground">
-                        {rel.clienteNome}
-                      </td>
-                      <td className="py-3 px-3 text-muted-foreground capitalize">
-                        Últimos {rel.period} dias
-                      </td>
-                      <td className="py-3 px-3 text-muted-foreground font-mono text-xs">
-                        {new Date(rel.criadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="inline-flex items-center gap-1 text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-success-soft text-success border border-success-ring">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Ativo
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => window.open(rel.link, '_blank')}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors"
-                            title="Abrir Relatório público"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleCopiarMensagemWhatsapp(rel)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-success hover:bg-success-soft cursor-pointer transition-colors"
-                            title="Copiar mensagem para WhatsApp"
-                          >
-                            <MessageSquare className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleEnviarWhatsapp(rel)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-success hover:bg-success-soft cursor-pointer transition-colors"
-                            title="Enviar diretamente no WhatsApp Web"
-                          >
-                            <Send className="w-4 h-4 text-success" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleExcluirRelatorio(rel.id)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
-                            title="Excluir do histórico"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </ScrollShadow>
-          )}
+          <DataTable
+            rows={relatoriosSalvos}
+            getRowId={(rel) => rel.id}
+            onRowClick={(rel) => window.open(rel.link, '_blank')}
+            empty={
+              <EmptyState
+                size="compact"
+                icon={FileText}
+                title="Nenhum relatório gerado ainda"
+                description="Os relatórios que você copiar, abrir ou enviar no WhatsApp ficam salvos aqui."
+              />
+            }
+            columns={[
+              { id: 'cliente', header: 'Cliente', mobile: 'primary', className: 'font-semibold text-foreground', cell: (rel) => rel.clienteNome },
+              { id: 'periodo', header: 'Período', className: 'text-muted-foreground whitespace-nowrap', cell: (rel) => `Últimos ${rel.period} dias` },
+              {
+                id: 'gerado',
+                header: 'Gerado em',
+                align: 'right',
+                className: 'text-xs text-muted-foreground tabular-nums whitespace-nowrap',
+                cell: (rel) => new Date(rel.criadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+              },
+            ]}
+            actions={(rel) => (
+              <>
+                <IconButton label="Abrir relatório" onClick={() => window.open(rel.link, '_blank')}>
+                  <ExternalLink />
+                </IconButton>
+                <IconButton label="Copiar mensagem para o WhatsApp" onClick={() => handleCopiarMensagemWhatsapp(rel)}>
+                  <MessageSquare />
+                </IconButton>
+                <IconButton label="Enviar no WhatsApp Web" onClick={() => handleEnviarWhatsapp(rel)}>
+                  <Send />
+                </IconButton>
+                <IconButton label="Excluir do histórico" tone="destructive" onClick={() => handleExcluirRelatorio(rel.id)}>
+                  <Trash2 />
+                </IconButton>
+              </>
+            )}
+          />
         </Card>
       ) : loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4" aria-busy="true">

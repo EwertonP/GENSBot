@@ -1,5 +1,7 @@
 'use client';
-import { ScrollShadow } from '@/components/ui/scroll-shadow';
+import { DataTable } from '@/components/ui/data-table';
+import { IconButton } from '@/components/ui/icon-button';
+import { Tip } from '@/components/ui/tooltip';
 
 import React from 'react';
 import { Plus, Trash2, Search, Settings, Workflow } from 'lucide-react';
@@ -66,145 +68,105 @@ export default function AutomationTable({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
-          <Input
-            type="search"
-            placeholder="Buscar por nome ou palavra-chave..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            aria-label="Buscar automações"
-            className="pl-9"
-          />
+    <Card padding="lg" className="rounded-2xl flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[220px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input type="search" placeholder="Buscar por nome ou palavra-chave" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Buscar automações" className="pl-9" />
         </div>
-        <Button onClick={onCreate} size="sm" className="flex-shrink-0">
+        <Badge variant="muted" className="tabular-nums">
+          {automations.length} automaç{automations.length !== 1 ? 'ões' : 'ão'}
+        </Badge>
+        <Button onClick={onCreate} size="sm" className="ml-auto flex-shrink-0">
           <Plus className="w-3.5 h-3.5" />
-          Nova Automação
+          Nova automação
         </Button>
       </div>
 
-      <Card padding="sm" className="p-0 overflow-hidden">
-        <ScrollShadow>
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-border bg-muted/40">
-                <th scope="col" className="px-4 py-2.5 w-14"><span className="sr-only">Mídia</span></th>
-                <th scope="col" className="px-4 py-2.5 font-bold text-foreground">Nome</th>
-                <th scope="col" className="px-4 py-2.5 font-bold text-foreground">Gatilhos</th>
-                <th scope="col" className="px-4 py-2.5 font-bold text-foreground">Palavras-chave</th>
-                <th scope="col" className="px-4 py-2.5 font-bold text-foreground">Status</th>
-                <th scope="col" className="px-4 py-2.5 font-bold text-foreground text-right">Modificado</th>
-                <th scope="col" className="px-4 py-2.5 w-10"><span className="sr-only">Ações</span></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map(auto => {
-                const effectiveTrigger = getEffectiveTrigger(auto);
-                const mediaId = effectiveTrigger.specific_post_id || effectiveTrigger.specific_story_id;
-                const mediaKind: 'post' | 'story' | null = effectiveTrigger.specific_post_id
-                  ? 'post'
-                  : effectiveTrigger.specific_story_id
-                  ? 'story'
-                  : null;
-                return (
-                <tr
-                  key={auto.id}
-                  onClick={() => onEdit(auto)}
-                  className="hover:bg-accent/50 transition-colors cursor-pointer"
-                >
-                  <td className="px-4 py-3">
-                    <AutomationMediaThumb mediaId={mediaId} kind={mediaKind} triggers={effectiveTrigger.triggers} />
-                  </td>
-
-                  <td className="px-4 py-3 font-bold text-foreground">{auto.name}</td>
-
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1 flex-wrap">
-                      {effectiveTrigger.triggers.map(t => (
-                        <Badge key={t} variant="info" className="rounded uppercase tracking-wider">
-                          {TRIGGER_LABELS[t] || t}
-                        </Badge>
-                      ))}
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1 flex-wrap items-center">
-                      {auto.keywords.slice(0, 2).map(kw => (
-                        <Badge key={kw} className="rounded font-mono">
-                          {kw}
-                        </Badge>
-                      ))}
-                      {auto.keywords.length > 2 && (
-                        <span className="text-xs text-muted-foreground font-bold">
-                          +{auto.keywords.length - 2}
-                        </span>
-                      )}
-                      {auto.keywords.length === 0 && (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                        auto.active ? 'text-success' : 'text-muted-foreground'
-                      }`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          auto.active ? 'bg-success' : 'bg-muted-foreground'
-                        }`}
-                      />
-                      {auto.active ? 'Ativo' : 'Pausado'}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-3 text-right text-muted-foreground tabular-nums">
-                    {formatDate(auto)}
-                  </td>
-
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          onOpenFlowBuilder(auto);
-                        }}
-                        aria-label={`Abrir ${auto.name} no editor visual`}
-                        title="Editor visual (canvas)"
-                        className="p-1.5 hover:bg-accent text-muted-foreground hover:text-primary rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Workflow className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          if (auto.id) onDelete(auto.id);
-                        }}
-                        aria-label={`Excluir automação ${auto.name}`}
-                        className="p-1.5 hover:bg-accent text-muted-foreground hover:text-destructive rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </ScrollShadow>
-
-        {filtered.length === 0 && (
-          <div className="py-10 text-center text-xs text-muted-foreground">
-            Nenhuma automação encontrada para “{search}”.
-          </div>
+      <DataTable
+        rows={filtered}
+        getRowId={(auto) => auto.id || auto.name}
+        onRowClick={onEdit}
+        empty={<EmptyState size="compact" icon={Search} title="Nenhuma automação encontrada" description={`Nada bate com “${search}”.`} action={{ label: 'Limpar busca', onClick: () => setSearch('') }} />}
+        columns={[
+          {
+            id: 'nome',
+            header: 'Automação',
+            mobile: 'primary',
+            cell: (auto) => {
+              const t = getEffectiveTrigger(auto);
+              const kind: 'post' | 'story' | null = t.specific_post_id ? 'post' : t.specific_story_id ? 'story' : null;
+              return (
+                <div className="flex items-center gap-2.5 min-w-0 sm:min-w-[200px]">
+                  <AutomationMediaThumb mediaId={t.specific_post_id || t.specific_story_id} kind={kind} triggers={t.triggers} />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(auto);
+                    }}
+                    className="font-semibold text-foreground truncate max-w-[260px] text-left hover:underline cursor-pointer"
+                  >
+                    {auto.name}
+                  </button>
+                </div>
+              );
+            },
+          },
+          {
+            id: 'gatilhos',
+            header: 'Gatilhos',
+            cell: (auto) => (
+              <div className="flex gap-1 flex-wrap">
+                {getEffectiveTrigger(auto).triggers.map((t) => (
+                  <Badge key={t} variant="info">
+                    {TRIGGER_LABELS[t] || t}
+                  </Badge>
+                ))}
+              </div>
+            ),
+          },
+          {
+            id: 'palavras',
+            header: 'Palavras-chave',
+            cell: (auto) => (
+              <div className="flex gap-1 flex-wrap items-center">
+                {auto.keywords.slice(0, 2).map((kw) => (
+                  <Badge key={kw} variant="muted" className="font-mono">
+                    {kw}
+                  </Badge>
+                ))}
+                {auto.keywords.length > 2 && (
+                  <Tip label={auto.keywords.slice(2).join(', ')}>
+                    <span className="text-xs text-muted-foreground font-medium">+{auto.keywords.length - 2}</span>
+                  </Tip>
+                )}
+                {auto.keywords.length === 0 && <span className="text-muted-foreground">—</span>}
+              </div>
+            ),
+          },
+          {
+            id: 'status',
+            header: 'Status',
+            cell: (auto) => (
+              <Badge variant={auto.active ? 'success' : 'muted'} dot>
+                {auto.active ? 'Ativa' : 'Pausada'}
+              </Badge>
+            ),
+          },
+          { id: 'modificado', header: 'Modificado', align: 'right', className: 'text-xs text-muted-foreground tabular-nums whitespace-nowrap', cell: formatDate },
+        ]}
+        actions={(auto) => (
+          <>
+            <IconButton label="Abrir no editor visual" onClick={() => onOpenFlowBuilder(auto)}>
+              <Workflow />
+            </IconButton>
+            <IconButton label="Excluir automação" tone="destructive" onClick={() => auto.id && onDelete(auto.id)}>
+              <Trash2 />
+            </IconButton>
+          </>
         )}
-      </Card>
-    </div>
+      />
+    </Card>
   );
 }
