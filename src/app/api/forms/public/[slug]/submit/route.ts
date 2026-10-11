@@ -106,20 +106,62 @@ export async function POST(
 
     if (responseError) throw responseError;
 
-    // 5. Integração com Leads & Contatos do GENSBot se houver nome ou WhatsApp
-    if ((leadNome || leadWhatsapp) && form.user_id) {
+    // 5. Integração com Leads & Contatos do GENSBot e criação automática no CRM
+    if (leadNome || leadWhatsapp) {
       try {
         const cleanPhone = (leadWhatsapp || '').replace(/\D/g, '');
-        await supabase.from('contacts').insert({
-          user_id: form.user_id,
-          name: leadNome || 'Lead do Formulário',
-          phone: cleanPhone || null,
-          email: leadEmail || null,
-          tags: leadTags,
-          notes: `Lead capturado pelo formulário "${form.titulo}" em ${new Date().toLocaleString('pt-BR')}`,
-        });
+        let contactId: string | null = null;
+        if (form.user_id) {
+          const { data: novoContato } = await supabase.from('contacts').insert({
+            user_id: form.user_id,
+            name: leadNome || 'Lead do Formulário',
+            phone: cleanPhone || null,
+            email: leadEmail || null,
+            tags: leadTags,
+            notes: `Lead capturado pelo formulário "${form.titulo}" em ${new Date().toLocaleString('pt-BR')}`,
+          }).select('id').maybeSingle();
+          contactId = novoContato?.id || null;
+        }
+
+        // Provisiona o pipeline e insere automaticamente no CRM
+        const defaultAgenciaId = 'a6839f40-dc25-4c00-a662-8d90c100b8c2';
+        const { garantirPipelinePadrao } = await import('@/lib/crm');
+        const pipe = await garantirPipelinePadrao(defaultAgenciaId, form.cliente_id || null);
+        if (pipe && pipe.estagios && pipe.estagios.length > 0) {
+          const primeiroEstagio = pipe.estagios[0];
+          const { data: negCriado } = await supabase.from('crm_negocios').insert({
+            agencia_id: defaultAgenciaId,
+            cliente_id: form.cliente_id || null,
+            pipeline_id: pipe.id,
+            estagio_id: primeiroEstagio.id,
+            titulo: `${leadNome || 'Novo Lead'} - ${form.titulo}`,
+            valor: 0,
+            status: 'aberto',
+            nome_contato: leadNome || 'Lead do Formulário',
+            telefone: cleanPhone || null,
+            email: leadEmail || null,
+            contact_id: contactId,
+            form_response_id: savedResponse.id,
+            origem: 'formulario',
+            utm_source: utm_source || null,
+            utm_medium: utm_medium || null,
+            utm_campaign: utm_campaign || null,
+            tags: leadTags,
+            ultimo_contato_em: new Date().toISOString(),
+          }).select('id').maybeSingle();
+
+          if (negCriado) {
+            await supabase.from('crm_atividades').insert({
+              negocio_id: negCriado.id,
+              agencia_id: defaultAgenciaId,
+              tipo: 'criacao',
+              descricao: `Lead capturado pelo formulário "${form.titulo}"`,
+              dados_extras: { form_slug: slug, respostas },
+            });
+          }
+        }
       } catch (contactErr) {
-        console.warn('Aviso: Não foi possível salvar contato automaticamente:', contactErr);
+        console.warn('Aviso: Não foi possível salvar contato ou lead no CRM:', contactErr);
       }
     }
 

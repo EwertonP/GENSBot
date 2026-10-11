@@ -22,6 +22,7 @@ import EquipeTab from '@/components/equipe-tab';
 import RotinaTab from '@/components/rotina-tab';
 import CalendarioGeral from '@/components/calendario-geral';
 import FormsTab from '@/components/forms-tab';
+import CrmTab from '@/components/crm/crm-tab';
 import type { DestinoConta } from '@/lib/clientes';
 import type { PrefillAgendamento } from '@/lib/conteudo';
 import { Instagram } from '@/components/instagram-icon';
@@ -1345,6 +1346,14 @@ export default function Dashboard() {
           {activeTab === 'forms' && (
             <FormsTab
               clienteSelecionado={selectedAccountId}
+            />
+          )}
+
+          {/* TAB: CRM DE VENDAS */}
+          {activeTab === 'crm' && (
+            <CrmTab
+              showToast={showToast}
+              clienteSelecionado={selectedAccountId === 'all' ? null : selectedAccountId}
             />
           )}
 
