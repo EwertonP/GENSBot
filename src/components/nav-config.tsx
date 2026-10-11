@@ -12,6 +12,7 @@ import {
   Link2,
   Users2,
   FileQuestion,
+  Target,
 } from 'lucide-react';
 
 /**
@@ -62,6 +63,13 @@ export const TELAS = {
     titulo: 'Construtor de Formulários',
     subtitulo: 'Formulários conversacionais estilo Typeform para captação e qualificação de leads.',
     icon: FileQuestion,
+    grupo: 'agencia',
+  },
+  crm: {
+    label: 'CRM de Vendas',
+    titulo: 'CRM de Vendas',
+    subtitulo: 'Funis de negociação, gestão de oportunidades e acompanhamento de leads.',
+    icon: Target,
     grupo: 'agencia',
   },
   publish: {
