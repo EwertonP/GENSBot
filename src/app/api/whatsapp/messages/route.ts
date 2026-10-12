@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     const sessionName = targetClienteId ? `cliente_${targetClienteId}` : `agencia_${membro.agencia_id}`;
 
     const openwaUrl = process.env.OPENWA_API_URL;
-    const openwaKey = process.env.OPENWA_API_KEY;
+    const openwaKey = process.env.OPENWA_API_KEY || process.env.API_MASTER_KEY;
 
     let messageId = `msg-out-${Date.now()}`;
 

@@ -72,7 +72,7 @@ export async function POST(req: Request) {
 
     // 2. Comunicação com a API do OpenWA
     const openwaUrl = process.env.OPENWA_API_URL?.replace(/\/$/, '');
-    const openwaKey = process.env.OPENWA_API_KEY;
+    const openwaKey = process.env.OPENWA_API_KEY || process.env.API_MASTER_KEY;
 
     let qrCode: string | null = null;
     let detalhesOpenWA: any = null;
