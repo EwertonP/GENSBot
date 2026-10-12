@@ -29,7 +29,10 @@ export async function GET(req: Request) {
     }
 
     const { data: session, error } = await query.maybeSingle();
-    const openwaUrl = process.env.OPENWA_API_URL?.replace(/\/$/, '');
+    let openwaUrl = process.env.OPENWA_API_URL?.trim().replace(/\/$/, '') || null;
+    if (openwaUrl && !openwaUrl.startsWith('http://') && !openwaUrl.startsWith('https://')) {
+      openwaUrl = `https://${openwaUrl}`;
+    }
     const openwaKey = process.env.OPENWA_API_KEY || process.env.API_MASTER_KEY;
 
     let gatewayTeste = null;
@@ -100,7 +103,10 @@ export async function POST(req: Request) {
     if (error) return traduzirErroBanco(error, 'POST /api/whatsapp/session');
 
     // 2. Comunicação com a API do OpenWA
-    const openwaUrl = process.env.OPENWA_API_URL?.replace(/\/$/, '');
+    let openwaUrl = process.env.OPENWA_API_URL?.trim().replace(/\/$/, '') || null;
+    if (openwaUrl && !openwaUrl.startsWith('http://') && !openwaUrl.startsWith('https://')) {
+      openwaUrl = `https://${openwaUrl}`;
+    }
     const openwaKey = process.env.OPENWA_API_KEY || process.env.API_MASTER_KEY;
 
     let qrCode: string | null = null;

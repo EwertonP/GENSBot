@@ -67,7 +67,10 @@ export async function POST(req: Request) {
     const telefoneLimpo = telefone.replace(/\D/g, '');
     const sessionName = targetClienteId ? `cliente_${targetClienteId}` : `agencia_${membro.agencia_id}`;
 
-    const openwaUrl = process.env.OPENWA_API_URL;
+    let openwaUrl = process.env.OPENWA_API_URL?.trim().replace(/\/$/, '') || null;
+    if (openwaUrl && !openwaUrl.startsWith('http://') && !openwaUrl.startsWith('https://')) {
+      openwaUrl = `https://${openwaUrl}`;
+    }
     const openwaKey = process.env.OPENWA_API_KEY || process.env.API_MASTER_KEY;
 
     let messageId = `msg-out-${Date.now()}`;
