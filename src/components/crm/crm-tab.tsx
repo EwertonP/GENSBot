@@ -597,12 +597,37 @@ export default function CrmTab({
           <p className="text-xs text-muted-foreground">Carregando oportunidades do funil...</p>
         </div>
       ) : estagios.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-card/50">
+        <div className="p-12 text-center rounded-2xl border border-dashed border-border bg-card/50 max-w-lg mx-auto">
           <Target className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-          <h3 className="font-display font-semibold text-foreground">Nenhum estágio configurado</h3>
+          <h3 className="font-display font-semibold text-foreground">
+            {contextoClienteId ? 'Funil do cliente pronto para inicializar' : 'Funil da Agência'}
+          </h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1 mb-4">
-            Este funil ainda não possui estágios de negociação cadastrados.
+            Gere o funil de vendas com as etapas comerciais padrão para começar a gerenciar leads e oportunidades.
           </p>
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => carregarPipelines()}
+              className="text-xs font-semibold shadow-xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Carregar Funil Padrão
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setPipelineParaEditar(null);
+                setShowPipelineModal(true);
+              }}
+              className="text-xs font-semibold"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
+              Criar Novo Funil
+            </Button>
+          </div>
         </div>
       ) : viewMode === 'kanban' ? (
         <CrmKanban

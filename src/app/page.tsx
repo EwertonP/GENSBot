@@ -23,7 +23,10 @@ import RotinaTab from '@/components/rotina-tab';
 import CalendarioGeral from '@/components/calendario-geral';
 import FormsTab from '@/components/forms-tab';
 import CrmTab from '@/components/crm/crm-tab';
-import type { DestinoConta } from '@/lib/clientes';
+import WorkspaceSwitcher from '@/components/workspace-switcher';
+import WorkspaceContextBar from '@/components/workspace-context-bar';
+import type { WorkspaceContexto } from '@/types/workspace';
+import type { Cliente, DestinoConta } from '@/lib/clientes';
 import type { PrefillAgendamento } from '@/lib/conteudo';
 import { Instagram } from '@/components/instagram-icon';
 import type { IgMedia, IgStory } from '@/types/instagram-media';
@@ -59,6 +62,7 @@ interface InstagramAccountSummary {
 }
 
 const SELECTED_ACCOUNT_STORAGE_KEY = 'gensbot_selected_account';
+const WORKSPACE_STORAGE_KEY = 'gensbot_active_workspace';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -71,6 +75,17 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [config, setConfig] = useState<any>(null);
+
+  // Workspace e Clientes Globais
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [workspaceAtivo, setWorkspaceAtivo] = useState<WorkspaceContexto>({
+    tipo: 'agencia',
+    clienteId: null,
+    nome: 'Agência GENS',
+    instagramAccountId: null,
+    instagramUserId: 'all',
+    instagramUsername: null,
+  });
 
   // Seletor de múltiplas contas do Instagram conectadas ao mesmo login
   const [accounts, setAccounts] = useState<InstagramAccountSummary[]>([]);
@@ -347,41 +362,124 @@ export default function Dashboard() {
 
   // Busca todas as contas do Instagram conectadas pelo usuário logado e decide
   // qual delas exibir: a que veio do redirect do OAuth, a última selecionada
-  // (salva no navegador) ou, por padrão, a conectada mais recentemente.
-  const loadAccounts = async (preferredAccountId?: string | null) => {
+  // Busca contas do Instagram E clientes da agência para unificar o Workspace global
+  const loadAccountsAndClients = async (preferredAccountId?: string | null, preferredClienteId?: string | null) => {
     try {
-      const res = await fetch('/api/instagram/accounts');
-      const data: InstagramAccountSummary[] = await res.json();
-      if (!res.ok) {
-        setLoading(false);
-        return;
+      const [resAccounts, resClientes] = await Promise.all([
+        fetch('/api/instagram/accounts').then((r) => (r.ok ? r.json() : [])),
+        fetch('/api/clientes').then((r) => (r.ok ? r.json() : { clientes: [] })),
+      ]);
+
+      const dataAccounts: InstagramAccountSummary[] = Array.isArray(resAccounts) ? resAccounts : [];
+      const dataClientes: Cliente[] = Array.isArray(resClientes?.clientes) ? resClientes.clientes : [];
+
+      setAccounts(dataAccounts);
+      setClientes(dataClientes);
+
+      // Determina o Workspace inicial
+      let nextWs: WorkspaceContexto | null = null;
+
+      // 1. Prioridade: Se veio cliente na URL ?cliente=<id>
+      if (preferredClienteId) {
+        if (preferredClienteId === 'agencia') {
+          nextWs = {
+            tipo: 'agencia',
+            clienteId: null,
+            nome: 'Agência GENS',
+            instagramAccountId: null,
+            instagramUserId: 'all',
+            instagramUsername: null,
+          };
+        } else {
+          const cli = dataClientes.find((c) => c.id === preferredClienteId);
+          if (cli) {
+            const igAcc = cli.instagram_account_id
+              ? dataAccounts.find((a) => a.id === cli.instagram_account_id)
+              : null;
+            nextWs = {
+              tipo: 'cliente',
+              clienteId: cli.id,
+              nome: cli.nome,
+              nicho: cli.nicho,
+              cor: cli.cor,
+              fotoUrl: cli.foto_url || igAcc?.profile_picture_url,
+              instagramAccountId: cli.instagram_account_id || null,
+              instagramUserId: igAcc?.instagram_user_id || null,
+              instagramUsername: igAcc?.instagram_username || null,
+            };
+          }
+        }
       }
 
-      setAccounts(data);
-
-      const stored = typeof window !== 'undefined' ? localStorage.getItem(SELECTED_ACCOUNT_STORAGE_KEY) : null;
-      let nextSelected: string | null = null;
-
-      if (preferredAccountId && data.some(a => a.instagram_user_id === preferredAccountId)) {
-        nextSelected = preferredAccountId;
-      } else if (stored && (stored === 'all' || data.some(a => a.instagram_user_id === stored))) {
-        nextSelected = stored;
-      } else if (data.length > 0) {
-        // Padrão de Entrada: Visão Agência Geral (todas as contas) se houver mais de 1 conta
-        nextSelected = data.length > 1 ? 'all' : data[0].instagram_user_id;
+      // 2. Prioridade: Restaurar do localStorage
+      if (!nextWs && typeof window !== 'undefined') {
+        const storedWs = localStorage.getItem(WORKSPACE_STORAGE_KEY);
+        if (storedWs) {
+          try {
+            const parsed = JSON.parse(storedWs);
+            if (parsed.tipo === 'cliente' && parsed.clienteId) {
+              const cli = dataClientes.find((c) => c.id === parsed.clienteId);
+              if (cli) {
+                const igAcc = cli.instagram_account_id
+                  ? dataAccounts.find((a) => a.id === cli.instagram_account_id)
+                  : null;
+                nextWs = {
+                  tipo: 'cliente',
+                  clienteId: cli.id,
+                  nome: cli.nome,
+                  nicho: cli.nicho,
+                  cor: cli.cor,
+                  fotoUrl: cli.foto_url || igAcc?.profile_picture_url,
+                  instagramAccountId: cli.instagram_account_id || null,
+                  instagramUserId: igAcc?.instagram_user_id || null,
+                  instagramUsername: igAcc?.instagram_username || null,
+                };
+              }
+            } else if (parsed.tipo === 'agencia') {
+              nextWs = {
+                tipo: 'agencia',
+                clienteId: null,
+                nome: 'Agência GENS',
+                instagramAccountId: null,
+                instagramUserId: 'all',
+                instagramUsername: null,
+              };
+            }
+          } catch {}
+        }
       }
 
-      setSelectedAccountId(nextSelected);
-      if (typeof window !== 'undefined') {
-        if (nextSelected) localStorage.setItem(SELECTED_ACCOUNT_STORAGE_KEY, nextSelected);
-        else localStorage.removeItem(SELECTED_ACCOUNT_STORAGE_KEY);
+      // 3. Fallback: Se não encontrou, inicia como Agência GENS
+      if (!nextWs) {
+        nextWs = {
+          tipo: 'agencia',
+          clienteId: null,
+          nome: 'Agência GENS',
+          instagramAccountId: null,
+          instagramUserId: dataAccounts.length > 1 ? 'all' : (dataAccounts[0]?.instagram_user_id || 'all'),
+          instagramUsername: null,
+        };
       }
 
-      await fetchStatusAndData(nextSelected);
+      setWorkspaceAtivo(nextWs);
+      const accId = nextWs.instagramUserId || 'all';
+      setSelectedAccountId(accId);
+
+      await fetchStatusAndData(accId);
     } catch (err) {
-      console.error('Erro ao carregar contas conectadas:', err);
+      console.error('Erro ao carregar contas e clientes:', err);
       setLoading(false);
     }
+  };
+
+  const handleSelectWorkspace = (ws: WorkspaceContexto) => {
+    setWorkspaceAtivo(ws);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(ws));
+    }
+
+    const accId = ws.instagramUserId || 'all';
+    handleSelectAccount(accId);
   };
 
   const handleUpdateUserProfile = async (name: string, avatarUrl: string) => {
@@ -404,8 +502,6 @@ export default function Dashboard() {
     if (accountId === selectedAccountId) return;
     setSelectedAccountId(accountId);
     if (typeof window !== 'undefined') localStorage.setItem(SELECTED_ACCOUNT_STORAGE_KEY, accountId);
-    // Sem esqueleto de tela inteira: a tela atual fica e uma barra no topo
-    // indica a troca; cada aba recarrega os próprios dados pela conta nova.
     setTrocandoConta(true);
     setMediaList([]);
     Promise.resolve(fetchStatusAndData(accountId)).finally(() => setTrocandoConta(false));
@@ -422,11 +518,10 @@ export default function Dashboard() {
       }
     });
 
-    // Se acabou de voltar do OAuth do Instagram, a URL traz ?account=<id> da
-    // conta recém-conectada — usamos isso pra já selecioná-la automaticamente.
     const params = new URLSearchParams(window.location.search);
     const accountFromRedirect = params.get('account');
-    loadAccounts(accountFromRedirect);
+    const clienteFromRedirect = params.get('cliente');
+    loadAccountsAndClients(accountFromRedirect, clienteFromRedirect);
   }, []);
 
   useEffect(() => {
@@ -864,136 +959,28 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* Seletor de Conta do Instagram (perfil ativo) */}
-          {accounts.length > 0 ? (
-            <div className="relative mt-2 w-full">
-              <Tip label={selectedAccountId === 'all' ? 'Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}><button
-                onClick={() => setAccountMenuOpen(o => !o)}
-                aria-haspopup="listbox"
-                aria-expanded={accountMenuOpen}
-                className={`w-full flex items-center ${sidebarCompacta ? 'justify-center p-2' : 'gap-2.5 p-2'} rounded-xl bg-accent/60 hover:bg-accent border border-border hover:border-foreground/20 transition-ui cursor-pointer text-left shadow-2xs group`}
+          {/* Seletor Unificado de Workspace & Cliente */}
+          <div className="mt-2 w-full">
+            <WorkspaceSwitcher
+              workspaceAtivo={workspaceAtivo}
+              clientes={clientes}
+              accounts={accounts}
+              onSelectWorkspace={handleSelectWorkspace}
+              onNovoCliente={() => navegarPara('clientes')}
+              compacto={sidebarCompacta}
+            />
+          </div>
+
+          {accounts.length === 0 && (
+            <Tip label="Conectar Instagram">
+              <button
+                onClick={handleConnectInstagram}
+                className={`mt-2 w-full flex items-center justify-center ${sidebarCompacta ? 'p-2.5' : 'gap-2 px-3 py-2.5'} rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-ui shadow-xs cursor-pointer`}
               >
-                {selectedAccountId === 'all' ? (
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 border border-primary/40">
-                    <Building2 className="w-4 h-4 text-primary" />
-                  </div>
-                ) : config?.profile_picture_url ? (
-                  <img
-                    src={config.profile_picture_url}
-                    alt="Instagram Profile"
-                    className="w-8 h-8 rounded-full object-cover border border-border shadow-2xs flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Instagram className="w-4 h-4 text-primary" />
-                  </div>
-                )}
-
-                {!sidebarCompacta && (
-                  <>
-                    <div className="flex-1 min-w-0 leading-tight">
-                      <p className="text-xs font-bold text-foreground truncate">
-                        {selectedAccountId === 'all' ? '🌐 Visão Agência (Geral)' : `@${config?.instagram_username || '...'}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {selectedAccountId === 'all' ? `Consolidado (${accounts.length} clientes)` : accounts.length > 1 ? `${accounts.length} contas conectadas` : 'Conta ativa'}
-                      </p>
-                    </div>
-                    <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} />
-                  </>
-                )}
-              </button></Tip>
-
-              {accountMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setAccountMenuOpen(false)}
-                  />
-                  <div className={`absolute ${sidebarCompacta ? 'left-full top-0 ml-2 w-64' : 'left-0 top-full mt-1.5 w-full'} bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150`}>
-                    <div className="max-h-64 overflow-y-auto py-1">
-                      {accounts.length > 1 && (
-                        <button
-                          onClick={() => handleSelectAccount('all')}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent transition-colors cursor-pointer ${
-                            selectedAccountId === 'all' ? 'bg-accent font-bold' : ''
-                          }`}
-                        >
-                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Users className="w-3 h-3 text-primary" />
-                          </div>
-                          <span className="text-xs text-foreground flex-1 truncate">
-                            Todas as contas ({accounts.length})
-                          </span>
-                          {selectedAccountId === 'all' && (
-                            <CheckCircle className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                          )}
-                        </button>
-                      )}
-                      {accounts.map(acc => {
-                        const health = tokenHealth.find(t => t.instagram_user_id === acc.instagram_user_id);
-                        return (
-                        <button
-                          key={acc.instagram_user_id}
-                          onClick={() => handleSelectAccount(acc.instagram_user_id)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent transition-colors cursor-pointer ${
-                            acc.instagram_user_id === selectedAccountId ? 'bg-accent font-bold' : ''
-                          }`}
-                        >
-                          <div className="relative flex-shrink-0">
-                            {acc.profile_picture_url ? (
-                              <img src={acc.profile_picture_url} alt="" className="w-6 h-6 rounded-full object-cover" />
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-                                <Instagram className="w-3 h-3 text-muted-foreground" />
-                              </div>
-                            )}
-                            {health && (health.status === 'warning' || health.status === 'expired') && (
-                              <Tip label={health.status === 'expired' ? 'Token expirado' : `Token expira em ${health.daysRemaining} dia(s)`}><span
-                                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-card ${health.status === 'expired' ? 'bg-destructive' : 'bg-warning'}`}
-                              /></Tip>
-                            )}
-                          </div>
-                          <span className="text-xs text-foreground flex-1 truncate">
-                            @{acc.instagram_username || acc.instagram_user_id}
-                          </span>
-                          {acc.instagram_user_id === selectedAccountId && (
-                            <CheckCircle className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                          )}
-                        </button>
-                        );
-                      })}
-                    </div>
-                    <div className="border-t border-border py-1">
-                      <button
-                        onClick={() => { setAccountMenuOpen(false); handleConnectInstagram(); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent text-primary text-xs font-semibold cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Conectar outra conta
-                      </button>
-                      {selectedAccountId !== 'all' && (
-                        <button
-                          onClick={() => { setAccountMenuOpen(false); handleDisconnect(); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent text-destructive text-xs font-semibold cursor-pointer"
-                        >
-                          <LogOut className="w-3.5 h-3.5" />
-                          Desconectar esta conta
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <Tip label={"Conectar Instagram"}><button
-              onClick={handleConnectInstagram}
-              className={`mt-2 w-full flex items-center justify-center ${sidebarCompacta ? 'p-2.5' : 'gap-2 px-3 py-2.5'} rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-ui shadow-xs cursor-pointer`}
-            >
-              <Instagram className="w-3.5 h-3.5 flex-shrink-0" />
-              {!sidebarCompacta && <span>Conectar Instagram</span>}
-            </button></Tip>
+                <Instagram className="w-3.5 h-3.5 flex-shrink-0" />
+                {!sidebarCompacta && <span>Conectar Instagram</span>}
+              </button>
+            </Tip>
           )}
         </div>
 
@@ -1184,6 +1171,14 @@ export default function Dashboard() {
           {/* Entrada só com opacidade e sem esperar a saída da tela anterior: a troca
               é imediata (interrompível) e, com "reduzir movimento", segue sendo só fade. */}
           <p className="md:hidden -mt-1 text-sm text-muted-foreground">{TELAS[activeTab].subtitulo}</p>
+
+          {/* Barra de Contexto Global Ativo (Agência vs Cliente Selecionado) */}
+          <WorkspaceContextBar
+            workspace={workspaceAtivo}
+            onTrocarWorkspace={() => navegarPara('clientes')}
+            abaAtual={activeTab}
+          />
+
           <motion.div
             key={activeTab}
             initial={{ opacity: 0 }}
@@ -1309,8 +1304,28 @@ export default function Dashboard() {
             <ClientesTab
               showToast={showToast}
               onAbrirConta={(destino: DestinoConta, instagramUserId: string) => {
-                // Escopa o app inteiro na conta do cliente e abre a aba pedida.
-                handleSelectAccount(instagramUserId);
+                // Sincroniza o Workspace Global com o cliente selecionado
+                const cli = clientes.find((c) => {
+                  const acc = accounts.find((a) => a.instagram_user_id === instagramUserId);
+                  return acc && c.instagram_account_id === acc.id;
+                });
+
+                if (cli) {
+                  const acc = accounts.find((a) => a.instagram_user_id === instagramUserId);
+                  handleSelectWorkspace({
+                    tipo: 'cliente',
+                    clienteId: cli.id,
+                    nome: cli.nome,
+                    nicho: cli.nicho,
+                    cor: cli.cor,
+                    fotoUrl: cli.foto_url || acc?.profile_picture_url,
+                    instagramAccountId: cli.instagram_account_id || null,
+                    instagramUserId,
+                    instagramUsername: acc?.instagram_username || null,
+                  });
+                } else {
+                  handleSelectAccount(instagramUserId);
+                }
                 navegarPara(destino);
               }}
             />
@@ -1345,7 +1360,8 @@ export default function Dashboard() {
           {/* TAB: FORMULÁRIOS (TYPEFORM BUILDER) */}
           {activeTab === 'forms' && (
             <FormsTab
-              clienteSelecionado={selectedAccountId}
+              clientes={clientes.map((c) => ({ id: c.id, nome: c.nome, cor: c.cor ?? undefined }))}
+              clienteSelecionado={workspaceAtivo.tipo === 'cliente' ? workspaceAtivo.clienteId : 'all'}
             />
           )}
 
@@ -1353,7 +1369,7 @@ export default function Dashboard() {
           {activeTab === 'crm' && (
             <CrmTab
               showToast={showToast}
-              clienteSelecionado={selectedAccountId === 'all' ? null : selectedAccountId}
+              clienteSelecionado={workspaceAtivo.tipo === 'cliente' ? workspaceAtivo.clienteId : null}
             />
           )}
 

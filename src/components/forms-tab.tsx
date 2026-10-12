@@ -88,6 +88,13 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
   const [responses, setResponses] = useState<any[]>([]);
   const [loadingResponses, setLoadingResponses] = useState(false);
 
+  const abrirNovoModal = () => {
+    if (filtroCliente && filtroCliente !== 'all') {
+      setNovoClienteId(filtroCliente);
+    }
+    setShowNovoModal(true);
+  };
+
   useEffect(() => {
     if (clientes && clientes.length > 0) {
       setListaClientes(clientes);
@@ -95,8 +102,9 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
       fetch('/api/clientes')
         .then((res) => res.json())
         .then((data) => {
-          if (Array.isArray(data)) {
-            setListaClientes(data.map((c: any) => ({ id: c.id, nome: c.nome, cor: c.cor })));
+          const arr = Array.isArray(data) ? data : Array.isArray(data?.clientes) ? data.clientes : [];
+          if (arr.length > 0) {
+            setListaClientes(arr.map((c: any) => ({ id: c.id, nome: c.nome, cor: c.cor })));
           }
         })
         .catch(() => {});
@@ -280,7 +288,7 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
           <Button
             type="button"
             variant="primary"
-            onClick={() => setShowNovoModal(true)}
+            onClick={abrirNovoModal}
             className="self-start sm:self-auto shrink-0 shadow-xs"
           >
             <Plus className="w-4 h-4 mr-1.5" />
@@ -318,7 +326,7 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
           description="Crie formulários conversacionais estilo Typeform para captar e qualificar leads diretamente para o CRM."
           action={{
             label: 'Criar meu primeiro formulário',
-            onClick: () => setShowNovoModal(true),
+            onClick: abrirNovoModal,
             icon: Plus,
           }}
         />
