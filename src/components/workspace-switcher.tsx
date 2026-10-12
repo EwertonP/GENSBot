@@ -23,6 +23,7 @@ interface WorkspaceSwitcherProps {
   onSelectWorkspace: (ws: WorkspaceContexto) => void;
   onNovoCliente?: () => void;
   compacto?: boolean;
+  bloqueado?: boolean;
 }
 
 export default function WorkspaceSwitcher({
@@ -32,6 +33,7 @@ export default function WorkspaceSwitcher({
   onSelectWorkspace,
   onNovoCliente,
   compacto = false,
+  bloqueado = false,
 }: WorkspaceSwitcherProps) {
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState('');
@@ -119,15 +121,17 @@ export default function WorkspaceSwitcher({
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
-      <Tip label={compacto ? `${labelAtivo} · ${sublabelAtivo}` : 'Alternar cliente / workspace ativo'}>
+      <Tip label={compacto ? `${labelAtivo} · ${sublabelAtivo}` : bloqueado ? 'Conta Vinculada' : 'Alternar cliente / workspace ativo'}>
         <button
           type="button"
-          onClick={() => setOpen((prev) => !prev)}
-          aria-haspopup="listbox"
-          aria-expanded={open}
+          onClick={() => {
+            if (!bloqueado) setOpen((prev) => !prev);
+          }}
+          aria-haspopup={bloqueado ? undefined : 'listbox'}
+          aria-expanded={bloqueado ? undefined : open}
           className={`w-full flex items-center ${
             compacto ? 'justify-center p-2' : 'gap-2.5 p-2'
-          } rounded-xl bg-accent/60 hover:bg-accent border border-border hover:border-foreground/20 transition-all cursor-pointer text-left shadow-2xs group`}
+          } rounded-xl bg-accent/60 ${bloqueado ? 'cursor-default' : 'hover:bg-accent border border-border hover:border-foreground/20 cursor-pointer'} transition-all text-left shadow-2xs group`}
         >
           {workspaceAtivo.tipo === 'agencia' ? (
             <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0 border border-primary/30 text-primary">
@@ -161,11 +165,13 @@ export default function WorkspaceSwitcher({
                   <span className="truncate">{sublabelAtivo}</span>
                 </p>
               </div>
-              <ChevronDown
-                className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${
-                  open ? 'rotate-180' : ''
-                }`}
-              />
+              {!bloqueado && (
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform ${
+                    open ? 'rotate-180' : ''
+                  }`}
+                />
+              )}
             </>
           )}
         </button>

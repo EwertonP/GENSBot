@@ -572,7 +572,12 @@ export default function CrmTab({
             className="h-9 text-xs min-w-[130px]"
           >
             <option value="todos">Todas as Origens</option>
+            <option value="presencial">Presencial</option>
+            <option value="ligacao">Ligação</option>
+            <option value="whatsapp">WhatsApp</option>
             <option value="instagram">Instagram</option>
+            <option value="google">Google</option>
+            <option value="site">Site</option>
             <option value="webhook_ads">Meta Ads</option>
             <option value="formulario">Formulário</option>
             <option value="indicacao">Indicação</option>

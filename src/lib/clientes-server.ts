@@ -16,8 +16,9 @@ import { supabase as serviceSupabase } from '@/lib/supabase';
 export interface Membro {
   id: string;
   agencia_id: string;
-  papel: 'master' | 'membro';
+  papel: 'master' | 'membro' | 'cliente';
   ativo: boolean;
+  cliente_id?: string | null;
 }
 
 export interface ContextoAgencia {
@@ -50,7 +51,7 @@ export async function getContextoAgencia(): Promise<
   // 1. Busca membro usando serviceSupabase para ignorar RLS circular e garantir leitura confiável
   let { data: membro, error } = await serviceSupabase
     .from('membros')
-    .select('id, agencia_id, papel, ativo')
+    .select('id, agencia_id, papel, ativo, cliente_id')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -58,7 +59,7 @@ export async function getContextoAgencia(): Promise<
   if (!membro) {
     const { data: membroUserClient } = await supabase
       .from('membros')
-      .select('id, agencia_id, papel, ativo')
+      .select('id, agencia_id, papel, ativo, cliente_id')
       .eq('id', user.id)
       .maybeSingle();
     if (membroUserClient) {
@@ -81,7 +82,7 @@ export async function getContextoAgencia(): Promise<
         papel: 'master', // Concede acesso master ao sócio/membro cadastrado
         ativo: true,
       })
-      .select('id, agencia_id, papel, ativo')
+      .select('id, agencia_id, papel, ativo, cliente_id')
       .single();
 
     if (!createErr && novoMembro) {
@@ -93,6 +94,7 @@ export async function getContextoAgencia(): Promise<
         agencia_id: defaultAgenciaId,
         papel: 'master',
         ativo: true,
+        cliente_id: null,
       };
     }
   }
@@ -103,7 +105,7 @@ export async function getContextoAgencia(): Promise<
       .from('membros')
       .update({ ativo: true })
       .eq('id', user.id)
-      .select('id, agencia_id, papel, ativo')
+      .select('id, agencia_id, papel, ativo, cliente_id')
       .single();
 
     if (membroAtivado) {

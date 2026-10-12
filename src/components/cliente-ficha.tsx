@@ -14,6 +14,11 @@ import {
   Zap,
   Layers,
   Target,
+  Key,
+  Copy,
+  Check,
+  ShieldCheck,
+  UserCheck,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -464,6 +469,12 @@ export default function ClienteFicha({
         onMudou={setContatos}
         showToast={showToast}
       />
+
+      <AcessosPortal
+        clienteId={clienteId}
+        clienteNome={cliente?.nome || nomeInicial}
+        showToast={showToast}
+      />
     </div>
   );
 }
@@ -639,3 +650,299 @@ function Contatos({
     </Secao>
   );
 }
+
+// ---------------------------------------------------------------- acessos portal ---
+
+interface AcessoItem {
+  id: string;
+  nome: string;
+  email: string;
+  cargo: string | null;
+  ativo: boolean;
+  criado_em: string;
+}
+
+function AcessosPortal({
+  clienteId,
+  clienteNome,
+  showToast,
+}: {
+  clienteId: string;
+  clienteNome: string;
+  showToast: (message: string, type: 'success' | 'error') => void;
+}) {
+  const [acessos, setAcessos] = useState<AcessoItem[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [credencialGerada, setCredencialGerada] = useState<{ email: string; senha: string; nome: string } | null>(null);
+  const [copiado, setCopiado] = useState(false);
+
+  // Form states
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
+  const [cargo, setCargo] = useState('Secretária / Atendimento');
+  const [senha, setSenha] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+
+  const carregarAcessos = async () => {
+    try {
+      const res = await fetch(`/api/clientes/${clienteId}/acessos`);
+      const data = await res.json();
+      if (res.ok && data.acessos) {
+        setAcessos(data.acessos);
+      }
+    } catch {
+      // Silencioso
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarAcessos();
+  }, [clienteId]);
+
+  const abrirModalNovo = () => {
+    setNome('');
+    setEmail('');
+    setCargo('Secretária / Atendimento');
+    setSenha(`Clinica@${Math.random().toString(36).substring(2, 7).toUpperCase()}!`);
+    setErro(null);
+    setCredencialGerada(null);
+    setCopiado(false);
+    setModalAberto(true);
+  };
+
+  const handleCriarAcesso = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nome.trim() || !email.trim()) {
+      setErro('Nome e e-mail são obrigatórios.');
+      return;
+    }
+    setSalvando(true);
+    setErro(null);
+
+    try {
+      const res = await fetch(`/api/clientes/${clienteId}/acessos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: nome.trim(),
+          email: email.trim(),
+          cargo: cargo.trim(),
+          password: senha.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErro(data.error || 'Erro ao gerar acesso.');
+        return;
+      }
+
+      showToast('Acesso criado com sucesso!', 'success');
+      setCredencialGerada({
+        email: email.trim().toLowerCase(),
+        senha: data.senhaGerada || senha.trim(),
+        nome: nome.trim(),
+      });
+      carregarAcessos();
+    } catch {
+      setErro('Erro de conexão ao criar acesso.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const copiarMensagemWhatsapp = () => {
+    if (!credencialGerada) return;
+    const texto = `Olá, ${credencialGerada.nome}!\n\nSeu acesso exclusivo ao CRM e gestão da conta *${clienteNome}* no GENSBot foi liberado.\n\n🔗 *Link de Acesso:* ${typeof window !== 'undefined' ? window.location.origin : 'https://allingens.vercel.app'}/login\n📧 *Login:* ${credencialGerada.email}\n🔑 *Senha:* ${credencialGerada.senha}\n\nNo painel você poderá acompanhar todos os contatos, leads de automações e cadastrar novos pacientes/clientes presencialmente ou por telefone.`;
+    navigator.clipboard.writeText(texto);
+    setCopiado(true);
+    showToast('Instruções copiadas para a área de transferência!', 'success');
+    setTimeout(() => setCopiado(false), 3000);
+  };
+
+  return (
+    <Secao
+      titulo="Acesso ao Portal (Secretária & Atendimento)"
+      descricao="Permite que a secretária ou equipe do cliente acesse exclusivamente o CRM de Vendas e Contatos da sua conta, sem ver dados de outras empresas ou da agência."
+    >
+      {carregando ? (
+        <p className="text-xs text-muted-foreground">Carregando acessos...</p>
+      ) : acessos.length === 0 ? (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-dashed border-border bg-accent/10">
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-primary" /> Nenhum acesso externo cadastrado
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Crie um login exclusivo para a secretária acompanhar pacientes e mover cards no funil.
+            </p>
+          </div>
+          <Button type="button" size="sm" onClick={abrirModalNovo} className="gap-1.5 flex-shrink-0">
+            <Key className="w-3.5 h-3.5" />
+            Gerar Acesso de Secretária
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <ul className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
+            {acessos.map((a) => (
+              <li key={a.id} className="flex items-center justify-between p-3.5 gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs flex-shrink-0 border border-primary/20">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate flex items-center gap-2">
+                      {a.nome}
+                      <Badge variant="muted" className="text-[10px] py-0 px-1.5 font-normal">
+                        {a.cargo || 'Secretária'}
+                      </Badge>
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{a.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Badge variant={a.ativo ? 'success' : 'muted'} className="text-[10px]">
+                    {a.ativo ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex justify-end">
+            <Button type="button" size="sm" variant="secondary" onClick={abrirModalNovo} className="gap-1.5">
+              <Plus className="w-3.5 h-3.5" />
+              Novo Acesso de Secretária
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Criação / Visualização de Credenciais */}
+      {modalAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-150">
+            <div>
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Key className="w-4.5 h-4.5 text-primary" />
+                {credencialGerada ? 'Acesso Criado com Sucesso!' : 'Gerar Acesso para o Cliente'}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {credencialGerada
+                  ? `Envie as instruções abaixo para ${credencialGerada.nome}.`
+                  : `A secretária terá acesso restrito exclusivamente à conta de ${clienteNome}.`}
+              </p>
+            </div>
+
+            {credencialGerada ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-2.5">
+                  <div className="text-xs">
+                    <span className="text-muted-foreground block text-[11px]">E-mail de Login:</span>
+                    <span className="font-semibold text-foreground font-mono">{credencialGerada.email}</span>
+                  </div>
+                  <div className="text-xs">
+                    <span className="text-muted-foreground block text-[11px]">Senha Provisória:</span>
+                    <span className="font-semibold text-foreground font-mono">{credencialGerada.senha}</span>
+                  </div>
+                  <div className="text-xs">
+                    <span className="text-muted-foreground block text-[11px]">Escopo Permitido:</span>
+                    <span className="font-semibold text-primary">CRM de Vendas & Contatos ({clienteNome})</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Button type="button" onClick={copiarMensagemWhatsapp} className="w-full gap-2">
+                    {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    {copiado ? 'Copiado para o WhatsApp!' : 'Copiar Mensagem Pronta para WhatsApp'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setModalAberto(false);
+                      setCredencialGerada(null);
+                    }}
+                  >
+                    Fechar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleCriarAcesso} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">Nome da Pessoa *</label>
+                  <Input
+                    placeholder="Ex: Maria (Secretária)"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">E-mail de Acesso *</label>
+                  <Input
+                    type="email"
+                    placeholder="secretaria@clinica.com.br"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">Cargo / Função</label>
+                    <Input
+                      placeholder="Ex: Secretária"
+                      value={cargo}
+                      onChange={(e) => setCargo(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">Senha Inicial</label>
+                    <Input
+                      placeholder="Senha segura"
+                      value={senha}
+                      onChange={(e) => setSenha(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {erro && (
+                  <p role="alert" className="text-xs font-medium text-destructive">
+                    {erro}
+                  </p>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={salvando}
+                    onClick={() => setModalAberto(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" loading={salvando} className="gap-1.5">
+                    <Key className="w-3.5 h-3.5" />
+                    Criar Acesso
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+    </Secao>
+  );
+}
+

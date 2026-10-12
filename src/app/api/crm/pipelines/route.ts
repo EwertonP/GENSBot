@@ -10,7 +10,16 @@ export async function GET(req: Request) {
   const { membro } = auth.ctx;
 
   const { searchParams } = new URL(req.url);
-  const clienteId = searchParams.get('cliente_id');
+  let clienteId = searchParams.get('cliente_id');
+
+  // Se o usuário logado for do perfil cliente, força estritamente o cliente dele
+  if (membro.papel === 'cliente') {
+    if (!membro.cliente_id) {
+      return respostaErro('Usuário de cliente sem cliente vinculado.', 403);
+    }
+    clienteId = membro.cliente_id;
+  }
+
   const ehAgencia = !clienteId || clienteId === 'agencia' || clienteId === 'null';
 
   try {
@@ -66,7 +75,15 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { nome, descricao, cliente_id, estagios = [] } = body;
+    let { nome, descricao, cliente_id, estagios = [] } = body;
+
+    // Se o usuário logado for do perfil cliente, força estritamente o cliente dele
+    if (membro.papel === 'cliente') {
+      if (!membro.cliente_id) {
+        return respostaErro('Usuário de cliente sem cliente vinculado.', 403);
+      }
+      cliente_id = membro.cliente_id;
+    }
 
     if (!nome?.trim()) {
       return respostaErro('O nome do funil é obrigatório.', 400);

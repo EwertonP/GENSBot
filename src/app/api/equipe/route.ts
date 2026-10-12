@@ -21,11 +21,12 @@ export async function GET() {
   if (!auth.ok) return auth.response;
   const { supabase, membro } = auth.ctx;
 
-  // Busca todos os membros da agência atual
+  // Busca todos os membros da equipe interna da agência (exclui acessos externos de clientes)
   const { data: membros, error } = await supabase
     .from('membros')
     .select('*')
     .eq('agencia_id', membro.agencia_id)
+    .neq('papel', 'cliente')
     .order('criado_em', { ascending: true });
 
   if (error) {

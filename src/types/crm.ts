@@ -3,7 +3,18 @@ export type CrmStatus = CrmStatusNegocio;
 
 export type CrmPrioridade = 'baixa' | 'media' | 'alta' | 'urgente';
 
-export type CrmOrigem = 'manual' | 'instagram' | 'formulario' | 'webhook_ads' | 'indicacao' | 'outros';
+export type CrmOrigem =
+  | 'manual'
+  | 'instagram'
+  | 'formulario'
+  | 'webhook_ads'
+  | 'indicacao'
+  | 'presencial'
+  | 'ligacao'
+  | 'google'
+  | 'site'
+  | 'whatsapp'
+  | 'outros';
 
 export type CrmTipoAtividade =
   | 'nota'

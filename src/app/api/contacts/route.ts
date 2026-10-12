@@ -27,13 +27,41 @@ export async function GET(req: Request) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
     const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(searchParams.get('pageSize') || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE));
 
+    // Verifica se o usuário é do perfil 'cliente' (secretária/equipe do cliente)
+    const { data: membroInfo } = await supabase
+      .from('membros')
+      .select('papel, cliente_id')
+      .eq('id', user.id)
+      .maybeSingle();
+
     let accountIds: string[] = [];
-    if (isAggregate) {
-      const allAccounts = await listInstagramAccountsForUser(user.id);
-      accountIds = allAccounts.map(a => a.instagram_user_id);
+
+    if (membroInfo?.papel === 'cliente' && membroInfo.cliente_id) {
+      // Busca a conta de Instagram vinculada especificamente a esse cliente
+      const { data: clienteData } = await supabase
+        .from('clientes')
+        .select('instagram_account_id')
+        .eq('id', membroInfo.cliente_id)
+        .maybeSingle();
+
+      if (clienteData?.instagram_account_id) {
+        const { data: igAcc } = await supabase
+          .from('instagram_accounts')
+          .select('instagram_user_id')
+          .eq('id', clienteData.instagram_account_id)
+          .maybeSingle();
+        if (igAcc?.instagram_user_id) {
+          accountIds = [igAcc.instagram_user_id];
+        }
+      }
     } else {
-      const account = await getActiveInstagramAccountForUser(user.id, accountParam);
-      accountIds = account?.instagram_user_id ? [account.instagram_user_id] : [];
+      if (isAggregate) {
+        const allAccounts = await listInstagramAccountsForUser(user.id);
+        accountIds = allAccounts.map(a => a.instagram_user_id);
+      } else {
+        const account = await getActiveInstagramAccountForUser(user.id, accountParam);
+        accountIds = account?.instagram_user_id ? [account.instagram_user_id] : [];
+      }
     }
 
     if (accountIds.length === 0) {

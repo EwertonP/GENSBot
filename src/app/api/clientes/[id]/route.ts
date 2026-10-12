@@ -14,10 +14,14 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
-  const { supabase } = auth.ctx;
+  const { supabase, membro } = auth.ctx;
 
   const { id } = await params;
   if (!ehUuid(id)) return respostaErro('Cliente não encontrado.', 404);
+
+  if (membro.papel === 'cliente' && membro.cliente_id !== id) {
+    return respostaErro('Acesso não autorizado a este cliente.', 403);
+  }
 
   // A RLS já limita à agência: cliente de outra agência simplesmente não aparece.
   const { data: cliente, error } = await supabase

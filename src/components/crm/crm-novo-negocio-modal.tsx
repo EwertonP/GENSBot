@@ -257,11 +257,16 @@ export default function CrmNovoNegocioModal({
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground">Canal de Origem</label>
               <Select value={origem} onChange={(e) => setOrigem(e.target.value as CrmOrigem)}>
-                <option value="manual">Manual (Prospecção Direta)</option>
-                <option value="instagram">Instagram Direct</option>
-                <option value="formulario">Formulário GENSBot</option>
-                <option value="webhook_ads">Meta Ads (Webhook)</option>
-                <option value="indicacao">Indicação / Parceiro</option>
+                <option value="presencial">🏢 Presencial / Recepção</option>
+                <option value="ligacao">📞 Ligação Telefônica</option>
+                <option value="whatsapp">💬 WhatsApp Direto</option>
+                <option value="instagram">📸 Instagram Direct</option>
+                <option value="google">🔍 Google / Busca Orgânica</option>
+                <option value="site">🌐 Site / Landing Page</option>
+                <option value="formulario">📋 Formulário GENSBot</option>
+                <option value="webhook_ads">📢 Meta Ads (Anúncios)</option>
+                <option value="indicacao">🤝 Indicação / Parceiro</option>
+                <option value="manual">✍️ Manual (Prospecção Direta)</option>
                 <option value="outros">Outros</option>
               </Select>
             </div>

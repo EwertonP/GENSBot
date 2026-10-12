@@ -18,6 +18,10 @@ import {
   FileText,
   Target,
   Plus,
+  Phone,
+  Globe,
+  Search,
+  MessageCircle,
 } from 'lucide-react';
 
 interface CrmKanbanProps {
@@ -29,7 +33,12 @@ interface CrmKanbanProps {
 }
 
 const ORIGEM_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  presencial: { label: 'Presencial', icon: Building, color: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' },
+  ligacao: { label: 'Ligação', icon: Phone, color: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
+  whatsapp: { label: 'WhatsApp', icon: MessageCircle, color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
   instagram: { label: 'Instagram', icon: Zap, color: 'bg-pink-500/10 text-pink-500 border-pink-500/20' },
+  google: { label: 'Google', icon: Search, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
+  site: { label: 'Site', icon: Globe, color: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20' },
   formulario: { label: 'Formulário', icon: FileText, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
   webhook_ads: { label: 'Meta Ads', icon: Target, color: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
   indicacao: { label: 'Indicação', icon: User, color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },

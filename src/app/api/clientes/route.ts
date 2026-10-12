@@ -21,6 +21,13 @@ export async function GET(req: Request) {
   let query = supabase.from('clientes').select('*').order('nome', { ascending: true });
   if (!incluirArquivados) query = query.eq('ativo', true);
 
+  if (membro.papel === 'cliente') {
+    if (!membro.cliente_id) {
+      return respostaErro('Usuário de cliente sem cliente vinculado.', 403);
+    }
+    query = query.eq('id', membro.cliente_id);
+  }
+
   let { data: clientes, error } = await query;
 
   // Fallback de resiliência caso RLS de sessão retorne vazio

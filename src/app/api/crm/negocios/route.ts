@@ -17,10 +17,18 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const pipelineId = searchParams.get('pipeline_id');
-  const clienteId = searchParams.get('cliente_id');
+  let clienteId = searchParams.get('cliente_id');
   const status = searchParams.get('status') || 'aberto';
   const responsavelId = searchParams.get('responsavel_id');
   const busca = searchParams.get('busca');
+
+  // Isolamento estrito para usuários com perfil de cliente/secretária
+  if (membro.papel === 'cliente') {
+    if (!membro.cliente_id) {
+      return respostaErro('Usuário de cliente sem cliente vinculado.', 403);
+    }
+    clienteId = membro.cliente_id;
+  }
 
   try {
     let query = serviceSupabase
@@ -132,13 +140,21 @@ export async function POST(req: Request) {
       estagioId = primeiroEstagio.id;
     }
 
+    let clienteIdFinal = cliente_id;
+    if (membro.papel === 'cliente') {
+      if (!membro.cliente_id) {
+        return respostaErro('Usuário de cliente sem cliente vinculado.', 403);
+      }
+      clienteIdFinal = membro.cliente_id;
+    }
+
     const cleanInsta = instagram_username ? instagram_username.replace(/^@/, '').trim() : null;
 
     const { data: negocio, error } = await serviceSupabase
       .from('crm_negocios')
       .insert({
         agencia_id: membro.agencia_id,
-        cliente_id: cliente_id || null,
+        cliente_id: clienteIdFinal || null,
         pipeline_id,
         estagio_id: estagioId,
         titulo: titulo.trim(),

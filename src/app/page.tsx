@@ -70,6 +70,7 @@ export default function Dashboard() {
 
   // Auth state
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [membroPerfil, setMembroPerfil] = useState<{ papel: string; cliente_id: string | null } | null>(null);
 
   // Configurações de estado do app
   const [loading, setLoading] = useState(true);
@@ -365,13 +366,19 @@ export default function Dashboard() {
   // Busca contas do Instagram E clientes da agência para unificar o Workspace global
   const loadAccountsAndClients = async (preferredAccountId?: string | null, preferredClienteId?: string | null) => {
     try {
-      const [resAccounts, resClientes] = await Promise.all([
+      const [resAccounts, resClientes, resMe] = await Promise.all([
         fetch('/api/instagram/accounts').then((r) => (r.ok ? r.json() : [])),
         fetch('/api/clientes').then((r) => (r.ok ? r.json() : { clientes: [] })),
+        fetch('/api/membros/me').then((r) => (r.ok ? r.json() : null)),
       ]);
 
       const dataAccounts: InstagramAccountSummary[] = Array.isArray(resAccounts) ? resAccounts : [];
       const dataClientes: Cliente[] = Array.isArray(resClientes?.clientes) ? resClientes.clientes : [];
+      const dataMembro = resMe?.membro || null;
+
+      if (dataMembro) {
+        setMembroPerfil(dataMembro);
+      }
 
       setAccounts(dataAccounts);
       setClientes(dataClientes);
@@ -379,8 +386,31 @@ export default function Dashboard() {
       // Determina o Workspace inicial
       let nextWs: WorkspaceContexto | null = null;
 
-      // 1. Prioridade: Se veio cliente na URL ?cliente=<id>
-      if (preferredClienteId) {
+      // 0. Prioridade Absoluta: Se o usuário é um cliente externo (secretária/equipe do cliente)
+      if (dataMembro?.papel === 'cliente' && dataMembro.cliente_id) {
+        const cli = dataClientes.find((c) => c.id === dataMembro.cliente_id) || dataMembro.cliente;
+        if (cli) {
+          const igAcc = cli.instagram_account_id
+            ? dataAccounts.find((a) => a.id === cli.instagram_account_id)
+            : null;
+          nextWs = {
+            tipo: 'cliente',
+            clienteId: cli.id,
+            nome: cli.nome,
+            nicho: cli.nicho,
+            cor: cli.cor,
+            fotoUrl: cli.foto_url || igAcc?.profile_picture_url,
+            instagramAccountId: cli.instagram_account_id || null,
+            instagramUserId: igAcc?.instagram_user_id || null,
+            instagramUsername: igAcc?.instagram_username || null,
+          };
+          // Força a aba inicial para 'crm' se estiver em qualquer aba restrita à agência
+          setActiveTab((prev) => (prev === 'contacts' || prev === 'crm' || prev === 'inbox' ? prev : 'crm'));
+        }
+      }
+
+      // 1. Prioridade: Se veio cliente na URL ?cliente=<id> (apenas para membros da agência)
+      if (!nextWs && preferredClienteId) {
         if (preferredClienteId === 'agencia') {
           nextWs = {
             tipo: 'agencia',
@@ -571,6 +601,10 @@ export default function Dashboard() {
    * menu do celular, atualiza a URL (histórico do navegador) e o foco.
    */
   const navegarPara = async (tab: AbaId, opts: { item?: string | null; replace?: boolean } = {}) => {
+    if (membroPerfil?.papel === 'cliente' && tab !== 'crm' && tab !== 'contacts' && tab !== 'inbox') {
+      showToast('Acesso restrito ao CRM e Contatos da sua conta.', 'error');
+      return false;
+    }
     if (!(await podeSairDaEdicao())) return false;
     if (opts.item) setItemFocoId(opts.item);
     setActiveTab(tab);
@@ -968,6 +1002,7 @@ export default function Dashboard() {
               onSelectWorkspace={handleSelectWorkspace}
               onNovoCliente={() => navegarPara('clientes')}
               compacto={sidebarCompacta}
+              bloqueado={membroPerfil?.papel === 'cliente'}
             />
           </div>
 
@@ -988,12 +1023,47 @@ export default function Dashboard() {
 
         {/* Navigation Links — Linear-inspired grouping */}
         <nav className={`flex-1 ${sidebarCompacta ? 'px-2 py-4' : 'px-3 py-4'} flex flex-col gap-4 overflow-y-auto`}>
-          {GRUPOS_MENU.map((g) => ({
-            label: g.id === 'instagram'
-              ? `Instagram · ${selectedAccountId && selectedAccountId !== 'all' ? '@' + (config?.instagram_username || '…') : 'todas as contas'}`
-              : g.label,
-            items: ABAS.filter((id) => TELAS[id].grupo === g.id).map((id) => ({ id, label: TELAS[id].label, icon: TELAS[id].icon })),
-          })).map((group, gi) => (
+          {membroPerfil?.papel === 'cliente' ? (
+            <div className="flex flex-col gap-1">
+              {!sidebarCompacta && (
+                <span className="text-xs font-medium text-muted-foreground px-3 mb-0.5 truncate">
+                  Portal do Cliente
+                </span>
+              )}
+              {[
+                { id: 'crm' as AbaId, label: 'CRM de Vendas', icon: TELAS.crm.icon },
+                { id: 'contacts' as AbaId, label: 'Contatos & Leads', icon: TELAS.contacts.icon },
+              ].map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <Tip key={item.id} label={item.label} side="right" disabled={!sidebarCompacta}>
+                    <button
+                      type="button"
+                      aria-current={active ? 'page' : undefined}
+                      aria-label={sidebarCompacta ? item.label : undefined}
+                      onClick={() => navegarPara(item.id)}
+                      className={`relative w-full flex items-center ${sidebarCompacta ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-3 md:py-2'} rounded-xl text-sm font-medium transition-colors cursor-pointer text-left ${
+                        active
+                          ? 'text-sidebar-accent-foreground bg-sidebar-accent'
+                          : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                      }`}
+                    >
+                      {active && <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-full bg-sidebar-primary" />}
+                      <Icon className={`relative w-4 h-4 flex-shrink-0 ${active ? 'text-sidebar-primary' : 'text-muted-foreground'}`} />
+                      {!sidebarCompacta && <span className="relative truncate">{item.label}</span>}
+                    </button>
+                  </Tip>
+                );
+              })}
+            </div>
+          ) : (
+            GRUPOS_MENU.map((g) => ({
+              label: g.id === 'instagram'
+                ? `Instagram · ${selectedAccountId && selectedAccountId !== 'all' ? '@' + (config?.instagram_username || '…') : 'todas as contas'}`
+                : g.label,
+              items: ABAS.filter((id) => TELAS[id].grupo === g.id).map((id) => ({ id, label: TELAS[id].label, icon: TELAS[id].icon })),
+            })).map((group, gi) => (
             <div key={gi} className="flex flex-col gap-1">
               {!sidebarCompacta ? (
                 group.label && (
@@ -1030,7 +1100,7 @@ export default function Dashboard() {
                 );
               })}
             </div>
-          ))}
+          )))}
         </nav>
 
         {/* Sidebar Footer: Perfil Único do Usuário Master na Sidebar */}

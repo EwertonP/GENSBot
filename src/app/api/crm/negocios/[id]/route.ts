@@ -19,12 +19,20 @@ export async function GET(req: Request, { params }: Params) {
 
   const { id } = await params;
   try {
-    const { data: negocio, error } = await serviceSupabase
+    let query = serviceSupabase
       .from('crm_negocios')
       .select(SELECT_NEGOCIO)
       .eq('id', id)
-      .eq('agencia_id', membro.agencia_id)
-      .maybeSingle();
+      .eq('agencia_id', membro.agencia_id);
+
+    if (membro.papel === 'cliente') {
+      if (!membro.cliente_id) {
+        return respostaErro('Usuário de cliente sem cliente vinculado.', 403);
+      }
+      query = query.eq('cliente_id', membro.cliente_id);
+    }
+
+    const { data: negocio, error } = await query.maybeSingle();
 
     if (error) return traduzirErroBanco(error, 'GET /api/crm/negocios/[id]');
     if (!negocio) return respostaErro('Negócio não encontrado.', 404);
@@ -100,11 +108,20 @@ export async function PATCH(req: Request, { params }: Params) {
     if (motivo_perda !== undefined) updates.motivo_perda = motivo_perda || null;
     if (status !== undefined) updates.status = status;
 
-    const { data: atualizado, error } = await serviceSupabase
+    let updateQuery = serviceSupabase
       .from('crm_negocios')
       .update(updates)
       .eq('id', id)
-      .eq('agencia_id', membro.agencia_id)
+      .eq('agencia_id', membro.agencia_id);
+
+    if (membro.papel === 'cliente') {
+      if (!membro.cliente_id) {
+        return respostaErro('Usuário de cliente sem cliente vinculado.', 403);
+      }
+      updateQuery = updateQuery.eq('cliente_id', membro.cliente_id);
+    }
+
+    const { data: atualizado, error } = await updateQuery
       .select(SELECT_NEGOCIO)
       .maybeSingle();
 
@@ -126,11 +143,20 @@ export async function DELETE(req: Request, { params }: Params) {
 
   const { id } = await params;
   try {
-    const { error } = await serviceSupabase
+    let deleteQuery = serviceSupabase
       .from('crm_negocios')
       .delete()
       .eq('id', id)
       .eq('agencia_id', membro.agencia_id);
+
+    if (membro.papel === 'cliente') {
+      if (!membro.cliente_id) {
+        return respostaErro('Usuário de cliente sem cliente vinculado.', 403);
+      }
+      deleteQuery = deleteQuery.eq('cliente_id', membro.cliente_id);
+    }
+
+    const { error } = await deleteQuery;
 
     if (error) return traduzirErroBanco(error, 'DELETE /api/crm/negocios/[id]');
     return NextResponse.json({ ok: true, deleted: true });
