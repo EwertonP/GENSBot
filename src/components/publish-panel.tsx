@@ -69,6 +69,8 @@ import { AudioPickerModal } from '@/components/audio-picker-modal';
 import { PublishAppKitModal } from '@/components/publish-app-kit-modal';
 import type { TrendingTrack } from '@/app/api/instagram/trending-audios/route';
 import { Instagram } from '@/components/instagram-icon';
+import type { WorkspaceContexto } from '@/types/workspace';
+import { ClienteAvatar } from '@/components/cliente-avatar';
 
 type MediaType = 'IMAGE' | 'VIDEO' | 'REELS' | 'STORIES' | 'CAROUSEL';
 type PostKind = 'post' | 'reels' | 'story';
@@ -105,6 +107,7 @@ interface ScheduledPost {
 interface PublishPanelProps {
   accounts: AccountOption[];
   selectedAccountId: string | null;
+  workspace?: WorkspaceContexto;
   withAccount: (url: string, accountIdOverride?: string | null) => string;
   prefillData?: PrefillAgendamento | null;
   onClearPrefill?: () => void;
@@ -357,6 +360,7 @@ function InstagramPhoneMockup({
 export default function PublishPanel({
   accounts,
   selectedAccountId,
+  workspace,
   withAccount,
   prefillData,
   onClearPrefill,
@@ -572,6 +576,19 @@ export default function PublishPanel({
   const [filaContaFiltro, setFilaContaFiltro] = useState<'target' | 'all'>('target');
 
   useEffect(() => {
+    // Se estiver no contexto de um cliente específico com Instagram, força estritamente essa conta
+    if (workspace?.tipo === 'cliente') {
+      if (workspace.instagramUserId) {
+        setTargetAccount(workspace.instagramUserId);
+        setFilaContaFiltro('target');
+        return;
+      } else {
+        setTargetAccount('');
+        return;
+      }
+    }
+
+    // Se estiver na visão Agência
     if (selectedAccountId === 'all') {
       setFilaContaFiltro('all');
       if (accounts.length > 0 && !targetAccount) {
@@ -582,7 +599,7 @@ export default function PublishPanel({
     } else if (accounts.length > 0 && !targetAccount) {
       setTargetAccount(accounts[0].instagram_user_id);
     }
-  }, [selectedAccountId, accounts]);
+  }, [workspace, selectedAccountId, accounts]);
 
   useEffect(() => {
     if (!targetAccount) return;
@@ -1065,21 +1082,48 @@ export default function PublishPanel({
           </p>
         </div>
 
-        {/* Seletor de Conta Ativa */}
-        <div className="flex items-center gap-2.5 bg-accent/60 p-1.5 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">
-          <span className="text-xs font-bold text-muted-foreground px-2">Conta:</span>
-          <Select
-            value={targetAccount}
-            onChange={(e) => setTargetAccount(e.target.value)}
-            className="h-8 text-xs font-bold bg-card border border-input rounded-xl px-3 text-foreground shadow-2xs focus:outline-none"
-          >
-            {accounts.map((acc) => (
-              <option key={acc.instagram_user_id} value={acc.instagram_user_id}>
-                @{acc.instagram_username || acc.instagram_user_id}
-              </option>
-            ))}
-          </Select>
-        </div>
+        {/* Identificação da Conta Vinculada */}
+        {workspace?.tipo === 'cliente' ? (
+          <div className="flex items-center gap-2.5 bg-accent/60 px-3 py-1.5 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">
+            <span className="text-xs font-bold text-muted-foreground">Publicando em:</span>
+            {workspace.instagramUsername ? (
+              <div className="flex items-center gap-2">
+                <ClienteAvatar
+                  nome={workspace.nome}
+                  cor={workspace.cor}
+                  fotoUrl={workspace.fotoUrl}
+                  tamanho="xs"
+                />
+                <Badge variant="brand" className="text-xs font-mono font-bold flex items-center gap-1">
+                  <Instagram className="w-3 h-3 inline" />
+                  @{workspace.instagramUsername}
+                </Badge>
+                <span className="text-[11px] text-muted-foreground font-medium hidden md:inline">
+                  (Bloqueado para {workspace.nome})
+                </span>
+              </div>
+            ) : (
+              <Badge variant="warning" className="text-xs">
+                Cliente sem Instagram conectado
+              </Badge>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 bg-accent/60 p-1.5 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">
+            <span className="text-xs font-bold text-muted-foreground px-2">Conta da Agência:</span>
+            <Select
+              value={targetAccount}
+              onChange={(e) => setTargetAccount(e.target.value)}
+              className="h-8 text-xs font-bold bg-card border border-input rounded-xl px-3 text-foreground shadow-2xs focus:outline-none"
+            >
+              {accounts.map((acc) => (
+                <option key={acc.instagram_user_id} value={acc.instagram_user_id}>
+                  @{acc.instagram_username || acc.instagram_user_id}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* 2. Grid do Estúdio: Composer (Esquerda) + Live Preview (Direita) */}

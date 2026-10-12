@@ -474,19 +474,31 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
 
             <div>
               <label className="text-label font-medium text-foreground block mb-1">
-                Vincular a um Cliente (Opcional)
+                Cliente Vinculado
               </label>
-              <Select
-                value={novoClienteId}
-                onChange={(e) => setNovoClienteId(e.target.value)}
-              >
-                <option value="">Nenhum (Uso Geral da Agência)</option>
-                {listaClientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
-              </Select>
+              {clienteSelecionado && clienteSelecionado !== 'all' ? (
+                (() => {
+                  const cli = listaClientes.find((c) => c.id === clienteSelecionado);
+                  return (
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-accent/60 border border-border text-xs font-semibold text-foreground">
+                      <span>{cli?.nome || 'Cliente Selecionado'}</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">(Fixado pelo Workspace Ativo)</span>
+                    </div>
+                  );
+                })()
+              ) : (
+                <Select
+                  value={novoClienteId}
+                  onChange={(e) => setNovoClienteId(e.target.value)}
+                >
+                  <option value="">Nenhum (Uso Geral da Agência)</option>
+                  {listaClientes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </div>
 
             <div>

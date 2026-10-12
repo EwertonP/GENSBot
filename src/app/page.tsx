@@ -1108,20 +1108,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {selectedAccountId !== 'all' && accounts.length > 1 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/30 text-xs font-semibold text-foreground animate-in fade-in duration-200">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <span>Operando como: <strong className="text-primary font-bold">@{config?.instagram_username || selectedAccountId}</strong></span>
-                <button
-                  type="button"
-                  onClick={() => handleSelectAccount('all')}
-                  className="ml-1 text-xs px-2 py-0.5 rounded-md bg-card hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-ui cursor-pointer"
-                  aria-label="Sair da conta e voltar para a visão geral da agência"
-                >
-                  <X aria-hidden className="inline w-3 h-3 -mt-px" /> Visão Agência
-                </button>
-              </div>
-            )}
 
             <button
               type="button"
@@ -1287,6 +1273,7 @@ export default function Dashboard() {
               <PublishPanel
                 accounts={accounts.map((acc) => ({ id: acc.id, instagram_user_id: acc.instagram_user_id, instagram_username: acc.instagram_username }))}
                 selectedAccountId={selectedAccountId}
+                workspace={workspaceAtivo}
                 withAccount={withAccount}
                 prefillData={prefillAgendamento}
                 onClearPrefill={() => setPrefillAgendamento(null)}
@@ -1335,6 +1322,7 @@ export default function Dashboard() {
           {activeTab === 'esteira' && (
             <EsteiraTab
               showToast={showToast}
+              clienteFiltroId={workspaceAtivo.tipo === 'cliente' ? workspaceAtivo.clienteId : null}
               itemFocoId={itemFocoId}
               onClearItemFoco={() => setItemFocoId(null)}
               novaDemandaSinal={novaDemandaSinal}

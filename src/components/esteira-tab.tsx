@@ -181,6 +181,11 @@ export default function EsteiraTab({
     carregarDados();
   }, []);
 
+  // Sincroniza filtro quando o cliente do Workspace muda externamente
+  useEffect(() => {
+    setClienteSelecionado(clienteFiltroId || 'all');
+  }, [clienteFiltroId]);
+
   // Foca e abre automaticamente o modal da demanda se itemFocoId for fornecido
   useEffect(() => {
     if (itemFocoId && items.length > 0) {
@@ -445,19 +450,38 @@ export default function EsteiraTab({
             />
           </div>
 
-          {/* Filtro Cliente */}
-          <Select
-            value={clienteSelecionado}
-            onChange={(e) => setClienteSelecionado(e.target.value)}
-            className="h-9 text-xs w-40 sm:w-44"
-          >
-            <option value="all">Todos os clientes</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nome}
-              </option>
-            ))}
-          </Select>
+          {/* Filtro Cliente (Travado quando há cliente ativo no Workspace) */}
+          {clienteFiltroId ? (
+            (() => {
+              const cAtivo = clientes.find((c) => c.id === clienteFiltroId);
+              return (
+                <div className="flex items-center gap-2 px-2.5 py-1 bg-accent/60 rounded-xl border border-border text-xs">
+                  <ClienteAvatar
+                    nome={cAtivo?.nome || 'Cliente'}
+                    cor={cAtivo?.cor}
+                    fotoUrl={cAtivo?.foto_url}
+                    tamanho="xs"
+                  />
+                  <span className="font-bold text-foreground truncate max-w-[120px]">
+                    {cAtivo?.nome || 'Cliente'}
+                  </span>
+                </div>
+              );
+            })()
+          ) : (
+            <Select
+              value={clienteSelecionado}
+              onChange={(e) => setClienteSelecionado(e.target.value)}
+              className="h-9 text-xs w-40 sm:w-44"
+            >
+              <option value="all">Todos os clientes</option>
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
+            </Select>
+          )}
 
           {/* Filtro Responsável */}
           {membros.length > 0 && (

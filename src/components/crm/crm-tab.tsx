@@ -302,45 +302,36 @@ export default function CrmTab({
     <div className="space-y-6 pb-12 animate-fade-in">
       {/* ──────────────── Topo: Seletor de Contexto (Agência vs Clientes) & Pipeline ──────────────── */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
-        {/* Lado Esquerdo: Switcher de Contexto */}
+        {/* Lado Esquerdo: Identificador Estrito de Escopo do CRM */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-accent/40 border border-border/80">
-            {/* Opção Agência GENS */}
-            <button
-              type="button"
-              onClick={() => setContextoClienteId(null)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                contextoClienteId === null
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              <span>Agência GENS</span>
-              {contextoClienteId === null && (
-                <Badge variant="brand" className="text-[10px] py-0 px-1">
-                  Interno
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-accent/40 border border-border/80 text-xs">
+            {contextoClienteId ? (
+              (() => {
+                const cli = clientes.find((c) => c.id === contextoClienteId);
+                return (
+                  <div className="flex items-center gap-2">
+                    <ClienteAvatar
+                      nome={cli?.nome || 'Cliente'}
+                      cor={cli?.cor}
+                      fotoUrl={cli?.foto_url}
+                      tamanho="xs"
+                    />
+                    <span className="font-bold text-foreground">{cli?.nome || 'Cliente'}</span>
+                    <Badge variant="brand" className="text-[10px] py-0 px-1.5 h-5">
+                      CRM Exclusivo
+                    </Badge>
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-primary" />
+                <span className="font-bold text-foreground">Agência GENS</span>
+                <Badge variant="brand" className="text-[10px] py-0 px-1.5 h-5">
+                  Prospecção Interna
                 </Badge>
-              )}
-            </button>
-
-            {/* Opção Cliente */}
-            <div className="relative flex items-center">
-              <Select
-                value={contextoClienteId || ''}
-                onChange={(e) => setContextoClienteId(e.target.value || null)}
-                className={`text-xs h-8 pl-2.5 pr-7 font-medium border-transparent bg-transparent hover:bg-accent/60 ${
-                  contextoClienteId !== null ? 'font-bold text-primary' : 'text-muted-foreground'
-                }`}
-              >
-                <option value="">Carteira de Clientes...</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
-              </Select>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Pipeline Selector & Ações de Funil */}
