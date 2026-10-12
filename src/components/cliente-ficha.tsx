@@ -21,6 +21,10 @@ import {
   UserCheck,
   QrCode,
   Smartphone,
+  RefreshCw,
+  Bell,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -481,6 +485,11 @@ export default function ClienteFicha({
       <ConexaoWhatsApp
         clienteId={clienteId}
         clienteNome={cliente?.nome || nomeInicial}
+        cliente={cliente}
+        onAtualizouCliente={(c) => {
+          setCliente(c);
+          setForm(formDe(c));
+        }}
         showToast={showToast}
       />
     </div>
@@ -959,35 +968,65 @@ function AcessosPortal({
 function ConexaoWhatsApp({
   clienteId,
   clienteNome,
+  cliente,
+  onAtualizouCliente,
   showToast,
 }: {
   clienteId: string;
   clienteNome: string;
+  cliente: Cliente | null;
+  onAtualizouCliente: (cliente: Cliente) => void;
   showToast: (message: string, type: 'success' | 'error') => void;
 }) {
   const [session, setSession] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
+  const [sincronizando, setSincronizando] = useState(false);
   const [iniciando, setIniciando] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
-  const [gatewayConfigurado, setGatewayConfigurado] = useState(false);
 
-  const carregarStatus = async () => {
+  // Estados locais para grupo e notificação
+  const [grupoId, setGrupoId] = useState(cliente?.whatsapp_grupo_id || '');
+  const [notificarAgendamento, setNotificarAgendamento] = useState<boolean>(
+    cliente?.whatsapp_notificar_agendamento ?? true
+  );
+  const [salvandoGrupo, setSalvandoGrupo] = useState(false);
+  const [testandoGrupo, setTestandoGrupo] = useState(false);
+
+  useEffect(() => {
+    if (cliente) {
+      setGrupoId(cliente.whatsapp_grupo_id || '');
+      setNotificarAgendamento(cliente.whatsapp_notificar_agendamento ?? true);
+    }
+  }, [cliente]);
+
+  const carregarStatus = async (manual = false) => {
+    if (manual) setSincronizando(true);
     try {
       const res = await fetch(`/api/whatsapp/session?cliente_id=${encodeURIComponent(clienteId)}`);
       const data = await res.json();
       if (res.ok && data.session) {
         setSession(data.session);
+        if (data.session.status === 'conectado') {
+          setQrCodeData(null);
+        }
+        if (manual) {
+          if (data.session.status === 'conectado') {
+            showToast('Conexão ativa e sincronizada com sucesso!', 'success');
+          } else {
+            showToast('Status sincronizado: ' + (data.session.status || 'desconectado'), 'success');
+          }
+        }
       }
     } catch {
-      // Silencioso
+      if (manual) showToast('Falha ao verificar status com o servidor.', 'error');
     } finally {
       setCarregando(false);
+      if (manual) setSincronizando(false);
     }
   };
 
   useEffect(() => {
     carregarStatus();
-    // Verifica a cada 4 segundos se o status mudou para 'conectado'
     const interval = setInterval(() => {
       carregarStatus();
     }, 4000);
@@ -1006,7 +1045,6 @@ function ConexaoWhatsApp({
       const data = await res.json();
       if (res.ok) {
         setSession(data.session);
-        setGatewayConfigurado(Boolean(data.gatewayConfigurado));
         if (data.qrCode) {
           setQrCodeData(data.qrCode);
           showToast('QR Code gerado! Aponte o celular.', 'success');
@@ -1024,18 +1062,72 @@ function ConexaoWhatsApp({
     }
   };
 
+  const handleSalvarConfigGrupo = async () => {
+    setSalvandoGrupo(true);
+    try {
+      const res = await fetch(`/api/clientes/${clienteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          whatsapp_grupo_id: grupoId.trim() || null,
+          whatsapp_notificar_agendamento: notificarAgendamento,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.cliente) {
+        onAtualizouCliente(data.cliente);
+        showToast('Configurações de avisos do WhatsApp salvas com sucesso!', 'success');
+      } else {
+        showToast(data.error || 'Erro ao salvar grupo do WhatsApp.', 'error');
+      }
+    } catch {
+      showToast('Erro de rede ao salvar configurações de grupo.', 'error');
+    } finally {
+      setSalvandoGrupo(false);
+    }
+  };
+
+  const handleTestarEnvioGrupo = async () => {
+    if (!grupoId.trim()) {
+      showToast('Informe o ID ou JID do grupo antes de testar.', 'error');
+      return;
+    }
+    setTestandoGrupo(true);
+    try {
+      const res = await fetch('/api/whatsapp/test-group', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cliente_id: clienteId,
+          grupo_id: grupoId.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.mensagem || 'Mensagem de teste enviada com sucesso no grupo!', 'success');
+      } else {
+        showToast(data.error || 'Erro ao enviar mensagem no grupo.', 'error');
+      }
+    } catch {
+      showToast('Erro de conexão ao testar grupo.', 'error');
+    } finally {
+      setTestandoGrupo(false);
+    }
+  };
+
   const statusFormatado = session?.status || 'desconectado';
   const estaConectado = statusFormatado === 'conectado';
 
   return (
     <Secao
-      titulo="WhatsApp Copiloto (Escuta Ativa do WhatsApp Web)"
-      descricao="Conecta o WhatsApp da clínica via QR Code para permitir que a IA leia as mensagens em segundo plano, crie cards e atualize o CRM automaticamente sem risco de bloqueio."
+      titulo="WhatsApp Copiloto (Conexão do WhatsApp & Alertas de Agendamento)"
+      descricao="Conecta o WhatsApp da clínica via QR Code para permitir que a IA leia mensagens em tempo real, atualize o CRM e notifique automaticamente a equipe no grupo do WhatsApp."
     >
+      {/* Bloco 1: Status da Conexão */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card">
         <div className="flex items-center gap-3">
           <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
+            className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 border transition-colors ${
               estaConectado
                 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
                 : 'bg-muted text-muted-foreground border-border'
@@ -1046,35 +1138,52 @@ function ConexaoWhatsApp({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-foreground">
-                {estaConectado ? `WhatsApp Conectado (${session?.phone_number || clienteNome})` : 'WhatsApp Desconectado'}
+                {estaConectado
+                  ? `WhatsApp Conectado ${session?.phone_number ? `(+${session.phone_number})` : `(${clienteNome})`}`
+                  : 'WhatsApp Desconectado'}
               </span>
               <Badge variant={estaConectado ? 'success' : 'muted'} className="text-[10px]">
-                {estaConectado ? 'Escuta Ativa Ligada' : 'Aguardando Leitura'}
+                {estaConectado ? 'Conexão Ativa' : 'Aguardando Pareamento'}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               {estaConectado
-                ? 'A secretária pode atender normalmente. A IA está lendo os agendamentos e atualizando o CRM.'
-                : 'Clique no botão ao lado para gerar o QR Code de pareamento do celular da clínica.'}
+                ? 'A secretária pode responder normalmente no celular. A IA lê os dados e atualiza o funil sem risco de bloqueio.'
+                : 'Clique para gerar o QR Code e aponte a câmera do WhatsApp da clínica.'}
             </p>
           </div>
         </div>
 
-        <Button
-          type="button"
-          size="sm"
-          variant={estaConectado ? 'secondary' : 'primary'}
-          loading={iniciando}
-          onClick={handleConectar}
-          className="gap-1.5 flex-shrink-0"
-        >
-          <QrCode className="w-3.5 h-3.5" />
-          {estaConectado ? 'Reconectar / Atualizar' : 'Gerar QR Code'}
-        </Button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            loading={sincronizando}
+            onClick={() => carregarStatus(true)}
+            title="Verificar status agora"
+            className="gap-1.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Sincronizar
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            variant={estaConectado ? 'secondary' : 'primary'}
+            loading={iniciando}
+            onClick={handleConectar}
+            className="gap-1.5"
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            {estaConectado ? 'Reconectar / QR Code' : 'Gerar QR Code'}
+          </Button>
+        </div>
       </div>
 
       {/* Exibição do QR Code quando retornado */}
-      {qrCodeData && (
+      {qrCodeData && !estaConectado && (
         <div className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed border-primary/30 bg-primary/5 space-y-3 animate-in fade-in zoom-in-95 duration-150">
           <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
             <QrCode className="w-4 h-4 text-primary" /> Aponte a câmera do WhatsApp da clínica:
@@ -1089,10 +1198,135 @@ function ConexaoWhatsApp({
             )}
           </div>
           <p className="text-[11px] text-muted-foreground text-center max-w-sm">
-            Abra o WhatsApp no celular da clínica &gt; Menu (três pontinhos ou Ajustes) &gt; Aparelhos conectados &gt; Conectar um aparelho.
+            Abra o WhatsApp no celular &gt; Aparelhos conectados &gt; Conectar um aparelho. A tela atualizará automaticamente após a leitura.
           </p>
         </div>
       )}
+
+      {/* Bloco 2: Grupo de Avisos e Notificações de Agendamentos */}
+      <div className="p-4 rounded-xl border border-border bg-card space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-0.5">
+            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Bell className="w-3.5 h-3.5 text-primary" />
+              Notificação Automática de Agendamentos em Grupo
+            </h4>
+            <p className="text-[11px] text-muted-foreground">
+              Quando a secretária ou a IA mover um lead para a etapa <b>"Consulta Agendada"</b>, o GENSBot envia imediatamente um alerta detalhado no grupo do WhatsApp da equipe.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 items-end">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">
+              ID ou JID do Grupo de WhatsApp
+            </label>
+            <Input
+              placeholder="Ex: 12036302482394@g.us"
+              value={grupoId}
+              onChange={(e) => setGrupoId(e.target.value)}
+              className="text-xs font-mono"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              JID do grupo do WhatsApp com o médico/secretária (termina com <code>@g.us</code>).
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              loading={testandoGrupo}
+              onClick={handleTestarEnvioGrupo}
+              disabled={!grupoId.trim()}
+              className="gap-1.5 text-xs flex-1"
+            >
+              <Send className="w-3.5 h-3.5" />
+              Testar Envio no Grupo
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              loading={salvandoGrupo}
+              onClick={handleSalvarConfigGrupo}
+              className="gap-1.5 text-xs flex-1"
+            >
+              Salvar Grupo
+            </Button>
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer pt-1">
+          <input
+            type="checkbox"
+            checked={notificarAgendamento}
+            onChange={(e) => setNotificarAgendamento(e.target.checked)}
+            className="rounded border-border text-primary focus:ring-primary w-4 h-4"
+          />
+          <span className="text-xs text-foreground font-medium">
+            Disparar aviso automático no grupo ao mover lead para "Consulta Agendada"
+          </span>
+        </label>
+      </div>
+
+      {/* Bloco 3: Régua Inteligente Anti-Vácuo de Leads */}
+      <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <h4 className="text-xs font-bold text-foreground">
+              Régua Inteligente Anti-Vácuo de Leads (Follow-up Automático)
+            </h4>
+          </div>
+          <Badge variant="success" className="text-[10px]">
+            Proteção Ativa
+          </Badge>
+        </div>
+
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          Quando a secretária envia uma mensagem e o paciente não responde, o GENSBot assume as tentativas de contato em momentos estratégicos:
+        </p>
+
+        <div className="grid gap-2 sm:grid-cols-3 pt-1">
+          <div className="p-3 rounded-lg border border-border bg-muted/40 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <Clock className="w-3.5 h-3.5 text-primary" />
+              1ª Tentativa (+3 horas)
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Lembrete sutil e amigável perguntando se o lead conseguiu ler a mensagem anterior.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-lg border border-border bg-muted/40 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <Clock className="w-3.5 h-3.5 text-primary" />
+              2ª Tentativa (+8 horas)
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Aviso de organização de agenda oferecendo opções de horário antes que as vagas fechem.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-lg border border-border bg-muted/40 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <Clock className="w-3.5 h-3.5 text-primary" />
+              3ª Tentativa (+48 horas)
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Resgate educado deixando a porta aberta sem parecer invasivo ou insistente.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-1">
+          <Check className="w-3.5 h-3.5" />
+          <b>Regra de Ouro:</b> Assim que o paciente enviar qualquer resposta, todas as mensagens pendentes são canceladas imediatamente no banco de dados.
+        </div>
+      </div>
     </Secao>
   );
 }

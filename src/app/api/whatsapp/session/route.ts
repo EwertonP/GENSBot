@@ -29,34 +29,53 @@ export async function GET(req: Request) {
     }
 
     let { data: session, error } = await query.maybeSingle();
-    let openwaUrl = process.env.OPENWA_API_URL?.trim().replace(/\/$/, '') || null;
-    if (openwaUrl && !openwaUrl.startsWith('http://') && !openwaUrl.startsWith('https://')) {
-      openwaUrl = `https://${openwaUrl}`;
-    }
-    const openwaKey = process.env.OPENWA_API_KEY || process.env.API_MASTER_KEY;
+    const { getOpenWAConfig } = await import('@/lib/openwa-client');
+    const { url: openwaUrl, key: openwaKey, headers: openwaHeaders } = getOpenWAConfig();
 
     let gatewayTeste = null;
     if (openwaUrl) {
       try {
         const res = await fetch(`${openwaUrl}/api/sessions`, {
-          headers: openwaKey ? { 'X-API-Key': openwaKey } : {},
-          signal: AbortSignal.timeout(4000),
+          headers: openwaHeaders,
+          signal: AbortSignal.timeout(5000),
         });
 
         if (res.ok) {
           const sessions = await res.json();
           if (Array.isArray(sessions) && session) {
-            const match = sessions.find((s: any) => s.name === session?.session_name || s.id === session?.session_name);
+            const sNameNorm = (session.session_name || '').toLowerCase();
+            const match = sessions.find((s: any) => {
+              const itemNome = (s.name || s.id || '').toLowerCase();
+              return (
+                itemNome === sNameNorm ||
+                itemNome === sNameNorm.replace(/-/g, '_') ||
+                itemNome === sNameNorm.replace(/_/g, '-') ||
+                (s.id && s.id === session.session_name)
+              );
+            });
+
             if (match) {
-              const openwaStatus = match.status; // 'ready' | 'WORKING' | 'qr_ready' etc.
-              const estaConectadoNoOpenWA = openwaStatus === 'ready' || openwaStatus === 'WORKING';
+              const openwaStatus = String(match.status || '').toUpperCase();
+              const estaConectadoNoOpenWA =
+                openwaStatus === 'READY' ||
+                openwaStatus === 'WORKING' ||
+                openwaStatus === 'CONNECTED' ||
+                openwaStatus === 'OPEN' ||
+                Boolean(match.me?.id);
 
               if (estaConectadoNoOpenWA && session.status !== 'conectado') {
+                const phone = match.me?.id
+                  ? match.me.id.replace(/\D/g, '')
+                  : match.phone || session.phone_number || null;
+                const pushName = match.me?.pushName || match.pushName || session.push_name || null;
+
                 await serviceSupabase
                   .from('whatsapp_sessions')
                   .update({
                     status: 'conectado',
-                    phone_number: match.phone || session.phone_number || null,
+                    phone_number: phone,
+                    push_name: pushName,
+                    conectado_em: new Date().toISOString(),
                     atualizado_em: new Date().toISOString(),
                   })
                   .eq('id', session.id);
@@ -64,7 +83,8 @@ export async function GET(req: Request) {
                 session = {
                   ...session,
                   status: 'conectado',
-                  phone_number: match.phone || session.phone_number || null,
+                  phone_number: phone,
+                  push_name: pushName,
                 };
               }
             }

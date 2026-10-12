@@ -16,6 +16,12 @@ async function handleDrain(req: Request) {
 
   try {
     const result = await drainQueue();
+
+    // Drena também os follow-ups agendados do WhatsApp
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://allingens.vercel.app'}/api/cron/whatsapp-followup`, {
+      headers: { Authorization: `Bearer ${cronSecret}` },
+    }).catch(() => null);
+
     return NextResponse.json(result);
   } catch (err: any) {
     console.error('Erro geral no drain worker:', err);

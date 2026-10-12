@@ -56,6 +56,8 @@ export interface Cliente {
   concorrentes: string | null;
   briefing: string | null;
   drive_pasta_id: string | null;
+  whatsapp_grupo_id?: string | null;
+  whatsapp_notificar_agendamento?: boolean | null;
   token_aprovacao_mes?: string | null;
   onboarding_etapas?: EtapaOnboarding[];
   ativo: boolean;
@@ -134,6 +136,8 @@ const CLIENTE_FIELDS: Record<string, Rule> = {
   concorrentes: text(2000),
   briefing: text(10000),
   drive_pasta_id: text(200),
+  whatsapp_grupo_id: text(200),
+  whatsapp_notificar_agendamento: { kind: 'bool' },
   token_aprovacao_mes: { kind: 'uuid' },
   onboarding_etapas: { kind: 'json' },
   notion_database_id: text(200),

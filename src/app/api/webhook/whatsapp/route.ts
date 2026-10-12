@@ -56,6 +56,21 @@ export async function POST(req: Request) {
         timestamp_msg: new Date().toISOString(),
       }, { onConflict: 'agencia_id,message_id' });
 
+      // Se a mensagem for do paciente/lead: CANCELA follow-ups pendentes imediatamente
+      if (!deMim) {
+        const { cancelarFollowUpsDoLead } = await import('@/lib/whatsapp-followup');
+        await cancelarFollowUpsDoLead(agenciaId, remetente);
+      } else {
+        // Se a mensagem foi enviada pela secretária: AGENDAR nova régua de follow-up (3h -> 8h -> 48h)
+        const { agendarReguaFollowUp } = await import('@/lib/whatsapp-followup');
+        await agendarReguaFollowUp({
+          agenciaId,
+          clienteId,
+          telefone: remetente,
+          nomeContato,
+        });
+      }
+
       // 3. Se a escuta ativa estiver habilitada nesta sessão:
       if (sessionData?.ia_escuta_ativa !== false && conteudo?.trim()) {
         // Busca as últimas 6 mensagens dessa conversa para dar contexto completo à IA
