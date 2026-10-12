@@ -139,6 +139,7 @@ export async function sincronizarMensagemEAtualizarCrm(ctx: AnaliseMensagemConte
 
   // Garante que o pipeline exista
   const pipeline = await garantirPipelinePadrao(agenciaId, clienteId);
+  if (!pipeline) return { ok: false, error: 'Pipeline padrão não encontrado' };
   const estagios = pipeline.estagios || [];
 
   const conversaTexto = mensagensTexto.join('\n');
