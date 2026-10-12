@@ -1009,13 +1009,44 @@ async function processWebhookEvent(payload: any) {
           }
         }
 
-        // Nenhuma automação bateu nessa mensagem. Se o contato não tinha
-        // nenhum histórico de automação antes (nunca disparou nada, nunca
-        // ficou num estado de captura), essa mensagem é ruído — alguém
-        // mandando DM sem relação com nenhum fluxo (ex: mensagem pessoal
-        // numa conta que também é usada como perfil pessoal). Remove o
-        // registro "vazio" que ensureContactExists criou só pra permitir
-        // o log da mensagem, em vez de deixar poluir "Leads & Público".
+        // Se nenhuma automação fixa bateu no gatilho, aciona o Agente de IA Multi-LLM (SDR Inteligente)
+        if (!matchedTrigger) {
+          try {
+            const { processarMensagemDirectComIA } = await import('@/lib/ai/orchestrator');
+            const resIA = await processarMensagemDirectComIA({
+              instagramUserId: myIgId,
+              senderId,
+              senderUsername: contact?.username || null,
+              text,
+              ownerUserId,
+            });
+
+            if (resIA.processadoPorIA && resIA.respostaGerada) {
+              const aiPayload = {
+                recipient: { id: senderId },
+                message: { text: resIA.respostaGerada },
+              };
+
+              await supabase.from('queue').insert({
+                user_id: ownerUserId,
+                instagram_user_id: myIgId,
+                contact_id: senderId,
+                type: 'private_reply',
+                recipient_id: senderId,
+                payload: aiPayload,
+                status: 'pending',
+                scheduled_at: new Date().toISOString(),
+              });
+
+              queueDrainNeeded = true;
+              matchedTrigger = true;
+            }
+          } catch (aiErr) {
+            console.error('Erro ao processar mensagem com Agente de IA:', aiErr);
+          }
+        }
+
+        // Se realmente não bateu nem automação nem IA, e o contato não tem histórico:
         if (!matchedTrigger && !contact?.last_automation_id && !contact?.conversation_state) {
           const { error: noiseCleanupError } = await supabase.from('contacts').delete().eq('instagram_user_id', myIgId).eq('instagram_id', senderId);
           logDbError('contacts.delete (contato sem automação)', noiseCleanupError);

@@ -13,6 +13,7 @@ import CrmTabela from './crm-tabela';
 import CrmDealDrawer from './crm-deal-drawer';
 import CrmNovoNegocioModal from './crm-novo-negocio-modal';
 import CrmPipelineModal from './crm-pipeline-modal';
+import CrmAiConfigModal from './crm-ai-config-modal';
 import { formatarMoeda, calcularDiasSemContato } from '@/lib/crm';
 import type { CrmPipeline, CrmEstagio, CrmNegocio, CrmMetricas, CrmStatus } from '@/types/crm';
 import type { Cliente } from '@/lib/clientes';
@@ -33,6 +34,8 @@ import {
   Layers,
   Settings,
   Edit3,
+  Bot,
+  Sparkles,
 } from 'lucide-react';
 
 interface CrmTabProps {
@@ -70,6 +73,7 @@ export default function CrmTab({
   const [novoModalEstagioId, setNovoModalEstagioId] = useState<string | null>(null);
   const [showPipelineModal, setShowPipelineModal] = useState(false);
   const [pipelineParaEditar, setPipelineParaEditar] = useState<CrmPipeline | null>(null);
+  const [showAiModal, setShowAiModal] = useState(false);
 
   // Sincroniza cliente inicial se passado externamente
   useEffect(() => {
@@ -434,6 +438,18 @@ export default function CrmTab({
             </Button>
           </Tip>
 
+          {/* Botão Configurar Agente de IA */}
+          <Tip label="Configurar Agente de IA (OpenAI, Gemini, Claude) para atendimento e CRM">
+            <button
+              type="button"
+              onClick={() => setShowAiModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-all shadow-2xs"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+              <span className="hidden sm:inline">Agente IA SDR</span>
+            </button>
+          </Tip>
+
           {/* Botão + Nova Oportunidade */}
           <Button
             variant="primary"
@@ -648,6 +664,15 @@ export default function CrmTab({
         clienteId={contextoClienteId}
         pipelineParaEditar={pipelineParaEditar}
         onSalvo={() => carregarPipelines()}
+        showToast={showToast}
+      />
+
+      {/* ──────────────── Modal Configuração Agente de IA SDR ──────────────── */}
+      <CrmAiConfigModal
+        open={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        clienteId={contextoClienteId}
+        pipelines={pipelines}
         showToast={showToast}
       />
     </div>
