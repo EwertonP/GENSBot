@@ -25,6 +25,7 @@ import {
   Bell,
   Clock,
   Sparkles,
+  Calendar,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -490,6 +491,12 @@ export default function ClienteFicha({
           setCliente(c);
           setForm(formDe(c));
         }}
+        showToast={showToast}
+      />
+
+      <SecaoGoogleCalendar
+        clienteId={clienteId}
+        clienteNome={cliente?.nome || nomeInicial}
         showToast={showToast}
       />
     </div>
@@ -1330,5 +1337,140 @@ function ConexaoWhatsApp({
     </Secao>
   );
 }
+
+// ---------------------------------------------------------------- secao google calendar ---
+
+function SecaoGoogleCalendar({
+  clienteId,
+  clienteNome,
+  showToast,
+}: {
+  clienteId: string;
+  clienteNome: string;
+  showToast: (message: string, type: 'success' | 'error') => void;
+}) {
+  const [conectado, setConectado] = useState(false);
+  const [integracao, setIntegracao] = useState<any>(null);
+  const [configuradoNoServidor, setConfiguradoNoServidor] = useState(true);
+  const [carregando, setCarregando] = useState(true);
+  const [desconectando, setDesconectando] = useState(false);
+
+  const carregarStatus = async () => {
+    try {
+      const res = await fetch(`/api/integrations/google-calendar/status?cliente_id=${encodeURIComponent(clienteId)}`);
+      const data = await res.json();
+      if (res.ok) {
+        setConectado(Boolean(data.conectado));
+        setIntegracao(data.integracao || null);
+        setConfiguradoNoServidor(Boolean(data.configuradoNoServidor));
+      }
+    } catch {
+      // Silencioso
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarStatus();
+  }, [clienteId]);
+
+  const handleConectar = () => {
+    // Redireciona para o fluxo OAuth
+    window.location.href = `/api/integrations/google-calendar/auth?cliente_id=${encodeURIComponent(clienteId)}`;
+  };
+
+  const handleDesconectar = async () => {
+    if (!confirm(`Deseja desconectar a Google Agenda de ${clienteNome}?`)) return;
+    setDesconectando(true);
+    try {
+      const res = await fetch(`/api/integrations/google-calendar/status?cliente_id=${encodeURIComponent(clienteId)}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setConectado(false);
+        setIntegracao(null);
+        showToast('Google Agenda desconectada com sucesso.', 'success');
+      } else {
+        showToast('Erro ao desconectar Google Agenda.', 'error');
+      }
+    } catch {
+      showToast('Erro de rede ao desconectar.', 'error');
+    } finally {
+      setDesconectando(false);
+    }
+  };
+
+  return (
+    <Secao
+      titulo="Google Agenda (Sincronização de Consultas & Horários)"
+      descricao="Conecta o Google Calendar da clínica para sincronizar consultas automaticamente, consultar horários ocupados e evitar choque de agenda."
+    >
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 border transition-colors ${
+              conectado
+                ? 'bg-blue-500/10 text-blue-500 border-blue-500/30'
+                : 'bg-muted text-muted-foreground border-border'
+            }`}
+          >
+            <Calendar className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-foreground">
+                {conectado
+                  ? `Google Agenda Conectada (${integracao?.email || clienteNome})`
+                  : 'Google Agenda Desconectada'}
+              </span>
+              <Badge variant={conectado ? 'success' : 'muted'} className="text-[10px]">
+                {conectado ? 'Sincronização Ativa' : 'Não Vinculado'}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {conectado
+                ? `Consultas agendadas pelo CRM ou pela IA são criadas automaticamente na agenda de ${integracao?.email || 'destino'}.`
+                : 'Conecte a conta do Google da clínica para que a IA e o CRM criem e consultem os eventos na agenda.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {conectado ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              loading={desconectando}
+              onClick={handleDesconectar}
+              className="gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+            >
+              Desconectar Agenda
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="primary"
+              onClick={handleConectar}
+              className="gap-1.5 text-xs"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              Conectar Google Agenda
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {!configuradoNoServidor && (
+        <div className="p-3 rounded-lg border border-warning/30 bg-warning/5 text-xs text-muted-foreground">
+          ⚠️ <b>Configuração no Google Cloud necessária:</b> Para que o botão abra a tela de login do Google, adicione as variáveis <code>GOOGLE_CLIENT_ID</code> e <code>GOOGLE_CLIENT_SECRET</code> nas variáveis de ambiente da Vercel.
+        </div>
+      )}
+    </Secao>
+  );
+}
+
 
 
