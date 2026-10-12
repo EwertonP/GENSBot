@@ -1004,8 +1004,10 @@ function ConexaoWhatsApp({
         setGatewayConfigurado(Boolean(data.gatewayConfigurado));
         if (data.qrCode) {
           setQrCodeData(data.qrCode);
+          showToast('QR Code gerado! Aponte o celular.', 'success');
+        } else {
+          showToast(data.mensagem || 'Aguardando inicialização da sessão. Tente novamente em alguns segundos.', 'warning');
         }
-        showToast(data.mensagem || 'Conexão solicitada com sucesso.', 'success');
       } else {
         showToast(data.error || 'Erro ao iniciar conexão com WhatsApp.', 'error');
       }

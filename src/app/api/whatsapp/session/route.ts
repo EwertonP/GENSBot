@@ -90,12 +90,16 @@ export async function POST(req: Request) {
         // Passo A: Verifica se a sessão já existe no OpenWA
         const resList = await fetch(`${openwaUrl}/api/sessions`, { headers });
         let sessionUuid: string | null = null;
+        let sessionStatus: string | null = null;
 
         if (resList.ok) {
           const sessions = await resList.json();
           if (Array.isArray(sessions)) {
-            const found = sessions.find((s: any) => s.name === sessionName || s.sessionId === sessionName);
-            if (found) sessionUuid = found.id || found.sessionId;
+            const found = sessions.find((s: any) => s.name === sessionName || s.sessionId === sessionName || s.id === sessionName);
+            if (found) {
+              sessionUuid = found.id || found.sessionId;
+              sessionStatus = found.status;
+            }
           }
         }
 
@@ -115,28 +119,38 @@ export async function POST(req: Request) {
 
         const targetId = sessionUuid || sessionName;
 
-        // Passo C: Inicia a sessão (POST /api/sessions/:sessionId/start)
-        await fetch(`${openwaUrl}/api/sessions/${targetId}/start`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            config: {
-              engine: 'baileys',
-              webhook: `${process.env.NEXT_PUBLIC_APP_URL || 'https://allingens.vercel.app'}/api/webhook/whatsapp`,
-            },
-          }),
-        }).catch(() => null);
+        // Passo C: Se a sessão não estiver ativa ou com qr_ready, inicia
+        if (sessionStatus !== 'WORKING' && sessionStatus !== 'ready') {
+          await fetch(`${openwaUrl}/api/sessions/${targetId}/start`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              config: {
+                engine: 'baileys',
+                webhook: `${process.env.NEXT_PUBLIC_APP_URL || 'https://allingens.vercel.app'}/api/webhook/whatsapp`,
+              },
+            }),
+          }).catch(() => null);
+        }
 
-        // Passo D: Aguarda 1.5s para o Baileys inicializar e busca o QR Code
-        await new Promise((r) => setTimeout(r, 1500));
+        // Passo D: Polling com até 5 tentativas (esperando o Baileys gerar o QR code)
+        for (let tentativa = 1; tentativa <= 5; tentativa++) {
+          await new Promise((r) => setTimeout(r, 1200));
 
-        const resQr = await fetch(`${openwaUrl}/api/sessions/${targetId}/qr`, { headers });
-        if (resQr.ok) {
-          const qrData = await resQr.json();
-          qrCode = qrData.qrCode || qrData.qr || qrData.dataUrl || null;
-          detalhesOpenWA = qrData;
-        } else {
-          detalhesOpenWA = { status: resQr.status, statusText: resQr.statusText, text: await resQr.text() };
+          const resQr = await fetch(`${openwaUrl}/api/sessions/${targetId}/qr`, { headers });
+          if (resQr.ok) {
+            const qrData = await resQr.json();
+            qrCode = qrData.qrCode || qrData.qr || qrData.dataUrl || null;
+            detalhesOpenWA = qrData;
+            if (qrCode) break;
+          } else {
+            detalhesOpenWA = {
+              tentativa,
+              status: resQr.status,
+              statusText: resQr.statusText,
+              text: await resQr.text(),
+            };
+          }
         }
       } catch (errGateway) {
         console.error('[OpenWA API] Falha de comunicação com gateway:', errGateway);
@@ -152,7 +166,7 @@ export async function POST(req: Request) {
       mensagem: qrCode
         ? 'QR Code gerado com sucesso.'
         : openwaUrl
-        ? 'Sessão iniciada no OpenWA. O QR Code está sendo gerado.'
+        ? 'Aguardando inicialização do QR Code no OpenWA.'
         : 'OPENWA_API_URL não configurado na Vercel.',
     });
   } catch (err: unknown) {
