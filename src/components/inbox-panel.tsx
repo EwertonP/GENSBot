@@ -15,6 +15,8 @@ interface Conversation {
   last_message: string | null;
   last_direction: 'inbound' | 'outbound';
   last_at: string;
+  ai_modo?: 'ia' | 'humano' | null;
+  negocio_id?: string | null;
 }
 
 interface Message {
@@ -114,7 +116,15 @@ export default function InboxPanel({ withAccount }: InboxPanelProps) {
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-foreground truncate">{c.name || c.username || c.contact_id}</p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-xs font-bold text-foreground truncate">{c.name || c.username || c.contact_id}</p>
+                {c.ai_modo === 'ia' && (
+                  <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-primary/15 text-primary shrink-0">🤖 IA</span>
+                )}
+                {c.ai_modo === 'humano' && (
+                  <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-amber-500/15 text-amber-500 shrink-0">👤 Humano</span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground truncate">{c.last_direction === 'outbound' ? 'Você: ' : ''}{c.last_message || '—'}</p>
             </div>
           </button>
@@ -126,7 +136,39 @@ export default function InboxPanel({ withAccount }: InboxPanelProps) {
           <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">Selecione uma conversa</div>
         ) : (
           <>
-            <div className="px-2 py-2 border-b border-border font-bold text-sm text-foreground">{selected.name || selected.username || selected.contact_id}</div>
+            <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+              <div>
+                <span className="font-bold text-sm text-foreground">{selected.name || selected.username || selected.contact_id}</span>
+                {selected.username && <span className="text-xs text-muted-foreground ml-1.5 font-mono">@{selected.username}</span>}
+              </div>
+
+              {/* Controle de IA / Atendimento Humano */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const novoModo = selected.ai_modo === 'ia' ? 'humano' : 'ia';
+                    try {
+                      await fetch('/api/inbox/ai-toggle', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contact_id: selected.contact_id, modo: novoModo }),
+                      });
+                      loadConversations();
+                    } catch (err) {
+                      console.error('Erro ao alternar IA:', err);
+                    }
+                  }}
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1.5 ${
+                    selected.ai_modo === 'humano'
+                      ? 'bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500/20'
+                      : 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
+                  }`}
+                >
+                  <span>{selected.ai_modo === 'humano' ? '👤 Atendimento Humano (Clique para ativar IA)' : '🤖 IA Ativa (Clique para assumir)'}</span>
+                </button>
+              </div>
+            </div>
             <div className="flex-1 overflow-y-auto flex flex-col gap-2 p-2">
               {messages.map((m) => (
                 <div key={m.id} className={`max-w-[75%] px-3 py-2 rounded-2xl text-xs ${m.direction === 'outbound' ? 'self-end bg-primary text-primary-foreground' : 'self-start bg-accent text-accent-foreground'}`}>

@@ -44,10 +44,19 @@ export async function GET(req: Request) {
       .in('instagram_id', contactIds);
     const contactById = new Map((contacts || []).map((c) => [c.instagram_id, c]));
 
+    // Busca sessões de IA para os contatos listados
+    const { data: aiSessions } = await supabase
+      .from('ai_contact_sessions')
+      .select('contact_id, modo, negocio_id')
+      .eq('instagram_user_id', config.instagram_user_id)
+      .in('contact_id', contactIds);
+    const aiSessionByContact = new Map((aiSessions || []).map((s) => [s.contact_id, s]));
+
     const conversations = contactIds
       .map((id) => {
         const last = lastByContact.get(id)!;
         const c = contactById.get(id);
+        const aiSession = aiSessionByContact.get(id);
         return {
           contact_id: id,
           name: c?.name || null,
@@ -56,6 +65,8 @@ export async function GET(req: Request) {
           last_message: last.text,
           last_direction: last.direction,
           last_at: last.created_at,
+          ai_modo: aiSession?.modo || null, // 'ia' | 'humano' | null
+          negocio_id: aiSession?.negocio_id || null,
         };
       })
       .sort((a, b) => new Date(b.last_at).getTime() - new Date(a.last_at).getTime());
