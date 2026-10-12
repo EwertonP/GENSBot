@@ -35,12 +35,12 @@ export async function POST(req: Request) {
     const grupoDestino = grupo_id.trim();
 
     const textoTeste = [
-      `🔔 *GENSBot - Teste de Notificação de Grupo*`,
+      `🔔 *GENSBot - Teste de Notificação de Demandas & Aprovações*`,
       ``,
       `Olá, equipe de *${cliente.nome}*! 👋`,
-      `Este grupo foi configurado com sucesso para receber os alertas e agendamentos automáticos da clínica.`,
+      `Este grupo foi configurado com sucesso para receber os links de aprovação de novos posts, reels e carrosséis.`,
       ``,
-      `✅ _Conexão com WhatsApp Copiloto ativa e operando._`,
+      `✅ _Conexão com WhatsApp Copiloto ativa e pronta para avisos de aprovação._`,
     ].join('\n');
 
     const resultado = await enviarMensagemOpenWA({

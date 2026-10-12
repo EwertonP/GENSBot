@@ -101,21 +101,7 @@ async function moverNegocioHandler(req: Request, { params }: Params) {
       },
     });
 
-    // 4. Se o estágio for de agendamento e o cliente tiver grupo configurado, notifica no WhatsApp
-    if (
-      novoEstagioNome.toLowerCase().includes('agendad') &&
-      atualizado.cliente_id
-    ) {
-      const { notificarGrupoAgendamento } = await import('@/lib/whatsapp-followup');
-      notificarGrupoAgendamento({
-        agenciaId: membro.agencia_id,
-        clienteId: atualizado.cliente_id,
-        nomePaciente: atualizado.nome_contato || atualizado.titulo,
-        telefonePaciente: atualizado.telefone,
-        procedimento: atualizado.titulo,
-        origem: atualizado.origem || 'CRM GENSBot',
-      }).catch((errGrupo) => console.warn('Erro ao notificar grupo da clínica no WhatsApp:', errGrupo));
-    }
+
 
     return NextResponse.json(atualizado);
   } catch (err: any) {

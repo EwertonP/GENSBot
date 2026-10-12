@@ -1203,16 +1203,16 @@ function ConexaoWhatsApp({
         </div>
       )}
 
-      {/* Bloco 2: Grupo de Avisos e Notificações de Agendamentos */}
+      {/* Bloco 2: Grupo de Avisos e Notificações de Demandas & Aprovações */}
       <div className="p-4 rounded-xl border border-border bg-card space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-0.5">
             <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <Bell className="w-3.5 h-3.5 text-primary" />
-              Notificação Automática de Agendamentos em Grupo
+              Notificação Automática de Demandas & Aprovações no Grupo
             </h4>
             <p className="text-[11px] text-muted-foreground">
-              Quando a secretária ou a IA mover um lead para a etapa <b>"Consulta Agendada"</b>, o GENSBot envia imediatamente um alerta detalhado no grupo do WhatsApp da equipe.
+              Quando um card for movido de <b>"Revisão"</b> para <b>"Aprovação"</b> na Esteira de Conteúdo da agência, o link interativo de aprovação será enviado instantaneamente neste grupo de WhatsApp para o cliente aprovar.
             </p>
           </div>
         </div>
@@ -1220,7 +1220,7 @@ function ConexaoWhatsApp({
         <div className="grid gap-3 sm:grid-cols-2 items-end">
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground">
-              ID ou JID do Grupo de WhatsApp
+              ID ou JID do Grupo de WhatsApp da Agência com o Cliente
             </label>
             <Input
               placeholder="Ex: 12036302482394@g.us"
@@ -1229,7 +1229,7 @@ function ConexaoWhatsApp({
               className="text-xs font-mono"
             />
             <p className="text-[10px] text-muted-foreground">
-              JID do grupo do WhatsApp com o médico/secretária (termina com <code>@g.us</code>).
+              JID do grupo do WhatsApp de alinhamento com o cliente (termina com <code>@g.us</code>).
             </p>
           </div>
 
@@ -1267,7 +1267,7 @@ function ConexaoWhatsApp({
             className="rounded border-border text-primary focus:ring-primary w-4 h-4"
           />
           <span className="text-xs text-foreground font-medium">
-            Disparar aviso automático no grupo ao mover lead para "Consulta Agendada"
+            Disparar link de aprovação automaticamente no grupo ao mover card para "Aprovação"
           </span>
         </label>
       </div>

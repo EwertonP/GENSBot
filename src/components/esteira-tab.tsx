@@ -279,12 +279,13 @@ export default function EsteiraTab({
         body: JSON.stringify({ status: novoStatus, ordem: novaOrdem }),
       });
       if (!res.ok) throw new Error();
-      showToast(
-        moverParaTopo
-          ? `Demanda movida para o topo da coluna!`
-          : `Demanda organizada em ${STATUS_LABELS[novoStatus].label}`,
-        'success'
-      );
+      const msgFeedback =
+        novoStatus === 'revisao_cliente'
+          ? 'Demanda enviada para Aprovação! O link foi disparado no grupo de WhatsApp do cliente.'
+          : moverParaTopo
+          ? 'Demanda movida para o topo da coluna!'
+          : `Demanda organizada em ${STATUS_LABELS[novoStatus].label}`;
+      showToast(msgFeedback, 'success');
     } catch {
       carregarDados();
       showToast('Erro ao atualizar posição.', 'error');
