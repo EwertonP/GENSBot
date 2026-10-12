@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Tip } from '@/components/ui/tooltip';
 import type { CrmPipeline, CrmEstagio } from '@/types/crm';
-import { Plus, Trash2, ArrowUp, ArrowDown, Layers, Palette, X } from 'lucide-react';
+import { TEMPLATES_FUNIS, type TemplateFunil } from '@/lib/crm';
+import { Plus, Trash2, ArrowUp, ArrowDown, Layers, Palette, X, Sparkles, Check } from 'lucide-react';
 
 interface CrmPipelineModalProps {
   open: boolean;
@@ -49,10 +50,30 @@ export default function CrmPipelineModal({
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [estagios, setEstagios] = useState<EstagioEdicao[]>([]);
+  const [templateAtivoId, setTemplateAtivoId] = useState<string | null>(null);
+
+  const aplicarTemplate = (tpl: TemplateFunil) => {
+    setTemplateAtivoId(tpl.id);
+    if (!nome.trim() || TEMPLATES_FUNIS.some((t) => t.nome === nome)) {
+      setNome(tpl.nome);
+    }
+    if (!descricao.trim() || TEMPLATES_FUNIS.some((t) => t.descricao === descricao)) {
+      setDescricao(tpl.descricao);
+    }
+    setEstagios(
+      tpl.estagios.map((e) => ({
+        nome: e.nome,
+        cor: e.cor,
+        tipo_conclusao: e.tipo_conclusao,
+        dias_limite_estagnado: e.dias_limite_estagnado,
+      }))
+    );
+  };
 
   useEffect(() => {
     if (open) {
       if (pipelineParaEditar) {
+        setTemplateAtivoId(null);
         setNome(pipelineParaEditar.nome || '');
         setDescricao(pipelineParaEditar.descricao || '');
         setEstagios(
@@ -65,15 +86,19 @@ export default function CrmPipelineModal({
           }))
         );
       } else {
-        setNome('');
-        setDescricao('');
-        setEstagios([
-          { nome: 'Novo Lead', cor: '#3b82f6', tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
-          { nome: 'Contato Feito', cor: '#6366f1', tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
-          { nome: 'Proposta Enviada', cor: '#f59e0b', tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
-          { nome: 'Fechado / Ganho', cor: '#10b981', tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
-          { nome: 'Perdido', cor: '#ef4444', tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
-        ]);
+        // Modo criação: inicia com o template padrão ou o primeiro
+        const padrao = TEMPLATES_FUNIS[0];
+        setTemplateAtivoId(padrao.id);
+        setNome(padrao.nome);
+        setDescricao(padrao.descricao);
+        setEstagios(
+          padrao.estagios.map((e) => ({
+            nome: e.nome,
+            cor: e.cor,
+            tipo_conclusao: e.tipo_conclusao,
+            dias_limite_estagnado: e.dias_limite_estagnado,
+          }))
+        );
       }
     }
   }, [open, pipelineParaEditar]);
@@ -188,6 +213,48 @@ export default function CrmPipelineModal({
         </div>
 
         <div className="p-5 space-y-4 overflow-y-auto">
+          {/* Seletor de Templates por Nicho (Aparece no modo Novo Funil) */}
+          {!pipelineParaEditar && (
+            <div className="flex flex-col gap-2 p-3 rounded-2xl bg-accent/40 border border-border/80">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <span>Modelos Prontos por Nicho</span>
+                </span>
+                <span className="text-[10px] text-muted-foreground">Clique para preencher as etapas</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {TEMPLATES_FUNIS.map((tpl) => {
+                  const isAtivo = templateAtivoId === tpl.id;
+                  return (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      onClick={() => aplicarTemplate(tpl)}
+                      className={`flex items-start gap-2 p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                        isAtivo
+                          ? 'bg-card border-primary ring-1 ring-primary shadow-xs'
+                          : 'bg-card/50 border-border hover:bg-card hover:border-foreground/20'
+                      }`}
+                    >
+                      <span className="text-base shrink-0 mt-0.5">{tpl.icone}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="text-xs font-bold text-foreground truncate">{tpl.nome}</p>
+                          {isAtivo && <Check className="w-3 h-3 text-primary shrink-0" />}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                          {tpl.estagios.length} etapas · {tpl.nichoSugerido}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col gap-1.5">
             <label className="font-semibold text-foreground">Nome do Funil *</label>
           <Input

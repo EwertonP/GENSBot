@@ -15,18 +15,20 @@ export async function GET(req: Request) {
 
   try {
     let clienteNome: string | null = null;
+    let clienteNicho: string | null = null;
     if (!ehAgencia && clienteId) {
       const { data: cli } = await serviceSupabase
         .from('clientes')
-        .select('nome')
+        .select('nome, nicho')
         .eq('id', clienteId)
         .eq('agencia_id', membro.agencia_id)
         .maybeSingle();
       clienteNome = cli?.nome || null;
+      clienteNicho = cli?.nicho || null;
     }
 
-    // Garante que exista pelo menos um pipeline padrão caso seja o primeiro acesso
-    await garantirPipelinePadrao(membro.agencia_id, ehAgencia ? null : clienteId, clienteNome);
+    // Garante que exista pelo menos um pipeline padrão caso seja o primeiro acesso (com auto-detecção de nicho)
+    await garantirPipelinePadrao(membro.agencia_id, ehAgencia ? null : clienteId, clienteNome, clienteNicho);
 
     let query = serviceSupabase
       .from('crm_pipelines')

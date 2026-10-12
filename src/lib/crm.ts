@@ -110,14 +110,114 @@ export function calcularMetricasPipeline(negocios: CrmNegocio[]): CrmMetricasPip
   };
 }
 
+export interface TemplateFunilEstagio {
+  nome: string;
+  cor: string;
+  ordem: number;
+  tipo_conclusao: 'aberto' | 'ganho' | 'perdido';
+  dias_limite_estagnado: number;
+}
+
+export interface TemplateFunil {
+  id: string;
+  nome: string;
+  icone: string;
+  descricao: string;
+  nichoSugerido: string;
+  estagios: TemplateFunilEstagio[];
+}
+
+/** Templates de Funis de Alta Conversão por Nicho */
+export const TEMPLATES_FUNIS: TemplateFunil[] = [
+  {
+    id: 'medico_clinica',
+    nome: 'Clínica & Área Médica',
+    icone: '🩺',
+    descricao: 'Consultas, procedimentos dermatológicos, estética avançada e clínicas de saúde.',
+    nichoSugerido: 'Medicina, Dermatologia, Odontologia, Estética, Harmonização',
+    estagios: [
+      { nome: 'Contato / Direct', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 1 },
+      { nome: 'Triagem & Interesse', cor: '#8b5cf6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'Qualificado / Agendando', cor: '#f59e0b', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'Consulta Agendada', cor: '#14b8a6', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 5 },
+      { nome: 'Avaliação / Compareceu', cor: '#6366f1', ordem: 4, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
+      { nome: 'Procedimento Fechado', cor: '#10b981', ordem: 5, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
+      { nome: 'Não Compareceu / Desistiu', cor: '#ef4444', ordem: 6, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
+    ],
+  },
+  {
+    id: 'direito_juridico',
+    nome: 'Advocacia & Jurídico',
+    icone: '⚖️',
+    descricao: 'Atendimento jurídico, análise de documentos e contratos de honorários.',
+    nichoSugerido: 'Direito, Advocacia, Jurídico, Escritório de Advocacia',
+    estagios: [
+      { nome: 'Novo Lead / Dúvida', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 1 },
+      { nome: 'Triagem de Viabilidade', cor: '#8b5cf6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'Consulta Agendada', cor: '#f59e0b', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
+      { nome: 'Análise de Documentos', cor: '#6366f1', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 5 },
+      { nome: 'Proposta / Procuração', cor: '#ec4899', ordem: 4, tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
+      { nome: 'Contrato Fechado', cor: '#10b981', ordem: 5, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
+      { nome: 'Inviável / Declinado', cor: '#ef4444', ordem: 6, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
+    ],
+  },
+  {
+    id: 'imobiliario_corretagem',
+    nome: 'Imobiliário & Alto Padrão',
+    icone: '🏢',
+    descricao: 'Captação de compradores, agendamento de visitas a imóveis e propostas.',
+    nichoSugerido: 'Imobiliária, Corretores, Construção Civil, Arquitetura',
+    estagios: [
+      { nome: 'Lead Imóvel / Anúncio', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 1 },
+      { nome: 'Perfil & Orçamento', cor: '#8b5cf6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'Visita Agendada', cor: '#f59e0b', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
+      { nome: 'Visita Realizada', cor: '#6366f1', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
+      { nome: 'Proposta / Financiamento', cor: '#ec4899', ordem: 4, tipo_conclusao: 'aberto', dias_limite_estagnado: 5 },
+      { nome: 'Venda Concluída', cor: '#10b981', ordem: 5, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
+      { nome: 'Perdido / Desistência', cor: '#ef4444', ordem: 6, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
+    ],
+  },
+  {
+    id: 'agencia_servicos',
+    nome: 'Agência & Serviços B2B',
+    icone: '💼',
+    descricao: 'Prospecção inbound e outbound, diagnóstico e contratos de serviços contínuos.',
+    nichoSugerido: 'Marketing, Agência, B2B, Consultoria, Software',
+    estagios: [
+      { nome: 'Novo Prospect', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'Primeiro Contato', cor: '#8b5cf6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
+      { nome: 'Diagnóstico / Reunião', cor: '#ec4899', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
+      { nome: 'Proposta Enviada', cor: '#f59e0b', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 5 },
+      { nome: 'Contrato Fechado', cor: '#10b981', ordem: 4, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
+      { nome: 'Perdido', cor: '#ef4444', ordem: 5, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
+    ],
+  },
+  {
+    id: 'comercial_geral',
+    nome: 'Comercial Padrão',
+    icone: '🎯',
+    descricao: 'Funil clássico de vendas para produtos, cursos e serviços gerais.',
+    nichoSugerido: 'Geral, Cursos, Infoprodutos, Varejo',
+    estagios: [
+      { nome: 'Novo Lead', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'Em Atendimento', cor: '#8b5cf6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
+      { nome: 'Qualificado / Agendado', cor: '#f59e0b', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
+      { nome: 'Negociação', cor: '#6366f1', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 5 },
+      { nome: 'Venda Realizada', cor: '#10b981', ordem: 4, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
+      { nome: 'Perdido', cor: '#ef4444', ordem: 5, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
+    ],
+  },
+];
+
 /**
  * Garante que a agência ou cliente tenha ao menos 1 pipeline padrão com seus estágios.
- * Se não existir nenhum pipeline ativo, cria automaticamente com as etapas recomendadas.
+ * Se não existir nenhum pipeline ativo, detecta o nicho e cria com as etapas recomendadas.
  */
 export async function garantirPipelinePadrao(
   agenciaId: string,
   clienteId: string | null = null,
-  nomeCliente?: string | null
+  nomeCliente?: string | null,
+  nichoCliente?: string | null
 ): Promise<CrmPipeline | null> {
   // 1. Tenta buscar pipeline existente
   let query = supabase
@@ -148,14 +248,50 @@ export async function garantirPipelinePadrao(
     return pipe as CrmPipeline;
   }
 
-  // 2. Se não existir, cria o pipeline padrão
+  // 2. Se não existir, seleciona o template adequado pelo nicho
   const ehAgencia = !clienteId;
+  const nichoNorm = (nichoCliente || '').toLowerCase();
+
+  let templateEscolhido = TEMPLATES_FUNIS.find((t) => t.id === 'comercial_geral')!;
+
+  if (ehAgencia) {
+    templateEscolhido = TEMPLATES_FUNIS.find((t) => t.id === 'agencia_servicos')!;
+  } else if (
+    nichoNorm.includes('derma') ||
+    nichoNorm.includes('medic') ||
+    nichoNorm.includes('saude') ||
+    nichoNorm.includes('saúde') ||
+    nichoNorm.includes('odonto') ||
+    nichoNorm.includes('dent') ||
+    nichoNorm.includes('estet') ||
+    nichoNorm.includes('estét') ||
+    nichoNorm.includes('clinic') ||
+    nichoNorm.includes('clínic')
+  ) {
+    templateEscolhido = TEMPLATES_FUNIS.find((t) => t.id === 'medico_clinica')!;
+  } else if (
+    nichoNorm.includes('advog') ||
+    nichoNorm.includes('direit') ||
+    nichoNorm.includes('jurid') ||
+    nichoNorm.includes('juríd')
+  ) {
+    templateEscolhido = TEMPLATES_FUNIS.find((t) => t.id === 'direito_juridico')!;
+  } else if (
+    nichoNorm.includes('imob') ||
+    nichoNorm.includes('corret') ||
+    nichoNorm.includes('imovel') ||
+    nichoNorm.includes('imóvel')
+  ) {
+    templateEscolhido = TEMPLATES_FUNIS.find((t) => t.id === 'imobiliario_corretagem')!;
+  }
+
   const nomePipeline = ehAgencia
     ? 'Prospecção Agência'
-    : `Vendas ${nomeCliente ? `(${nomeCliente})` : 'Cliente'}`;
+    : `Funil de Vendas (${nomeCliente || 'Cliente'})`;
+
   const descricao = ehAgencia
-    ? 'Funil comercial de novos clientes da agência'
-    : 'Funil de captação e fechamento de leads do cliente';
+    ? 'Funil comercial de novos clientes da agência GENS'
+    : `Funil padrão para ${nomeCliente || 'cliente'} (${templateEscolhido.nome})`;
 
   const insertOp = (supabase.from('crm_pipelines') as any).insert({
     agencia_id: agenciaId,
@@ -176,26 +312,8 @@ export async function garantirPipelinePadrao(
     return null;
   }
 
-  // 3. Cria as etapas do funil
-  const estagiosPadrao = ehAgencia
-    ? [
-        { nome: 'Novo Prospect', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
-        { nome: 'Primeiro Contato', cor: '#8b5cf6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
-        { nome: 'Diagnóstico / Reunião', cor: '#ec4899', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
-        { nome: 'Proposta Enviada', cor: '#f59e0b', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 5 },
-        { nome: 'Fechado / Ganho', cor: '#10b981', ordem: 4, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
-        { nome: 'Perdido', cor: '#ef4444', ordem: 5, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
-      ]
-    : [
-        { nome: 'Novo Lead', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
-        { nome: 'Em Atendimento', cor: '#8b5cf6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
-        { nome: 'Qualificado / Agendado', cor: '#f59e0b', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
-        { nome: 'Negociação', cor: '#6366f1', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 5 },
-        { nome: 'Venda Realizada', cor: '#10b981', ordem: 4, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
-        { nome: 'Perdido', cor: '#ef4444', ordem: 5, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
-      ];
-
-  const payloadEstagios = estagiosPadrao.map((e) => ({
+  // 3. Cria as etapas baseadas no template selecionado
+  const payloadEstagios = templateEscolhido.estagios.map((e) => ({
     pipeline_id: novoPipe.id,
     ...e,
   }));
