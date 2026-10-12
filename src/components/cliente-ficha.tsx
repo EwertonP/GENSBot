@@ -19,6 +19,8 @@ import {
   Check,
   ShieldCheck,
   UserCheck,
+  QrCode,
+  Smartphone,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -471,6 +473,12 @@ export default function ClienteFicha({
       />
 
       <AcessosPortal
+        clienteId={clienteId}
+        clienteNome={cliente?.nome || nomeInicial}
+        showToast={showToast}
+      />
+
+      <ConexaoWhatsApp
         clienteId={clienteId}
         clienteNome={cliente?.nome || nomeInicial}
         showToast={showToast}
@@ -945,4 +953,140 @@ function AcessosPortal({
     </Secao>
   );
 }
+
+// ---------------------------------------------------------------- conexao whatsapp ---
+
+function ConexaoWhatsApp({
+  clienteId,
+  clienteNome,
+  showToast,
+}: {
+  clienteId: string;
+  clienteNome: string;
+  showToast: (message: string, type: 'success' | 'error') => void;
+}) {
+  const [session, setSession] = useState<any>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [iniciando, setIniciando] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [gatewayConfigurado, setGatewayConfigurado] = useState(false);
+
+  const carregarStatus = async () => {
+    try {
+      const res = await fetch(`/api/whatsapp/session?cliente_id=${encodeURIComponent(clienteId)}`);
+      const data = await res.json();
+      if (res.ok && data.session) {
+        setSession(data.session);
+      }
+    } catch {
+      // Silencioso
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarStatus();
+  }, [clienteId]);
+
+  const handleConectar = async () => {
+    setIniciando(true);
+    setQrCodeData(null);
+    try {
+      const res = await fetch('/api/whatsapp/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cliente_id: clienteId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSession(data.session);
+        setGatewayConfigurado(Boolean(data.gatewayConfigurado));
+        if (data.qrCode) {
+          setQrCodeData(data.qrCode);
+        }
+        showToast(data.mensagem || 'Conexão solicitada com sucesso.', 'success');
+      } else {
+        showToast(data.error || 'Erro ao iniciar conexão com WhatsApp.', 'error');
+      }
+    } catch {
+      showToast('Erro de rede ao conectar WhatsApp.', 'error');
+    } finally {
+      setIniciando(false);
+    }
+  };
+
+  const statusFormatado = session?.status || 'desconectado';
+  const estaConectado = statusFormatado === 'conectado';
+
+  return (
+    <Secao
+      titulo="WhatsApp Copiloto (Escuta Ativa do WhatsApp Web)"
+      descricao="Conecta o WhatsApp da clínica via QR Code para permitir que a IA leia as mensagens em segundo plano, crie cards e atualize o CRM automaticamente sem risco de bloqueio."
+    >
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
+              estaConectado
+                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+                : 'bg-muted text-muted-foreground border-border'
+            }`}
+          >
+            <Smartphone className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-foreground">
+                {estaConectado ? `WhatsApp Conectado (${session?.phone_number || clienteNome})` : 'WhatsApp Desconectado'}
+              </span>
+              <Badge variant={estaConectado ? 'success' : 'muted'} className="text-[10px]">
+                {estaConectado ? 'Escuta Ativa Ligada' : 'Aguardando Leitura'}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {estaConectado
+                ? 'A secretária pode atender normalmente. A IA está lendo os agendamentos e atualizando o CRM.'
+                : 'Clique no botão ao lado para gerar o QR Code de pareamento do celular da clínica.'}
+            </p>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          size="sm"
+          variant={estaConectado ? 'secondary' : 'primary'}
+          loading={iniciando}
+          onClick={handleConectar}
+          className="gap-1.5 flex-shrink-0"
+        >
+          <QrCode className="w-3.5 h-3.5" />
+          {estaConectado ? 'Reconectar / Atualizar' : 'Gerar QR Code'}
+        </Button>
+      </div>
+
+      {/* Exibição do QR Code quando retornado */}
+      {qrCodeData && (
+        <div className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed border-primary/30 bg-primary/5 space-y-3 animate-in fade-in zoom-in-95 duration-150">
+          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <QrCode className="w-4 h-4 text-primary" /> Aponte a câmera do WhatsApp da clínica:
+          </p>
+          <div className="p-3 bg-white rounded-xl shadow-md border border-border">
+            {qrCodeData.startsWith('data:image') ? (
+              <img src={qrCodeData} alt="QR Code WhatsApp" className="w-48 h-48 object-contain" />
+            ) : (
+              <div className="w-48 h-48 flex items-center justify-center text-center p-2 text-xs text-muted-foreground font-mono break-all">
+                {qrCodeData}
+              </div>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground text-center max-w-sm">
+            Abra o WhatsApp no celular da clínica &gt; Menu (três pontinhos ou Ajustes) &gt; Aparelhos conectados &gt; Conectar um aparelho.
+          </p>
+        </div>
+      )}
+    </Secao>
+  );
+}
+
 
