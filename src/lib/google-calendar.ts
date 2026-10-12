@@ -263,3 +263,66 @@ export async function criarEventoGoogleCalendar({
     return { ok: false, erro: err instanceof Error ? err.message : String(err) };
   }
 }
+
+/**
+ * Lista todos os calendários pertencentes à conta do Google conectada
+ */
+export async function listarCalendariosUsuario(
+  integracao: GoogleCalendarIntegration
+): Promise<Array<{ id: string; summary: string; primary?: boolean; description?: string }>> {
+  try {
+    const token = await obterAccessTokenValido(integracao);
+    const res = await fetch(`${GOOGLE_CALENDAR_API}/users/me/calendarList`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      console.warn('Erro ao listar calendários do Google:', await res.text());
+      return [{ id: 'primary', summary: 'Agenda Principal (Padrão)', primary: true }];
+    }
+
+    const data = await res.json();
+    if (!Array.isArray(data.items)) {
+      return [{ id: 'primary', summary: 'Agenda Principal (Padrão)', primary: true }];
+    }
+
+    return data.items.map((it: any) => ({
+      id: it.id,
+      summary: it.summary || it.id,
+      primary: Boolean(it.primary),
+      description: it.description || null,
+    }));
+  } catch (err) {
+    console.error('Erro ao buscar lista de calendários:', err);
+    return [{ id: 'primary', summary: 'Agenda Principal (Padrão)', primary: true }];
+  }
+}
+
+/**
+ * Cria um evento de validação/teste na Google Agenda com duração de 30 minutos
+ */
+export async function criarEventoTesteGoogleCalendar({
+  clienteId,
+  agenciaId,
+  nomeCliente,
+}: {
+  clienteId?: string | null;
+  agenciaId: string;
+  nomeCliente: string;
+}): Promise<{ ok: boolean; htmlLink?: string; erro?: string }> {
+  const agora = Date.now();
+  const inicio = new Date(agora + 10 * 60 * 1000); // Daqui a 10 minutos
+  const fim = new Date(agora + 40 * 60 * 1000); // 30 minutos depois
+
+  return criarEventoGoogleCalendar({
+    agenciaId,
+    clienteId,
+    titulo: '🧪 Teste de Conexão GENSBot',
+    nomePaciente: nomeCliente,
+    telefonePaciente: '+55 (11) 99999-9999',
+    dataInicio: inicio.toISOString(),
+    dataFim: fim.toISOString(),
+    observacoes: 'Evento de verificação criado com sucesso para validar a integração do Google Calendar com o CRM.',
+  });
+}
+

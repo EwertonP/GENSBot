@@ -26,6 +26,9 @@ import {
   Clock,
   Sparkles,
   Calendar,
+  ExternalLink,
+  LogOut,
+  CheckCircle2,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -998,6 +1001,37 @@ function ConexaoWhatsApp({
   );
   const [salvandoGrupo, setSalvandoGrupo] = useState(false);
   const [testandoGrupo, setTestandoGrupo] = useState(false);
+  const [desconectando, setDesconectando] = useState(false);
+
+  const handleDesconectarWhatsApp = async () => {
+    if (
+      !(await confirmDialog({
+        title: `Desconectar WhatsApp de ${clienteNome}?`,
+        description: 'A escuta ativa será pausada e o pareamento deste aparelho será desfeito até que um novo QR Code seja lido.',
+        confirmLabel: 'Desconectar aparelho',
+        tone: 'destructive',
+      }))
+    )
+      return;
+
+    setDesconectando(true);
+    try {
+      const res = await fetch(`/api/whatsapp/session?cliente_id=${encodeURIComponent(clienteId)}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setSession((prev: any) => (prev ? { ...prev, status: 'desconectado', phone_number: null } : null));
+        setQrCodeData(null);
+        showToast('WhatsApp desconectado com sucesso.', 'success');
+      } else {
+        showToast('Erro ao desconectar WhatsApp.', 'error');
+      }
+    } catch {
+      showToast('Erro de rede ao desconectar WhatsApp.', 'error');
+    } finally {
+      setDesconectando(false);
+    }
+  };
 
   useEffect(() => {
     if (cliente) {
@@ -1184,8 +1218,23 @@ function ConexaoWhatsApp({
             className="gap-1.5"
           >
             <QrCode className="w-3.5 h-3.5" />
-            {estaConectado ? 'Reconectar / QR Code' : 'Gerar QR Code'}
+            {estaConectado ? 'Novo QR Code' : 'Gerar QR Code'}
           </Button>
+
+          {estaConectado && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              loading={desconectando}
+              onClick={handleDesconectarWhatsApp}
+              className="gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+              title="Desconectar este aparelho e limpar sessão"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Desconectar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1354,6 +1403,13 @@ function SecaoGoogleCalendar({
   const [configuradoNoServidor, setConfiguradoNoServidor] = useState(true);
   const [carregando, setCarregando] = useState(true);
   const [desconectando, setDesconectando] = useState(false);
+  const [testandoEvento, setTestandoEvento] = useState(false);
+  const [ultimoEventoLink, setUltimoEventoLink] = useState<string | null>(null);
+
+  // Seleção de calendário da conta
+  const [calendarios, setCalendarios] = useState<Array<{ id: string; summary: string; primary?: boolean }>>([]);
+  const [calendarioSelecionado, setCalendarioSelecionado] = useState('primary');
+  const [salvandoCalendario, setSalvandoCalendario] = useState(false);
 
   const carregarStatus = async () => {
     try {
@@ -1363,6 +1419,9 @@ function SecaoGoogleCalendar({
         setConectado(Boolean(data.conectado));
         setIntegracao(data.integracao || null);
         setConfiguradoNoServidor(Boolean(data.configuradoNoServidor));
+        if (data.conectado) {
+          carregarCalendarios();
+        }
       }
     } catch {
       // Silencioso
@@ -1371,17 +1430,101 @@ function SecaoGoogleCalendar({
     }
   };
 
+  const carregarCalendarios = async () => {
+    try {
+      const res = await fetch(`/api/integrations/google-calendar/calendars?cliente_id=${encodeURIComponent(clienteId)}`);
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.calendarios)) {
+        setCalendarios(data.calendarios);
+        if (data.selecionado) {
+          setCalendarioSelecionado(data.selecionado);
+        }
+      }
+    } catch {
+      // Silencioso
+    }
+  };
+
   useEffect(() => {
     carregarStatus();
+
+    // Captura feedback de retorno da autenticação do Google
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const statusGoogle = params.get('google_calendar');
+      if (statusGoogle === 'conectado') {
+        showToast('Google Agenda conectada com sucesso!', 'success');
+        window.history.replaceState({}, '', window.location.pathname);
+        carregarStatus();
+      } else if (statusGoogle === 'erro') {
+        const motivo = params.get('motivo') || 'Falha na autorização';
+        showToast(`Erro ao conectar Google Agenda: ${motivo}`, 'error');
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
   }, [clienteId]);
 
   const handleConectar = () => {
-    // Redireciona para o fluxo OAuth
     window.location.href = `/api/integrations/google-calendar/auth?cliente_id=${encodeURIComponent(clienteId)}`;
   };
 
+  const handleTrocarCalendario = async (novoCalendarId: string) => {
+    setCalendarioSelecionado(novoCalendarId);
+    setSalvandoCalendario(true);
+    try {
+      const res = await fetch('/api/integrations/google-calendar/calendars', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cliente_id: clienteId,
+          calendar_id: novoCalendarId,
+        }),
+      });
+      if (res.ok) {
+        showToast('Agenda de destino atualizada!', 'success');
+      } else {
+        showToast('Erro ao trocar agenda de destino.', 'error');
+      }
+    } catch {
+      showToast('Erro de rede ao trocar agenda.', 'error');
+    } finally {
+      setSalvandoCalendario(false);
+    }
+  };
+
+  const handleTestarEvento = async () => {
+    setTestandoEvento(true);
+    try {
+      const res = await fetch('/api/integrations/google-calendar/test-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cliente_id: clienteId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUltimoEventoLink(data.htmlLink || null);
+        showToast('Consulta de teste inserida com sucesso no Google Calendar!', 'success');
+      } else {
+        showToast(data.error || 'Falha ao criar evento de teste.', 'error');
+      }
+    } catch {
+      showToast('Erro de rede ao criar evento de teste.', 'error');
+    } finally {
+      setTestandoEvento(false);
+    }
+  };
+
   const handleDesconectar = async () => {
-    if (!confirm(`Deseja desconectar a Google Agenda de ${clienteNome}?`)) return;
+    if (
+      !(await confirmDialog({
+        title: `Desconectar Google Agenda de ${clienteNome}?`,
+        description: 'Os novos agendamentos do CRM deixarão de ser sincronizados com esta conta do Google até que uma nova conexão seja realizada.',
+        confirmLabel: 'Desconectar Agenda',
+        tone: 'destructive',
+      }))
+    )
+      return;
+
     setDesconectando(true);
     try {
       const res = await fetch(`/api/integrations/google-calendar/status?cliente_id=${encodeURIComponent(clienteId)}`, {
@@ -1390,6 +1533,8 @@ function SecaoGoogleCalendar({
       if (res.ok) {
         setConectado(false);
         setIntegracao(null);
+        setCalendarios([]);
+        setUltimoEventoLink(null);
         showToast('Google Agenda desconectada com sucesso.', 'success');
       } else {
         showToast('Erro ao desconectar Google Agenda.', 'error');
@@ -1406,6 +1551,7 @@ function SecaoGoogleCalendar({
       titulo="Google Agenda (Sincronização de Consultas & Horários)"
       descricao="Conecta o Google Calendar da clínica para sincronizar consultas automaticamente, consultar horários ocupados e evitar choque de agenda."
     >
+      {/* Bloco de Status e Ações */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card">
         <div className="flex items-center gap-3">
           <div
@@ -1436,18 +1582,45 @@ function SecaoGoogleCalendar({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
           {conectado ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              loading={desconectando}
-              onClick={handleDesconectar}
-              className="gap-1.5 text-xs text-destructive hover:bg-destructive/10"
-            >
-              Desconectar Agenda
-            </Button>
+            <>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                loading={testandoEvento}
+                onClick={handleTestarEvento}
+                className="gap-1.5 text-xs"
+                title="Criar evento de teste de 30 minutos na agenda"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                Criar Evento Teste
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={handleConectar}
+                className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                title="Conectar com outro e-mail do Google"
+              >
+                Trocar Conta
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                loading={desconectando}
+                onClick={handleDesconectar}
+                className="gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Desconectar
+              </Button>
+            </>
           ) : (
             <Button
               type="button"
@@ -1463,6 +1636,62 @@ function SecaoGoogleCalendar({
         </div>
       </div>
 
+      {/* Se estiver conectado: Opções de Multi-Calendário e Link do Evento Criado */}
+      {conectado && (
+        <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                Agenda de Destino das Consultas
+              </h4>
+              <p className="text-[11px] text-muted-foreground">
+                Se a médica possui agendas separadas (ex: consultas, cirurgias ou pessoal), selecione qual agenda receberá as marcações:
+              </p>
+            </div>
+
+            {calendarios.length > 1 ? (
+              <div className="w-full sm:w-64">
+                <Select
+                  value={calendarioSelecionado}
+                  onChange={(e) => handleTrocarCalendario(e.target.value)}
+                  disabled={salvandoCalendario}
+                  className="text-xs"
+                >
+                  {calendarios.map((cal) => (
+                    <option key={cal.id} value={cal.id}>
+                      {cal.summary} {cal.primary ? '(Principal)' : ''}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ) : (
+              <Badge variant="muted" className="text-[11px]">
+                Agenda Principal Ativa
+              </Badge>
+            )}
+          </div>
+
+          {ultimoEventoLink && (
+            <div className="flex items-center justify-between p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-xs animate-in fade-in duration-150">
+              <span className="text-emerald-700 dark:text-emerald-300 font-medium flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-emerald-500" />
+                Evento de teste inserido com sucesso na agenda!
+              </span>
+              <a
+                href={ultimoEventoLink}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline font-semibold flex items-center gap-1"
+              >
+                Abrir no Google Calendar
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
       {!configuradoNoServidor && (
         <div className="p-3 rounded-lg border border-warning/30 bg-warning/5 text-xs text-muted-foreground">
           ⚠️ <b>Configuração no Google Cloud necessária:</b> Para que o botão abra a tela de login do Google, adicione as variáveis <code>GOOGLE_CLIENT_ID</code> e <code>GOOGLE_CLIENT_SECRET</code> nas variáveis de ambiente da Vercel.
@@ -1471,6 +1700,7 @@ function SecaoGoogleCalendar({
     </Secao>
   );
 }
+
 
 
 

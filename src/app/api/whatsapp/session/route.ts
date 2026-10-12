@@ -258,3 +258,73 @@ export async function POST(req: Request) {
     return respostaErro('Falha interna ao processar sessão do WhatsApp.', 500);
   }
 }
+
+// DELETE: Encerra a sessão do WhatsApp e desconecta o aparelho
+export async function DELETE(req: Request) {
+  const auth = await getContextoAgencia();
+  if (!auth.ok) return auth.response;
+  const { membro } = auth.ctx;
+
+  const { searchParams } = new URL(req.url);
+  let clienteId = searchParams.get('cliente_id');
+
+  if (membro.papel === 'cliente') {
+    clienteId = membro.cliente_id || null;
+  }
+
+  try {
+    let query = serviceSupabase
+      .from('whatsapp_sessions')
+      .select('*')
+      .eq('agencia_id', membro.agencia_id);
+
+    if (clienteId && ehUuid(clienteId)) {
+      query = query.eq('cliente_id', clienteId);
+    } else {
+      query = query.is('cliente_id', null);
+    }
+
+    const { data: session } = await query.maybeSingle();
+
+    if (session) {
+      const { getOpenWAConfig } = await import('@/lib/openwa-client');
+      const { url: openwaUrl, headers } = getOpenWAConfig();
+
+      if (openwaUrl) {
+        // Tenta localizar o UUID da sessão para fazer logout
+        try {
+          const resList = await fetch(`${openwaUrl}/api/sessions`, { headers });
+          if (resList.ok) {
+            const list = await resList.json();
+            const sMatch = list.find((s: any) => s.name === session.session_name || s.id === session.session_name);
+            const sUuid = sMatch?.id || session.session_name;
+
+            // Executa logout/stop no OpenWA
+            await fetch(`${openwaUrl}/api/sessions/${sUuid}/logout`, { method: 'POST', headers }).catch(() => null);
+            await fetch(`${openwaUrl}/api/sessions/${sUuid}/stop`, { method: 'POST', headers }).catch(() => null);
+          }
+        } catch (errGateway) {
+          console.warn('[OpenWA] Erro ao encerrar sessão remotamente:', errGateway);
+        }
+      }
+
+      // Atualiza banco para desconectado
+      await serviceSupabase
+        .from('whatsapp_sessions')
+        .update({
+          status: 'desconectado',
+          phone_number: null,
+          push_name: null,
+          qr_code: null,
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq('id', session.id);
+    }
+
+    return NextResponse.json({ ok: true, desconectado: true });
+  } catch (err: unknown) {
+    console.error('Erro ao desconectar WhatsApp:', err);
+    return respostaErro('Falha ao desconectar WhatsApp.', 500);
+  }
+}
+
