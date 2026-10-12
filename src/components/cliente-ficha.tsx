@@ -987,6 +987,11 @@ function ConexaoWhatsApp({
 
   useEffect(() => {
     carregarStatus();
+    // Verifica a cada 4 segundos se o status mudou para 'conectado'
+    const interval = setInterval(() => {
+      carregarStatus();
+    }, 4000);
+    return () => clearInterval(interval);
   }, [clienteId]);
 
   const handleConectar = async () => {

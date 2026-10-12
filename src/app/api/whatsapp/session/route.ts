@@ -28,7 +28,7 @@ export async function GET(req: Request) {
       query = query.is('cliente_id', null);
     }
 
-    const { data: session, error } = await query.maybeSingle();
+    let { data: session, error } = await query.maybeSingle();
     let openwaUrl = process.env.OPENWA_API_URL?.trim().replace(/\/$/, '') || null;
     if (openwaUrl && !openwaUrl.startsWith('http://') && !openwaUrl.startsWith('https://')) {
       openwaUrl = `https://${openwaUrl}`;
@@ -42,6 +42,35 @@ export async function GET(req: Request) {
           headers: openwaKey ? { 'X-API-Key': openwaKey } : {},
           signal: AbortSignal.timeout(4000),
         });
+
+        if (res.ok) {
+          const sessions = await res.json();
+          if (Array.isArray(sessions) && session) {
+            const match = sessions.find((s: any) => s.name === session?.session_name || s.id === session?.session_name);
+            if (match) {
+              const openwaStatus = match.status; // 'ready' | 'WORKING' | 'qr_ready' etc.
+              const estaConectadoNoOpenWA = openwaStatus === 'ready' || openwaStatus === 'WORKING';
+
+              if (estaConectadoNoOpenWA && session.status !== 'conectado') {
+                await serviceSupabase
+                  .from('whatsapp_sessions')
+                  .update({
+                    status: 'conectado',
+                    phone_number: match.phone || session.phone_number || null,
+                    atualizado_em: new Date().toISOString(),
+                  })
+                  .eq('id', session.id);
+
+                session = {
+                  ...session,
+                  status: 'conectado',
+                  phone_number: match.phone || session.phone_number || null,
+                };
+              }
+            }
+          }
+        }
+
         gatewayTeste = {
           conectou: res.ok,
           status: res.status,
