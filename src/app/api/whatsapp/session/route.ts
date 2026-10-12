@@ -29,9 +29,38 @@ export async function GET(req: Request) {
     }
 
     const { data: session, error } = await query.maybeSingle();
-    if (error) return traduzirErroBanco(error, 'GET /api/whatsapp/session');
+    const openwaUrl = process.env.OPENWA_API_URL?.replace(/\/$/, '');
+    const openwaKey = process.env.OPENWA_API_KEY || process.env.API_MASTER_KEY;
 
-    return NextResponse.json({ session: session || null });
+    let gatewayTeste = null;
+    if (openwaUrl) {
+      try {
+        const res = await fetch(`${openwaUrl}/api/sessions`, {
+          headers: openwaKey ? { 'X-API-Key': openwaKey } : {},
+          signal: AbortSignal.timeout(4000),
+        });
+        gatewayTeste = {
+          conectou: res.ok,
+          status: res.status,
+          statusText: res.statusText,
+        };
+      } catch (err: unknown) {
+        gatewayTeste = {
+          conectou: false,
+          erro: err instanceof Error ? err.message : String(err),
+        };
+      }
+    }
+
+    return NextResponse.json({
+      session: session || null,
+      diagnostico: {
+        urlConfigurada: Boolean(openwaUrl),
+        urlPrefixo: openwaUrl ? openwaUrl.substring(0, 20) + '...' : null,
+        keyConfigurada: Boolean(openwaKey),
+        gatewayTeste,
+      },
+    });
   } catch (err: unknown) {
     console.error('Erro ao buscar sessão do WhatsApp:', err);
     return respostaErro('Falha ao buscar sessão do WhatsApp.', 500);

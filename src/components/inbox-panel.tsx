@@ -225,8 +225,13 @@ export default function InboxPanel({ withAccount, clienteId, papelUsuario }: Inb
       const data = await res.json();
       if (data.qrCode) {
         setQrCodeModal(data.qrCode);
+      } else {
+        const detalheTxt = data.detalhes?.erro || data.detalhes?.text || data.detalhes?.statusText || '';
+        alert(detalheTxt ? `OpenWA: ${detalheTxt}` : (data.mensagem || 'Aguardando inicialização da sessão no OpenWA.'));
       }
       carregarStatusWhatsApp();
+    } catch (err: unknown) {
+      alert(`Erro de conexão: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setGerandoQrCode(false);
     }
