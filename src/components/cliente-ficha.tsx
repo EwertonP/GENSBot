@@ -259,13 +259,15 @@ export default function ClienteFicha({
     }
   }
 
+  const [abaAtiva, setAbaAtiva] = useState<'geral' | 'integracoes' | 'equipe'>('geral');
+
   // --------------------------------------------------------------- estados ---
   if (carregando) {
     return (
       <div className="flex flex-col gap-6" aria-busy="true" aria-label="Carregando cliente">
         <p className="text-sm font-semibold text-muted-foreground">{nomeInicial}</p>
-        <Card className="h-40 animate-pulse" />
-        <Card className="h-64 animate-pulse" />
+        <Card className="h-40 animate-pulse rounded-2xl" />
+        <Card className="h-64 animate-pulse rounded-2xl" />
       </div>
     );
   }
@@ -295,7 +297,7 @@ export default function ClienteFicha({
       </button>
 
       {/* Cabeçalho */}
-      <Card padding="lg" className="flex flex-col gap-6">
+      <Card padding="lg" className="flex flex-col gap-6 rounded-2xl shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center gap-5">
           <ClienteAvatar
             nome={form.nome || cliente.nome}
@@ -305,7 +307,7 @@ export default function ClienteFicha({
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2.5">
-              <h2 className="text-2xl font-semibold tracking-tight truncate">{cliente.nome}</h2>
+              <h2 className="text-2xl font-bold font-display tracking-tight text-foreground truncate">{cliente.nome}</h2>
               {!cliente.ativo && <Badge variant="muted">Arquivado</Badge>}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -345,163 +347,219 @@ export default function ClienteFicha({
         </div>
       </Card>
 
-      <form onSubmit={salvar} className="flex flex-col gap-6">
-        <Secao titulo="Identificação">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Nome" maxLength={120} required {...campo('nome')} />
-            <Input label="Nicho" maxLength={120} placeholder="Ex.: Odontologia" {...campo('nicho')} />
-            <Input
-              label="Etapa do ciclo"
-              maxLength={120}
-              placeholder="Ex.: Onboarding, Produção dos conteúdos…"
-              {...campo('etapa')}
-            />
-          </div>
-          <fieldset>
-            <legend className="text-xs font-bold text-muted-foreground mb-2">Cor</legend>
-            <div className="flex flex-wrap gap-2.5">
-              {CORES_CLIENTE.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => definir('cor', c)}
-                  aria-label={`Cor ${c}`}
-                  aria-pressed={form.cor === c}
-                  className={`size-8 rounded-full border transition-transform cursor-pointer ${
-                    form.cor === c ? 'border-foreground scale-110 ring-2 ring-foreground/20' : 'border-border hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: c, color: textoSobre(c) }}
-                />
-              ))}
-            </div>
-          </fieldset>
-        </Secao>
-
-        <Secao
-          titulo="Instagram"
-          descricao="A conta conectada ao GENSBot que pertence a este cliente. Cada conta vale para um cliente só."
+      {/* Navegação por Abas - Padrão de Design do Sistema */}
+      <div className="flex items-center gap-2 border-b border-border pb-1 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setAbaAtiva('geral')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-ui cursor-pointer shrink-0 ${
+            abaAtiva === 'geral'
+              ? 'bg-primary text-primary-foreground shadow-2xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
         >
-          <div className="flex items-center gap-4">
-            {contaAtual?.profile_picture_url ? (
-              // eslint-disable-next-line @next/next/no-img-element -- foto externa (Instagram)
-              <img src={contaAtual.profile_picture_url} alt="" className="size-12 rounded-full object-cover border border-border" />
-            ) : (
-              <span className="size-12 rounded-full bg-accent border border-border inline-flex items-center justify-center text-muted-foreground">
-                <InstagramGlyph className="w-5 h-5" />
-              </span>
-            )}
-            <div className="flex-1">
-              <Select label="Conta vinculada" {...campo('instagram_account_id')}>
-                <option value="">Sem vínculo</option>
-                {contasDisponiveis.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    @{c.instagram_username ?? c.instagram_user_id}
+          <Briefcase className="w-4 h-4" />
+          Geral & Contrato
+          {sujo && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Alterações pendentes" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAbaAtiva('integracoes')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-ui cursor-pointer shrink-0 ${
+            abaAtiva === 'integracoes'
+              ? 'bg-primary text-primary-foreground shadow-2xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+        >
+          <Zap className="w-4 h-4" />
+          Integrações & Conexões
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAbaAtiva('equipe')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-ui cursor-pointer shrink-0 ${
+            abaAtiva === 'equipe'
+              ? 'bg-primary text-primary-foreground shadow-2xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Contatos & Acessos Portal
+        </button>
+      </div>
+
+      {/* Aba 1: Geral & Contrato */}
+      {abaAtiva === 'geral' && (
+        <form onSubmit={salvar} className="flex flex-col gap-6 animate-in fade-in duration-150">
+          <Secao titulo="Identificação">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="Nome" maxLength={120} required {...campo('nome')} />
+              <Input label="Nicho" maxLength={120} placeholder="Ex.: Odontologia" {...campo('nicho')} />
+              <Input
+                label="Etapa do ciclo"
+                maxLength={120}
+                placeholder="Ex.: Onboarding, Produção dos conteúdos…"
+                {...campo('etapa')}
+              />
+            </div>
+            <fieldset>
+              <legend className="text-xs font-bold text-muted-foreground mb-2">Cor</legend>
+              <div className="flex flex-wrap gap-2.5">
+                {CORES_CLIENTE.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => definir('cor', c)}
+                    aria-label={`Cor ${c}`}
+                    aria-pressed={form.cor === c}
+                    className={`size-8 rounded-full border transition-transform cursor-pointer ${
+                      form.cor === c ? 'border-foreground scale-110 ring-2 ring-foreground/20' : 'border-border hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: c, color: textoSobre(c) }}
+                  />
+                ))}
+              </div>
+            </fieldset>
+          </Secao>
+
+          <Secao
+            titulo="Instagram"
+            descricao="A conta conectada ao GENSBot que pertence a este cliente. Cada conta vale para um cliente só."
+          >
+            <div className="flex items-center gap-4">
+              {contaAtual?.profile_picture_url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- foto externa (Instagram)
+                <img src={contaAtual.profile_picture_url} alt="" className="size-12 rounded-full object-cover border border-border" />
+              ) : (
+                <span className="size-12 rounded-full bg-accent border border-border inline-flex items-center justify-center text-muted-foreground">
+                  <InstagramGlyph className="w-5 h-5" />
+                </span>
+              )}
+              <div className="flex-1">
+                <Select label="Conta vinculada" {...campo('instagram_account_id')}>
+                  <option value="">Sem vínculo</option>
+                  {contasDisponiveis.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      @{c.instagram_username ?? c.instagram_user_id}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+          </Secao>
+
+          <Secao titulo="Contrato e fiscal">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="CNPJ ou CPF" maxLength={32} {...campo('cnpj_cpf')} />
+              <Input label="Responsável legal (para o contrato)" maxLength={160} {...campo('responsavel_legal')} />
+              <Input label="CPF do responsável" maxLength={32} {...campo('cpf_responsavel')} />
+              <Input label="Endereço" maxLength={300} {...campo('endereco')} />
+              <Input
+                label="Valor mensal (R$)"
+                inputMode="decimal"
+                placeholder="0,00"
+                {...campo('valor_mensal')}
+              />
+              <Input
+                label="Dia de vencimento"
+                type="number"
+                min={1}
+                max={31}
+                inputMode="numeric"
+                {...campo('dia_vencimento')}
+              />
+              <Input label="Início do contrato" type="date" {...campo('contrato_inicio')} />
+              <Input
+                label="Duração (meses)"
+                type="number"
+                min={1}
+                max={120}
+                inputMode="numeric"
+                {...campo('contrato_duracao_meses')}
+              />
+            </div>
+          </Secao>
+
+          <Secao titulo="Operação" descricao="O combinado mensal com o cliente.">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Input label="Posts por mês" type="number" min={0} max={500} inputMode="numeric" {...campo('posts_mes')} />
+              <Input label="Reels por mês" type="number" min={0} max={500} inputMode="numeric" {...campo('reels_mes')} />
+              <Select label="Dia de revisão" {...campo('dia_revisao')}>
+                <option value="">Sem dia fixo</option>
+                {DIAS_SEMANA.map((dia, i) => (
+                  <option key={dia} value={i}>
+                    {dia}
                   </option>
                 ))}
               </Select>
             </div>
+          </Secao>
+
+          <Secao titulo="Briefing e notas">
+            <Textarea label="Briefing" rows={5} maxLength={10000} {...campo('briefing')} />
+            <Textarea label="Concorrentes" rows={3} maxLength={2000} {...campo('concorrentes')} />
+            <Textarea label="Observações" rows={3} maxLength={5000} {...campo('observacoes')} />
+          </Secao>
+
+          {erroForm && (
+            <p role="alert" className="text-sm font-medium text-destructive">
+              {erroForm}
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            {sujo && <span className="mr-auto text-xs font-semibold text-muted-foreground">Alterações não salvas</span>}
+            <Button type="button" variant="ghost" disabled={!sujo || salvando} onClick={descartar}>
+              Descartar
+            </Button>
+            <Button type="submit" loading={salvando} disabled={!sujo}>
+              Salvar ficha
+            </Button>
           </div>
-        </Secao>
+        </form>
+      )}
 
-        <Secao titulo="Contrato e fiscal">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="CNPJ ou CPF" maxLength={32} {...campo('cnpj_cpf')} />
-            <Input label="Responsável legal (para o contrato)" maxLength={160} {...campo('responsavel_legal')} />
-            <Input label="CPF do responsável" maxLength={32} {...campo('cpf_responsavel')} />
-            <Input label="Endereço" maxLength={300} {...campo('endereco')} />
-            <Input
-              label="Valor mensal (R$)"
-              inputMode="decimal"
-              placeholder="0,00"
-              {...campo('valor_mensal')}
-            />
-            <Input
-              label="Dia de vencimento"
-              type="number"
-              min={1}
-              max={31}
-              inputMode="numeric"
-              {...campo('dia_vencimento')}
-            />
-            <Input label="Início do contrato" type="date" {...campo('contrato_inicio')} />
-            <Input
-              label="Duração (meses)"
-              type="number"
-              min={1}
-              max={120}
-              inputMode="numeric"
-              {...campo('contrato_duracao_meses')}
-            />
-          </div>
-        </Secao>
+      {/* Aba 2: Integrações & Conexões */}
+      {abaAtiva === 'integracoes' && (
+        <div className="flex flex-col gap-6 animate-in fade-in duration-150">
+          <ConexaoWhatsApp
+            clienteId={clienteId}
+            clienteNome={cliente?.nome || nomeInicial}
+            cliente={cliente}
+            onAtualizouCliente={(c) => {
+              setCliente(c);
+              setForm(formDe(c));
+            }}
+            showToast={showToast}
+          />
 
-        <Secao titulo="Operação" descricao="O combinado mensal com o cliente.">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Input label="Posts por mês" type="number" min={0} max={500} inputMode="numeric" {...campo('posts_mes')} />
-            <Input label="Reels por mês" type="number" min={0} max={500} inputMode="numeric" {...campo('reels_mes')} />
-            <Select label="Dia de revisão" {...campo('dia_revisao')}>
-              <option value="">Sem dia fixo</option>
-              {DIAS_SEMANA.map((dia, i) => (
-                <option key={dia} value={i}>
-                  {dia}
-                </option>
-              ))}
-            </Select>
-          </div>
-        </Secao>
-
-        <Secao titulo="Briefing e notas">
-          <Textarea label="Briefing" rows={5} maxLength={10000} {...campo('briefing')} />
-          <Textarea label="Concorrentes" rows={3} maxLength={2000} {...campo('concorrentes')} />
-          <Textarea label="Observações" rows={3} maxLength={5000} {...campo('observacoes')} />
-        </Secao>
-
-        {erroForm && (
-          <p role="alert" className="text-sm font-medium text-destructive">
-            {erroForm}
-          </p>
-        )}
-
-        <div className="flex items-center justify-end gap-3">
-          {sujo && <span className="mr-auto text-xs font-semibold text-muted-foreground">Alterações não salvas</span>}
-          <Button type="button" variant="ghost" disabled={!sujo || salvando} onClick={descartar}>
-            Descartar
-          </Button>
-          <Button type="submit" loading={salvando} disabled={!sujo}>
-            Salvar ficha
-          </Button>
+          <SecaoGoogleCalendar
+            clienteId={clienteId}
+            clienteNome={cliente?.nome || nomeInicial}
+            showToast={showToast}
+          />
         </div>
-      </form>
+      )}
 
-      <Contatos
-        clienteId={clienteId}
-        contatos={contatos}
-        onMudou={setContatos}
-        showToast={showToast}
-      />
+      {/* Aba 3: Contatos & Acessos Portal */}
+      {abaAtiva === 'equipe' && (
+        <div className="flex flex-col gap-6 animate-in fade-in duration-150">
+          <Contatos
+            clienteId={clienteId}
+            contatos={contatos}
+            onMudou={setContatos}
+            showToast={showToast}
+          />
 
-      <AcessosPortal
-        clienteId={clienteId}
-        clienteNome={cliente?.nome || nomeInicial}
-        showToast={showToast}
-      />
-
-      <ConexaoWhatsApp
-        clienteId={clienteId}
-        clienteNome={cliente?.nome || nomeInicial}
-        cliente={cliente}
-        onAtualizouCliente={(c) => {
-          setCliente(c);
-          setForm(formDe(c));
-        }}
-        showToast={showToast}
-      />
-
-      <SecaoGoogleCalendar
-        clienteId={clienteId}
-        clienteNome={cliente?.nome || nomeInicial}
-        showToast={showToast}
-      />
+          <AcessosPortal
+            clienteId={clienteId}
+            clienteNome={cliente?.nome || nomeInicial}
+            showToast={showToast}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -825,7 +883,7 @@ function AcessosPortal({
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate flex items-center gap-2">
                       {a.nome}
-                      <Badge variant="muted" className="text-[10px] py-0 px-1.5 font-normal">
+                      <Badge variant="muted" className="text-xs py-0.5 px-2 font-normal">
                         {a.cargo || 'Secretária'}
                       </Badge>
                     </p>
@@ -833,7 +891,7 @@ function AcessosPortal({
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <Badge variant={a.ativo ? 'success' : 'muted'} className="text-[10px]">
+                  <Badge variant={a.ativo ? 'success' : 'muted'} className="text-xs">
                     {a.ativo ? 'Ativo' : 'Inativo'}
                   </Badge>
                 </div>
@@ -868,17 +926,17 @@ function AcessosPortal({
 
             {credencialGerada ? (
               <div className="space-y-4">
-                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-2.5">
-                  <div className="text-xs">
-                    <span className="text-muted-foreground block text-[11px]">E-mail de Login:</span>
-                    <span className="font-semibold text-foreground font-mono">{credencialGerada.email}</span>
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+                  <div className="text-xs space-y-0.5">
+                    <span className="text-muted-foreground block font-medium">E-mail de Login:</span>
+                    <span className="font-semibold text-foreground font-mono text-sm">{credencialGerada.email}</span>
                   </div>
-                  <div className="text-xs">
-                    <span className="text-muted-foreground block text-[11px]">Senha Provisória:</span>
-                    <span className="font-semibold text-foreground font-mono">{credencialGerada.senha}</span>
+                  <div className="text-xs space-y-0.5">
+                    <span className="text-muted-foreground block font-medium">Senha Provisória:</span>
+                    <span className="font-semibold text-foreground font-mono text-sm">{credencialGerada.senha}</span>
                   </div>
-                  <div className="text-xs">
-                    <span className="text-muted-foreground block text-[11px]">Escopo Permitido:</span>
+                  <div className="text-xs space-y-0.5">
+                    <span className="text-muted-foreground block font-medium">Escopo Permitido:</span>
                     <span className="font-semibold text-primary">CRM de Vendas & Contatos ({clienteNome})</span>
                   </div>
                 </div>
@@ -1183,7 +1241,7 @@ function ConexaoWhatsApp({
                   ? `WhatsApp Conectado ${session?.phone_number ? `(+${session.phone_number})` : `(${clienteNome})`}`
                   : 'WhatsApp Desconectado'}
               </span>
-              <Badge variant={estaConectado ? 'success' : 'muted'} className="text-[10px]">
+              <Badge variant={estaConectado ? 'success' : 'muted'} className="text-xs">
                 {estaConectado ? 'Conexão Ativa' : 'Aguardando Pareamento'}
               </Badge>
             </div>
@@ -1240,42 +1298,42 @@ function ConexaoWhatsApp({
 
       {/* Exibição do QR Code quando retornado */}
       {qrCodeData && !estaConectado && (
-        <div className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed border-primary/30 bg-primary/5 space-y-3 animate-in fade-in zoom-in-95 duration-150">
-          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+        <div className="flex flex-col items-center justify-center p-6 rounded-2xl border border-dashed border-primary/30 bg-primary/5 space-y-3 animate-in fade-in zoom-in-95 duration-150">
+          <p className="text-sm font-semibold text-foreground flex items-center gap-2">
             <QrCode className="w-4 h-4 text-primary" /> Aponte a câmera do WhatsApp da clínica:
           </p>
-          <div className="p-3 bg-white rounded-xl shadow-md border border-border">
+          <div className="p-4 bg-white rounded-2xl shadow-md border border-border">
             {qrCodeData.startsWith('data:image') ? (
-              <img src={qrCodeData} alt="QR Code WhatsApp" className="w-48 h-48 object-contain" />
+              <img src={qrCodeData} alt="QR Code WhatsApp" className="w-52 h-52 object-contain" />
             ) : (
-              <div className="w-48 h-48 flex items-center justify-center text-center p-2 text-xs text-muted-foreground font-mono break-all">
+              <div className="w-52 h-52 flex items-center justify-center text-center p-3 text-xs text-muted-foreground font-mono break-all">
                 {qrCodeData}
               </div>
             )}
           </div>
-          <p className="text-[11px] text-muted-foreground text-center max-w-sm">
+          <p className="text-xs text-muted-foreground text-center max-w-sm">
             Abra o WhatsApp no celular &gt; Aparelhos conectados &gt; Conectar um aparelho. A tela atualizará automaticamente após a leitura.
           </p>
         </div>
       )}
 
       {/* Bloco 2: Grupo de Avisos e Notificações de Demandas & Aprovações */}
-      <div className="p-4 rounded-xl border border-border bg-card space-y-4">
+      <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-0.5">
-            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <Bell className="w-3.5 h-3.5 text-primary" />
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Bell className="w-4 h-4 text-primary" />
               Notificação Automática de Demandas & Aprovações no Grupo
             </h4>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Quando um card for movido de <b>"Revisão"</b> para <b>"Aprovação"</b> na Esteira de Conteúdo da agência, o link interativo de aprovação será enviado instantaneamente neste grupo de WhatsApp para o cliente aprovar.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 items-end">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
+        <div className="grid gap-3 sm:grid-cols-2 items-end pt-1">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">
               ID ou JID do Grupo de WhatsApp da Agência com o Cliente
             </label>
             <Input
@@ -1284,8 +1342,8 @@ function ConexaoWhatsApp({
               onChange={(e) => setGrupoId(e.target.value)}
               className="text-xs font-mono"
             />
-            <p className="text-[10px] text-muted-foreground">
-              JID do grupo do WhatsApp de alinhamento com o cliente (termina com <code>@g.us</code>).
+            <p className="text-xs text-muted-foreground">
+              JID do grupo de alinhamento com o cliente (termina obrigatoriamente com <code>@g.us</code>).
             </p>
           </div>
 
@@ -1315,12 +1373,12 @@ function ConexaoWhatsApp({
           </div>
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer pt-1">
+        <label className="flex items-center gap-2.5 cursor-pointer pt-2">
           <input
             type="checkbox"
             checked={notificarAgendamento}
             onChange={(e) => setNotificarAgendamento(e.target.checked)}
-            className="rounded border-border text-primary focus:ring-primary w-4 h-4"
+            className="rounded border-input text-primary focus:ring-ring w-4 h-4"
           />
           <span className="text-xs text-foreground font-medium">
             Disparar link de aprovação automaticamente no grupo ao mover card para "Aprovação"
@@ -1329,58 +1387,58 @@ function ConexaoWhatsApp({
       </div>
 
       {/* Bloco 3: Régua Inteligente Anti-Vácuo de Leads */}
-      <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+      <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500" />
-            <h4 className="text-xs font-bold text-foreground">
+            <h4 className="text-sm font-bold text-foreground">
               Régua Inteligente Anti-Vácuo de Leads (Follow-up Automático)
             </h4>
           </div>
-          <Badge variant="success" className="text-[10px]">
+          <Badge variant="success" className="text-xs">
             Proteção Ativa
           </Badge>
         </div>
 
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           Quando a secretária envia uma mensagem e o paciente não responde, o GENSBot assume as tentativas de contato em momentos estratégicos:
         </p>
 
-        <div className="grid gap-2 sm:grid-cols-3 pt-1">
-          <div className="p-3 rounded-lg border border-border bg-muted/40 space-y-1">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+        <div className="grid gap-3 sm:grid-cols-3 pt-1">
+          <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
               <Clock className="w-3.5 h-3.5 text-primary" />
               1ª Tentativa (+3 horas)
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Lembrete sutil e amigável perguntando se o lead conseguiu ler a mensagem anterior.
             </p>
           </div>
 
-          <div className="p-3 rounded-lg border border-border bg-muted/40 space-y-1">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+          <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
               <Clock className="w-3.5 h-3.5 text-primary" />
               2ª Tentativa (+8 horas)
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Aviso de organização de agenda oferecendo opções de horário antes que as vagas fechem.
             </p>
           </div>
 
-          <div className="p-3 rounded-lg border border-border bg-muted/40 space-y-1">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+          <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
               <Clock className="w-3.5 h-3.5 text-primary" />
               3ª Tentativa (+48 horas)
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Resgate educado deixando a porta aberta sem parecer invasivo ou insistente.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-1">
-          <Check className="w-3.5 h-3.5" />
-          <b>Regra de Ouro:</b> Assim que o paciente enviar qualquer resposta, todas as mensagens pendentes são canceladas imediatamente no banco de dados.
+        <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium pt-1">
+          <Check className="w-4 h-4" />
+          <span><b>Regra de Ouro:</b> Assim que o paciente enviar qualquer resposta, todas as mensagens pendentes são canceladas imediatamente no banco de dados.</span>
         </div>
       </div>
     </Secao>
@@ -1552,10 +1610,10 @@ function SecaoGoogleCalendar({
       descricao="Conecta o Google Calendar da clínica para sincronizar consultas automaticamente, consultar horários ocupados e evitar choque de agenda."
     >
       {/* Bloco de Status e Ações */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl border border-border bg-card">
+        <div className="flex items-center gap-3.5">
           <div
-            className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 border transition-colors ${
+            className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border transition-colors ${
               conectado
                 ? 'bg-blue-500/10 text-blue-500 border-blue-500/30'
                 : 'bg-muted text-muted-foreground border-border'
@@ -1570,11 +1628,11 @@ function SecaoGoogleCalendar({
                   ? `Google Agenda Conectada (${integracao?.email || clienteNome})`
                   : 'Google Agenda Desconectada'}
               </span>
-              <Badge variant={conectado ? 'success' : 'muted'} className="text-[10px]">
+              <Badge variant={conectado ? 'success' : 'muted'} className="text-xs">
                 {conectado ? 'Sincronização Ativa' : 'Não Vinculado'}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
               {conectado
                 ? `Consultas agendadas pelo CRM ou pela IA são criadas automaticamente na agenda de ${integracao?.email || 'destino'}.`
                 : 'Conecte a conta do Google da clínica para que a IA e o CRM criem e consultem os eventos na agenda.'}
@@ -1638,14 +1696,14 @@ function SecaoGoogleCalendar({
 
       {/* Se estiver conectado: Opções de Multi-Calendário e Link do Evento Criado */}
       {conectado && (
-        <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="space-y-0.5">
-              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+        <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 Agenda de Destino das Consultas
               </h4>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 Se a médica possui agendas separadas (ex: consultas, cirurgias ou pessoal), selecione qual agenda receberá as marcações:
               </p>
             </div>
@@ -1666,7 +1724,7 @@ function SecaoGoogleCalendar({
                 </Select>
               </div>
             ) : (
-              <Badge variant="muted" className="text-[11px]">
+              <Badge variant="muted" className="text-xs">
                 Agenda Principal Ativa
               </Badge>
             )}
