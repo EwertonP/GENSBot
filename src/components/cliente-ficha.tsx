@@ -1007,7 +1007,7 @@ function ConexaoWhatsApp({
           showToast('QR Code gerado! Aponte o celular.', 'success');
         } else {
           const detalheTxt = data.detalhes?.erro || data.detalhes?.text || data.detalhes?.statusText || '';
-          showToast(detalheTxt ? `OpenWA: ${detalheTxt}` : (data.mensagem || 'QR Code ainda não emitido. Verifique o log do OpenWA.'), 'warning');
+          showToast(detalheTxt ? `OpenWA: ${detalheTxt}` : (data.mensagem || 'QR Code ainda não emitido. Verifique o log do OpenWA.'), 'error');
         }
       } else {
         showToast(data.error || 'Erro ao iniciar conexão com WhatsApp.', 'error');
