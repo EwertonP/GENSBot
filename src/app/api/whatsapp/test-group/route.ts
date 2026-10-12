@@ -31,7 +31,31 @@ export async function POST(req: Request) {
     if (error) return traduzirErroBanco(error, 'POST /api/whatsapp/test-group');
     if (!cliente) return respostaErro('Cliente não encontrado.', 404);
 
-    const sessionName = `cliente-${cliente_id}`;
+    // Identifica qual sessão do WhatsApp está conectada:
+    // 1. Sessão do membro logado (designer/dono)
+    // 2. Sessão geral da agência
+    // 3. Sessão do cliente
+    const { data: sessoes } = await serviceSupabase
+      .from('whatsapp_sessions')
+      .select('session_name, membro_id, cliente_id, status')
+      .eq('agencia_id', membro.agencia_id)
+      .eq('status', 'conectado');
+
+    let sessionName = `agencia-${membro.agencia_id}`;
+    if (sessoes && sessoes.length > 0) {
+      const sessaoMembro = sessoes.find((s: any) => s.membro_id === membro.id);
+      if (sessaoMembro) {
+        sessionName = sessaoMembro.session_name;
+      } else {
+        const sessaoAgencia = sessoes.find((s: any) => !s.cliente_id && !s.membro_id);
+        if (sessaoAgencia) {
+          sessionName = sessaoAgencia.session_name;
+        } else {
+          sessionName = sessoes[0].session_name;
+        }
+      }
+    }
+
     const grupoDestino = grupo_id.trim();
 
     const textoTeste = [
@@ -40,7 +64,7 @@ export async function POST(req: Request) {
       `Olá, equipe de *${cliente.nome}*! 👋`,
       `Este grupo foi configurado com sucesso para receber os links de aprovação de novos posts, reels e carrosséis.`,
       ``,
-      `✅ _Conexão com WhatsApp Copiloto ativa e pronta para avisos de aprovação._`,
+      `✅ _Conexão com WhatsApp ativa e pronta para avisos de aprovação._`,
     ].join('\n');
 
     const resultado = await enviarMensagemOpenWA({

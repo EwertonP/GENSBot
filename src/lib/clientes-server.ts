@@ -16,6 +16,9 @@ import { supabase as serviceSupabase } from '@/lib/supabase';
 export interface Membro {
   id: string;
   agencia_id: string;
+  nome?: string;
+  cargo?: string | null;
+  foto_url?: string | null;
   papel: 'master' | 'membro' | 'cliente';
   ativo: boolean;
   cliente_id?: string | null;
@@ -51,7 +54,7 @@ export async function getContextoAgencia(): Promise<
   // 1. Busca membro usando serviceSupabase para ignorar RLS circular e garantir leitura confiável
   let { data: membro, error } = await serviceSupabase
     .from('membros')
-    .select('id, agencia_id, papel, ativo, cliente_id')
+    .select('id, agencia_id, papel, ativo, cliente_id, nome, cargo, foto_url')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -59,7 +62,7 @@ export async function getContextoAgencia(): Promise<
   if (!membro) {
     const { data: membroUserClient } = await supabase
       .from('membros')
-      .select('id, agencia_id, papel, ativo, cliente_id')
+      .select('id, agencia_id, papel, ativo, cliente_id, nome, cargo, foto_url')
       .eq('id', user.id)
       .maybeSingle();
     if (membroUserClient) {
@@ -82,7 +85,7 @@ export async function getContextoAgencia(): Promise<
         papel: 'master', // Concede acesso master ao sócio/membro cadastrado
         ativo: true,
       })
-      .select('id, agencia_id, papel, ativo, cliente_id')
+      .select('id, agencia_id, papel, ativo, cliente_id, nome, cargo, foto_url')
       .single();
 
     if (!createErr && novoMembro) {
@@ -92,6 +95,9 @@ export async function getContextoAgencia(): Promise<
       membro = {
         id: user.id,
         agencia_id: defaultAgenciaId,
+        nome: user.user_metadata?.full_name || user.user_metadata?.nome || userEmail.split('@')[0],
+        cargo: 'Diretor / Sócio',
+        foto_url: null,
         papel: 'master',
         ativo: true,
         cliente_id: null,
@@ -105,7 +111,7 @@ export async function getContextoAgencia(): Promise<
       .from('membros')
       .update({ ativo: true })
       .eq('id', user.id)
-      .select('id, agencia_id, papel, ativo, cliente_id')
+      .select('id, agencia_id, papel, ativo, cliente_id, nome, cargo, foto_url')
       .single();
 
     if (membroAtivado) {

@@ -26,6 +26,9 @@ export async function GET() {
     membro: {
       id: membro.id,
       agencia_id: membro.agencia_id,
+      nome: membro.nome,
+      cargo: membro.cargo || null,
+      foto_url: membro.foto_url || null,
       papel: membro.papel,
       ativo: membro.ativo,
       cliente_id: membro.cliente_id || null,

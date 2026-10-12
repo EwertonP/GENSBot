@@ -70,7 +70,7 @@ export default function Dashboard() {
 
   // Auth state
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [membroPerfil, setMembroPerfil] = useState<{ papel: string; cliente_id: string | null } | null>(null);
+  const [membroPerfil, setMembroPerfil] = useState<{ id?: string; nome?: string; cargo?: string | null; foto_url?: string | null; papel: string; cliente_id: string | null } | null>(null);
 
   // Configurações de estado do app
   const [loading, setLoading] = useState(true);
@@ -1108,10 +1108,11 @@ export default function Dashboard() {
         <div className={`p-3 border-t border-sidebar-border ${sidebarCompacta ? 'flex justify-center p-2' : ''}`}>
           {currentUser && (
             <UserProfilePopover
-              userName={currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Agência GENS'}
+              membroId={membroPerfil?.id}
+              userName={membroPerfil?.nome || currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Agência GENS'}
               userEmail={currentUser?.email || 'contato@agenciagens.com'}
-              userRole="Diretor de Conteúdo"
-              avatarUrl={currentUser?.user_metadata?.avatar_url}
+              userRole={membroPerfil?.cargo || (membroPerfil?.papel === 'master' ? 'Diretor / Sócio' : 'Membro da Equipe')}
+              avatarUrl={membroPerfil?.foto_url || currentUser?.user_metadata?.avatar_url}
               onNavigate={(tab) => {
                 if (isAbaId(tab)) navegarPara(tab);
               }}

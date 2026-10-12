@@ -7,6 +7,7 @@ interface NotificarGrupoAprovacaoParams {
   tituloPost: string;
   tokenAprovacao: string;
   origemUrl?: string;
+  responsavelId?: string | null;
 }
 
 /**
@@ -19,6 +20,7 @@ export async function notificarGrupoAprovacaoConteudo({
   tituloPost,
   tokenAprovacao,
   origemUrl,
+  responsavelId,
 }: NotificarGrupoAprovacaoParams): Promise<{ ok: boolean; enviado: boolean; erro?: string }> {
   try {
     // 1. Busca os dados do cliente e o grupo de WhatsApp configurado
@@ -69,27 +71,32 @@ export async function notificarGrupoAprovacaoConteudo({
       `*Equipe GENS*`,
     ].join('\n');
 
-    // 3. Localiza qual sessão está conectada (sessão do cliente ou sessão da agência)
+    // 3. Localiza qual sessão está conectada:
+    // Prioridade Máxima:
+    // a) Sessão do designer/responsável pela demanda (responsavelId)
+    // b) Sessão do WhatsApp oficial da agência
+    // c) Qualquer sessão ativa da agência
     const { data: sessoes } = await serviceSupabase
       .from('whatsapp_sessions')
-      .select('session_name, cliente_id, status')
+      .select('session_name, membro_id, cliente_id, status')
       .eq('agencia_id', agenciaId)
       .eq('status', 'conectado');
 
-    let sessionName = `cliente-${clienteId}`;
+    let sessionName = `agencia-${agenciaId}`;
 
     if (sessoes && sessoes.length > 0) {
-      // Se houver sessão específica do cliente conectada, usa ela
-      const sessaoCliente = sessoes.find((s: any) => s.cliente_id === clienteId);
-      if (sessaoCliente) {
-        sessionName = sessaoCliente.session_name;
-      } else {
-        // Caso contrário, usa a sessão conectada da agência
-        const sessaoAgencia = sessoes.find((s: any) => !s.cliente_id);
+      if (responsavelId) {
+        const sessaoDesigner = sessoes.find((s: any) => s.membro_id === responsavelId);
+        if (sessaoDesigner) {
+          sessionName = sessaoDesigner.session_name;
+        }
+      }
+
+      if (!sessionName.startsWith('membro-')) {
+        const sessaoAgencia = sessoes.find((s: any) => !s.cliente_id && !s.membro_id);
         if (sessaoAgencia) {
           sessionName = sessaoAgencia.session_name;
         } else {
-          // Usa a primeira sessão conectada disponível
           sessionName = sessoes[0].session_name;
         }
       }

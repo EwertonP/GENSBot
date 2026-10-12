@@ -11,6 +11,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   let clienteId = searchParams.get('cliente_id');
+  const membroId = searchParams.get('membro_id');
 
   if (membro.papel === 'cliente') {
     clienteId = membro.cliente_id || null;
@@ -22,10 +23,12 @@ export async function GET(req: Request) {
       .select('*')
       .eq('agencia_id', membro.agencia_id);
 
-    if (clienteId && ehUuid(clienteId)) {
+    if (membroId && ehUuid(membroId)) {
+      query = query.eq('membro_id', membroId);
+    } else if (clienteId && ehUuid(clienteId)) {
       query = query.eq('cliente_id', clienteId);
     } else {
-      query = query.is('cliente_id', null);
+      query = query.is('cliente_id', null).is('membro_id', null);
     }
 
     let { data: session, error } = await query.maybeSingle();
@@ -128,13 +131,20 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     let clienteId = body.cliente_id;
+    let membroId = body.membro_id;
 
     if (membro.papel === 'cliente') {
       clienteId = membro.cliente_id || null;
+      membroId = null;
     }
 
     // O nome da sessão no OpenWA aceita apenas letras, números e hifens: /^[a-zA-Z0-9-]+$/
-    const sessionName = clienteId ? `cliente-${clienteId}` : `agencia-${membro.agencia_id}`;
+    let sessionName = `agencia-${membro.agencia_id}`;
+    if (membroId) {
+      sessionName = `membro-${membroId}`;
+    } else if (clienteId) {
+      sessionName = `cliente-${clienteId}`;
+    }
 
     // 1. Cria ou atualiza o registro no banco
     const { data: session, error } = await serviceSupabase
@@ -142,11 +152,12 @@ export async function POST(req: Request) {
       .upsert({
         agencia_id: membro.agencia_id,
         cliente_id: clienteId || null,
+        membro_id: membroId || null,
         session_name: sessionName,
         status: 'aguardando_qrcode',
         ia_escuta_ativa: true,
         atualizado_em: new Date().toISOString(),
-      }, { onConflict: 'agencia_id,cliente_id' })
+      }, { onConflict: 'session_name' })
       .select()
       .single();
 
@@ -267,6 +278,7 @@ export async function DELETE(req: Request) {
 
   const { searchParams } = new URL(req.url);
   let clienteId = searchParams.get('cliente_id');
+  const membroId = searchParams.get('membro_id');
 
   if (membro.papel === 'cliente') {
     clienteId = membro.cliente_id || null;
@@ -278,10 +290,12 @@ export async function DELETE(req: Request) {
       .select('*')
       .eq('agencia_id', membro.agencia_id);
 
-    if (clienteId && ehUuid(clienteId)) {
+    if (membroId && ehUuid(membroId)) {
+      query = query.eq('membro_id', membroId);
+    } else if (clienteId && ehUuid(clienteId)) {
       query = query.eq('cliente_id', clienteId);
     } else {
-      query = query.is('cliente_id', null);
+      query = query.is('cliente_id', null).is('membro_id', null);
     }
 
     const { data: session } = await query.maybeSingle();

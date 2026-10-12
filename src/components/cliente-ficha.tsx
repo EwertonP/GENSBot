@@ -1061,6 +1061,29 @@ function ConexaoWhatsApp({
   const [testandoGrupo, setTestandoGrupo] = useState(false);
   const [desconectando, setDesconectando] = useState(false);
 
+  // Lista dinâmica de grupos do WhatsApp da agência/membro
+  const [gruposDisponiveis, setGruposDisponiveis] = useState<Array<{ id: string; name: string; participantsCount?: number }>>([]);
+  const [carregandoGrupos, setCarregandoGrupos] = useState(false);
+
+  const carregarGrupos = async () => {
+    setCarregandoGrupos(true);
+    try {
+      const res = await fetch('/api/whatsapp/groups');
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.grupos)) {
+        setGruposDisponiveis(data.grupos);
+      }
+    } catch {
+      // Silencioso
+    } finally {
+      setCarregandoGrupos(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarGrupos();
+  }, []);
+
   const handleDesconectarWhatsApp = async () => {
     if (
       !(await confirmDialog({
@@ -1333,17 +1356,47 @@ function ConexaoWhatsApp({
 
         <div className="grid gap-3 sm:grid-cols-2 items-end pt-1">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">
-              ID ou JID do Grupo de WhatsApp da Agência com o Cliente
-            </label>
-            <Input
-              placeholder="Ex: 12036302482394@g.us"
-              value={grupoId}
-              onChange={(e) => setGrupoId(e.target.value)}
-              className="text-xs font-mono"
-            />
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground">
+                Grupo de WhatsApp com o Cliente
+              </label>
+              <button
+                type="button"
+                onClick={carregarGrupos}
+                disabled={carregandoGrupos}
+                className="text-xs text-primary hover:underline flex items-center gap-1 font-medium cursor-pointer"
+              >
+                <RefreshCw className={`w-3 h-3 ${carregandoGrupos ? 'animate-spin' : ''}`} />
+                {carregandoGrupos ? 'Buscando...' : 'Atualizar grupos'}
+              </button>
+            </div>
+
+            {gruposDisponiveis.length > 0 ? (
+              <Select
+                value={grupoId}
+                onChange={(e) => setGrupoId(e.target.value)}
+                className="text-xs"
+              >
+                <option value="">Selecione um grupo do seu WhatsApp...</option>
+                {gruposDisponiveis.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} {g.participantsCount ? `(${g.participantsCount} membros)` : ''}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <Input
+                placeholder="Ex: 12036302482394@g.us (ou selecione acima após conectar WhatsApp)"
+                value={grupoId}
+                onChange={(e) => setGrupoId(e.target.value)}
+                className="text-xs font-mono"
+              />
+            )}
+
             <p className="text-xs text-muted-foreground">
-              JID do grupo de alinhamento com o cliente (termina obrigatoriamente com <code>@g.us</code>).
+              {gruposDisponiveis.length > 0
+                ? 'Grupos carregados automaticamente do seu WhatsApp conectado no Perfil.'
+                : 'Conecte seu WhatsApp no Perfil para listar seus grupos automaticamente, ou insira o JID manual.'}
             </p>
           </div>
 

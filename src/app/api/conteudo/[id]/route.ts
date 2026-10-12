@@ -163,14 +163,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if ('status' in updates || body.novo_comentario_equipe) {
       let { data: itemAtual } = await supabase
         .from('conteudo_items')
-        .select('status, historico_atividades, notion_page_id, arquivos, scheduled_post_id, cliente_id, titulo, token_aprovacao')
+        .select('status, historico_atividades, notion_page_id, arquivos, scheduled_post_id, cliente_id, titulo, token_aprovacao, responsavel_id')
         .eq('id', id)
         .single();
 
       if (!itemAtual && membro?.agencia_id) {
         const { data: fbItem } = await serviceSupabase
           .from('conteudo_items')
-          .select('status, historico_atividades, notion_page_id, arquivos, scheduled_post_id, cliente_id, titulo, token_aprovacao')
+          .select('status, historico_atividades, notion_page_id, arquivos, scheduled_post_id, cliente_id, titulo, token_aprovacao, responsavel_id')
           .eq('id', id)
           .eq('agencia_id', membro.agencia_id)
           .single();
@@ -200,12 +200,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           });
 
           // Disparo automático: Quando a demanda entra em "Aprovação" (revisao_cliente),
-          // notifica automaticamente o grupo de WhatsApp do cliente com o link de aprovação
+          // notifica automaticamente o grupo de WhatsApp do cliente com o link de aprovação.
+          // Prioriza o WhatsApp conectado do designer responsável pela demanda!
           if (updates.status === 'revisao_cliente' && (itemAtual.cliente_id || updates.cliente_id)) {
             const cid = itemAtual.cliente_id || updates.cliente_id;
             const tit = updates.titulo || itemAtual.titulo || 'Nova Publicação';
             const tok = itemAtual.token_aprovacao;
             const agId = membro?.agencia_id || 'a6839f40-dc25-4c00-a662-8d90c100b8c2';
+            const respId = updates.responsavel_id || itemAtual.responsavel_id || (membro?.id ?? null);
 
             import('@/lib/conteudo-whatsapp').then(({ notificarGrupoAprovacaoConteudo }) => {
               notificarGrupoAprovacaoConteudo({
@@ -213,6 +215,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 clienteId: cid,
                 tituloPost: tit,
                 tokenAprovacao: tok,
+                responsavelId: respId,
               }).catch((err) => console.warn('[Aprovação WhatsApp] Falha ao notificar grupo:', err));
             });
           }

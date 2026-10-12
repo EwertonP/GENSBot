@@ -12,16 +12,22 @@ import {
   UploadCloud,
   CheckCircle2,
   Camera,
+  Smartphone,
+  QrCode,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { uploadMediaFile } from '@/lib/storage-upload';
-
+import { confirmDialog } from '@/components/ui/dialog';
 
 interface UserProfilePopoverProps {
+  membroId?: string;
   userName?: string;
   userEmail?: string;
   userRole?: string;
@@ -33,6 +39,7 @@ interface UserProfilePopoverProps {
 }
 
 export default function UserProfilePopover({
+  membroId,
   userName = 'Ewerton Monteiro',
   userEmail = 'contato@agenciagens.com',
   userRole = 'Diretor de Conteúdo',
@@ -49,7 +56,99 @@ export default function UserProfilePopover({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // WhatsApp states do Membro
+  const [whatsappStatus, setWhatsappStatus] = useState<string>('desconectado');
+  const [whatsappPhone, setWhatsappPhone] = useState<string | null>(null);
+  const [qrCodeWpp, setQrCodeWpp] = useState<string | null>(null);
+  const [iniciandoWpp, setIniciandoWpp] = useState(false);
+  const [sincronizandoWpp, setSincronizandoWpp] = useState(false);
+  const [desconectandoWpp, setDesconectandoWpp] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const carregarStatusWpp = async (manual = false) => {
+    if (manual) setSincronizandoWpp(true);
+    try {
+      const url = membroId
+        ? `/api/whatsapp/session?membro_id=${encodeURIComponent(membroId)}`
+        : '/api/whatsapp/session';
+      const res = await fetch(url);
+      const data = await res.json();
+      if (res.ok && data.session) {
+        setWhatsappStatus(data.session.status || 'desconectado');
+        setWhatsappPhone(data.session.phone_number || null);
+        if (data.session.status === 'conectado') {
+          setQrCodeWpp(null);
+        }
+      }
+    } catch {
+      // Silencioso
+    } finally {
+      if (manual) setSincronizandoWpp(false);
+    }
+  };
+
+  useEffect(() => {
+    if (modalEditOpen) {
+      carregarStatusWpp();
+      const interval = setInterval(carregarStatusWpp, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [modalEditOpen, membroId]);
+
+  const handleConectarWpp = async () => {
+    setIniciandoWpp(true);
+    setQrCodeWpp(null);
+    try {
+      const res = await fetch('/api/whatsapp/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ membro_id: membroId || null }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.qrCode) {
+          setQrCodeWpp(data.qrCode);
+        }
+        if (data.session) {
+          setWhatsappStatus(data.session.status || 'aguardando_qrcode');
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao conectar WhatsApp do membro:', err);
+    } finally {
+      setIniciandoWpp(false);
+    }
+  };
+
+  const handleDesconectarWpp = async () => {
+    if (
+      !(await confirmDialog({
+        title: 'Desconectar seu WhatsApp?',
+        description: 'Seu WhatsApp deixará de enviar as notificações de aprovação das suas demandas até que seja reconectado.',
+        confirmLabel: 'Desconectar',
+        tone: 'destructive',
+      }))
+    )
+      return;
+
+    setDesconectandoWpp(true);
+    try {
+      const url = membroId
+        ? `/api/whatsapp/session?membro_id=${encodeURIComponent(membroId)}`
+        : '/api/whatsapp/session';
+      const res = await fetch(url, { method: 'DELETE' });
+      if (res.ok) {
+        setWhatsappStatus('desconectado');
+        setWhatsappPhone(null);
+        setQrCodeWpp(null);
+      }
+    } catch (err) {
+      console.error('Erro ao desconectar WhatsApp do membro:', err);
+    } finally {
+      setDesconectandoWpp(false);
+    }
+  };
 
   // Sincroniza props quando abertos
   useEffect(() => {
@@ -277,7 +376,89 @@ export default function UserProfilePopover({
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+          {/* Conexão de WhatsApp Próprio do Membro/Designer */}
+          <div className="p-4 rounded-2xl border border-border bg-card space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-bold text-foreground">Meu WhatsApp (Envio de Aprovações)</span>
+                  <Badge variant={whatsappStatus === 'conectado' ? 'success' : 'muted'} className="text-xs">
+                    {whatsappStatus === 'conectado' ? 'Conectado' : 'Desconectado'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Conecte seu WhatsApp pessoal ou corporativo. As demandas que você for responsável serão enviadas pelo seu número para o grupo do cliente ao entrar em "Aprovação".
+                </p>
+              </div>
+            </div>
+
+            {whatsappPhone && (
+              <p className="text-xs font-mono text-foreground font-semibold">
+                Número ativo: +{whatsappPhone}
+              </p>
+            )}
+
+            <div className="flex items-center gap-2 pt-1 flex-wrap">
+              <Button
+                type="button"
+                size="sm"
+                variant={whatsappStatus === 'conectado' ? 'secondary' : 'primary'}
+                loading={iniciandoWpp}
+                onClick={handleConectarWpp}
+                className="gap-1.5 text-xs"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                {whatsappStatus === 'conectado' ? 'Novo QR Code' : 'Conectar Meu WhatsApp'}
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                loading={sincronizandoWpp}
+                onClick={() => carregarStatusWpp(true)}
+                className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Sincronizar
+              </Button>
+
+              {whatsappStatus === 'conectado' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  loading={desconectandoWpp}
+                  onClick={handleDesconectarWpp}
+                  className="gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Desconectar
+                </Button>
+              )}
+            </div>
+
+            {qrCodeWpp && whatsappStatus !== 'conectado' && (
+              <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5 space-y-2 mt-2">
+                <p className="text-xs font-semibold text-foreground">Aponte a câmera do seu WhatsApp:</p>
+                <div className="p-3 bg-white rounded-xl shadow-md border border-border">
+                  {qrCodeWpp.startsWith('data:image') ? (
+                    <img src={qrCodeWpp} alt="QR Code WhatsApp" className="w-44 h-44 object-contain" />
+                  ) : (
+                    <div className="w-44 h-44 flex items-center justify-center text-center p-2 text-xs text-muted-foreground font-mono break-all">
+                      {qrCodeWpp}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  Aparelhos conectados &gt; Conectar um aparelho
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="ghost" size="sm" onClick={() => setModalEditOpen(false)}>
               Cancelar
             </Button>
