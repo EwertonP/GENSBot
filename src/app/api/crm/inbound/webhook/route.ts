@@ -32,7 +32,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nome do contato é obrigatório.' }, { status: 400 });
     }
 
-    const agenciaId = agenciaIdBody || 'a6839f40-dc25-4c00-a662-8d90c100b8c2';
+    let agenciaId = agenciaIdBody;
+    if (!agenciaId && cliente_id) {
+      const { data: clienteRecord } = await serviceSupabase
+        .from('clientes')
+        .select('agencia_id')
+        .eq('id', cliente_id)
+        .maybeSingle();
+      if (clienteRecord?.agencia_id) {
+        agenciaId = clienteRecord.agencia_id;
+      }
+    }
+
+    if (!agenciaId) {
+      // Fallback para a agência principal cadastrada no sistema
+      const { data: primeiraAgencia } = await serviceSupabase
+        .from('agencias')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+      agenciaId = primeiraAgencia?.id || 'a6839f40-dc25-4c00-a662-8d90c100b8c2';
+    }
+
     const tel = (whatsapp || telefone || '').trim();
 
     // 1. Resolve o pipeline e estágio de destino

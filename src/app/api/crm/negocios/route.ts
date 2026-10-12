@@ -81,11 +81,15 @@ export async function POST(req: Request) {
       cliente_id,
       titulo,
       valor = 0,
-      nome_contato,
-      telefone,
-      email,
+      nome_contato: nomeContatoRaw,
+      contato_nome,
+      telefone: telefoneRaw,
+      contato_whatsapp,
+      email: emailRaw,
+      contato_email,
       instagram_username,
-      empresa,
+      empresa: empresaRaw,
+      empresa_nome,
       cargo,
       origem = 'manual',
       prioridade = 'media',
@@ -93,7 +97,13 @@ export async function POST(req: Request) {
       responsavel_id,
       previsao_fechamento,
       probabilidade,
+      descricao,
     } = body;
+
+    const nomeContatoFinal = (nomeContatoRaw || contato_nome || '').trim();
+    const telefoneFinal = (telefoneRaw || contato_whatsapp || '').trim();
+    const emailFinal = (emailRaw || contato_email || '').trim().toLowerCase();
+    const empresaFinal = (empresaRaw || empresa_nome || '').trim();
 
     if (!pipeline_id) {
       return respostaErro('O pipeline_id é obrigatório.', 400);
@@ -101,7 +111,7 @@ export async function POST(req: Request) {
     if (!titulo?.trim()) {
       return respostaErro('O título do negócio é obrigatório.', 400);
     }
-    if (!nome_contato?.trim()) {
+    if (!nomeContatoFinal) {
       return respostaErro('O nome do contato é obrigatório.', 400);
     }
 
@@ -134,11 +144,11 @@ export async function POST(req: Request) {
         titulo: titulo.trim(),
         valor: Number(valor) || 0,
         status: 'aberto',
-        nome_contato: nome_contato.trim(),
-        telefone: telefone ? telefone.trim() : null,
-        email: email ? email.trim().toLowerCase() : null,
+        nome_contato: nomeContatoFinal,
+        telefone: telefoneFinal || null,
+        email: emailFinal || null,
         instagram_username: cleanInsta,
-        empresa: empresa ? empresa.trim() : null,
+        empresa: empresaFinal || null,
         cargo: cargo ? cargo.trim() : null,
         origem,
         prioridade,
@@ -161,11 +171,12 @@ export async function POST(req: Request) {
       agencia_id: membro.agencia_id,
       membro_id: user.id,
       tipo: 'criacao',
-      descricao: `Oportunidade criada na etapa "${negocio.estagio?.nome || 'Inicial'}"`,
+      descricao: `Oportunidade criada na etapa "${negocio.estagio?.nome || 'Inicial'}"${descricao ? ` — Detalhes: ${descricao}` : ''}`,
       dados_extras: { valor: negocio.valor, origem: negocio.origem },
     });
 
-    return NextResponse.json(negocio, { status: 201 });
+    // Retorna com retrocompatibilidade tanto para quem lê objeto direto quanto data.negocio
+    return NextResponse.json({ ...negocio, negocio }, { status: 201 });
   } catch (err: any) {
     console.error('Erro ao criar negócio:', err);
     return respostaErro('Falha interna ao criar oportunidade.', 500);

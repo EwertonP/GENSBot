@@ -12,6 +12,7 @@ import CrmKanban from './crm-kanban';
 import CrmTabela from './crm-tabela';
 import CrmDealDrawer from './crm-deal-drawer';
 import CrmNovoNegocioModal from './crm-novo-negocio-modal';
+import CrmPipelineModal from './crm-pipeline-modal';
 import { formatarMoeda, calcularDiasSemContato } from '@/lib/crm';
 import type { CrmPipeline, CrmEstagio, CrmNegocio, CrmMetricas, CrmStatus } from '@/types/crm';
 import type { Cliente } from '@/lib/clientes';
@@ -30,6 +31,8 @@ import {
   Building2,
   User,
   Layers,
+  Settings,
+  Edit3,
 } from 'lucide-react';
 
 interface CrmTabProps {
@@ -57,6 +60,7 @@ export default function CrmTab({
   const [busca, setBusca] = useState('');
   const [filtroResponsavel, setFiltroResponsavel] = useState('todos');
   const [filtroStatus, setFiltroStatus] = useState<'aberto' | 'todos' | 'ganho' | 'perdido'>('aberto');
+  const [filtroOrigem, setFiltroOrigem] = useState<string>('todos');
 
   // Estados de Loading & Modais
   const [loading, setLoading] = useState(true);
@@ -64,6 +68,8 @@ export default function CrmTab({
   const [dealDrawerId, setDealDrawerId] = useState<string | null>(null);
   const [showNovoModal, setShowNovoModal] = useState(false);
   const [novoModalEstagioId, setNovoModalEstagioId] = useState<string | null>(null);
+  const [showPipelineModal, setShowPipelineModal] = useState(false);
+  const [pipelineParaEditar, setPipelineParaEditar] = useState<CrmPipeline | null>(null);
 
   // Sincroniza cliente inicial se passado externamente
   useEffect(() => {
@@ -103,12 +109,20 @@ export default function CrmTab({
 
       const res = await fetch(url);
       const data = await res.json();
+      const listaPipelines: CrmPipeline[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.pipelines)
+        ? data.pipelines
+        : [];
 
-      if (res.ok && Array.isArray(data.pipelines) && data.pipelines.length > 0) {
-        setPipelines(data.pipelines);
-        // Se o pipeline ativo não existe na lista atual, seleciona o padrão ou o primeiro
-        const padrao = data.pipelines.find((p: CrmPipeline) => p.padrao) || data.pipelines[0];
-        setPipelineAtivoId(padrao.id);
+      if (res.ok && listaPipelines.length > 0) {
+        setPipelines(listaPipelines);
+        // Mantém o ativo se ainda existir na lista, senão escolhe o padrão ou o primeiro
+        setPipelineAtivoId((prevId) => {
+          if (prevId && listaPipelines.some((p) => p.id === prevId)) return prevId;
+          const padrao = listaPipelines.find((p) => p.padrao) || listaPipelines[0];
+          return padrao.id;
+        });
       } else {
         setPipelines([]);
         setPipelineAtivoId(null);
@@ -153,11 +167,12 @@ export default function CrmTab({
         fetch(`/api/crm/metricas?pipeline_id=${pipelineAtivoId}${contextoClienteId ? `&cliente_id=${contextoClienteId}` : ''}`).then((r) => r.json()),
       ]);
 
-      if (Array.isArray(resNegocios.negocios)) {
-        setNegocios(resNegocios.negocios);
-      } else {
-        setNegocios([]);
-      }
+      const listaNegocios = Array.isArray(resNegocios)
+        ? resNegocios
+        : Array.isArray(resNegocios?.negocios)
+        ? resNegocios.negocios
+        : [];
+      setNegocios(listaNegocios);
 
       if (resMetricas?.totalNegocios !== undefined) {
         setMetricas(resMetricas);
@@ -209,9 +224,14 @@ export default function CrmTab({
         if (filtroResponsavel !== 'sem_responsavel' && neg.responsavel_id !== filtroResponsavel) return false;
       }
 
+      // Filtro de origem
+      if (filtroOrigem !== 'todos' && neg.origem !== filtroOrigem) {
+        return false;
+      }
+
       return true;
     });
-  }, [negocios, busca, filtroResponsavel]);
+  }, [negocios, busca, filtroResponsavel, filtroOrigem]);
 
   // Mover negócio no Kanban (Drag & Drop)
   const handleMoverNegocio = async (
@@ -319,23 +339,54 @@ export default function CrmTab({
             </div>
           </div>
 
-          {/* Pipeline Selector */}
-          {pipelines.length > 0 && (
-            <div className="flex items-center gap-2 pl-2 border-l border-border/70">
-              <Layers className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <Select
-                value={pipelineAtivoId || ''}
-                onChange={(e) => setPipelineAtivoId(e.target.value)}
-                className="text-xs h-8 font-semibold min-w-[170px]"
+          {/* Pipeline Selector & Ações de Funil */}
+          <div className="flex items-center gap-1.5 pl-2 border-l border-border/70">
+            {pipelines.length > 0 && (
+              <>
+                <Layers className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <Select
+                  value={pipelineAtivoId || ''}
+                  onChange={(e) => setPipelineAtivoId(e.target.value)}
+                  className="text-xs h-8 font-semibold min-w-[160px]"
+                >
+                  {pipelines.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome} {p.padrao ? '★' : ''}
+                    </option>
+                  ))}
+                </Select>
+
+                {pipelineAtivo && (
+                  <Tip label="Editar etapas e configurações deste funil">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPipelineParaEditar(pipelineAtivo);
+                        setShowPipelineModal(true);
+                      }}
+                      className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                    </button>
+                  </Tip>
+                )}
+              </>
+            )}
+
+            <Tip label="Criar novo funil de vendas">
+              <button
+                type="button"
+                onClick={() => {
+                  setPipelineParaEditar(null);
+                  setShowPipelineModal(true);
+                }}
+                className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg bg-accent/70 hover:bg-accent text-foreground transition-colors border border-border"
               >
-                {pipelines.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome} {p.padrao ? '★' : ''}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          )}
+                <Plus className="w-3 h-3 text-primary" />
+                <span className="hidden sm:inline">Novo Funil</span>
+              </button>
+            </Tip>
+          </div>
         </div>
 
         {/* Lado Direito: Ações Principais */}
@@ -506,6 +557,20 @@ export default function CrmTab({
               </option>
             ))}
           </Select>
+
+          {/* Filtro Origem */}
+          <Select
+            value={filtroOrigem}
+            onChange={(e) => setFiltroOrigem(e.target.value)}
+            className="h-9 text-xs min-w-[130px]"
+          >
+            <option value="todos">Todas as Origens</option>
+            <option value="instagram">Instagram</option>
+            <option value="webhook_ads">Meta Ads</option>
+            <option value="formulario">Formulário</option>
+            <option value="indicacao">Indicação</option>
+            <option value="manual">Manual</option>
+          </Select>
         </div>
       </div>
 
@@ -572,6 +637,19 @@ export default function CrmTab({
           showToast={showToast}
         />
       )}
+
+      {/* ──────────────── Modal Criar / Editar Funil de Vendas ──────────────── */}
+      <CrmPipelineModal
+        open={showPipelineModal}
+        onClose={() => {
+          setShowPipelineModal(false);
+          setPipelineParaEditar(null);
+        }}
+        clienteId={contextoClienteId}
+        pipelineParaEditar={pipelineParaEditar}
+        onSalvo={() => carregarPipelines()}
+        showToast={showToast}
+      />
     </div>
   );
 }
