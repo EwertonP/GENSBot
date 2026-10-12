@@ -1032,6 +1032,7 @@ export default function Dashboard() {
               )}
               {[
                 { id: 'crm' as AbaId, label: 'CRM de Vendas', icon: TELAS.crm.icon },
+                { id: 'inbox' as AbaId, label: 'Mensagens & Inbox', icon: TELAS.inbox.icon },
                 { id: 'contacts' as AbaId, label: 'Contatos & Leads', icon: TELAS.contacts.icon },
               ].map((item) => {
                 const Icon = item.icon;
@@ -1441,10 +1442,14 @@ export default function Dashboard() {
             <ContactsTab withAccount={withAccount} showToast={showToast} accountKey={selectedAccountId || 'none'} />
           )}
 
-          {/* TAB: INBOX (Onda 5) */}
+          {/* TAB: INBOX (Mensagens Unificadas: Direct + WhatsApp) */}
           {activeTab === 'inbox' && (
             <div className="animate-fade-in">
-              <InboxPanel withAccount={withAccount} />
+              <InboxPanel
+                withAccount={withAccount}
+                clienteId={workspaceAtivo.tipo === 'cliente' ? workspaceAtivo.clienteId : (membroPerfil?.cliente_id || null)}
+                papelUsuario={membroPerfil?.papel as any}
+              />
             </div>
           )}
           </motion.div>
