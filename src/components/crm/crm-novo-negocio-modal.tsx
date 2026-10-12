@@ -89,9 +89,13 @@ export default function CrmNovoNegocioModal({
           estagio_id: estagioId || estagios[0]?.id,
           titulo: titulo.trim(),
           valor: valorNumerico,
+          nome_contato: contatoNome.trim() || titulo.trim(),
           contato_nome: contatoNome.trim() || null,
+          telefone: contatoWhatsapp.trim() || null,
           contato_whatsapp: contatoWhatsapp.trim() || null,
+          email: contatoEmail.trim() || null,
           contato_email: contatoEmail.trim() || null,
+          empresa: empresaNome.trim() || null,
           empresa_nome: empresaNome.trim() || null,
           origem,
           prioridade,
@@ -106,7 +110,8 @@ export default function CrmNovoNegocioModal({
       }
 
       showToast('Oportunidade adicionada com sucesso!', 'success');
-      onCriado(data.negocio);
+      const negocioCriado = data.negocio || data;
+      onCriado(negocioCriado);
       onClose();
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Erro ao cadastrar oportunidade', 'error');

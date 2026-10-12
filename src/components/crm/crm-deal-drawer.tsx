@@ -10,7 +10,7 @@ import { Select } from '@/components/ui/select';
 import { Avatar } from '@/components/ui/avatar';
 import { Tip } from '@/components/ui/tooltip';
 import { confirmDialog } from '@/components/ui/dialog';
-import { formatarMoeda, gerarLinkWhatsApp, calcularDiasSemContato } from '@/lib/crm';
+import { formatarMoeda, gerarLinkWhatsApp, calcularDiasSemContato, TEMPLATES_WHATSAPP, formatarMensagemWhatsApp } from '@/lib/crm';
 import type { CrmEstagio, CrmNegocio, CrmAtividade, CrmTarefa, CrmPrioridade } from '@/types/crm';
 import {
   X,
@@ -233,6 +233,39 @@ export default function CrmDealDrawer({
     }
   };
 
+  const handleAbrirWhatsAppComTemplate = async (templateMsg?: string, tituloTemplate?: string) => {
+    if (!telefone) return;
+    const mensagemFinal = templateMsg
+      ? formatarMensagemWhatsApp(templateMsg, { nome: nomeContato, empresa })
+      : undefined;
+
+    const link = gerarLinkWhatsApp(telefone, mensagemFinal);
+    if (!link) return;
+
+    window.open(link, '_blank');
+
+    // Registra automaticamente a atividade de contato na timeline
+    if (negocio) {
+      try {
+        await fetch(`/api/crm/negocios/${negocio.id}/atividades`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'whatsapp',
+            descricao: tituloTemplate
+              ? `📱 Conversa iniciada no WhatsApp usando template: "${tituloTemplate}"`
+              : '📱 Conversa aberta no WhatsApp',
+            dados_extras: { mensagem: mensagemFinal || null },
+          }),
+        });
+        carregarDetalhes(negocio.id);
+        onAtualizado();
+      } catch (err) {
+        console.error('Erro ao registrar contato WhatsApp na timeline:', err);
+      }
+    }
+  };
+
   const handleAdicionarNota = async () => {
     if (!negocio || !novaNota.trim()) return;
     try {
@@ -326,17 +359,48 @@ export default function CrmDealDrawer({
 
             <div className="flex items-center gap-2">
               {telefone && (
-                <Tip label="Conversar no WhatsApp">
-                  <a
-                    href={gerarLinkWhatsApp(telefone)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-2xs"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>WhatsApp</span>
-                  </a>
-                </Tip>
+                <div className="relative group">
+                  <Tip label="Conversar no WhatsApp com templates rápidos">
+                    <button
+                      type="button"
+                      onClick={() => handleAbrirWhatsAppComTemplate()}
+                      className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>WhatsApp</span>
+                    </button>
+                  </Tip>
+
+                  {/* Menu suspenso de templates rápidos */}
+                  <div className="hidden group-hover:flex group-focus-within:flex flex-col absolute right-0 top-full pt-1.5 z-50 w-64">
+                    <div className="bg-popover border border-border rounded-xl shadow-lg p-1.5 flex flex-col gap-1 text-xs">
+                      <div className="px-2 py-1 text-[10px] font-mono font-bold text-muted-foreground uppercase border-b border-border/50">
+                        Mensagens Rápidas
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAbrirWhatsAppComTemplate()}
+                        className="text-left px-2 py-1.5 rounded-md hover:bg-accent text-foreground transition-colors"
+                      >
+                        <span className="font-semibold block">Abrir conversa limpa</span>
+                        <span className="text-[10px] text-muted-foreground">Sem mensagem inicial</span>
+                      </button>
+                      {TEMPLATES_WHATSAPP.map((tmpl) => (
+                        <button
+                          key={tmpl.id}
+                          type="button"
+                          onClick={() => handleAbrirWhatsAppComTemplate(tmpl.mensagem, tmpl.titulo)}
+                          className="text-left px-2 py-1.5 rounded-md hover:bg-accent text-foreground transition-colors"
+                        >
+                          <span className="font-semibold block text-primary">{tmpl.titulo}</span>
+                          <span className="text-[10px] text-muted-foreground line-clamp-1">
+                            {formatarMensagemWhatsApp(tmpl.mensagem, { nome: nomeContato, empresa })}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               )}
 
               {negocio?.status === 'aberto' && (

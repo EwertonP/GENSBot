@@ -11,8 +11,8 @@ const SELECT_NEGOCIO = `
   cliente:clientes!cliente_id(id, nome, cor)
 `;
 
-// POST: Move o card entre estágios com registro automático de atividade
-export async function POST(req: Request, { params }: Params) {
+// Handler compartilhado para mover negócios entre etapas
+async function moverNegocioHandler(req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
   const { membro, user } = auth.ctx;
@@ -106,4 +106,12 @@ export async function POST(req: Request, { params }: Params) {
     console.error('Erro ao mover negócio:', err);
     return respostaErro('Falha interna ao movimentar negócio.', 500);
   }
+}
+
+export async function POST(req: Request, ctx: Params) {
+  return moverNegocioHandler(req, ctx);
+}
+
+export async function PATCH(req: Request, ctx: Params) {
+  return moverNegocioHandler(req, ctx);
 }

@@ -28,6 +28,39 @@ export function normalizarWhatsApp(telefone: string): string {
   return `55${digitos}`;
 }
 
+/** Templates comerciais ágeis para WhatsApp */
+export const TEMPLATES_WHATSAPP = [
+  {
+    id: 'primeiro_contato_inbound',
+    titulo: 'Primeiro Contato (Lead Novo)',
+    mensagem: 'Olá, {nome}! Tudo bem? Vi seu contato através do nosso canal. Como podemos te ajudar hoje?',
+  },
+  {
+    id: 'followup_proposta',
+    titulo: 'Follow-up de Proposta',
+    mensagem: 'Oi, {nome}! Passando para saber se conseguiu dar uma olhada na proposta que conversamos. Ficou alguma dúvida?',
+  },
+  {
+    id: 'agendamento_reuniao',
+    titulo: 'Agendar Alinhamento / Reunião',
+    mensagem: 'Olá, {nome}! Tudo certo? Gostaria de sugerir uma breve conversa de 15 minutos para alinharmos os próximos passos. Qual horário fica melhor para você amanhã?',
+  },
+  {
+    id: 'retomada_estagnado',
+    titulo: 'Retomada de Contato',
+    mensagem: 'Oi, {nome}! Tudo bem por aí? Sei que a rotina é corrida. Ainda tem interesse em avançar com o projeto que alinhamos?',
+  },
+] as const;
+
+/** Substitui variáveis como {nome} e {empresa} no template */
+export function formatarMensagemWhatsApp(template: string, dados: { nome?: string; empresa?: string }): string {
+  let msg = template;
+  const primeiroNome = (dados.nome || '').trim().split(' ')[0] || 'amigo(a)';
+  msg = msg.replace(/\{nome\}/g, primeiroNome);
+  msg = msg.replace(/\{empresa\}/g, dados.empresa || 'sua empresa');
+  return msg;
+}
+
 /** Gera o link direto de wa.me para abrir a conversa no WhatsApp em 1 clique */
 export function gerarLinkWhatsApp(telefone: string, mensagem?: string): string {
   const ddiNum = normalizarWhatsApp(telefone);

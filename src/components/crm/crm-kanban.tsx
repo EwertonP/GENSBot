@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Tip } from '@/components/ui/tooltip';
 import { ScrollShadow } from '@/components/ui/scroll-shadow';
-import { formatarMoeda, calcularDiasSemContato, gerarLinkWhatsApp } from '@/lib/crm';
+import { formatarMoeda, calcularDiasSemContato, gerarLinkWhatsApp, formatarMensagemWhatsApp } from '@/lib/crm';
 import type { CrmEstagio, CrmNegocio } from '@/types/crm';
 import {
   MessageSquare,
@@ -257,12 +257,13 @@ export default function CrmKanban({
 
                         {/* Botão Rápido de WhatsApp */}
                         {negocio.telefone && (
-                          <Tip label="Abrir conversa no WhatsApp">
+                          <Tip label={`Chamar ${negocio.nome_contato.split(' ')[0]} no WhatsApp`}>
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const link = gerarLinkWhatsApp(negocio.telefone!);
+                                const msg = `Olá, ${negocio.nome_contato.split(' ')[0]}! Tudo bem?`;
+                                const link = gerarLinkWhatsApp(negocio.telefone!, msg);
                                 if (link) window.open(link, '_blank');
                               }}
                               className="p-1 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors"
