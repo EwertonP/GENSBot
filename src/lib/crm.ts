@@ -36,19 +36,34 @@ export const TEMPLATES_WHATSAPP = [
     mensagem: 'Olá, {nome}! Tudo bem? Vi seu contato através do nosso canal. Como podemos te ajudar hoje?',
   },
   {
+    id: 'clinica_confirmacao_consulta',
+    titulo: 'Confirmação de Consulta / Procedimento',
+    mensagem: 'Olá, {nome}! Tudo bem? Gostaria de confirmar o seu horário marcado conosco para amanhã. Podemos confirmar a sua presença?',
+  },
+  {
+    id: 'clinica_preparo_instrucoes',
+    titulo: 'Instruções e Localização da Clínica',
+    mensagem: 'Olá, {nome}! Seguem as orientações para o seu atendimento: recomendamos chegar com 10 minutos de antecedência. Nosso endereço é: [Endereço da Clínica]. Qualquer dúvida, estou à disposição!',
+  },
+  {
+    id: 'clinica_resgate_faltoso',
+    titulo: 'Resgate / Remarcação de Consulta',
+    mensagem: 'Olá, {nome}! Sentimos sua falta no seu horário agendado. Gostaria de verificar uma nova data disponível para você não perder o seu acompanhamento?',
+  },
+  {
     id: 'followup_proposta',
-    titulo: 'Follow-up de Proposta',
+    titulo: 'Follow-up de Orçamento / Proposta',
     mensagem: 'Oi, {nome}! Passando para saber se conseguiu dar uma olhada na proposta que conversamos. Ficou alguma dúvida?',
   },
   {
     id: 'agendamento_reuniao',
-    titulo: 'Agendar Alinhamento / Reunião',
-    mensagem: 'Olá, {nome}! Tudo certo? Gostaria de sugerir uma breve conversa de 15 minutos para alinharmos os próximos passos. Qual horário fica melhor para você amanhã?',
+    titulo: 'Agendar Horário / Avaliação',
+    mensagem: 'Olá, {nome}! Tudo certo? Temos horários disponíveis para avaliação nesta semana. Qual período do dia fica mais prático para você: manhã ou tarde?',
   },
   {
     id: 'retomada_estagnado',
     titulo: 'Retomada de Contato',
-    mensagem: 'Oi, {nome}! Tudo bem por aí? Sei que a rotina é corrida. Ainda tem interesse em avançar com o projeto que alinhamos?',
+    mensagem: 'Oi, {nome}! Tudo bem por aí? Sei que a rotina é corrida. Ainda tem interesse em avançar com o procedimento que alinhamos?',
   },
 ] as const;
 

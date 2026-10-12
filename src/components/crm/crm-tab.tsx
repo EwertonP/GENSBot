@@ -75,6 +75,11 @@ export default function CrmTab({
   const [pipelineParaEditar, setPipelineParaEditar] = useState<CrmPipeline | null>(null);
   const [showAiModal, setShowAiModal] = useState(false);
 
+  // Perfil do usuário (admin/membro vs cliente/secretária) & Toggle rápido de IA
+  const [usuarioPapel, setUsuarioPapel] = useState<'admin' | 'membro' | 'cliente' | null>(null);
+  const [aiAtivo, setAiAtivo] = useState(false);
+  const [alternandoAi, setAlternandoAi] = useState(false);
+
   // Sincroniza cliente inicial se passado externamente
   useEffect(() => {
     if (clienteInicialId !== undefined) {
@@ -82,13 +87,14 @@ export default function CrmTab({
     }
   }, [clienteInicialId]);
 
-  // Carrega lista de clientes e membros
+  // Carrega lista de clientes, membros e perfil do usuário logado
   useEffect(() => {
     async function carregarDependencias() {
       try {
-        const [resClientes, resEquipe] = await Promise.all([
+        const [resClientes, resEquipe, resMe] = await Promise.all([
           fetch('/api/clientes').then((r) => (r.ok ? r.json() : { clientes: [] })),
           fetch('/api/equipe').then((r) => (r.ok ? r.json() : { membros: [] })),
+          fetch('/api/membros/me').then((r) => (r.ok ? r.json() : null)),
         ]);
 
         if (Array.isArray(resClientes.clientes)) {
@@ -97,12 +103,66 @@ export default function CrmTab({
         if (Array.isArray(resEquipe.membros)) {
           setMembros(resEquipe.membros.map((m: { id: string; nome: string }) => ({ id: m.id, nome: m.nome })));
         }
+        if (resMe?.membro?.papel) {
+          setUsuarioPapel(resMe.membro.papel);
+        }
       } catch (err) {
-        console.error('Erro ao carregar clientes/equipe:', err);
+        console.error('Erro ao carregar clientes/equipe/me:', err);
       }
     }
     carregarDependencias();
   }, []);
+
+  // Carrega status da IA para o contexto selecionado
+  const carregarStatusAi = useCallback(async () => {
+    try {
+      const url = contextoClienteId
+        ? `/api/crm/ai/config?cliente_id=${encodeURIComponent(contextoClienteId)}`
+        : '/api/crm/ai/config';
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setAiAtivo(Boolean(data?.ativo));
+      }
+    } catch (err) {
+      console.error('Erro ao carregar status da IA:', err);
+    }
+  }, [contextoClienteId]);
+
+  useEffect(() => {
+    carregarStatusAi();
+  }, [carregarStatusAi]);
+
+  // Alterna rapidamente o status da IA
+  const handleAlternarAi = async () => {
+    setAlternandoAi(true);
+    const novoStatus = !aiAtivo;
+    setAiAtivo(novoStatus); // Otimista
+
+    try {
+      const res = await fetch('/api/crm/ai/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cliente_id: contextoClienteId,
+          ativo: novoStatus,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Falha ao alternar status da IA.');
+      const data = await res.json();
+      setAiAtivo(Boolean(data.ativo));
+      showToast(
+        novoStatus ? 'Atendimento por IA ativado com sucesso!' : 'Atendimento por IA pausado.',
+        'success'
+      );
+    } catch (err) {
+      setAiAtivo(!novoStatus); // Reverte
+      showToast('Erro ao alternar status da IA.', 'error');
+    } finally {
+      setAlternandoAi(false);
+    }
+  };
 
   // Carrega pipelines do contexto selecionado (Agência ou Cliente)
   const carregarPipelines = useCallback(async () => {
@@ -429,17 +489,36 @@ export default function CrmTab({
             </Button>
           </Tip>
 
-          {/* Botão Configurar Agente de IA */}
-          <Tip label="Configurar Agente de IA (OpenAI, Gemini, Claude) para atendimento e CRM">
-            <button
-              type="button"
-              onClick={() => setShowAiModal(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-all shadow-2xs"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-              <span className="hidden sm:inline">Agente IA SDR</span>
-            </button>
-          </Tip>
+          {/* Controle do Agente de IA: Toggle simples para secretária ou Configuração completa para Admin */}
+          {usuarioPapel === 'cliente' ? (
+            <Tip label={aiAtivo ? 'IA Ativa (Clique para pausar atendimento automático)' : 'IA Pausada (Clique para ligar)'}>
+              <button
+                type="button"
+                onClick={handleAlternarAi}
+                disabled={alternandoAi}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all shadow-2xs ${
+                  aiAtivo
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                    : 'bg-muted/40 text-muted-foreground border-border/80 hover:bg-muted/60'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${aiAtivo ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/50'}`} />
+                <Sparkles className={`w-3.5 h-3.5 ${aiAtivo ? 'text-emerald-500' : 'text-muted-foreground'}`} />
+                <span>{aiAtivo ? 'IA Ligada' : 'IA Desligada'}</span>
+              </button>
+            </Tip>
+          ) : (
+            <Tip label="Configurar Agente de IA (OpenAI, Gemini, Claude) para atendimento e CRM">
+              <button
+                type="button"
+                onClick={() => setShowAiModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-all shadow-2xs"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                <span className="hidden sm:inline">Agente IA SDR</span>
+              </button>
+            </Tip>
+          )}
 
           {/* Botão + Nova Oportunidade */}
           <Button
