@@ -32,12 +32,13 @@ export async function GET(req: Request) {
     if (error) return traduzirErroBanco(error, 'GET /api/whatsapp/session');
 
     return NextResponse.json({ session: session || null });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    console.error('Erro ao buscar sessão do WhatsApp:', err);
     return respostaErro('Falha ao buscar sessão do WhatsApp.', 500);
   }
 }
 
-// POST: Inicializa uma sessão ou solicita geração de QR Code no OpenWA
+// POST: Inicializa uma sessão e obtém o QR Code no OpenWA
 export async function POST(req: Request) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
@@ -69,35 +70,77 @@ export async function POST(req: Request) {
 
     if (error) return traduzirErroBanco(error, 'POST /api/whatsapp/session');
 
-    // 2. Se a URL do OpenWA estiver configurada nas variáveis de ambiente, comunica com a API
-    const openwaUrl = process.env.OPENWA_API_URL;
+    // 2. Comunicação com a API do OpenWA
+    const openwaUrl = process.env.OPENWA_API_URL?.replace(/\/$/, '');
     const openwaKey = process.env.OPENWA_API_KEY;
 
-    let qrCode = null;
+    let qrCode: string | null = null;
+    let detalhesOpenWA: any = null;
 
     if (openwaUrl) {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (openwaKey) {
+        headers['X-API-Key'] = openwaKey;
+        headers['Authorization'] = `Bearer ${openwaKey}`;
+      }
+
       try {
-        const res = await fetch(`${openwaUrl.replace(/\/$/, '')}/api/sessions/start`, {
+        // Passo A: Verifica se a sessão já existe no OpenWA
+        const resList = await fetch(`${openwaUrl}/api/sessions`, { headers });
+        let sessionUuid: string | null = null;
+
+        if (resList.ok) {
+          const sessions = await resList.json();
+          if (Array.isArray(sessions)) {
+            const found = sessions.find((s: any) => s.name === sessionName || s.sessionId === sessionName);
+            if (found) sessionUuid = found.id || found.sessionId;
+          }
+        }
+
+        // Passo B: Se não existir, cria a sessão
+        if (!sessionUuid) {
+          const resCreate = await fetch(`${openwaUrl}/api/sessions`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ name: sessionName }),
+          });
+
+          if (resCreate.ok) {
+            const createData = await resCreate.json();
+            sessionUuid = createData.id || createData.sessionId || createData.data?.id;
+          }
+        }
+
+        const targetId = sessionUuid || sessionName;
+
+        // Passo C: Inicia a sessão (POST /api/sessions/:sessionId/start)
+        await fetch(`${openwaUrl}/api/sessions/${targetId}/start`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(openwaKey ? { Authorization: `Bearer ${openwaKey}` } : {}),
-          },
+          headers,
           body: JSON.stringify({
-            name: sessionName,
             config: {
               engine: 'baileys',
               webhook: `${process.env.NEXT_PUBLIC_APP_URL || 'https://allingens.vercel.app'}/api/webhook/whatsapp`,
             },
           }),
-        });
+        }).catch(() => null);
 
-        if (res.ok) {
-          const openwaData = await res.json();
-          qrCode = openwaData.qr || openwaData.qrcode || null;
+        // Passo D: Aguarda 1.5s para o Baileys inicializar e busca o QR Code
+        await new Promise((r) => setTimeout(r, 1500));
+
+        const resQr = await fetch(`${openwaUrl}/api/sessions/${targetId}/qr`, { headers });
+        if (resQr.ok) {
+          const qrData = await resQr.json();
+          qrCode = qrData.qrCode || qrData.qr || qrData.dataUrl || null;
+          detalhesOpenWA = qrData;
+        } else {
+          detalhesOpenWA = { status: resQr.status, statusText: resQr.statusText, text: await resQr.text() };
         }
-      } catch (err) {
-        console.error('[OpenWA API] Conexão pendente com gateway:', err);
+      } catch (errGateway) {
+        console.error('[OpenWA API] Falha de comunicação com gateway:', errGateway);
+        detalhesOpenWA = { erro: String(errGateway) };
       }
     }
 
@@ -105,11 +148,15 @@ export async function POST(req: Request) {
       session,
       qrCode,
       gatewayConfigurado: Boolean(openwaUrl),
-      mensagem: openwaUrl
-        ? 'Sessão iniciada no OpenWA. Escaneie o QR Code.'
-        : 'Sessão cadastrada com sucesso. O gateway OpenWA pode ser conectado nas variáveis de ambiente.',
+      detalhes: detalhesOpenWA,
+      mensagem: qrCode
+        ? 'QR Code gerado com sucesso.'
+        : openwaUrl
+        ? 'Sessão iniciada no OpenWA. O QR Code está sendo gerado.'
+        : 'OPENWA_API_URL não configurado na Vercel.',
     });
-  } catch (err: any) {
-    return respostaErro('Falha ao iniciar sessão do WhatsApp.', 500);
+  } catch (err: unknown) {
+    console.error('Erro ao processar sessão do WhatsApp:', err);
+    return respostaErro('Falha interna ao processar sessão do WhatsApp.', 500);
   }
 }
