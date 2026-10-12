@@ -4,6 +4,7 @@ import type { Automation } from '@/types/automation';
 import type { FlowDefinition, FlowNode, FlowEdge, SendMessageNodeConfig, ActionNodeConfig, ConditionNodeConfig, DelayNodeConfig, WaitForReplyNodeConfig, CaptureLeadNodeConfig } from '@/types/flow';
 import { evaluateTriggerNode, evaluateConditionNode, applyActionNode, applyWaitForReplyCapture, matchesKeywords, personalizeText, deriveAutomationTag, stepCaptureLead, type ContactSnapshot, type CaptureLeadState, type CaptureLeadStep } from './evaluator';
 import { triggerExternalWebhook } from '@/lib/external-webhook';
+import { sincronizarContatoComCrm } from '@/lib/crm';
 
 export interface FlowRunContext {
   ownerUserId: string;
@@ -266,6 +267,23 @@ async function recordLeadCaptured(automation: Automation, ctx: FlowRunContext, c
   });
   if (error) console.error('[flow-engine] Erro ao registrar lead_captured:', error);
   if (automation.webhook_url) triggerExternalWebhook(automation.webhook_url, contact, automation);
+
+  // Sincroniza automaticamente o lead com o funil do CRM daquele cliente
+  try {
+    await sincronizarContatoComCrm({
+      instagramUserId: ctx.instagramUserId,
+      contactId: ctx.contactId,
+      username: contact?.username || ctx.username || null,
+      nome: contact?.name || null,
+      telefone: contact?.phone || null,
+      email: contact?.email || null,
+      origem: 'instagram',
+      automacaoNome: automation.name,
+      tags: contact?.tags || [],
+    });
+  } catch (err) {
+    console.error('[flow-engine] Erro ao sincronizar lead capturado com CRM:', err);
+  }
 }
 
 /**

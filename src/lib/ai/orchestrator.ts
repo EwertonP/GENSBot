@@ -324,6 +324,36 @@ async function executarToolAvancarEtapa({
   else if (args.etapa === 'proposta') estagioDestinoId = aiConfig.estagio_proposta_id;
   else if (args.etapa === 'agendado') estagioDestinoId = aiConfig.estagio_agendado_id;
 
+  // Fallback inteligente: se não foi mapeado manualmente no modal de IA, busca pelo nome no funil do cliente
+  if (!estagioDestinoId) {
+    const { data: neg } = await supabase
+      .from('crm_negocios')
+      .select('pipeline_id')
+      .eq('id', sessao.negocio_id)
+      .maybeSingle();
+
+    if (neg?.pipeline_id) {
+      const { data: estagios } = await supabase
+        .from('crm_estagios')
+        .select('id, nome, ordem, tipo_conclusao')
+        .eq('pipeline_id', neg.pipeline_id)
+        .order('ordem', { ascending: true });
+
+      if (estagios && estagios.length > 0) {
+        if (args.etapa === 'qualificado') {
+          const match = estagios.find((e) => /qualificad|atendiment/i.test(e.nome));
+          estagioDestinoId = match?.id || (estagios.length > 1 ? estagios[1].id : null);
+        } else if (args.etapa === 'proposta') {
+          const match = estagios.find((e) => /proposta|negociaç/i.test(e.nome));
+          estagioDestinoId = match?.id || (estagios.length > 2 ? estagios[2].id : null);
+        } else if (args.etapa === 'agendado') {
+          const match = estagios.find((e) => /agendad|reuni|fechad|venda/i.test(e.nome));
+          estagioDestinoId = match?.id || (estagios.length > 3 ? estagios[3].id : null);
+        }
+      }
+    }
+  }
+
   if (!estagioDestinoId) return;
 
   try {

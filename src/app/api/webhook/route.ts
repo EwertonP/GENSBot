@@ -8,6 +8,7 @@ import { runFlow, resumeFlow, flowHasCaptureLead } from '@/lib/flow-engine/runne
 import { matchesKeywords } from '@/lib/flow-engine/evaluator';
 import { logDbError } from '@/lib/db-log';
 import { triggerExternalWebhook } from '@/lib/external-webhook';
+import { sincronizarContatoComCrm } from '@/lib/crm';
 
 // `messages (instagram_user_id, contact_id)` tem FK pra ficha do contato
 // naquela conta, `contacts (instagram_user_id, instagram_id)` — pra um
@@ -732,6 +733,18 @@ async function processWebhookEvent(payload: any) {
                     if (auto.webhook_url) {
                       triggerExternalWebhook(auto.webhook_url, { ...contact, email: emailCandidate }, auto);
                     }
+
+                    // Sincroniza lead no CRM do cliente correspondente
+                    sincronizarContatoComCrm({
+                      instagramUserId: myIgId,
+                      contactId: senderId,
+                      username: contact.username || null,
+                      nome: contact.name || null,
+                      email: emailCandidate,
+                      telefone: contact.phone || null,
+                      origem: 'instagram',
+                      automacaoNome: auto.name,
+                    }).catch((crmErr) => console.warn('Erro ao sincronizar lead no CRM:', crmErr));
                   }
                   queueDrainNeeded = true;
                   continue;
@@ -788,52 +801,17 @@ async function processWebhookEvent(payload: any) {
                     triggerExternalWebhook(auto.webhook_url, { ...contact, phone: phoneCandidate }, auto);
                   }
 
-                  // Criação automática no CRM do cliente correspondente (não-bloqueante)
-                  import('@/lib/crm').then(async ({ garantirPipelinePadrao }) => {
-                    try {
-                      const defaultAgenciaId = 'a6839f40-dc25-4c00-a662-8d90c100b8c2';
-                      const { data: igAcc } = await supabase.from('instagram_accounts').select('id, instagram_username').eq('instagram_user_id', myIgId).maybeSingle();
-                      let clienteId: string | null = null;
-                      if (igAcc?.id) {
-                        const { data: cli } = await supabase.from('clientes').select('id').eq('instagram_account_id', igAcc.id).maybeSingle();
-                        clienteId = cli?.id || null;
-                      }
-
-                      const pipe = await garantirPipelinePadrao(defaultAgenciaId, clienteId);
-                      if (pipe && pipe.estagios && pipe.estagios.length > 0) {
-                        const primeiroEstagio = pipe.estagios[0];
-                        const leadNome = contact.name || (contact.username ? `@${contact.username}` : 'Lead do Instagram');
-                        const { data: negCriado } = await supabase.from('crm_negocios').insert({
-                          agencia_id: defaultAgenciaId,
-                          cliente_id: clienteId,
-                          pipeline_id: pipe.id,
-                          estagio_id: primeiroEstagio.id,
-                          titulo: `${leadNome} - ${auto.name}`,
-                          valor: 0,
-                          status: 'aberto',
-                          nome_contato: leadNome,
-                          telefone: phoneCandidate,
-                          email: contact.email || null,
-                          instagram_username: contact.username || null,
-                          origem: 'instagram',
-                          tags: ['Instagram Direct', `Auto: ${auto.name}`],
-                          ultimo_contato_em: new Date().toISOString(),
-                        }).select('id').maybeSingle();
-
-                        if (negCriado) {
-                          await supabase.from('crm_atividades').insert({
-                            negocio_id: negCriado.id,
-                            agencia_id: defaultAgenciaId,
-                            tipo: 'criacao',
-                            descricao: `Lead capturado automaticamente pela automação "${auto.name}" no Direct`,
-                            dados_extras: { instagram_username: contact.username, automacao_id: auto.id },
-                          });
-                        }
-                      }
-                    } catch (crmErr) {
-                      console.warn('Aviso: falha ao criar lead no CRM via Instagram:', crmErr);
-                    }
-                  }).catch(() => {});
+                  // Sincroniza lead no CRM do cliente correspondente
+                  sincronizarContatoComCrm({
+                    instagramUserId: myIgId,
+                    contactId: senderId,
+                    username: contact.username || null,
+                    nome: contact.name || null,
+                    telefone: phoneCandidate,
+                    email: contact.email || null,
+                    origem: 'instagram',
+                    automacaoNome: auto.name,
+                  }).catch((crmErr) => console.warn('Erro ao sincronizar lead no CRM:', crmErr));
 
                   queueDrainNeeded = true;
                   continue;
