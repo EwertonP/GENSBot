@@ -1076,7 +1076,9 @@ function ConexaoWhatsApp({
           if (data.grupos.length > 0) {
             showToast(`${data.grupos.length} grupo(s) carregados do seu WhatsApp!`, 'success');
           } else {
-            showToast(data.mensagem || 'Nenhum grupo encontrado na sessão conectada.', 'error');
+            const firstAttempt = data.debugAttempts?.[0];
+            const debugInfo = firstAttempt ? ` (tentou ${firstAttempt.endpoint}: HTTP ${firstAttempt.status || firstAttempt.error})` : '';
+            showToast((data.mensagem || 'Nenhum grupo encontrado na sessão conectada.') + debugInfo, 'error');
           }
         }
       } else if (manual) {

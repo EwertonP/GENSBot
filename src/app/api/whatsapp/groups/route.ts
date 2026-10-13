@@ -135,6 +135,8 @@ export async function GET(req: Request) {
     endpointsParaTentar.push(`${openwaUrl}/api/chats`);
     endpointsParaTentar.push(`${openwaUrl}/api/groups`);
 
+    const debugAttempts: any[] = [];
+
     for (const endpoint of endpointsParaTentar) {
       try {
         const res = await fetch(endpoint, {
@@ -142,8 +144,22 @@ export async function GET(req: Request) {
           signal: AbortSignal.timeout(6000),
         });
 
-        if (res.ok) {
-          const data = await res.json();
+        const status = res.status;
+        const text = await res.text();
+        let data: any = null;
+        try {
+          data = JSON.parse(text);
+        } catch {}
+
+        debugAttempts.push({
+          endpoint: endpoint.replace(openwaUrl, ''),
+          status,
+          isJson: Boolean(data),
+          keys: data && typeof data === 'object' && !Array.isArray(data) ? Object.keys(data) : null,
+          itemCount: Array.isArray(data) ? data.length : (data?.chats?.length || data?.groups?.length || null),
+        });
+
+        if (res.ok && data) {
           if (Array.isArray(data) && data.length > 0) {
             rawChats = data;
             break;
@@ -155,8 +171,11 @@ export async function GET(req: Request) {
             break;
           }
         }
-      } catch {
-        // Tenta o próximo endpoint
+      } catch (errReq: any) {
+        debugAttempts.push({
+          endpoint: endpoint.replace(openwaUrl, ''),
+          error: errReq?.message || String(errReq),
+        });
       }
     }
 
@@ -199,8 +218,11 @@ export async function GET(req: Request) {
       grupos,
       conectado: true,
       sessionName,
+      sessionUuid,
       phone: sessaoAlvo.phone_number || null,
       pushName: sessaoAlvo.push_name || null,
+      totalRawChats: rawChats.length,
+      debugAttempts: grupos.length === 0 ? debugAttempts : undefined,
     });
   } catch (err: unknown) {
     console.error('Erro ao listar grupos do WhatsApp:', err);
