@@ -23,6 +23,7 @@ import {
   type DestinoConta,
 } from '@/lib/clientes';
 import { confirmDialog } from '@/components/ui/dialog';
+import { conectarContaInstagram } from '@/lib/instagram-oauth';
 
 interface ClientesTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
@@ -96,7 +97,16 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
   useEffect(() => {
     let ativo = true;
     buscarClientes().then((carga) => {
-      if (ativo) aplicarCarga(carga);
+      if (ativo) {
+        aplicarCarga(carga);
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const urlClienteId = params.get('cliente_id');
+          if (urlClienteId) {
+            setSelecionadoId(urlClienteId);
+          }
+        }
+      }
     });
     return () => {
       ativo = false;
@@ -430,19 +440,32 @@ function NovoClienteForm({ contasLivres, onFechar, onCriado, showToast }: NovoCl
           maxLength={120}
         />
 
-        <Select
-          id="novo-cliente-conta"
-          label="Conta do Instagram (GENSBot)"
-          value={contaId}
-          onChange={(e) => setContaId(e.target.value)}
-        >
-          <option value="">Sem vínculo por enquanto</option>
-          {contasLivres.map((c) => (
-            <option key={c.id} value={c.id}>
-              @{c.instagram_username ?? c.instagram_user_id}
-            </option>
-          ))}
-        </Select>
+        <div className="space-y-1.5">
+          <Select
+            id="novo-cliente-conta"
+            label="Conta do Instagram (GENSBot)"
+            value={contaId}
+            onChange={(e) => setContaId(e.target.value)}
+          >
+            <option value="">Sem vínculo por enquanto</option>
+            {contasLivres.map((c) => (
+              <option key={c.id} value={c.id}>
+                @{c.instagram_username ?? c.instagram_user_id}
+              </option>
+            ))}
+          </Select>
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[11px] text-muted-foreground">Não encontrou a conta?</span>
+            <button
+              type="button"
+              onClick={() => conectarContaInstagram()}
+              className="text-[11px] text-primary hover:underline font-semibold inline-flex items-center gap-1 cursor-pointer"
+            >
+              <InstagramGlyph className="w-3 h-3" />
+              + Conectar nova conta via Meta
+            </button>
+          </div>
+        </div>
 
         <fieldset>
           <legend className="text-xs font-bold text-muted-foreground mb-2">Cor</legend>

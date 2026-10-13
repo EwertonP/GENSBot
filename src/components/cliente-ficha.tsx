@@ -42,6 +42,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { Instagram as InstagramGlyph } from '@/components/instagram-icon';
+import { conectarContaInstagram } from '@/lib/instagram-oauth';
 import {
   CORES_CLIENTE,
   textoSobre,
@@ -428,20 +429,57 @@ export default function ClienteFicha({
           </Secao>
 
           <Secao
-            titulo="Instagram"
-            descricao="A conta conectada ao GENSBot que pertence a este cliente. Cada conta vale para um cliente só."
+            titulo="Instagram Oficial"
+            descricao="A conta do Instagram oficial deste cliente para automações, métricas e publicações automáticas."
           >
-            <div className="flex items-center gap-4">
-              {contaAtual?.profile_picture_url ? (
-                // eslint-disable-next-line @next/next/no-img-element -- foto externa (Instagram)
-                <img src={contaAtual.profile_picture_url} alt="" className="size-12 rounded-full object-cover border border-border" />
-              ) : (
-                <span className="size-12 rounded-full bg-accent border border-border inline-flex items-center justify-center text-muted-foreground">
-                  <InstagramGlyph className="w-5 h-5" />
-                </span>
-              )}
-              <div className="flex-1">
-                <Select label="Conta vinculada" {...campo('instagram_account_id')}>
+            <div className="flex flex-col gap-4">
+              <div className="p-4 rounded-xl border border-border bg-accent/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  {contaAtual?.profile_picture_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- foto externa (Instagram)
+                    <img
+                      src={contaAtual.profile_picture_url}
+                      alt=""
+                      className="size-12 rounded-full object-cover border border-border shrink-0 shadow-xs"
+                    />
+                  ) : (
+                    <span className="size-12 rounded-full bg-accent border border-border inline-flex items-center justify-center text-muted-foreground shrink-0 shadow-xs">
+                      <InstagramGlyph className="w-6 h-6" />
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-bold text-foreground truncate">
+                        {contaAtual ? `@${contaAtual.instagram_username ?? contaAtual.instagram_user_id}` : 'Nenhuma conta vinculada'}
+                      </span>
+                      <Badge variant={contaAtual ? 'success' : 'muted'} className="text-[10px]">
+                        {contaAtual ? 'Conectado' : 'Sem vínculo'}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      {contaAtual
+                        ? 'Conta conectada via Meta e habilitada para agendamentos e automações.'
+                        : 'Conecte o Instagram oficial diretamente via Meta para habilitar automações e métricas.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={contaAtual ? 'secondary' : 'primary'}
+                    onClick={() => conectarContaInstagram(clienteId)}
+                    className="gap-1.5 text-xs font-semibold cursor-pointer"
+                  >
+                    <InstagramGlyph className="w-3.5 h-3.5" />
+                    {contaAtual ? 'Reconectar / Conectar Nova' : 'Conectar Conta do Instagram'}
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <Select label="Ou selecione uma conta já existente na agência" {...campo('instagram_account_id')}>
                   <option value="">Sem vínculo</option>
                   {contasDisponiveis.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -527,6 +565,20 @@ export default function ClienteFicha({
       {/* Aba 2: Integrações & Conexões */}
       {abaAtiva === 'integracoes' && (
         <div className="flex flex-col gap-6 animate-in fade-in duration-150">
+          <ConexaoInstagram
+            clienteId={clienteId}
+            clienteNome={cliente?.nome || nomeInicial}
+            cliente={cliente}
+            contaAtual={contaAtual}
+            contasDisponiveis={contasDisponiveis}
+            onAtualizouCliente={(c) => {
+              setCliente(c);
+              setForm(formDe(c));
+            }}
+            onAbrirConta={onAbrirConta}
+            showToast={showToast}
+          />
+
           <ConexaoWhatsApp
             clienteId={clienteId}
             clienteNome={cliente?.nome || nomeInicial}
@@ -1031,6 +1083,193 @@ function AcessosPortal({
         </div>
       )}
     </Secao>
+  );
+}
+
+// ---------------------------------------------------------------- conexao instagram ---
+
+function ConexaoInstagram({
+  clienteId,
+  clienteNome,
+  cliente,
+  contaAtual,
+  contasDisponiveis,
+  onAtualizouCliente,
+  onAbrirConta,
+  showToast,
+}: {
+  clienteId: string;
+  clienteNome: string;
+  cliente: Cliente | null;
+  contaAtual: ContaInstagramResumo | null;
+  contasDisponiveis: ContaInstagramResumo[];
+  onAtualizouCliente: (cliente: Cliente) => void;
+  onAbrirConta: (destino: DestinoConta, instagramUserId: string) => void;
+  showToast: (message: string, type: 'success' | 'error') => void;
+}) {
+  const [contaSelecionada, setContaSelecionada] = useState<string>(cliente?.instagram_account_id ?? '');
+  const [vinculando, setVinculando] = useState(false);
+
+  useEffect(() => {
+    setContaSelecionada(cliente?.instagram_account_id ?? '');
+  }, [cliente?.instagram_account_id]);
+
+  async function handleSalvarVinculo(novaContaId: string | null) {
+    setVinculando(true);
+    try {
+      const res = await fetch(`/api/clientes/${clienteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instagram_account_id: novaContaId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Erro ao alterar vínculo.', 'error');
+        return;
+      }
+      onAtualizouCliente(data.cliente);
+      showToast(novaContaId ? 'Conta do Instagram vinculada.' : 'Conta do Instagram desvinculada.', 'success');
+    } catch {
+      showToast('Erro de conexão ao alterar vínculo.', 'error');
+    } finally {
+      setVinculando(false);
+    }
+  }
+
+  const estaConectado = Boolean(contaAtual);
+
+  return (
+    <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <InstagramGlyph className="w-5 h-5 text-primary" />
+            <h4 className="text-sm font-bold text-foreground">
+              Instagram Oficial ({clienteNome})
+            </h4>
+            <Badge variant={estaConectado ? 'success' : 'muted'} className="text-[10px]">
+              {estaConectado ? 'Conectado' : 'Sem vínculo'}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            Conta oficial da Meta vinculada para postagens de carrossel/Reels, respostas em Direct e automações de comentários.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button
+            type="button"
+            size="sm"
+            variant="primary"
+            onClick={() => conectarContaInstagram(clienteId)}
+            className="gap-1.5 text-xs font-semibold cursor-pointer"
+          >
+            <InstagramGlyph className="w-3.5 h-3.5" />
+            {estaConectado ? 'Reconectar / Trocar via Meta' : 'Conectar Conta do Instagram'}
+          </Button>
+
+          {contaAtual && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => onAbrirConta('publish', contaAtual.instagram_user_id)}
+              className="gap-1.5 text-xs font-semibold cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Operar Painel
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Card da conta vinculada ou chamada para conexão */}
+      {contaAtual ? (
+        <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 min-w-0">
+            {contaAtual.profile_picture_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- foto externa (Instagram)
+              <img
+                src={contaAtual.profile_picture_url}
+                alt=""
+                className="size-12 rounded-full object-cover border border-emerald-500/30 shrink-0 shadow-xs"
+              />
+            ) : (
+              <span className="size-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 inline-flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-xs">
+                <InstagramGlyph className="w-6 h-6" />
+              </span>
+            )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-foreground truncate">
+                  @{contaAtual.instagram_username ?? contaAtual.instagram_user_id}
+                </span>
+                <span className="text-[11px] font-mono text-muted-foreground">
+                  (ID: {contaAtual.instagram_user_id})
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Permissões da Meta ativas para comentários, mensagens diretas e publicação automática.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              loading={vinculando}
+              onClick={() => handleSalvarVinculo(null)}
+              className="text-xs text-destructive hover:bg-destructive/10"
+            >
+              Desvincular
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 rounded-xl border border-dashed border-border bg-accent/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span className="text-xs font-semibold text-foreground">
+              Nenhuma conta do Instagram vinculada ainda
+            </span>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Clique no botão acima para conectar diretamente via login oficial da Meta, ou selecione abaixo uma conta já existente na agência.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Seleção de contas existentes na agência */}
+      <div className="flex flex-col sm:flex-row items-end gap-3 pt-2 border-t border-border/60">
+        <div className="flex-1 w-full">
+          <Select
+            label="Vincular a uma conta já conectada na agência:"
+            value={contaSelecionada}
+            onChange={(e) => setContaSelecionada(e.target.value)}
+          >
+            <option value="">Sem vínculo</option>
+            {contasDisponiveis.map((c) => (
+              <option key={c.id} value={c.id}>
+                @{c.instagram_username ?? c.instagram_user_id}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        {contaSelecionada !== (cliente?.instagram_account_id ?? '') && (
+          <Button
+            type="button"
+            size="sm"
+            loading={vinculando}
+            onClick={() => handleSalvarVinculo(contaSelecionada || null)}
+            className="text-xs shrink-0"
+          >
+            Salvar Vínculo
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -144,7 +144,7 @@ export async function GET(req: Request) {
     }
 
     // 4. Salvar na tabela `instagram_accounts` (multi-tenant)
-    const { error: accountError } = await supabase.from('instagram_accounts').upsert({
+    const { data: savedAccount, error: accountError } = await supabase.from('instagram_accounts').upsert({
       user_id: userId,
       instagram_user_id: igUserId,
       instagram_username: igUsername,
@@ -154,7 +154,9 @@ export async function GET(req: Request) {
       updated_at: new Date().toISOString(),
     }, {
       onConflict: 'user_id,instagram_user_id',
-    });
+    })
+    .select('id')
+    .single();
 
     if (accountError) {
       console.error('Erro ao salvar instagram_accounts:', accountError);
@@ -175,6 +177,31 @@ export async function GET(req: Request) {
     const subscribeData = await subscribeResponse.json();
     if (!subscribeResponse.ok) {
       console.error('Erro ao assinar webhooks:', subscribeData);
+    }
+
+    // 6. Se o OAuth foi disparado a partir da ficha de um cliente, vincula a conta diretamente a ele
+    const stateRaw = searchParams.get('state');
+    let clienteId: string | null = null;
+    if (stateRaw) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(stateRaw));
+        if (parsed?.clienteId) clienteId = String(parsed.clienteId);
+      } catch {
+        if (stateRaw.startsWith('cliente_')) {
+          clienteId = stateRaw.replace('cliente_', '');
+        }
+      }
+    }
+
+    if (clienteId && savedAccount?.id) {
+      await supabase
+        .from('clientes')
+        .update({ instagram_account_id: savedAccount.id })
+        .eq('id', clienteId);
+
+      return NextResponse.redirect(
+        new URL(`/?tab=clientes&cliente_id=${encodeURIComponent(clienteId)}&success=connected&account=${encodeURIComponent(igUserId)}`, req.url)
+      );
     }
 
     // Redirecionar de volta para o dashboard com sucesso, indicando qual conta
