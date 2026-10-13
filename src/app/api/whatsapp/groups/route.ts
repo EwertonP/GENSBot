@@ -23,43 +23,36 @@ export async function GET(req: Request) {
 
   try {
     // 1. Localiza a sessão conectada adequada:
-    // Prioridade:
-    // a) Sessão do membro logado (designer / usuário atual)
-    // b) Sessão geral da agência
-    // c) Sessão específica do cliente (se requisitado)
-    let query = serviceSupabase
+    // Para aprovações, a prioridade máxima é o WhatsApp do membro/designer logado
+    const { data: todasSessoes } = await serviceSupabase
       .from('whatsapp_sessions')
       .select('*')
       .eq('agencia_id', membro.agencia_id)
       .eq('status', 'conectado');
 
-    if (membroId) {
-      query = query.eq('membro_id', membroId);
-    } else if (clienteId) {
-      query = query.eq('cliente_id', clienteId);
+    const sessoes = todasSessoes || [];
+
+    // Prioridade 1: WhatsApp do membro logado
+    let sessaoAlvo = sessoes.find((s: any) => s.membro_id === membro.id) || null;
+
+    // Prioridade 2: Se foi passado membro_id específico
+    if (!sessaoAlvo && membroId) {
+      sessaoAlvo = sessoes.find((s: any) => s.membro_id === membroId) || null;
     }
 
-    const { data: sessoes } = await query;
-
-    let sessaoAlvo = sessoes?.find((s: any) => s.membro_id === membro.id) || null;
+    // Prioridade 3: Sessão geral da agência
     if (!sessaoAlvo) {
-      sessaoAlvo = sessoes?.find((s: any) => !s.cliente_id && !s.membro_id) || null;
+      sessaoAlvo = sessoes.find((s: any) => !s.cliente_id && !s.membro_id) || null;
     }
-    if (!sessaoAlvo && sessoes && sessoes.length > 0) {
+
+    // Prioridade 4: Se o cliente tiver uma sessão conectada própria
+    if (!sessaoAlvo && clienteId) {
+      sessaoAlvo = sessoes.find((s: any) => s.cliente_id === clienteId) || null;
+    }
+
+    // Prioridade 5: Qualquer sessão conectada da agência
+    if (!sessaoAlvo && sessoes.length > 0) {
       sessaoAlvo = sessoes[0];
-    }
-
-    // Se nenhuma sessão conectada foi encontrada via filtro restrito, tenta qualquer sessão conectada da agência
-    if (!sessaoAlvo) {
-      const { data: qualquerSessao } = await serviceSupabase
-        .from('whatsapp_sessions')
-        .select('*')
-        .eq('agencia_id', membro.agencia_id)
-        .eq('status', 'conectado')
-        .limit(1)
-        .maybeSingle();
-
-      sessaoAlvo = qualquerSessao || null;
     }
 
     if (!sessaoAlvo) {
@@ -84,16 +77,63 @@ export async function GET(req: Request) {
 
     const sessionName = sessaoAlvo.session_name;
 
-    // Tenta obter lista de chats / grupos
-    // Tenta endpoints comuns de gateways WhatsApp HTTP (OpenWA / WAHA)
+    // Localiza a sessão no OpenWA para pegar o UUID e o nome exato registrado lá
+    let sessionUuid: string | null = null;
+    let sessionExactName: string | null = null;
+    try {
+      const resList = await fetch(`${openwaUrl}/api/sessions`, {
+        headers,
+        signal: AbortSignal.timeout(5000),
+      });
+      if (resList.ok) {
+        const sessions = await resList.json();
+        if (Array.isArray(sessions)) {
+          const sNameNorm = sessionName.toLowerCase();
+          const match = sessions.find((s: any) => {
+            const itemNome = (s.name || s.id || '').toLowerCase();
+            return (
+              itemNome === sNameNorm ||
+              itemNome === sNameNorm.replace(/-/g, '_') ||
+              itemNome === sNameNorm.replace(/_/g, '-') ||
+              (s.id && s.id === sessionName)
+            );
+          });
+          if (match) {
+            sessionUuid = match.id || null;
+            sessionExactName = match.name || null;
+          }
+        }
+      }
+    } catch {
+      // Ignora falha na listagem prévia e tenta os fallbacks
+    }
+
+    const identifiers = Array.from(
+      new Set(
+        [
+          sessionUuid,
+          sessionExactName,
+          sessionName,
+          sessionName.replace(/-/g, '_'),
+          sessionName.replace(/_/g, '-'),
+        ].filter(Boolean) as string[]
+      )
+    );
+
+    // Tenta obter lista de chats / grupos por todos os formatos de rotas do gateway
     let rawChats: any[] = [];
-    const endpointsParaTentar = [
-      `${openwaUrl}/api/chats?session=${encodeURIComponent(sessionName)}`,
-      `${openwaUrl}/api/${encodeURIComponent(sessionName)}/chats`,
-      `${openwaUrl}/api/groups?session=${encodeURIComponent(sessionName)}`,
-      `${openwaUrl}/api/${encodeURIComponent(sessionName)}/groups`,
-      `${openwaUrl}/api/chats`,
-    ];
+    const endpointsParaTentar: string[] = [];
+
+    for (const id of identifiers) {
+      endpointsParaTentar.push(
+        `${openwaUrl}/api/chats?session=${encodeURIComponent(id)}`,
+        `${openwaUrl}/api/${encodeURIComponent(id)}/chats`,
+        `${openwaUrl}/api/groups?session=${encodeURIComponent(id)}`,
+        `${openwaUrl}/api/${encodeURIComponent(id)}/groups`
+      );
+    }
+    endpointsParaTentar.push(`${openwaUrl}/api/chats`);
+    endpointsParaTentar.push(`${openwaUrl}/api/groups`);
 
     for (const endpoint of endpointsParaTentar) {
       try {
@@ -109,6 +149,9 @@ export async function GET(req: Request) {
             break;
           } else if (data && Array.isArray(data.chats) && data.chats.length > 0) {
             rawChats = data.chats;
+            break;
+          } else if (data && Array.isArray(data.groups) && data.groups.length > 0) {
+            rawChats = data.groups;
             break;
           }
         }

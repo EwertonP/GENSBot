@@ -1065,16 +1065,25 @@ function ConexaoWhatsApp({
   const [gruposDisponiveis, setGruposDisponiveis] = useState<Array<{ id: string; name: string; participantsCount?: number }>>([]);
   const [carregandoGrupos, setCarregandoGrupos] = useState(false);
 
-  const carregarGrupos = async () => {
+  const carregarGrupos = async (manual = false) => {
     setCarregandoGrupos(true);
     try {
       const res = await fetch('/api/whatsapp/groups');
       const data = await res.json();
       if (res.ok && Array.isArray(data.grupos)) {
         setGruposDisponiveis(data.grupos);
+        if (manual) {
+          if (data.grupos.length > 0) {
+            showToast(`${data.grupos.length} grupo(s) carregados do seu WhatsApp!`, 'success');
+          } else {
+            showToast(data.mensagem || 'Nenhum grupo encontrado na sessão conectada.', 'error');
+          }
+        }
+      } else if (manual) {
+        showToast(data.error || 'Erro ao consultar grupos do WhatsApp.', 'error');
       }
     } catch {
-      // Silencioso
+      if (manual) showToast('Erro de conexão ao buscar grupos.', 'error');
     } finally {
       setCarregandoGrupos(false);
     }
@@ -1362,7 +1371,7 @@ function ConexaoWhatsApp({
               </label>
               <button
                 type="button"
-                onClick={carregarGrupos}
+                onClick={() => carregarGrupos(true)}
                 disabled={carregandoGrupos}
                 className="text-xs text-primary hover:underline flex items-center gap-1 font-medium cursor-pointer"
               >
