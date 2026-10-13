@@ -48,6 +48,28 @@ export async function GET(_req: Request, { params }: Params) {
     }
   }
 
+  // Busca o grupo do WhatsApp vinculado especificamente a este membro logado
+  const { data: vinculoGrupo } = await serviceSupabase
+    .from('cliente_membro_whatsapp_grupos')
+    .select('whatsapp_grupo_id, notificar_agendamento')
+    .eq('cliente_id', id)
+    .eq('membro_id', membro.id)
+    .maybeSingle();
+
+  if (vinculoGrupo) {
+    clienteFinal = {
+      ...clienteFinal,
+      whatsapp_grupo_id: vinculoGrupo.whatsapp_grupo_id,
+      whatsapp_notificar_agendamento: vinculoGrupo.notificar_agendamento,
+    };
+  } else {
+    // Se este membro ainda não configurou o grupo para este cliente, não herda o grupo de outro membro
+    clienteFinal = {
+      ...clienteFinal,
+      whatsapp_grupo_id: null,
+    };
+  }
+
   const { data: contatos, error: erroContatos } = await supabase
     .from('cliente_contatos')
     .select('*')
@@ -62,7 +84,7 @@ export async function GET(_req: Request, { params }: Params) {
 export async function PATCH(req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
-  const { supabase, user } = auth.ctx;
+  const { supabase, user, membro } = auth.ctx;
 
   const { id } = await params;
   if (!ehUuid(id)) return respostaErro('Cliente não encontrado.', 404);
@@ -116,5 +138,45 @@ export async function PATCH(req: Request, { params }: Params) {
   if (error) return traduzirErroBanco(error, 'PATCH /api/clientes/[id]');
   // Sem linha: não existe ou é de outra agência (a RLS esconde as duas coisas).
   if (!data) return respostaErro('Cliente não encontrado.', 404);
-  return NextResponse.json({ cliente: data });
+
+  // Se veio atualização de whatsapp_grupo_id ou whatsapp_notificar_agendamento, salva para este membro específico
+  let grupoSalvo = data.whatsapp_grupo_id;
+  let notificarSalvo = data.whatsapp_notificar_agendamento;
+
+  if (body && typeof body === 'object') {
+    const bodyObj = body as Record<string, any>;
+    if ('whatsapp_grupo_id' in bodyObj || 'whatsapp_notificar_agendamento' in bodyObj) {
+      const gId = bodyObj.whatsapp_grupo_id ? String(bodyObj.whatsapp_grupo_id).trim() : null;
+      const notif = bodyObj.whatsapp_notificar_agendamento ?? true;
+      if (gId) {
+        await serviceSupabase
+          .from('cliente_membro_whatsapp_grupos')
+          .upsert({
+            cliente_id: id,
+            membro_id: membro.id,
+            whatsapp_grupo_id: gId,
+            notificar_agendamento: notif,
+            atualizado_em: new Date().toISOString(),
+          }, { onConflict: 'cliente_id,membro_id' });
+        grupoSalvo = gId;
+        notificarSalvo = notif;
+      } else {
+        await serviceSupabase
+          .from('cliente_membro_whatsapp_grupos')
+          .delete()
+          .eq('cliente_id', id)
+          .eq('membro_id', membro.id);
+        grupoSalvo = null;
+        notificarSalvo = notif;
+      }
+    }
+  }
+
+  return NextResponse.json({
+    cliente: {
+      ...data,
+      whatsapp_grupo_id: grupoSalvo,
+      whatsapp_notificar_agendamento: notificarSalvo,
+    },
+  });
 }

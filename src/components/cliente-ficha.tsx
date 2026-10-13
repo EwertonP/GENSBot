@@ -1322,24 +1322,33 @@ function ConexaoWhatsApp({
   const carregarGrupos = async (manual = false) => {
     setCarregandoGrupos(true);
     try {
-      const res = await fetch('/api/whatsapp/groups');
+      const res = await fetch(`/api/whatsapp/groups?cliente_id=${encodeURIComponent(clienteId)}`);
       const data = await res.json();
       if (res.ok) {
-        if (typeof data.conectado === 'boolean') {
-          setMembroWhatsApp({
-            conectado: Boolean(data.conectado),
-            nome: data.pushName || data.membroNome || null,
-            phone: data.phone || data.membroTelefone || null,
-          });
+        setMembroWhatsApp({
+          conectado: Boolean(data.membroConectado),
+          nome: data.membroNome || null,
+          phone: data.membroTelefone || null,
+        });
+        if (data.grupoConfigurado !== undefined && data.grupoConfigurado !== null) {
+          setGrupoId(data.grupoConfigurado || '');
+        }
+        if (data.notificarAgendamento !== undefined) {
+          setNotificarAgendamento(Boolean(data.notificarAgendamento));
         }
         if (Array.isArray(data.grupos)) {
           setGruposDisponiveis(data.grupos);
           if (manual) {
             if (data.grupos.length > 0) {
               showToast(`${data.grupos.length} grupo(s) carregados do seu WhatsApp!`, 'success');
-            } else {
+            } else if (data.membroConectado) {
               showToast(
                 'Nenhum grupo sincronizado no momento. Você pode colar o Link de Convite ou JID do grupo logo abaixo!',
+                'error'
+              );
+            } else {
+              showToast(
+                'Seu WhatsApp não está conectado no Perfil. Conecte seu aparelho no Perfil primeiro para carregar seus grupos.',
                 'error'
               );
             }
@@ -1503,6 +1512,10 @@ function ConexaoWhatsApp({
   };
 
   const handleSalvarConfigGrupo = async () => {
+    if (!membroWhatsApp?.conectado) {
+      showToast('Seu WhatsApp não está conectado no Perfil. Conecte primeiro no menu Perfil (barra lateral) para vincular seus grupos.', 'error');
+      return;
+    }
     setSalvandoGrupo(true);
     try {
       const res = await fetch(`/api/clientes/${clienteId}`, {
@@ -1516,7 +1529,7 @@ function ConexaoWhatsApp({
       const data = await res.json();
       if (res.ok && data.cliente) {
         onAtualizouCliente(data.cliente);
-        showToast('Configurações de avisos do WhatsApp salvas com sucesso!', 'success');
+        showToast('Configurações de avisos do WhatsApp salvas com sucesso para o seu usuário!', 'success');
       } else {
         showToast(data.error || 'Erro ao salvar grupo do WhatsApp.', 'error');
       }
@@ -1528,6 +1541,10 @@ function ConexaoWhatsApp({
   };
 
   const handleTestarEnvioGrupo = async () => {
+    if (!membroWhatsApp?.conectado) {
+      showToast('Seu WhatsApp pessoal não está conectado no Perfil. Conecte no Perfil antes de testar.', 'error');
+      return;
+    }
     if (!grupoId.trim()) {
       showToast('Informe o ID ou JID do grupo antes de testar.', 'error');
       return;
@@ -1598,7 +1615,7 @@ function ConexaoWhatsApp({
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {membroWhatsApp.nome ? `${membroWhatsApp.nome} ` : ''}
-                  {membroWhatsApp.phone ? `(+${membroWhatsApp.phone})` : ''} — As mensagens de aprovação das demandas que você produzir sairão automaticamente do seu número.
+                  {membroWhatsApp.phone ? `(+${membroWhatsApp.phone})` : ''} — As mensagens de aprovação das demandas sob sua responsabilidade sairão automaticamente do seu número.
                 </p>
               </div>
             </div>
@@ -1614,7 +1631,7 @@ function ConexaoWhatsApp({
                   Seu WhatsApp pessoal ainda não está conectado no seu Perfil
                 </span>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Para que os links de aprovação saiam do seu número de WhatsApp, conecte seu aparelho no menu <b>Perfil (canto superior direito)</b>.
+                  Cada membro/designer conecta seu próprio aparelho no menu <b>Perfil (canto inferior esquerdo da barra lateral)</b>. Assim, suas demandas serão disparadas exclusivamente do seu número e grupos.
                 </p>
               </div>
             </div>

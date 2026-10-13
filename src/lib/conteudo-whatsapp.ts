@@ -34,8 +34,32 @@ export async function notificarGrupoAprovacaoConteudo({
       return { ok: false, enviado: false, erro: 'Cliente não encontrado' };
     }
 
-    // Identifica o destino: campo whatsapp_grupo_id ou contato marcado como grupo
-    let grupoJid = (cliente.whatsapp_grupo_id || '').trim();
+    // Identifica o destino: busca primeiro o grupo configurado por este responsável
+    let grupoJid: string | null = null;
+    let notificar = true;
+
+    if (responsavelId) {
+      const { data: vinculoMembro } = await serviceSupabase
+        .from('cliente_membro_whatsapp_grupos')
+        .select('whatsapp_grupo_id, notificar_agendamento')
+        .eq('cliente_id', clienteId)
+        .eq('membro_id', responsavelId)
+        .maybeSingle();
+
+      if (vinculoMembro?.whatsapp_grupo_id) {
+        grupoJid = vinculoMembro.whatsapp_grupo_id.trim();
+        notificar = vinculoMembro.notificar_agendamento ?? true;
+      }
+    }
+
+    if (!notificar) {
+      return { ok: true, enviado: false, erro: 'Notificações automáticas desativadas para este membro e cliente.' };
+    }
+
+    // Fallback para o grupo legado do cliente se o membro ainda não tiver linha específica
+    if (!grupoJid) {
+      grupoJid = (cliente.whatsapp_grupo_id || '').trim();
+    }
     if (!grupoJid && Array.isArray(cliente.contatos)) {
       const contatoGrupo = cliente.contatos.find((c: any) => c.e_grupo_whatsapp && c.telefone);
       if (contatoGrupo?.telefone) {
@@ -44,8 +68,7 @@ export async function notificarGrupoAprovacaoConteudo({
     }
 
     if (!grupoJid) {
-      // Cliente não possui grupo de WhatsApp cadastrado — segue sem erro
-      return { ok: true, enviado: false, erro: 'Nenhum grupo de WhatsApp configurado para este cliente.' };
+      return { ok: true, enviado: false, erro: 'Nenhum grupo de WhatsApp configurado para este cliente e responsável.' };
     }
 
     // 2. Prepara o link e o texto formatado da mensagem
@@ -71,35 +94,42 @@ export async function notificarGrupoAprovacaoConteudo({
       `*Equipe GENS*`,
     ].join('\n');
 
-    // 3. Localiza qual sessão está conectada:
-    // Prioridade Máxima:
-    // a) Sessão do designer/responsável pela demanda (responsavelId)
-    // b) Sessão do WhatsApp oficial da agência
-    // c) Qualquer sessão ativa da agência
+    // 3. Localiza a sessão conectada:
+    // ISOLAMENTO TOTAL: Envia unicamente pelo WhatsApp conectado do responsável pela demanda.
+    // NUNCA fazer fallback para sessões pessoais de outros membros/sócios!
     const { data: sessoes } = await serviceSupabase
       .from('whatsapp_sessions')
       .select('session_name, membro_id, cliente_id, status')
       .eq('agencia_id', agenciaId)
       .eq('status', 'conectado');
 
-    let sessionName = `agencia-${agenciaId}`;
+    if (!sessoes || sessoes.length === 0) {
+      return { ok: false, enviado: false, erro: 'Nenhuma sessão de WhatsApp conectada na agência.' };
+    }
 
-    if (sessoes && sessoes.length > 0) {
-      if (responsavelId) {
-        const sessaoDesigner = sessoes.find((s: any) => s.membro_id === responsavelId);
-        if (sessaoDesigner) {
-          sessionName = sessaoDesigner.session_name;
-        }
+    let sessionName: string | null = null;
+    if (responsavelId) {
+      const sessaoDesigner = sessoes.find((s: any) => s.membro_id === responsavelId);
+      if (sessaoDesigner) {
+        sessionName = sessaoDesigner.session_name;
       }
+    }
 
-      if (!sessionName.startsWith('membro-')) {
-        const sessaoAgencia = sessoes.find((s: any) => !s.cliente_id && !s.membro_id);
-        if (sessaoAgencia) {
-          sessionName = sessaoAgencia.session_name;
-        } else {
-          sessionName = sessoes[0].session_name;
-        }
+    // Permite fallback apenas se houver uma sessão geral oficial da agência (sem membro_id e sem cliente_id)
+    if (!sessionName) {
+      const sessaoAgencia = sessoes.find((s: any) => !s.cliente_id && !s.membro_id);
+      if (sessaoAgencia) {
+        sessionName = sessaoAgencia.session_name;
       }
+    }
+
+    if (!sessionName) {
+      console.warn(`[WhatsApp Aprovação] O responsável pela demanda (${responsavelId}) não possui WhatsApp próprio conectado no Perfil. Disparo cancelado para não enviar do número de outro colega.`);
+      return {
+        ok: false,
+        enviado: false,
+        erro: 'O responsável pela demanda ainda não conectou o seu WhatsApp próprio no Perfil.',
+      };
     }
 
     // 4. Envia a mensagem para o grupo de WhatsApp

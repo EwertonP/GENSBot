@@ -31,30 +31,22 @@ export async function POST(req: Request) {
     if (error) return traduzirErroBanco(error, 'POST /api/whatsapp/test-group');
     if (!cliente) return respostaErro('Cliente não encontrado.', 404);
 
-    // Identifica qual sessão do WhatsApp está conectada:
-    // 1. Sessão do membro logado (designer/dono)
-    // 2. Sessão geral da agência
-    // 3. Sessão do cliente
+    // Identifica qual sessão do WhatsApp está conectada estritamente para este membro:
     const { data: sessoes } = await serviceSupabase
       .from('whatsapp_sessions')
       .select('session_name, membro_id, cliente_id, status')
       .eq('agencia_id', membro.agencia_id)
       .eq('status', 'conectado');
 
-    let sessionName = `agencia-${membro.agencia_id}`;
-    if (sessoes && sessoes.length > 0) {
-      const sessaoMembro = sessoes.find((s: any) => s.membro_id === membro.id);
-      if (sessaoMembro) {
-        sessionName = sessaoMembro.session_name;
-      } else {
-        const sessaoAgencia = sessoes.find((s: any) => !s.cliente_id && !s.membro_id);
-        if (sessaoAgencia) {
-          sessionName = sessaoAgencia.session_name;
-        } else {
-          sessionName = sessoes[0].session_name;
-        }
-      }
+    const sessaoMembro =
+      sessoes?.find((s: any) => s.membro_id === membro.id) ||
+      sessoes?.find((s: any) => !s.cliente_id && !s.membro_id);
+
+    if (!sessaoMembro) {
+      return respostaErro('Seu WhatsApp pessoal ainda não está conectado no seu Perfil. Conecte seu aparelho no menu Perfil antes de testar o grupo.', 400);
     }
+
+    const sessionName = sessaoMembro.session_name;
 
     let grupoDestino = grupo_id.trim();
 
@@ -97,11 +89,16 @@ export async function POST(req: Request) {
       return respostaErro(resultado.erro || 'Falha ao enviar mensagem para o grupo via OpenWA.', 400);
     }
 
-    // Salva o grupo no cadastro do cliente se ainda não estava salvo
+    // Salva o grupo para este membro específico
     await serviceSupabase
-      .from('clientes')
-      .update({ whatsapp_grupo_id: grupoDestino })
-      .eq('id', cliente_id);
+      .from('cliente_membro_whatsapp_grupos')
+      .upsert({
+        cliente_id: cliente_id,
+        membro_id: membro.id,
+        whatsapp_grupo_id: grupoDestino,
+        notificar_agendamento: true,
+        atualizado_em: new Date().toISOString(),
+      }, { onConflict: 'cliente_id,membro_id' });
 
     return NextResponse.json({
       ok: true,

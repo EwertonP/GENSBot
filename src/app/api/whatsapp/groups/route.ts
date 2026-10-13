@@ -23,8 +23,10 @@ export async function GET(req: Request) {
   const membroId = searchParams.get('membro_id') || null;
 
   try {
-    // 1. Localiza a sessão conectada adequada:
-    // Para aprovações, a prioridade máxima é o WhatsApp do membro/designer logado
+    // 1. Localiza a sessão conectada estritamente do membro logado (ou membro_id solicitado)
+    // NUNCA fazer fallback para sessões de outros membros, garantindo isolamento total
+    const alvoMembroId = membroId && ehUuid(membroId) ? membroId : membro.id;
+
     const { data: todasSessoes } = await serviceSupabase
       .from('whatsapp_sessions')
       .select('*')
@@ -33,27 +35,30 @@ export async function GET(req: Request) {
 
     const sessoes = todasSessoes || [];
 
-    // Prioridade 1: WhatsApp do membro logado
-    let sessaoAlvo = sessoes.find((s: any) => s.membro_id === membro.id) || null;
+    // Prioridade 1: Sessão do membro logado
+    let sessaoAlvo = sessoes.find((s: any) => s.membro_id === alvoMembroId) || null;
 
-    // Prioridade 2: Se foi passado membro_id específico
-    if (!sessaoAlvo && membroId) {
-      sessaoAlvo = sessoes.find((s: any) => s.membro_id === membroId) || null;
-    }
-
-    // Prioridade 3: Sessão geral da agência
+    // Prioridade 2: Sessão oficial geral da agência (sem membro_id e sem cliente_id)
     if (!sessaoAlvo) {
       sessaoAlvo = sessoes.find((s: any) => !s.cliente_id && !s.membro_id) || null;
     }
 
-    // Prioridade 4: Se o cliente tiver uma sessão conectada própria
-    if (!sessaoAlvo && clienteId) {
-      sessaoAlvo = sessoes.find((s: any) => s.cliente_id === clienteId) || null;
-    }
+    // Busca se este membro já possui um grupo configurado para este cliente
+    let grupoConfigurado: string | null = null;
+    let notificarAgendamento = true;
 
-    // Prioridade 5: Qualquer sessão conectada da agência
-    if (!sessaoAlvo && sessoes.length > 0) {
-      sessaoAlvo = sessoes[0];
+    if (clienteId && ehUuid(clienteId)) {
+      const { data: vinculoGrupo } = await serviceSupabase
+        .from('cliente_membro_whatsapp_grupos')
+        .select('whatsapp_grupo_id, notificar_agendamento')
+        .eq('cliente_id', clienteId)
+        .eq('membro_id', alvoMembroId)
+        .maybeSingle();
+
+      if (vinculoGrupo) {
+        grupoConfigurado = vinculoGrupo.whatsapp_grupo_id;
+        notificarAgendamento = vinculoGrupo.notificar_agendamento ?? true;
+      }
     }
 
     if (!sessaoAlvo) {
@@ -61,7 +66,10 @@ export async function GET(req: Request) {
         ok: true,
         grupos: [],
         conectado: false,
-        mensagem: 'Nenhum WhatsApp conectado no momento. Conecte seu WhatsApp no Perfil para carregar os grupos automaticamente.',
+        membroConectado: false,
+        grupoConfigurado,
+        notificarAgendamento,
+        mensagem: 'Seu WhatsApp pessoal ainda não está conectado no seu Perfil.',
       });
     }
 
@@ -265,6 +273,8 @@ export async function GET(req: Request) {
       membroConectado: Boolean(sessaoAlvo.membro_id === membro.id),
       membroTelefone: sessaoAlvo.phone_number || null,
       membroNome: sessaoAlvo.push_name || null,
+      grupoConfigurado,
+      notificarAgendamento,
       sessionName,
       sessionUuid,
       phone: sessaoAlvo.phone_number || null,
@@ -298,7 +308,7 @@ export async function POST(req: Request) {
     const match = linkOuCodigo.match(/chat\.whatsapp\.com\/([a-zA-Z0-9_-]+)/i);
     const inviteCode = match ? match[1] : linkOuCodigo.replace(/^@/, '').trim();
 
-    // Localiza sessão do membro ou da agência
+    // Localiza sessão estritamente do membro logado (ou agência geral)
     const { data: sessoes } = await serviceSupabase
       .from('whatsapp_sessions')
       .select('*')
@@ -307,11 +317,10 @@ export async function POST(req: Request) {
 
     const sessaoAlvo =
       sessoes?.find((s: any) => s.membro_id === membro.id) ||
-      sessoes?.find((s: any) => !s.cliente_id && !s.membro_id) ||
-      sessoes?.[0];
+      sessoes?.find((s: any) => !s.cliente_id && !s.membro_id);
 
     if (!sessaoAlvo) {
-      return respostaErro('Nenhum WhatsApp conectado no momento para resolver o convite.', 400);
+      return respostaErro('Seu WhatsApp pessoal ainda não está conectado no seu Perfil.', 400);
     }
 
     const { url: openwaUrl, headers } = getOpenWAConfig();
@@ -337,12 +346,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // Se foi passado cliente_id, já vincula no banco
+    // Se foi passado cliente_id, vincula para este membro específico
     if (clienteId && ehUuid(clienteId)) {
       await serviceSupabase
-        .from('clientes')
-        .update({ whatsapp_grupo_id: groupInfo.id })
-        .eq('id', clienteId);
+        .from('cliente_membro_whatsapp_grupos')
+        .upsert({
+          cliente_id: clienteId,
+          membro_id: membro.id,
+          whatsapp_grupo_id: groupInfo.id,
+          notificar_agendamento: true,
+          atualizado_em: new Date().toISOString(),
+        }, { onConflict: 'cliente_id,membro_id' });
     }
 
     return NextResponse.json({
