@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getContextoAgencia, respostaErro } from '@/lib/clientes-server';
+import { ehUuid } from '@/lib/clientes';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { getOpenWAConfig } from '@/lib/openwa-client';
 
@@ -120,22 +121,48 @@ export async function GET(req: Request) {
       )
     );
 
-    // Tenta obter lista de chats / grupos por todos os formatos de rotas do gateway
+    // Tenta obter lista de chats / grupos por todos os formatos de rotas suportados pelo gateway (WAHA, Baileys, OpenWA)
     let rawChats: any[] = [];
     const endpointsParaTentar: string[] = [];
 
     for (const id of identifiers) {
       endpointsParaTentar.push(
-        `${openwaUrl}/api/chats?session=${encodeURIComponent(id)}`,
+        `${openwaUrl}/api/sessions/${encodeURIComponent(id)}/groups`,
+        `${openwaUrl}/api/${encodeURIComponent(id)}/groups`,
+        `${openwaUrl}/api/sessions/${encodeURIComponent(id)}/chats`,
         `${openwaUrl}/api/${encodeURIComponent(id)}/chats`,
         `${openwaUrl}/api/groups?session=${encodeURIComponent(id)}`,
-        `${openwaUrl}/api/${encodeURIComponent(id)}/groups`
+        `${openwaUrl}/api/chats?session=${encodeURIComponent(id)}`
       );
     }
-    endpointsParaTentar.push(`${openwaUrl}/api/chats`);
     endpointsParaTentar.push(`${openwaUrl}/api/groups`);
+    endpointsParaTentar.push(`${openwaUrl}/api/chats`);
 
     const debugAttempts: any[] = [];
+
+    // Função auxiliar para extrair lista de chats/grupos de qualquer formato JSON de retorno
+    function extrairLista(data: any): any[] {
+      if (!data) return [];
+      if (Array.isArray(data)) return data;
+      if (typeof data === 'object') {
+        if (Array.isArray(data.groups)) return data.groups;
+        if (Array.isArray(data.chats)) return data.chats;
+        if (Array.isArray(data.data)) return data.data;
+        if (Array.isArray(data.result)) return data.result;
+        if (Array.isArray(data.items)) return data.items;
+        // Formato NOWEB (dicionário chaveado por JID ex: { "12036302482394@g.us": { subject: "..." } })
+        const keys = Object.keys(data);
+        if (keys.some((k) => k.includes('@g.us') || k.includes('@c.us'))) {
+          return Object.entries(data).map(([key, val]: [string, any]) => {
+            if (typeof val === 'object' && val !== null) {
+              return { id: val.id || key, ...val };
+            }
+            return { id: key, subject: String(val) };
+          });
+        }
+      }
+      return [];
+    }
 
     for (const endpoint of endpointsParaTentar) {
       try {
@@ -151,25 +178,18 @@ export async function GET(req: Request) {
           data = JSON.parse(text);
         } catch {}
 
+        const items = extrairLista(data);
+
         debugAttempts.push({
           endpoint: endpoint.replace(openwaUrl, ''),
           status,
           isJson: Boolean(data),
-          keys: data && typeof data === 'object' && !Array.isArray(data) ? Object.keys(data) : null,
-          itemCount: Array.isArray(data) ? data.length : (data?.chats?.length || data?.groups?.length || null),
+          itemCount: items.length,
         });
 
-        if (res.ok && data) {
-          if (Array.isArray(data) && data.length > 0) {
-            rawChats = data;
-            break;
-          } else if (data && Array.isArray(data.chats) && data.chats.length > 0) {
-            rawChats = data.chats;
-            break;
-          } else if (data && Array.isArray(data.groups) && data.groups.length > 0) {
-            rawChats = data.groups;
-            break;
-          }
+        if (res.ok && items.length > 0) {
+          rawChats = items;
+          break;
         }
       } catch (errReq: any) {
         debugAttempts.push({
@@ -177,6 +197,31 @@ export async function GET(req: Request) {
           error: errReq?.message || String(errReq),
         });
       }
+    }
+
+    // Se a busca inicial retornou vazia, tenta disparar o refresh de grupos no WAHA
+    if (rawChats.length === 0 && identifiers.length > 0) {
+      const idPrincipal = identifiers[0];
+      try {
+        await fetch(`${openwaUrl}/api/sessions/${encodeURIComponent(idPrincipal)}/groups/refresh`, {
+          method: 'POST',
+          headers,
+          signal: AbortSignal.timeout(4000),
+        }).catch(() => null);
+
+        // Tenta novamente após solicitação de refresh
+        const resRetry = await fetch(`${openwaUrl}/api/sessions/${encodeURIComponent(idPrincipal)}/groups`, {
+          headers,
+          signal: AbortSignal.timeout(4000),
+        });
+        if (resRetry.ok) {
+          const dataRetry = await resRetry.json().catch(() => null);
+          const itemsRetry = extrairLista(dataRetry);
+          if (itemsRetry.length > 0) {
+            rawChats = itemsRetry;
+          }
+        }
+      } catch {}
     }
 
     // Filtra e normaliza apenas os grupos (@g.us)
@@ -190,9 +235,9 @@ export async function GET(req: Request) {
       vistos.add(idRaw);
 
       const nomeGrupo =
+        c.subject ||
         c.name ||
         c.formattedTitle ||
-        c.subject ||
         c.groupMetadata?.subject ||
         c.contact?.name ||
         idRaw.replace('@g.us', '');
@@ -200,7 +245,7 @@ export async function GET(req: Request) {
       const participantsCount =
         c.participants?.length ||
         c.groupMetadata?.participants?.length ||
-        undefined;
+        (Array.isArray(c.participants) ? c.participants.length : undefined);
 
       grupos.push({
         id: idRaw,
@@ -217,6 +262,9 @@ export async function GET(req: Request) {
       ok: true,
       grupos,
       conectado: true,
+      membroConectado: Boolean(sessaoAlvo.membro_id === membro.id),
+      membroTelefone: sessaoAlvo.phone_number || null,
+      membroNome: sessaoAlvo.push_name || null,
       sessionName,
       sessionUuid,
       phone: sessaoAlvo.phone_number || null,
@@ -227,5 +275,131 @@ export async function GET(req: Request) {
   } catch (err: unknown) {
     console.error('Erro ao listar grupos do WhatsApp:', err);
     return respostaErro('Falha interna ao listar grupos do WhatsApp.', 500);
+  }
+}
+
+// POST: Resolve links de convite de grupos (ex: https://chat.whatsapp.com/...)
+// Obtém o JID (@g.us) e o Nome do grupo diretamente pelo gateway
+export async function POST(req: Request) {
+  const auth = await getContextoAgencia();
+  if (!auth.ok) return auth.response;
+  const { membro } = auth.ctx;
+
+  try {
+    const body = await req.json();
+    const linkOuCodigo = String(body.link || body.code || '').trim();
+    const clienteId = body.cliente_id || null;
+
+    if (!linkOuCodigo) {
+      return respostaErro('Informe o link de convite ou código do grupo.', 400);
+    }
+
+    // Extrai o código do link (https://chat.whatsapp.com/CODIGO)
+    const match = linkOuCodigo.match(/chat\.whatsapp\.com\/([a-zA-Z0-9_-]+)/i);
+    const inviteCode = match ? match[1] : linkOuCodigo.replace(/^@/, '').trim();
+
+    // Localiza sessão do membro ou da agência
+    const { data: sessoes } = await serviceSupabase
+      .from('whatsapp_sessions')
+      .select('*')
+      .eq('agencia_id', membro.agencia_id)
+      .eq('status', 'conectado');
+
+    const sessaoAlvo =
+      sessoes?.find((s: any) => s.membro_id === membro.id) ||
+      sessoes?.find((s: any) => !s.cliente_id && !s.membro_id) ||
+      sessoes?.[0];
+
+    if (!sessaoAlvo) {
+      return respostaErro('Nenhum WhatsApp conectado no momento para resolver o convite.', 400);
+    }
+
+    const { url: openwaUrl, headers } = getOpenWAConfig();
+    if (!openwaUrl) {
+      return respostaErro('OPENWA_API_URL não configurada no servidor.', 500);
+    }
+
+    const sessionName = sessaoAlvo.session_name;
+
+    // Tenta obter info do convite via WAHA / OpenWA
+    const endpointsJoinInfo = [
+      `${openwaUrl}/api/sessions/${encodeURIComponent(sessionName)}/groups/join-info?code=${encodeURIComponent(inviteCode)}`,
+      `${openwaUrl}/api/${encodeURIComponent(sessionName)}/groups/join-info?code=${encodeURIComponent(inviteCode)}`,
+      `${openwaUrl}/api/groups/join-info?session=${encodeURIComponent(sessionName)}&code=${encodeURIComponent(inviteCode)}`,
+    ];
+
+    let groupInfo: { id: string; name: string } | null = null;
+
+    for (const ep of endpointsJoinInfo) {
+      try {
+        const res = await fetch(ep, { headers, signal: AbortSignal.timeout(6000) });
+        if (res.ok) {
+          const data = await res.json();
+          const jid = data.id?._serialized || data.id || data.jid;
+          if (jid && String(jid).includes('@g.us')) {
+            groupInfo = {
+              id: String(jid),
+              name: data.subject || data.name || data.title || 'Grupo WhatsApp',
+            };
+            break;
+          }
+        }
+      } catch {}
+    }
+
+    // Se o join-info não estiver disponível, tenta endpoint de join
+    if (!groupInfo) {
+      const endpointsJoin = [
+        `${openwaUrl}/api/sessions/${encodeURIComponent(sessionName)}/groups/join`,
+        `${openwaUrl}/api/${encodeURIComponent(sessionName)}/groups/join`,
+        `${openwaUrl}/api/groups/join`,
+      ];
+
+      for (const ep of endpointsJoin) {
+        try {
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ code: inviteCode, session: sessionName }),
+            signal: AbortSignal.timeout(8000),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const jid = data.id?._serialized || data.id || data.groupId || data.jid;
+            if (jid && String(jid).includes('@g.us')) {
+              groupInfo = {
+                id: String(jid),
+                name: data.subject || data.name || 'Grupo WhatsApp',
+              };
+              break;
+            }
+          }
+        } catch {}
+      }
+    }
+
+    if (!groupInfo) {
+      return respostaErro(
+        'Não foi possível obter o identificador do grupo pelo link fornecido. Verifique se o link é válido ou informe o JID (@g.us) diretamente.',
+        400
+      );
+    }
+
+    // Se foi passado cliente_id, já vincula no banco
+    if (clienteId && ehUuid(clienteId)) {
+      await serviceSupabase
+        .from('clientes')
+        .update({ whatsapp_grupo_id: groupInfo.id })
+        .eq('id', clienteId);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      grupo: groupInfo,
+      mensagem: `Grupo "${groupInfo.name}" identificado com sucesso!`,
+    });
+  } catch (err: unknown) {
+    console.error('Erro ao resolver link de convite do grupo:', err);
+    return respostaErro('Falha interna ao processar convite do WhatsApp.', 500);
   }
 }

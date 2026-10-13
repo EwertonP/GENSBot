@@ -29,6 +29,9 @@ import {
   ExternalLink,
   LogOut,
   CheckCircle2,
+  AlertCircle,
+  Link2,
+  Info,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1061,6 +1064,18 @@ function ConexaoWhatsApp({
   const [testandoGrupo, setTestandoGrupo] = useState(false);
   const [desconectando, setDesconectando] = useState(false);
 
+  // Informações do WhatsApp do membro logado (emissor das aprovações)
+  const [membroWhatsApp, setMembroWhatsApp] = useState<{
+    conectado: boolean;
+    nome?: string | null;
+    phone?: string | null;
+  } | null>(null);
+
+  // Modo manual / link de convite para grupo
+  const [modoManualGrupo, setModoManualGrupo] = useState(false);
+  const [linkOuJidManual, setLinkOuJidManual] = useState('');
+  const [resolvendoLink, setResolvendoLink] = useState(false);
+
   // Lista dinâmica de grupos do WhatsApp da agência/membro
   const [gruposDisponiveis, setGruposDisponiveis] = useState<Array<{ id: string; name: string; participantsCount?: number }>>([]);
   const [carregandoGrupos, setCarregandoGrupos] = useState(false);
@@ -1070,15 +1085,25 @@ function ConexaoWhatsApp({
     try {
       const res = await fetch('/api/whatsapp/groups');
       const data = await res.json();
-      if (res.ok && Array.isArray(data.grupos)) {
-        setGruposDisponiveis(data.grupos);
-        if (manual) {
-          if (data.grupos.length > 0) {
-            showToast(`${data.grupos.length} grupo(s) carregados do seu WhatsApp!`, 'success');
-          } else {
-            const firstAttempt = data.debugAttempts?.[0];
-            const debugInfo = firstAttempt ? ` (tentou ${firstAttempt.endpoint}: HTTP ${firstAttempt.status || firstAttempt.error})` : '';
-            showToast((data.mensagem || 'Nenhum grupo encontrado na sessão conectada.') + debugInfo, 'error');
+      if (res.ok) {
+        if (typeof data.conectado === 'boolean') {
+          setMembroWhatsApp({
+            conectado: Boolean(data.conectado),
+            nome: data.pushName || data.membroNome || null,
+            phone: data.phone || data.membroTelefone || null,
+          });
+        }
+        if (Array.isArray(data.grupos)) {
+          setGruposDisponiveis(data.grupos);
+          if (manual) {
+            if (data.grupos.length > 0) {
+              showToast(`${data.grupos.length} grupo(s) carregados do seu WhatsApp!`, 'success');
+            } else {
+              showToast(
+                'Nenhum grupo sincronizado no momento. Você pode colar o Link de Convite ou JID do grupo logo abaixo!',
+                'error'
+              );
+            }
           }
         }
       } else if (manual) {
@@ -1088,6 +1113,49 @@ function ConexaoWhatsApp({
       if (manual) showToast('Erro de conexão ao buscar grupos.', 'error');
     } finally {
       setCarregandoGrupos(false);
+    }
+  };
+
+  const handleResolverLinkGrupo = async () => {
+    const valor = linkOuJidManual.trim();
+    if (!valor) {
+      showToast('Cole o link do grupo (https://chat.whatsapp.com/...) ou o JID.', 'error');
+      return;
+    }
+
+    if (valor.includes('@g.us')) {
+      setGrupoId(valor);
+      showToast('JID do grupo configurado! Agora clique em "Salvar Grupo".', 'success');
+      setModoManualGrupo(false);
+      return;
+    }
+
+    setResolvendoLink(true);
+    try {
+      const res = await fetch('/api/whatsapp/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          link: valor,
+          cliente_id: clienteId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.grupo?.id) {
+        setGrupoId(data.grupo.id);
+        setGruposDisponiveis((prev) => {
+          if (prev.some((g) => g.id === data.grupo.id)) return prev;
+          return [{ id: data.grupo.id, name: data.grupo.name, isGroup: true }, ...prev];
+        });
+        showToast(`Grupo "${data.grupo.name}" identificado e vinculado com sucesso!`, 'success');
+        setModoManualGrupo(false);
+      } else {
+        showToast(data.error || 'Não foi possível identificar o grupo pelo link fornecido.', 'error');
+      }
+    } catch {
+      showToast('Erro de rede ao validar convite do grupo.', 'error');
+    } finally {
+      setResolvendoLink(false);
     }
   };
 
@@ -1253,124 +1321,74 @@ function ConexaoWhatsApp({
 
   return (
     <Secao
-      titulo="WhatsApp Copiloto (Conexão do WhatsApp & Alertas de Agendamento)"
-      descricao="Conecta o WhatsApp da clínica via QR Code para permitir que a IA leia mensagens em tempo real, atualize o CRM e notifique automaticamente a equipe no grupo do WhatsApp."
+      titulo="WhatsApp & Aprovações de Demandas"
+      descricao="Configure o grupo de alinhamento com o cliente para envio de posts para aprovação e, opcionalmente, conecte o número da clínica para atendimento inteligente com IA."
     >
-      {/* Bloco 1: Status da Conexão */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card">
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 border transition-colors ${
-              estaConectado
-                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
-                : 'bg-muted text-muted-foreground border-border'
-            }`}
-          >
-            <Smartphone className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-foreground">
-                {estaConectado
-                  ? `WhatsApp Conectado ${session?.phone_number ? `(+${session.phone_number})` : `(${clienteNome})`}`
-                  : 'WhatsApp Desconectado'}
-              </span>
-              <Badge variant={estaConectado ? 'success' : 'muted'} className="text-xs">
-                {estaConectado ? 'Conexão Ativa' : 'Aguardando Pareamento'}
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {estaConectado
-                ? 'A secretária pode responder normalmente no celular. A IA lê os dados e atualiza o funil sem risco de bloqueio.'
-                : 'Clique para gerar o QR Code e aponte a câmera do WhatsApp da clínica.'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            loading={sincronizando}
-            onClick={() => carregarStatus(true)}
-            title="Verificar status agora"
-            className="gap-1.5"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Sincronizar
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant={estaConectado ? 'secondary' : 'primary'}
-            loading={iniciando}
-            onClick={handleConectar}
-            className="gap-1.5"
-          >
-            <QrCode className="w-3.5 h-3.5" />
-            {estaConectado ? 'Novo QR Code' : 'Gerar QR Code'}
-          </Button>
-
-          {estaConectado && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              loading={desconectando}
-              onClick={handleDesconectarWhatsApp}
-              className="gap-1.5 text-xs text-destructive hover:bg-destructive/10"
-              title="Desconectar este aparelho e limpar sessão"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Desconectar
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Exibição do QR Code quando retornado */}
-      {qrCodeData && !estaConectado && (
-        <div className="flex flex-col items-center justify-center p-6 rounded-2xl border border-dashed border-primary/30 bg-primary/5 space-y-3 animate-in fade-in zoom-in-95 duration-150">
-          <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <QrCode className="w-4 h-4 text-primary" /> Aponte a câmera do WhatsApp da clínica:
-          </p>
-          <div className="p-4 bg-white rounded-2xl shadow-md border border-border">
-            {qrCodeData.startsWith('data:image') ? (
-              <img src={qrCodeData} alt="QR Code WhatsApp" className="w-52 h-52 object-contain" />
-            ) : (
-              <div className="w-52 h-52 flex items-center justify-center text-center p-3 text-xs text-muted-foreground font-mono break-all">
-                {qrCodeData}
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground text-center max-w-sm">
-            Abra o WhatsApp no celular &gt; Aparelhos conectados &gt; Conectar um aparelho. A tela atualizará automaticamente após a leitura.
-          </p>
-        </div>
-      )}
-
-      {/* Bloco 2: Grupo de Avisos e Notificações de Demandas & Aprovações */}
+      {/* Bloco 1 (Principal): Grupo de WhatsApp para Notificações & Aprovações de Demandas */}
       <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
               <Bell className="w-4 h-4 text-primary" />
-              Notificação Automática de Demandas & Aprovações no Grupo
+              Grupo de Alinhamento & Aprovação de Demandas
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Quando um card for movido de <b>"Revisão"</b> para <b>"Aprovação"</b> na Esteira de Conteúdo da agência, o link interativo de aprovação será enviado instantaneamente neste grupo de WhatsApp para o cliente aprovar.
+              Quando um post ou vídeo for movido de <b>"Revisão"</b> para <b>"Aprovação"</b> na Esteira de Conteúdo, o link interativo de aprovação será enviado automaticamente neste grupo para o cliente avaliar e aprovar.
             </p>
           </div>
+          <Badge variant={grupoId ? 'success' : 'muted'} className="text-xs shrink-0">
+            {grupoId ? 'Grupo Configurado' : 'Pendente de Configuração'}
+          </Badge>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 items-end pt-1">
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-foreground">
-                Grupo de WhatsApp com o Cliente
-              </label>
+        {/* Status do Emissor (WhatsApp pessoal do membro/designer logado) */}
+        {membroWhatsApp?.conectado ? (
+          <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-foreground">
+                    Seu WhatsApp está Conectado para Disparos
+                  </span>
+                  <Badge variant="success" className="text-[10px] py-0 px-1.5">
+                    Emissor Ativo
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {membroWhatsApp.nome ? `${membroWhatsApp.nome} ` : ''}
+                  {membroWhatsApp.phone ? `(+${membroWhatsApp.phone})` : ''} — As mensagens de aprovação das demandas que você produzir sairão automaticamente do seu número.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-foreground">
+                  Seu WhatsApp pessoal ainda não está conectado no seu Perfil
+                </span>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Para que os links de aprovação saiam do seu número de WhatsApp, conecte seu aparelho no menu <b>Perfil (canto superior direito)</b>.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Seleção do Grupo de WhatsApp */}
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-foreground">
+              Grupo de WhatsApp com este Cliente:
+            </label>
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => carregarGrupos(true)}
@@ -1380,13 +1398,23 @@ function ConexaoWhatsApp({
                 <RefreshCw className={`w-3 h-3 ${carregandoGrupos ? 'animate-spin' : ''}`} />
                 {carregandoGrupos ? 'Buscando...' : 'Atualizar grupos'}
               </button>
+              <span className="text-muted-foreground text-xs">•</span>
+              <button
+                type="button"
+                onClick={() => setModoManualGrupo(!modoManualGrupo)}
+                className="text-xs text-muted-foreground hover:text-foreground hover:underline font-medium cursor-pointer"
+              >
+                {modoManualGrupo ? 'Escolher da lista' : 'Colar link de convite ou JID'}
+              </button>
             </div>
+          </div>
 
-            {gruposDisponiveis.length > 0 ? (
+          {!modoManualGrupo && gruposDisponiveis.length > 0 ? (
+            <div className="space-y-2">
               <Select
                 value={grupoId}
                 onChange={(e) => setGrupoId(e.target.value)}
-                className="text-xs"
+                className="text-xs w-full"
               >
                 <option value="">Selecione um grupo do seu WhatsApp...</option>
                 {gruposDisponiveis.map((g) => (
@@ -1395,59 +1423,181 @@ function ConexaoWhatsApp({
                   </option>
                 ))}
               </Select>
-            ) : (
-              <Input
-                placeholder="Ex: 12036302482394@g.us (ou selecione acima após conectar WhatsApp)"
-                value={grupoId}
-                onChange={(e) => setGrupoId(e.target.value)}
-                className="text-xs font-mono"
-              />
-            )}
+              {grupoId && (
+                <p className="text-[11px] text-muted-foreground font-mono">
+                  JID Selecionado: {grupoId}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="Cole o link do grupo (https://chat.whatsapp.com/...) ou o JID (ex: 12036302482394@g.us)"
+                    value={linkOuJidManual}
+                    onChange={(e) => setLinkOuJidManual(e.target.value)}
+                    className="text-xs font-mono pr-8"
+                  />
+                  <Link2 className="w-3.5 h-3.5 text-muted-foreground absolute right-2.5 top-1/2 -translate-y-1/2" />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  loading={resolvendoLink}
+                  onClick={handleResolverLinkGrupo}
+                  className="text-xs gap-1.5 shrink-0"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  Vincular Grupo
+                </Button>
+              </div>
 
-            <p className="text-xs text-muted-foreground">
-              {gruposDisponiveis.length > 0
-                ? 'Grupos carregados automaticamente do seu WhatsApp conectado no Perfil.'
-                : 'Conecte seu WhatsApp no Perfil para listar seus grupos automaticamente, ou insira o JID manual.'}
+              {grupoId && (
+                <div className="p-2.5 rounded-lg bg-muted/60 border border-border flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Grupo atualmente vinculado:</span>
+                  <span className="font-mono font-semibold text-foreground">{grupoId}</span>
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Dica: Você pode copiar o link do grupo no WhatsApp em <i>Dados do grupo &gt; Convidar via link</i> e colar aqui.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/60">
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={notificarAgendamento}
+                onChange={(e) => setNotificarAgendamento(e.target.checked)}
+                className="rounded border-input text-primary focus:ring-ring w-4 h-4"
+              />
+              <span className="text-xs text-foreground font-medium">
+                Disparar link de aprovação automaticamente no grupo ao mover card para "Aprovação"
+              </span>
+            </label>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                loading={testandoGrupo}
+                onClick={handleTestarEnvioGrupo}
+                disabled={!grupoId.trim()}
+                className="gap-1.5 text-xs"
+              >
+                <Send className="w-3.5 h-3.5" />
+                Testar Envio no Grupo
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                loading={salvandoGrupo}
+                onClick={handleSalvarConfigGrupo}
+                className="gap-1.5 text-xs"
+              >
+                Salvar Grupo
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bloco 2: WhatsApp Comercial do Cliente (Opcional - Atendimento IA / SDR da Clínica) */}
+      <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-muted-foreground" />
+              <h4 className="text-sm font-bold text-foreground">
+                WhatsApp Comercial da Empresa ({clienteNome})
+              </h4>
+              <Badge variant="muted" className="text-[10px]">
+                Opcional • Atendimento IA
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Conexão exclusiva caso a clínica deste cliente utilize o <b>Atendente Virtual por IA (SDR)</b>.
+              <span className="text-foreground font-medium"> Não é necessário conectar seu celular aqui para as aprovações da agência.</span>
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Button
               type="button"
               size="sm"
-              variant="outline"
-              loading={testandoGrupo}
-              onClick={handleTestarEnvioGrupo}
-              disabled={!grupoId.trim()}
-              className="gap-1.5 text-xs flex-1"
+              variant="ghost"
+              loading={sincronizando}
+              onClick={() => carregarStatus(true)}
+              title="Verificar status agora"
+              className="gap-1.5 text-xs"
             >
-              <Send className="w-3.5 h-3.5" />
-              Testar Envio no Grupo
+              <RefreshCw className="w-3.5 h-3.5" />
+              Sincronizar
             </Button>
 
             <Button
               type="button"
               size="sm"
-              loading={salvandoGrupo}
-              onClick={handleSalvarConfigGrupo}
-              className="gap-1.5 text-xs flex-1"
+              variant={estaConectado ? 'secondary' : 'outline'}
+              loading={iniciando}
+              onClick={handleConectar}
+              className="gap-1.5 text-xs"
             >
-              Salvar Grupo
+              <QrCode className="w-3.5 h-3.5" />
+              {estaConectado ? 'Novo QR Code' : 'Gerar QR Code da Empresa'}
             </Button>
+
+            {estaConectado && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                loading={desconectando}
+                onClick={handleDesconectarWhatsApp}
+                className="gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+                title="Desconectar este aparelho da clínica"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Desconectar
+              </Button>
+            )}
           </div>
         </div>
 
-        <label className="flex items-center gap-2.5 cursor-pointer pt-2">
-          <input
-            type="checkbox"
-            checked={notificarAgendamento}
-            onChange={(e) => setNotificarAgendamento(e.target.checked)}
-            className="rounded border-input text-primary focus:ring-ring w-4 h-4"
-          />
-          <span className="text-xs text-foreground font-medium">
-            Disparar link de aprovação automaticamente no grupo ao mover card para "Aprovação"
-          </span>
-        </label>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Status do WhatsApp da empresa:</span>
+          <Badge variant={estaConectado ? 'success' : 'muted'} className="text-[11px]">
+            {estaConectado
+              ? `Conectado ${session?.phone_number ? `(+${session.phone_number})` : ''}`
+              : 'Desconectado (Sem atendimento IA)'}
+          </Badge>
+        </div>
+
+        {/* Exibição do QR Code da clínica quando retornado */}
+        {qrCodeData && !estaConectado && (
+          <div className="flex flex-col items-center justify-center p-6 rounded-2xl border border-dashed border-primary/30 bg-primary/5 space-y-3 animate-in fade-in zoom-in-95 duration-150">
+            <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <QrCode className="w-4 h-4 text-primary" /> Aponte a câmera do WhatsApp da empresa/clínica:
+            </p>
+            <div className="p-4 bg-white rounded-2xl shadow-md border border-border">
+              {qrCodeData.startsWith('data:image') ? (
+                <img src={qrCodeData} alt="QR Code WhatsApp" className="w-52 h-52 object-contain" />
+              ) : (
+                <div className="w-52 h-52 flex items-center justify-center text-center p-3 text-xs text-muted-foreground font-mono break-all">
+                  {qrCodeData}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground text-center max-w-sm">
+              Abra o WhatsApp comercial da clínica no celular &gt; Aparelhos conectados &gt; Conectar um aparelho.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Bloco 3: Régua Inteligente Anti-Vácuo de Leads */}
