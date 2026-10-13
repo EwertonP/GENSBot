@@ -60,22 +60,15 @@ export async function POST(req: Request) {
 
     // Se o usuário informou o link de convite em vez do JID, resolve automaticamente
     if (grupoDestino.includes('chat.whatsapp.com/')) {
-      const match = grupoDestino.match(/chat\.whatsapp\.com\/([a-zA-Z0-9_-]+)/i);
-      const inviteCode = match ? match[1] : '';
-      if (inviteCode) {
-        const { getOpenWAConfig } = await import('@/lib/openwa-client');
-        const { url: openwaUrl, headers } = getOpenWAConfig();
-        if (openwaUrl) {
-          try {
-            const resJoin = await fetch(`${openwaUrl}/api/sessions/${encodeURIComponent(sessionName)}/groups/join-info?code=${encodeURIComponent(inviteCode)}`, { headers, signal: AbortSignal.timeout(4000) });
-            if (resJoin.ok) {
-              const dataJoin = await resJoin.json();
-              if (dataJoin.id && String(dataJoin.id).includes('@g.us')) {
-                grupoDestino = String(dataJoin.id);
-              }
-            }
-          } catch {}
-        }
+      const { obterSessionUuidOpenWA, resolverConviteGrupoOpenWA } = await import('@/lib/openwa-client');
+      const { sessionUuid } = await obterSessionUuidOpenWA(sessionName);
+      const effectiveId = sessionUuid || sessionName;
+      const grupoResolvido = await resolverConviteGrupoOpenWA({
+        sessionId: effectiveId,
+        linkOuCodigo: grupoDestino,
+      });
+      if (grupoResolvido?.id) {
+        grupoDestino = grupoResolvido.id;
       }
     }
 

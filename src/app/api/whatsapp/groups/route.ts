@@ -321,62 +321,14 @@ export async function POST(req: Request) {
 
     const sessionName = sessaoAlvo.session_name;
 
-    // Tenta obter info do convite via WAHA / OpenWA
-    const endpointsJoinInfo = [
-      `${openwaUrl}/api/sessions/${encodeURIComponent(sessionName)}/groups/join-info?code=${encodeURIComponent(inviteCode)}`,
-      `${openwaUrl}/api/${encodeURIComponent(sessionName)}/groups/join-info?code=${encodeURIComponent(inviteCode)}`,
-      `${openwaUrl}/api/groups/join-info?session=${encodeURIComponent(sessionName)}&code=${encodeURIComponent(inviteCode)}`,
-    ];
+    const { obterSessionUuidOpenWA, resolverConviteGrupoOpenWA } = await import('@/lib/openwa-client');
+    const { sessionUuid } = await obterSessionUuidOpenWA(sessionName);
+    const effectiveSessionId = sessionUuid || sessionName;
 
-    let groupInfo: { id: string; name: string } | null = null;
-
-    for (const ep of endpointsJoinInfo) {
-      try {
-        const res = await fetch(ep, { headers, signal: AbortSignal.timeout(6000) });
-        if (res.ok) {
-          const data = await res.json();
-          const jid = data.id?._serialized || data.id || data.jid;
-          if (jid && String(jid).includes('@g.us')) {
-            groupInfo = {
-              id: String(jid),
-              name: data.subject || data.name || data.title || 'Grupo WhatsApp',
-            };
-            break;
-          }
-        }
-      } catch {}
-    }
-
-    // Se o join-info não estiver disponível, tenta endpoint de join
-    if (!groupInfo) {
-      const endpointsJoin = [
-        `${openwaUrl}/api/sessions/${encodeURIComponent(sessionName)}/groups/join`,
-        `${openwaUrl}/api/${encodeURIComponent(sessionName)}/groups/join`,
-        `${openwaUrl}/api/groups/join`,
-      ];
-
-      for (const ep of endpointsJoin) {
-        try {
-          const res = await fetch(ep, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ code: inviteCode, session: sessionName }),
-            signal: AbortSignal.timeout(8000),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const jid = data.id?._serialized || data.id || data.groupId || data.jid;
-            if (jid && String(jid).includes('@g.us')) {
-              groupInfo = {
-                id: String(jid),
-                name: data.subject || data.name || 'Grupo WhatsApp',
-              };
-              break;
-            }
-          }
-        } catch {}
-      }
-    }
+    const groupInfo = await resolverConviteGrupoOpenWA({
+      sessionId: effectiveSessionId,
+      linkOuCodigo,
+    });
 
     if (!groupInfo) {
       return respostaErro(
