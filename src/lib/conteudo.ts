@@ -172,6 +172,12 @@ export interface PrefillAgendamento {
   collaborators?: string[] | null;
 }
 
+export interface ChecklistItem {
+  id: string;
+  texto: string;
+  concluido: boolean;
+}
+
 export interface ConteudoItem {
   id: string;
   agencia_id: string;
@@ -200,6 +206,7 @@ export interface ConteudoItem {
   token_aprovacao: string;
   comentarios_revisao: ComentarioRevisao[];
   historico_atividades?: EventoAtividade[];
+  checklist?: ChecklistItem[] | null;
   automacao_config?: import('./publish-automation').PublishAutomationConfig | null;
   criado_em: string;
   atualizado_em: string;

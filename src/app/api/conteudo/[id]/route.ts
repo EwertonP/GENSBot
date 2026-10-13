@@ -122,6 +122,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       'comentarios_revisao',
       'historico_atividades',
       'automacao_config',
+      'checklist',
     ];
 
     const updates: Record<string, any> = {};

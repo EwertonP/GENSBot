@@ -13,11 +13,13 @@ import {
   Eye,
   FileText,
   Image as ImageIcon,
+  ListTodo,
   Maximize2,
   MessageSquare,
   MoreHorizontal,
   Paperclip,
   Pencil,
+  Plus,
   Search,
   Send,
   Share2,
@@ -50,6 +52,7 @@ import {
   distanciaEmDias,
   paraInputData,
   type ArquivoConteudo,
+  type ChecklistItem,
   type ConteudoItem,
   type PrioridadeConteudo,
   type StatusConteudo,
@@ -121,6 +124,20 @@ function classeContadorLegenda(tamanho: number): string {
 
 const EMOJIS_LEGENDA = ['🚀', '👉', '💡', '🔥', '✅', '💪', '🎯', '📲', '📸', '📅'];
 
+function renderComentarioTexto(texto: string) {
+  const parts = texto.split(/(@[\w\u00C0-\u017F.-]+)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('@')) {
+      return (
+        <span key={i} className="font-semibold text-primary bg-primary/10 px-1 py-0.5 rounded-md">
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
 type Aba = 'legenda' | 'briefing' | 'capa' | 'anexos';
 
 export interface DemandaSheetProps {
@@ -170,6 +187,8 @@ export function DemandaSheet({
   const [titulo, setTitulo] = useState(() => item?.titulo || '');
   const [briefing, setBriefing] = useState(() => item?.briefing || '');
   const [legenda, setLegenda] = useState(() => item?.legenda || '');
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => item?.checklist || []);
+  const [novoItemTexto, setNovoItemTexto] = useState('');
   const [clienteId, setClienteId] = useState(() => item?.cliente_id || clienteInicialId || '');
   const [responsavelId, setResponsavelId] = useState(() => (item ? item.responsavel_id || '' : responsavelInicialId || ''));
   const [coResponsaveis, setCoResponsaveis] = useState<string[]>(() => item?.co_responsaveis_ids ?? []);
@@ -194,6 +213,49 @@ export function DemandaSheet({
   const [excluindo, setExcluindo] = useState(false);
   const [novoComentario, setNovoComentario] = useState('');
   const [enviandoComentario, setEnviandoComentario] = useState(false);
+
+  // Sincronização do checklist
+  async function sincronizarChecklist(novos: ChecklistItem[]) {
+    setChecklist(novos);
+    if (editando && item?.id) {
+      try {
+        const res = await fetch(`/api/conteudo/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ checklist: novos }),
+        });
+        const data = await res.json();
+        if (res.ok && data.item) {
+          onItemAtualizado(data.item);
+        }
+      } catch (err) {
+        console.error('Erro ao salvar checklist:', err);
+      }
+    }
+  }
+
+  function handleToggleChecklist(id: string) {
+    const atualizados = checklist.map((c) => (c.id === id ? { ...c, concluido: !c.concluido } : c));
+    sincronizarChecklist(atualizados);
+  }
+
+  function handleAdicionarItemChecklist(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!novoItemTexto.trim()) return;
+    const novoItem: ChecklistItem = {
+      id: crypto.randomUUID(),
+      texto: novoItemTexto.trim(),
+      concluido: false,
+    };
+    const atualizados = [...checklist, novoItem];
+    setNovoItemTexto('');
+    sincronizarChecklist(atualizados);
+  }
+
+  function handleRemoverItemChecklist(id: string) {
+    const atualizados = checklist.filter((c) => c.id !== id);
+    sincronizarChecklist(atualizados);
+  }
 
   // Campo da legenda (abas ou dividido): os botões da barra inserem onde está o cursor.
   const legendaRef = useRef<HTMLTextAreaElement>(null);
@@ -225,10 +287,12 @@ export function DemandaSheet({
       clienteId !== item.cliente_id ||
       urls.trim() !== '' ||
       (capaUrl || null) !== (item.cover_url || null) ||
-      arquivos.map((a) => a.url).join('|') !== (item.arquivos || []).map((a) => a.url).join('|')
+      arquivos.map((a) => a.url).join('|') !== (item.arquivos || []).map((a) => a.url).join('|') ||
+      JSON.stringify(checklist) !== JSON.stringify(item.checklist || [])
     : titulo.trim() !== '' ||
       briefing.trim() !== '' ||
       legenda.trim() !== '' ||
+      checklist.length > 0 ||
       urls.trim() !== '' ||
       arquivos.length > 0 ||
       !!capaUrl ||
@@ -261,6 +325,7 @@ export function DemandaSheet({
       legenda,
       tipo,
       arquivos,
+      checklist,
       data_programada: deInputData(dataProgramada, base.data_programada) ?? base.data_programada,
     };
   }
@@ -345,6 +410,7 @@ export function DemandaSheet({
         prazo: deInputData(prazoInterno, item?.prazo),
         arquivos: [...arquivos, ...urlsManuais],
         cover_url: tipo === 'reel' ? capaUrl : null,
+        checklist,
       };
 
       const res = await fetch(editando ? `/api/conteudo/${item.id}` : '/api/conteudo', {
@@ -473,30 +539,40 @@ export function DemandaSheet({
         className="flex flex-col max-h-[92vh] w-full bg-card"
       >
         {/* 1. Cabeçalho: contexto + etapa + ações; título em linha própria */}
-        <div className="px-4 pt-2.5 pb-3 border-b border-border flex flex-col gap-2 bg-card shrink-0">
+        <div className="px-4 sm:px-6 pt-3 pb-3.5 border-b border-border flex flex-col gap-2.5 bg-card shrink-0">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-1 min-w-0 text-xs text-muted-foreground">
-              {!editando && <Badge variant="brand">Nova demanda</Badge>}
-              {clienteObj && (
-                <span className="flex items-center gap-1.5 min-w-0">
-                  <ClienteAvatar nome={clienteObj.nome} cor={clienteObj.cor} fotoUrl={clienteObj.foto_url} tamanho="xs" />
-                  <span className="hidden sm:inline truncate font-medium text-foreground max-w-[180px]">{clienteObj.nome}</span>
-                </span>
-              )}
-              <span aria-hidden className="hidden sm:inline text-border-strong">·</span>
-              <span className="shrink-0">{FORMATOS.find((f) => f.id === tipo)?.label}</span>
-              {status === 'travado' && (
-                <Badge variant="destructive" dot className="shrink-0">
-                  Ajuste pedido
+            {/* Breadcrumb contextual no estilo Imagem 3: • [Cliente] > • [Etapa] */}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0 text-xs">
+              {!editando && (
+                <Badge variant="brand" className="rounded-full px-2 py-0.5 text-xs font-semibold mr-0.5 shrink-0">
+                  Nova
                 </Badge>
               )}
+              {clienteObj ? (
+                <span className="inline-flex items-center gap-1.5 font-medium text-foreground truncate max-w-[200px]">
+                  <span className="size-1.5 rounded-full bg-primary shrink-0" />
+                  <span className="truncate">{clienteObj.nome}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
+                  <span className="size-1.5 rounded-full bg-muted-foreground shrink-0" />
+                  <span>Sem cliente</span>
+                </span>
+              )}
+
+              <span aria-hidden className="text-muted-foreground/60 shrink-0 font-normal">›</span>
+
+              <span className="inline-flex items-center gap-1.5 font-semibold text-foreground truncate">
+                <span className="size-1.5 rounded-full bg-brand-text shrink-0" />
+                <span>{ETAPAS_PIPELINE.find((e) => e.status === status)?.label || 'Planejamento'}</span>
+              </span>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
               <div
                 role="group"
                 aria-label={editando ? 'Etapa da demanda' : 'Etapa inicial'}
-                className="hidden md:flex items-center bg-accent/30 rounded-lg p-0.5 border border-border"
+                className="hidden md:flex items-center bg-accent/30 rounded-xl p-0.5 border border-border"
               >
                 {ETAPAS_PIPELINE.map((etapa) => {
                   const atual = getEtapaIndex(status);
@@ -508,7 +584,7 @@ export function DemandaSheet({
                       onClick={() => setStatus(etapa.status)}
                       aria-pressed={ehAtual}
                       aria-label={etapa.label}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-ui cursor-pointer ${
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-ui cursor-pointer ${
                         ehAtual
                           ? 'bg-primary text-primary-foreground shadow-2xs'
                           : feita
@@ -550,7 +626,7 @@ export function DemandaSheet({
                 <button
                   type="button"
                   onClick={() => onCopiarLinkAprovacao(item.token_aprovacao)}
-                  className="px-2.5 py-1.5 rounded-lg bg-accent/60 hover:bg-accent border border-border text-foreground font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs"
+                  className="px-2.5 py-1.5 rounded-xl bg-accent/60 hover:bg-accent border border-border text-foreground font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs shadow-2xs"
                   aria-label="Copiar link de aprovação do cliente"
                 >
                   <Share2 className="w-3.5 h-3.5 text-brand-text" />
@@ -562,7 +638,7 @@ export function DemandaSheet({
                 <button
                   type="button"
                   onClick={() => onLevarParaAgendamento(itemComEdicoes(item))}
-                  className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary/85 text-primary-foreground font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer text-xs"
+                  className="px-2.5 py-1.5 rounded-xl bg-primary hover:bg-primary/85 text-primary-foreground font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer text-xs"
                   aria-label="Agendar postagem"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -574,16 +650,16 @@ export function DemandaSheet({
                 <Menu.Root>
                   <Menu.Trigger
                     aria-label="Mais ações da demanda"
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors data-popup-open:bg-accent data-popup-open:text-foreground"
+                    className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors data-popup-open:bg-accent data-popup-open:text-foreground"
                   >
                     <MoreHorizontal className="w-4 h-4" />
                   </Menu.Trigger>
                   <Menu.Portal>
                     <Menu.Positioner side="bottom" align="end" sideOffset={6} className="z-[80]">
-                      <Menu.Popup className="min-w-48 rounded-xl border border-border-strong bg-popover p-1 text-popover-foreground shadow-lg outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0">
+                      <Menu.Popup className="min-w-48 rounded-2xl border border-border-strong bg-popover p-1.5 text-popover-foreground shadow-xl outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0">
                         <Menu.Item
                           onClick={() => copiarTexto(item.id, 'ID da demanda copiado.', 'Não foi possível copiar o ID.')}
-                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer outline-none data-highlighted:bg-accent"
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
                         >
                           <Copy className="size-3.5 text-muted-foreground" />
                           <span className="flex-1">Copiar ID</span>
@@ -591,7 +667,7 @@ export function DemandaSheet({
                         </Menu.Item>
                         <Menu.Item
                           onClick={handleExcluir}
-                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer outline-none text-destructive data-highlighted:bg-destructive-soft"
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer outline-none text-destructive data-highlighted:bg-destructive-soft"
                         >
                           <Trash2 className="size-3.5" />
                           <span>Excluir demanda</span>
@@ -605,7 +681,7 @@ export function DemandaSheet({
               <button
                 type="button"
                 onClick={fechar}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
+                className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
                 aria-label="Fechar"
               >
                 <X className="w-4 h-4" />
@@ -613,7 +689,7 @@ export function DemandaSheet({
             </div>
           </div>
 
-          {/* Título em linha própria: quebra linha em vez de cortar */}
+          {/* Título editorial em Sora */}
           <AutoTextarea
             bare
             value={titulo}
@@ -625,8 +701,34 @@ export function DemandaSheet({
             aria-label="Título da demanda"
             required
             autoFocus={!editando}
-            className="w-full bg-transparent text-lg sm:text-xl font-bold font-display leading-snug text-foreground placeholder:text-muted-foreground rounded-lg px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="w-full bg-transparent text-xl sm:text-2xl font-bold font-display tracking-tight text-foreground placeholder:text-muted-foreground rounded-lg px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 leading-snug"
           />
+
+          {/* Tags Cápsula (Formato, Nicho/Categoria, Prioridade, Ajuste) */}
+          <div className="flex items-center flex-wrap gap-1.5 pt-0.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent text-foreground border border-border">
+              {React.createElement(FORMATOS.find((f) => f.id === tipo)?.icon || ImageIcon, { className: 'w-3 h-3 text-brand-text shrink-0' })}
+              <span>{FORMATOS.find((f) => f.id === tipo)?.label || 'Post'}</span>
+            </span>
+
+            {clienteObj?.nicho && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted/80 text-muted-foreground border border-border/80">
+                {clienteObj.nicho}
+              </span>
+            )}
+
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${PRIORIDADE_CONFIG[prioridade].bg} ${PRIORIDADE_CONFIG[prioridade].text} border ${PRIORIDADE_CONFIG[prioridade].border}`}>
+              <span className={`size-1.5 rounded-full shrink-0 ${PRIORIDADE_CONFIG[prioridade].dot}`} />
+              {PRIORIDADE_CONFIG[prioridade].label}
+            </span>
+
+            {status === 'travado' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-destructive-soft text-destructive border border-destructive-ring">
+                <AlertCircle className="w-3 h-3 shrink-0" />
+                Ajuste pedido
+              </span>
+            )}
+          </div>
         </div>
 
         {/* 2. Corpo rolável em 2 colunas */}
@@ -1099,61 +1201,183 @@ export function DemandaSheet({
               </div>
             </div>
 
-            {editando ? (
-              <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2 flex-1 min-h-[160px]">
-                <div className="flex items-center justify-between border-b border-border pb-2">
-                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 font-display">
-                    <MessageSquare className="w-3.5 h-3.5 text-brand-text" />
-                    Comentários & Atividades
+            {/* Bloco de Checklist com barra de progresso (Imagem 3) */}
+            <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display">
+                    <ListTodo className="w-3.5 h-3.5 text-primary" />
+                    Checklist
                   </span>
+                  {checklist.length > 0 && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent text-accent-foreground font-mono tabular-nums">
+                      {checklist.filter((c) => c.concluido).length}/{checklist.length}
+                    </span>
+                  )}
+                </div>
+                {checklist.length > 0 && (
+                  <span className="text-xs font-bold text-muted-foreground font-mono tabular-nums">
+                    {Math.round((checklist.filter((c) => c.concluido).length / checklist.length) * 100)}%
+                  </span>
+                )}
+              </div>
+
+              {/* Barra de progresso visual */}
+              {checklist.length > 0 && (
+                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-300 ease-out"
+                    style={{
+                      width: `${(checklist.filter((c) => c.concluido).length / checklist.length) * 100}%`,
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Lista de itens interativos */}
+              <div className="flex flex-col gap-1 max-h-48 overflow-y-auto pr-0.5">
+                {checklist.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-1">Nenhum item no checklist ainda.</p>
+                ) : (
+                  checklist.map((cItem) => (
+                    <div
+                      key={cItem.id}
+                      className="group flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-muted/50 transition-colors text-xs"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleToggleChecklist(cItem.id)}
+                        className="flex items-center gap-2.5 text-left flex-1 min-w-0 cursor-pointer"
+                      >
+                        <div
+                          className={`size-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                            cItem.concluido
+                              ? 'bg-primary border-primary text-primary-foreground'
+                              : 'border-muted-foreground/40 hover:border-primary'
+                          }`}
+                        >
+                          {cItem.concluido && <Check className="size-2.5 stroke-[3]" />}
+                        </div>
+                        <span
+                          className={`truncate text-xs ${
+                            cItem.concluido
+                              ? 'line-through text-muted-foreground'
+                              : 'text-foreground font-medium'
+                          }`}
+                        >
+                          {cItem.texto}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoverItemChecklist(cItem.id)}
+                        aria-label="Remover item"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive rounded transition-opacity cursor-pointer"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Input rápido para adicionar novo item */}
+              <div className="flex items-center gap-1.5 pt-1 border-t border-border/60">
+                <Input
+                  value={novoItemTexto}
+                  onChange={(e) => setNovoItemTexto(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAdicionarItemChecklist();
+                    }
+                  }}
+                  placeholder="+ Adicionar item ao checklist..."
+                  className="h-8 text-xs bg-accent/20 rounded-xl"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAdicionarItemChecklist}
+                  disabled={!novoItemTexto.trim()}
+                  className="h-8 px-2.5 rounded-xl text-xs shrink-0 cursor-pointer"
+                >
+                  <Plus className="size-3.5 mr-1" />
+                  Adicionar
+                </Button>
+              </div>
+            </div>
+
+            {/* Comentários & Alinhamento em balões acolhedores */}
+            {editando ? (
+              <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 flex-1 min-h-[180px]">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display">
+                    <MessageSquare className="w-3.5 h-3.5 text-brand-text" />
+                    Comentários & Alinhamento
+                  </span>
+                  {(item.historico_atividades?.length || 0) + (item.comentarios_revisao?.length || 0) > 0 && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent text-accent-foreground font-mono tabular-nums">
+                      {(item.historico_atividades?.length || 0) + (item.comentarios_revisao?.length || 0)}
+                    </span>
+                  )}
                 </div>
 
+                {/* Ajustes do cliente (destaque) */}
                 {(item.comentarios_revisao || []).length > 0 && (
-                  <div className="p-2.5 rounded-xl bg-warning-soft border border-warning-ring space-y-1">
-                    <p className="text-xs font-semibold text-warning flex items-center gap-1.5">
+                  <div className="p-3 rounded-2xl bg-warning-soft border border-warning-ring space-y-2">
+                    <p className="text-xs font-bold text-warning flex items-center gap-1.5">
                       <AlertCircle className="w-3.5 h-3.5" />
-                      Ajustes do cliente ({item.comentarios_revisao.length})
+                      Ajustes pedidos pelo cliente ({item.comentarios_revisao.length})
                     </p>
                     {item.comentarios_revisao.map((c) => (
-                      <div key={c.id} className="text-xs p-2 rounded-lg bg-card border border-border">
-                        <span className="text-muted-foreground block text-xs">{c.autor || 'Cliente'}</span>
+                      <div key={c.id} className="text-xs p-2.5 rounded-xl bg-card border border-border shadow-2xs">
+                        <span className="text-muted-foreground block text-xs font-semibold">{c.autor || 'Cliente'}</span>
                         <p className="text-foreground mt-0.5 whitespace-pre-wrap">{c.texto}</p>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <div className="space-y-1.5 max-h-44 sm:max-h-56 overflow-y-auto pr-1 flex-1">
+                {/* Thread de balões com avatar e destaque de menções */}
+                <div className="space-y-2.5 max-h-56 sm:max-h-64 overflow-y-auto pr-1 flex-1">
                   {!item.historico_atividades || item.historico_atividades.length === 0 ? (
-                    <p className="text-xs text-muted-foreground py-1.5">Nenhuma atividade registrada ainda.</p>
+                    <p className="text-xs text-muted-foreground py-2 text-center">Nenhum comentário registrado ainda.</p>
                   ) : (
                     item.historico_atividades.map((ev) => (
-                      <div key={ev.id} className="p-2 rounded-xl bg-accent/20 border border-border text-xs flex flex-col gap-0.5">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span className="font-semibold text-foreground">{ev.autor_nome || 'Equipe'}</span>
-                          <time dateTime={ev.criado_em} className="tabular-nums">
-                            {new Date(ev.criado_em).toLocaleString('pt-BR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </time>
+                      <div key={ev.id} className="flex items-start gap-2.5">
+                        <ClienteAvatar nome={ev.autor_nome || 'Equipe'} tamanho="xs" className="mt-0.5 shrink-0" />
+                        <div className="flex-1 rounded-2xl bg-muted/60 dark:bg-muted/30 border border-border/40 p-3 text-xs flex flex-col gap-1">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span className="font-bold text-foreground">{ev.autor_nome || 'Equipe'}</span>
+                            <time dateTime={ev.criado_em} className="tabular-nums text-muted-foreground">
+                              {new Date(ev.criado_em).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </time>
+                          </div>
+                          <p className="text-foreground text-xs whitespace-pre-wrap leading-relaxed">
+                            {renderComentarioTexto(ev.texto)}
+                          </p>
                         </div>
-                        <p className="text-foreground text-xs whitespace-pre-wrap">{ev.texto}</p>
                       </div>
                     ))
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-1.5 border-t border-border shrink-0">
+                {/* Input de novo comentário */}
+                <div className="flex gap-2 pt-2 border-t border-border shrink-0">
                   <Textarea
                     value={novoComentario}
                     onChange={(e) => setNovoComentario(e.target.value)}
-                    placeholder="Comentário interno (Ctrl+Enter para enviar)..."
+                    placeholder="Escreva um comentário (use @nome para mencionar, Ctrl+Enter para enviar)..."
                     aria-label="Novo comentário interno"
                     rows={2}
-                    className="text-xs flex-1 bg-accent/20 resize-none h-14"
+                    className="text-xs flex-1 bg-accent/20 resize-none h-14 rounded-xl"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                         e.preventDefault();
@@ -1169,7 +1393,7 @@ export function DemandaSheet({
                     loading={enviandoComentario}
                     onClick={handleEnviarComentario}
                     aria-label="Enviar comentário"
-                    className="h-14 px-3 text-xs shrink-0 cursor-pointer"
+                    className="h-14 px-3.5 rounded-xl text-xs shrink-0 cursor-pointer shadow-2xs"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </Button>

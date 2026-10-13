@@ -17,6 +17,7 @@ import {
   Share2,
   Calendar,
   CheckCircle2,
+  CheckSquare,
   Sparkles,
   Grid3X3,
   Edit2,
@@ -975,16 +976,25 @@ export default function EsteiraTab({
                           </h4>
                         )}
 
-                        {/* Badges de Slides, Prazo e Responsável */}
+                        {/* Badges em Pílula de Slides, Checklist, Prazo e Ajustes */}
                         <div className="flex flex-wrap items-center gap-1.5 text-xs">
                           {item.arquivos?.length > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono font-medium border border-border">
+                            <span className="px-2.5 py-0.5 rounded-full bg-accent/60 text-muted-foreground font-mono font-medium border border-border">
                               {item.arquivos.length} {item.tipo === 'reel' ? 'vídeo' : 'slides'}
                             </span>
                           )}
 
+                          {item.checklist && item.checklist.length > 0 && (
+                            <span className="px-2.5 py-0.5 rounded-full bg-accent text-foreground font-mono font-semibold flex items-center gap-1 border border-border">
+                              <CheckSquare className="w-3 h-3 text-primary" />
+                              <span>
+                                {item.checklist.filter((c) => c.concluido).length}/{item.checklist.length}
+                              </span>
+                            </span>
+                          )}
+
                           {item.prazo && (
-                            <span className="px-2 py-0.5 rounded-md bg-accent/60 text-muted-foreground font-mono flex items-center gap-1 border border-border">
+                            <span className="px-2.5 py-0.5 rounded-full bg-accent/60 text-muted-foreground font-mono flex items-center gap-1 border border-border">
                               <Clock className="w-3 h-3" />
                               <span>
                                 {dataLocal(item.prazo).toLocaleDateString('pt-BR', {
@@ -997,7 +1007,7 @@ export default function EsteiraTab({
 
                           {temComentarios && (
                             <span
-                              className={`px-2 py-0.5 rounded-md font-mono font-bold flex items-center gap-1 border ${
+                              className={`px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1 border ${
                                 temAjustes
                                   ? 'bg-destructive/15 text-destructive border-destructive/20'
                                   : 'bg-brand-soft text-brand-text border-brand-ring'

@@ -166,6 +166,7 @@ export async function POST(req: Request) {
       editor_id,
       arquivos = [],
       cover_url,
+      checklist = [],
     } = body;
 
     if (!cliente_id) {
@@ -195,6 +196,7 @@ export async function POST(req: Request) {
       editor_id: editor_id || null,
       arquivos,
       cover_url: cover_url ? String(cover_url) : null,
+      checklist: Array.isArray(checklist) ? checklist : [],
     };
 
     let { data, error } = await supabase

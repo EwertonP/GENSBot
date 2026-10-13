@@ -198,7 +198,7 @@ export default function UserProfilePopover({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2.5 p-2 rounded-xl bg-accent/40 hover:bg-accent border border-border hover:border-foreground/20 transition-ui cursor-pointer text-left shadow-2xs group"
+        className="w-full flex items-center justify-between gap-2.5 p-2 rounded-2xl bg-accent/40 hover:bg-accent border border-border hover:border-foreground/20 transition-ui cursor-pointer text-left shadow-2xs group"
         aria-label="Menu do usuário master"
       >
         <div className="flex items-center gap-2.5 min-w-0">
@@ -208,7 +208,7 @@ export default function UserProfilePopover({
               fotoUrl={avatarUrl}
               cor="#192313"
               tamanho="sm"
-              className="ring-2 ring-white"
+              className="ring-2 ring-white dark:ring-background"
             />
           </div>
           <div className="flex flex-col min-w-0 leading-tight">
@@ -226,32 +226,32 @@ export default function UserProfilePopover({
             initial={{ opacity: 0, scale: 0.95, y: direction === 'up' ? -8 : 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: direction === 'up' ? -8 : 8 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className={`absolute left-0 w-64 rounded-2xl bg-card border border-border shadow-2xl p-2 z-50 overflow-hidden text-foreground ${
-              direction === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'
+            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className={`absolute left-0 w-72 rounded-3xl bg-popover/95 backdrop-blur-md border border-border/80 shadow-2xl p-2.5 z-50 overflow-hidden text-popover-foreground ${
+              direction === 'up' ? 'bottom-full mb-2.5' : 'top-full mt-2.5'
             }`}
           >
             {/* Header do Perfil no Popover */}
-            <div className="px-3 py-2.5 bg-primary/10 rounded-xl border border-primary/30 mb-1.5 flex items-center justify-between">
-              <div className="flex flex-col overflow-hidden">
+            <div className="px-3.5 py-3 bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/60 mb-2 flex items-center justify-between gap-2.5">
+              <div className="flex flex-col min-w-0 leading-tight">
                 <span className="text-xs font-bold text-foreground truncate">{userName}</span>
                 <span className="text-xs text-muted-foreground truncate">{userRole}</span>
               </div>
-              <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground shadow-2xs shrink-0">
+              <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary text-primary-foreground shadow-2xs shrink-0">
                 <Zap className="w-2.5 h-2.5 fill-current" />
                 MASTER
               </span>
             </div>
 
             {/* Opções de Navegação */}
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1">
               <button
                 type="button"
                 onClick={() => {
                   setOpen(false);
                   setModalEditOpen(true);
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-accent transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
               >
                 <User className="w-4 h-4 text-primary" />
                 <span>Minha Conta & Foto de Perfil</span>
@@ -264,7 +264,7 @@ export default function UserProfilePopover({
                     setOpen(false);
                     onNavigate('equipe');
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-accent transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
                 >
                   <Users2 className="w-4 h-4 text-muted-foreground" />
                   <span>Equipe & Sócios</span>
@@ -272,16 +272,16 @@ export default function UserProfilePopover({
               )}
             </div>
 
-            <div className="my-1.5 border-t border-border" />
+            <div className="my-1.5 border-t border-border/60" />
 
             {/* Suporte & Logout */}
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1">
               <a
                 href="https://wa.me/5583999999999"
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => setOpen(false)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-accent transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
               >
                 <HelpCircle className="w-4 h-4 text-muted-foreground" />
                 <span>Central de Suporte GENS</span>
@@ -293,7 +293,7 @@ export default function UserProfilePopover({
                   setOpen(false);
                   onLogout?.();
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-medium text-destructive hover:bg-destructive-soft transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Sair da Conta</span>
