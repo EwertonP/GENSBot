@@ -312,20 +312,5 @@ export function buildAlerts(
     alerts.push({ level: 'warning', key: `failure_rate:${healthScopeKey}`, message: `${health.failedPercent}% dos disparos recentes falharam. Veja o diagnóstico de falhas para entender o motivo.` });
   }
 
-  const rankingByAutomation = new Map(automationRanking.map(r => [r.id, r]));
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  for (const auto of automations) {
-    if (!auto.active) continue;
-    const isOld = auto.created_at ? new Date(auto.created_at) < thirtyDaysAgo : true;
-    if (!isOld) continue;
-    const activity = rankingByAutomation.get(auto.id);
-    const totalActivity = activity ? activity.comments + activity.clicks + activity.welcomeDms : 0;
-    if (totalActivity === 0) {
-      alerts.push({ level: 'warning', key: `automation_inactive:${auto.id}`, message: `A automação "${auto.name}" está ativa mas não teve nenhuma interação registrada. Confira se os gatilhos ainda fazem sentido.` });
-    }
-  }
-
   return alerts;
 }
