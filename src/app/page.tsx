@@ -1162,13 +1162,29 @@ export default function Dashboard() {
               )}
             </button>
             </Tip>
-            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs shadow-xs">
-              {currentUser?.email?.substring(0, 1).toUpperCase()}
-            </div>
+
+            {/* Avatar do Usuário Mobile com Popover */}
+            {currentUser && (
+              <UserProfilePopover
+                membroId={membroPerfil?.id}
+                userName={membroPerfil?.nome || currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Agência GENS'}
+                userEmail={currentUser?.email || 'contato@agenciagens.com'}
+                userRole={membroPerfil?.cargo || (membroPerfil?.papel === 'master' ? 'Diretor / Sócio' : 'Membro da Equipe')}
+                avatarUrl={membroPerfil?.foto_url || currentUser?.user_metadata?.avatar_url}
+                onNavigate={(tab) => {
+                  if (isAbaId(tab)) navegarPara(tab);
+                }}
+                onLogout={handleAppLogout}
+                onUpdateProfile={handleUpdateUserProfile}
+                direction="down"
+                align="right"
+                variant="avatar"
+              />
+            )}
           </div>
         </div>
 
-        {/* Top Header Bar — Com Respiro Padronizado e Altura Otimizada para 1080p */}
+        {/* Top Header Bar — Com Respiro Padronizado e Ações Rápidas (Estilo Imagens de Referência) */}
         <header className="hidden md:flex sticky top-0 z-30 min-h-[64px] py-3 px-6 sm:px-8 items-center justify-between flex-shrink-0 bg-background/90 backdrop-blur-md border-b border-border shadow-2xs">
           <div>
             <div className="flex items-center gap-2">
@@ -1179,8 +1195,7 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
-
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setPaletteAberta(true)}
@@ -1216,6 +1231,38 @@ export default function Dashboard() {
               )}
             </button>
             </Tip>
+
+            {/* Botão Criar Demanda em Pílula (Estilo Imagens 1 & 2) */}
+            <button
+              type="button"
+              onClick={() => {
+                if (activeTab !== 'esteira') navegarPara('esteira');
+                setNovaDemandaSinal((prev) => prev + 1);
+              }}
+              className="h-9 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition-ui cursor-pointer shrink-0 active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Criar</span>
+            </button>
+
+            {/* Avatar do Usuário Master com Popover Flutuante rounded-3xl (Imagens 1 & 2) */}
+            {currentUser && (
+              <UserProfilePopover
+                membroId={membroPerfil?.id}
+                userName={membroPerfil?.nome || currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Agência GENS'}
+                userEmail={currentUser?.email || 'contato@agenciagens.com'}
+                userRole={membroPerfil?.cargo || (membroPerfil?.papel === 'master' ? 'Diretor / Sócio' : 'Membro da Equipe')}
+                avatarUrl={membroPerfil?.foto_url || currentUser?.user_metadata?.avatar_url}
+                onNavigate={(tab) => {
+                  if (isAbaId(tab)) navegarPara(tab);
+                }}
+                onLogout={handleAppLogout}
+                onUpdateProfile={handleUpdateUserProfile}
+                direction="down"
+                align="right"
+                variant="avatar"
+              />
+            )}
           </div>
         </header>
 

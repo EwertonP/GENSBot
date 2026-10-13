@@ -525,7 +525,7 @@ export function DemandaSheet({
       onClose={onFechar}
       dirty={sujo}
       aria-label={editando ? 'Editar demanda' : 'Nova demanda'}
-      className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden"
+      className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden rounded-[32px] border border-border/80 shadow-2xl"
     >
       <form
         onSubmit={handleSalvar}
@@ -536,15 +536,15 @@ export function DemandaSheet({
             if (!salvando) e.currentTarget.requestSubmit();
           }
         }}
-        className="flex flex-col max-h-[92vh] w-full bg-card"
+        className="flex flex-col max-h-[92vh] w-full bg-card rounded-[32px] overflow-hidden"
       >
         {/* 1. Cabeçalho: contexto + etapa + ações; título em linha própria */}
-        <div className="px-4 sm:px-6 pt-3 pb-3.5 border-b border-border flex flex-col gap-2.5 bg-card shrink-0">
+        <div className="px-4 sm:px-6 pt-4 pb-4 border-b border-border flex flex-col gap-3 bg-card shrink-0">
           <div className="flex items-center justify-between gap-3">
             {/* Breadcrumb contextual no estilo Imagem 3: • [Cliente] > • [Etapa] */}
             <div className="flex items-center gap-1.5 flex-1 min-w-0 text-xs">
               {!editando && (
-                <Badge variant="brand" className="rounded-full px-2 py-0.5 text-xs font-semibold mr-0.5 shrink-0">
+                <Badge variant="brand" className="rounded-full px-2.5 py-0.5 text-xs font-semibold mr-0.5 shrink-0">
                   Nova
                 </Badge>
               )}
@@ -705,7 +705,7 @@ export function DemandaSheet({
           />
 
           {/* Tags Cápsula (Formato, Nicho/Categoria, Prioridade, Ajuste) */}
-          <div className="flex items-center flex-wrap gap-1.5 pt-0.5">
+          <div className="flex items-center flex-wrap gap-1.5">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent text-foreground border border-border">
               {React.createElement(FORMATOS.find((f) => f.id === tipo)?.icon || ImageIcon, { className: 'w-3 h-3 text-brand-text shrink-0' })}
               <span>{FORMATOS.find((f) => f.id === tipo)?.label || 'Post'}</span>
@@ -728,6 +728,55 @@ export function DemandaSheet({
                 Ajuste pedido
               </span>
             )}
+          </div>
+
+          {/* Barra Horizontal de Metadados Integrada (Estilo Imagem 3) */}
+          <div className="flex items-center flex-wrap gap-4 pt-2.5 border-t border-border/60 text-xs">
+            {/* Responsáveis */}
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-muted-foreground">Responsáveis</span>
+              <div className="flex items-center -space-x-1.5">
+                {[responsavelId, ...coResponsaveis]
+                  .filter((id, i, arr) => !!id && arr.indexOf(id) === i)
+                  .map((id) => {
+                    const m = membros.find((mb) => mb.id === id);
+                    return (
+                      <ClienteAvatar
+                        key={id}
+                        nome={m?.nome || 'Membro'}
+                        fotoUrl={m && 'foto_url' in m ? (m.foto_url as string) : undefined}
+                        tamanho="xs"
+                        className="ring-2 ring-card"
+                      />
+                    );
+                  })}
+                {![responsavelId, ...coResponsaveis].some(Boolean) && (
+                  <span className="text-xs text-muted-foreground italic">Não atribuído</span>
+                )}
+              </div>
+            </div>
+
+            {/* Prazo */}
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-muted-foreground">Prazo</span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-accent/60 text-foreground font-mono font-medium border border-border">
+                <Calendar className="w-3 h-3 text-muted-foreground" />
+                <span>
+                  {prazoInterno
+                    ? new Date(`${prazoInterno}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+                    : 'Sem prazo'}
+                </span>
+              </span>
+            </div>
+
+            {/* Prioridade */}
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-muted-foreground">Prioridade</span>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold border ${PRIORIDADE_CONFIG[prioridade].bg} ${PRIORIDADE_CONFIG[prioridade].text} ${PRIORIDADE_CONFIG[prioridade].border}`}>
+                <span className={`size-1.5 rounded-full ${PRIORIDADE_CONFIG[prioridade].dot}`} />
+                <span>{PRIORIDADE_CONFIG[prioridade].label}</span>
+              </span>
+            </div>
           </div>
         </div>
 

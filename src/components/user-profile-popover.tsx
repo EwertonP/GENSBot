@@ -35,6 +35,8 @@ interface UserProfilePopoverProps {
   onNavigate?: (tab: string) => void;
   onLogout?: () => void;
   direction?: 'up' | 'down';
+  align?: 'left' | 'right';
+  variant?: 'full' | 'avatar';
   onUpdateProfile?: (name: string, avatarUrl: string) => void;
 }
 
@@ -47,6 +49,8 @@ export default function UserProfilePopover({
   onNavigate,
   onLogout,
   direction = 'up',
+  align = 'left',
+  variant = 'full',
   onUpdateProfile,
 }: UserProfilePopoverProps) {
   const [open, setOpen] = useState(false);
@@ -193,33 +197,50 @@ export default function UserProfilePopover({
   }
 
   return (
-    <div className="relative w-full" ref={containerRef}>
-      {/* Trigger principal (Footer do Perfil na Sidebar ou Header) */}
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2.5 p-2 rounded-2xl bg-accent/40 hover:bg-accent border border-border hover:border-foreground/20 transition-ui cursor-pointer text-left shadow-2xs group"
-        aria-label="Menu do usuário master"
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="p-[2px] rounded-full bg-gradient-to-tr from-[#d8ff3c] via-emerald-400 to-[#192313] shadow-xs shrink-0">
-            <ClienteAvatar
-              nome={userName}
-              fotoUrl={avatarUrl}
-              cor="#192313"
-              tamanho="sm"
-              className="ring-2 ring-white dark:ring-background"
-            />
+    <div className={`relative ${variant === 'avatar' ? 'shrink-0' : 'w-full'}`} ref={containerRef}>
+      {/* Trigger principal (Avatar no Topbar ou Card na Sidebar) */}
+      {variant === 'avatar' ? (
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="p-[2px] rounded-full bg-gradient-to-tr from-[#d8ff3c] via-emerald-400 to-[#192313] shadow-xs shrink-0 hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+          aria-label="Menu do usuário master"
+        >
+          <ClienteAvatar
+            nome={userName}
+            fotoUrl={avatarUrl}
+            cor="#192313"
+            tamanho="sm"
+            className="ring-2 ring-background"
+          />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="w-full flex items-center justify-between gap-2.5 p-2 rounded-2xl bg-accent/40 hover:bg-accent border border-border hover:border-foreground/20 transition-ui cursor-pointer text-left shadow-2xs group"
+          aria-label="Menu do usuário master"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-[2px] rounded-full bg-gradient-to-tr from-[#d8ff3c] via-emerald-400 to-[#192313] shadow-xs shrink-0">
+              <ClienteAvatar
+                nome={userName}
+                fotoUrl={avatarUrl}
+                cor="#192313"
+                tamanho="sm"
+                className="ring-2 ring-white dark:ring-background"
+              />
+            </div>
+            <div className="flex flex-col min-w-0 leading-tight">
+              <span className="text-xs font-bold text-foreground truncate">{userName}</span>
+              <span className="text-xs text-muted-foreground truncate">{userEmail}</span>
+            </div>
           </div>
-          <div className="flex flex-col min-w-0 leading-tight">
-            <span className="text-xs font-bold text-foreground truncate">{userName}</span>
-            <span className="text-xs text-muted-foreground truncate">{userEmail}</span>
-          </div>
-        </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} />
-      </button>
+          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} />
+        </button>
+      )}
 
-      {/* Popover Suspenso (Abre para cima por padrão quando no rodapé da sidebar) */}
+      {/* Popover Suspenso (Abre para cima na sidebar ou para baixo na topbar) */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -227,7 +248,7 @@ export default function UserProfilePopover({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: direction === 'up' ? -8 : 8 }}
             transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-            className={`absolute left-0 w-72 rounded-3xl bg-popover/95 backdrop-blur-md border border-border/80 shadow-2xl p-2.5 z-50 overflow-hidden text-popover-foreground ${
+            className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} w-72 rounded-3xl bg-popover/95 backdrop-blur-md border border-border/80 shadow-2xl p-2.5 z-50 overflow-hidden text-popover-foreground ${
               direction === 'up' ? 'bottom-full mb-2.5' : 'top-full mt-2.5'
             }`}
           >
