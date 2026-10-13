@@ -55,7 +55,7 @@ export async function listarSessoesOpenWA(): Promise<OpenWASessionInfo[]> {
 }
 
 /**
- * Envia mensagem de texto para número pessoal (@c.us) ou Grupo (@g.us) via WAHA / OpenWA
+ * Envia mensagem de texto para número pessoal (@c.us) ou Grupo (@g.us) via OpenWA (rmyndharis/OpenWA)
  */
 export async function enviarMensagemOpenWA({
   sessionName,
@@ -82,8 +82,9 @@ export async function enviarMensagemOpenWA({
     }
   }
 
-  // 1. Resolve identificadores da sessão consultando o gateway (UUID e Nome exatos)
-  let identifiers = [sessionName, sessionName.replace(/-/g, '_'), sessionName.replace(/_/g, '-')];
+  // 1. Resolve o UUID exato da sessão no OpenWA
+  let sessionUuid: string | null = null;
+  let sessionExactName: string | null = null;
   try {
     const resList = await fetch(`${url}/api/sessions`, {
       headers,
@@ -103,26 +104,23 @@ export async function enviarMensagemOpenWA({
           );
         });
         if (match) {
-          identifiers = Array.from(
-            new Set([match.name, match.id, sessionName, sessionName.replace(/-/g, '_')].filter(Boolean))
-          );
+          sessionUuid = match.id || null;
+          sessionExactName = match.name || null;
         } else if (sessions.length === 1 && sessions[0]) {
-          // Se só há 1 sessão no gateway, inclui ela como candidata
-          const unica = sessions[0];
-          identifiers.push(unica.name, unica.id);
+          sessionUuid = sessions[0].id || null;
+          sessionExactName = sessions[0].name || null;
         }
       }
     }
   } catch {
-    // Segue com os identificadores padrão se listagem prévia falhar
+    // Segue com fallbacks
   }
 
-  // Inclui fallback para 'default' se for instalação single-session do WAHA
-  if (!identifiers.includes('default')) {
-    identifiers.push('default');
-  }
+  const idsParaTentar = Array.from(
+    new Set([sessionUuid, sessionExactName, sessionName, sessionName.replace(/-/g, '_')].filter(Boolean) as string[])
+  );
 
-  // 2. Monta lista de tentativas de envio na ordem oficial do WAHA
+  // 2. Monta lista de tentativas de envio na ordem oficial do OpenWA (rmyndharis/OpenWA)
   interface AttemptConfig {
     endpoint: string;
     body: Record<string, any>;
@@ -130,8 +128,27 @@ export async function enviarMensagemOpenWA({
 
   const attempts: AttemptConfig[] = [];
 
-  for (const sid of identifiers) {
-    // Padrão oficial WAHA: POST /api/sendText com session no body
+  for (const sid of idsParaTentar) {
+    // Padrão oficial OpenWA: POST /api/sessions/:sessionId/messages/send-text
+    attempts.push({
+      endpoint: `${url}/api/sessions/${encodeURIComponent(sid)}/messages/send-text`,
+      body: {
+        chatId: dest,
+        text: texto,
+        to: dest,
+      },
+    });
+
+    // Padrão alternativo com messages direto
+    attempts.push({
+      endpoint: `${url}/api/sessions/${encodeURIComponent(sid)}/send-text`,
+      body: {
+        chatId: dest,
+        text: texto,
+      },
+    });
+
+    // Padrão WAHA alternativo: POST /api/sendText
     attempts.push({
       endpoint: `${url}/api/sendText`,
       body: {
@@ -141,33 +158,12 @@ export async function enviarMensagemOpenWA({
       },
     });
 
-    // Padrão WAHA com session na URL: POST /api/{session}/sendText
+    // Padrão com session na URL: POST /api/:sid/sendText
     attempts.push({
       endpoint: `${url}/api/${encodeURIComponent(sid)}/sendText`,
       body: {
         chatId: dest,
         text: texto,
-      },
-    });
-
-    // Padrão com prefixo sessions: POST /api/sessions/{session}/sendText
-    attempts.push({
-      endpoint: `${url}/api/sessions/${encodeURIComponent(sid)}/sendText`,
-      body: {
-        chatId: dest,
-        text: texto,
-      },
-    });
-
-    // Padrão OpenWA alternativo
-    attempts.push({
-      endpoint: `${url}/api/messages/send-text`,
-      body: {
-        session: sid,
-        chatId: dest,
-        to: dest,
-        text: texto,
-        content: texto,
       },
     });
   }
@@ -185,7 +181,7 @@ export async function enviarMensagemOpenWA({
 
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        const messageId = data.id || data.messageId || data.key?.id || `msg-${Date.now()}`;
+        const messageId = data.id || data.messageId || data.key?.id || data.data?.id || `msg-${Date.now()}`;
         return { ok: true, messageId };
       }
 

@@ -75,32 +75,15 @@ export async function POST(req: Request) {
 
     let messageId = `msg-out-${Date.now()}`;
 
-    // Se o gateway OpenWA estiver ativo, envia a mensagem pelo Baileys
-    if (openwaUrl) {
-      try {
-        const destJid = telefoneLimpo.includes('@s.whatsapp.net') ? telefoneLimpo : `${telefoneLimpo}@s.whatsapp.net`;
-        const res = await fetch(`${openwaUrl.replace(/\/$/, '')}/api/messages/send-text`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(openwaKey ? { Authorization: `Bearer ${openwaKey}` } : {}),
-          },
-          body: JSON.stringify({
-            session: sessionName,
-            to: destJid,
-            text: texto.trim(),
-          }),
-        });
-
-        if (res.ok) {
-          const resData = await res.json();
-          messageId = resData.id || resData.messageId || messageId;
-        } else {
-          console.warn('[OpenWA API] Resposta de envio não-200:', await res.text());
-        }
-      } catch (errGateway) {
-        console.error('[OpenWA API] Falha de conexão ao enviar mensagem:', errGateway);
-      }
+    // Envia a mensagem pelo gateway centralizado OpenWA
+    const { enviarMensagemOpenWA } = await import('@/lib/openwa-client');
+    const resultado = await enviarMensagemOpenWA({
+      sessionName,
+      para: telefoneLimpo,
+      texto: texto.trim(),
+    });
+    if (resultado.ok && resultado.messageId) {
+      messageId = resultado.messageId;
     }
 
     // Salva a mensagem enviada no banco local
