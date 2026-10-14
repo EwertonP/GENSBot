@@ -358,12 +358,15 @@ export function gerarMensagemAprovacao(params: {
   token: string;
   urlOrigem?: string;
 }): { texto: string; linkAprovacao: string } {
-  const base = params.urlOrigem || (typeof window !== 'undefined' ? window.location.origin : 'https://allingens.vercel.app');
-  const linkAprovacao = `${base}/aprovacao/${params.token}`;
+  let base = params.urlOrigem || (typeof window !== 'undefined' ? window.location.origin : 'https://allingens.vercel.app');
+  if (!base || (typeof window === 'undefined' && (base.includes('localhost') || base.includes('127.0.0.1')))) {
+    base = 'https://allingens.vercel.app';
+  }
+  const linkAprovacao = `${base.replace(/\/$/, '')}/aprovacao/${params.token}`;
   const texto =
     `Olá! 👋 Aqui é da Agência GENS.\n\n` +
-    `Preparamos a nova publicação *"${params.tituloPost || 'Conteúdo do Mês'}"* para a sua aprovação:\n\n` +
-    `👉 *Acesse e aprove com 1 clique:*\n${linkAprovacao}\n\n` +
+    `Preparamos a nova publicação "${params.tituloPost || 'Conteúdo do Mês'}" para a sua aprovação:\n\n` +
+    `👉 Acesse e aprove com 1 clique:\n${linkAprovacao}\n\n` +
     `Você pode navegar pelos slides, assistir ao vídeo e sugerir ajustes direto no link! 🚀`;
   return { texto, linkAprovacao };
 }

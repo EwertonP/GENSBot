@@ -22,14 +22,31 @@ export async function GET(
         cliente:clientes(
           nome,
           foto_url,
-          nicho
+          nicho,
+          instagram_account_id
         )
       `)
       .eq('token_aprovacao', token)
       .maybeSingle();
 
     const titulo = item?.titulo || 'Nova Publicação para Aprovação';
-    const clienteNome = (item?.cliente as any)?.nome || 'Agência GENS';
+    let clienteNome = (item?.cliente as any)?.nome || 'Agência GENS';
+
+    // Se o cliente tem conta do Instagram vinculada, usa o @username para branding visual
+    const clienteObj = item?.cliente as any;
+    if (clienteObj?.instagram_account_id) {
+      const { data: conta } = await supabase
+        .from('instagram_accounts')
+        .select('instagram_username')
+        .eq('id', clienteObj.instagram_account_id)
+        .maybeSingle();
+      if (conta?.instagram_username) {
+        clienteNome = `@${conta.instagram_username}`;
+      }
+    } else if (clienteNome && !clienteNome.startsWith('@') && !clienteNome.includes(' ')) {
+      clienteNome = `@${clienteNome}`;
+    }
+
     const tipo = item?.tipo || 'post';
     const arquivos = Array.isArray(item?.arquivos) ? item.arquivos : [];
     // Capa da prévia: a capa definida (Reels) ou a primeira imagem (post/carrossel).

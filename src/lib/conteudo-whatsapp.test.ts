@@ -81,6 +81,18 @@ describe('notificarGrupoAprovacaoConteudo', () => {
     expect(r1.ok).toBe(true);
     expect(r1.enviado).toBe(true);
     expect(enviarMensagemOpenWA).toHaveBeenCalledTimes(1);
+    expect(enviarMensagemOpenWA).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionName: 'sessao-ewerton',
+        para: '1203630283921@g.us',
+        texto: expect.stringContaining('Olá! 👋 Aqui é da Agência GENS.'),
+      })
+    );
+    const textoEnviado = (enviarMensagemOpenWA as any).mock.calls[0][0].texto;
+    expect(textoEnviado).toContain('Preparamos a nova publicação "Post Anti Dup" para a sua aprovação:');
+    expect(textoEnviado).toContain('👉 Acesse e aprove com 1 clique:');
+    expect(textoEnviado).toContain('https://allingens.vercel.app/aprovacao/token-123');
+    expect(textoEnviado).toContain('Você pode navegar pelos slides, assistir ao vídeo e sugerir ajustes direto no link! 🚀');
 
     // 2º envio imediato para o mesmo post: deve ser barrado pelo cooldown para evitar duplicação
     const r2 = await notificarGrupoAprovacaoConteudo({

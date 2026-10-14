@@ -169,28 +169,32 @@ export async function notificarGrupoAprovacaoConteudo({
     }
 
     // 3. Prepara o link e o texto formatado da mensagem
-    const baseUrl =
+    let baseUrl =
       origemUrl ||
       process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '') ||
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://allingens.vercel.app');
+
+    // Se baseUrl for localhost ou vazia, WhatsApp e Meta não conseguem acessar nem gerar prévia
+    if (!baseUrl || baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+      baseUrl = process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')
+        ? process.env.NEXT_PUBLIC_APP_URL
+        : 'https://allingens.vercel.app';
+    }
 
     const linkAprovacao = token
       ? `${baseUrl.replace(/\/$/, '')}/aprovacao/${token}`
       : `${baseUrl.replace(/\/$/, '')}/aprovacao`;
 
     const textoNotificacao = [
-      `🔔 *NOVO CONTEÚDO PRONTO PARA APROVAÇÃO!*`,
+      `Olá! 👋 Aqui é da Agência GENS.`,
       ``,
-      `Olá, equipe de *${cliente.nome}*! 👋`,
+      `Preparamos a nova publicação "${tituloPost || 'Conteúdo do Mês'}" para a sua aprovação:`,
       ``,
-      `Finalizamos a produção da publicação *"${tituloPost || 'Conteúdo do Mês'}"* e ela já está disponível para a sua revisão.`,
-      ``,
-      `👉 *Acesse e aprove com 1 clique:*`,
+      `👉 Acesse e aprove com 1 clique:`,
       `${linkAprovacao}`,
       ``,
-      `_Você pode visualizar as artes/vídeos, sugerir ajustes ou aprovar diretamente no link acima._ 🚀`,
-      ``,
-      `*Equipe GENS*`,
+      `Você pode navegar pelos slides, assistir ao vídeo e sugerir ajustes direto no link! 🚀`,
     ].join('\n');
 
     // 4. Localiza a sessão conectada:

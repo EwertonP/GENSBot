@@ -157,10 +157,12 @@ export async function enviarMensagemOpenWA({
   sessionName,
   para,
   texto,
+  linkPreview = true,
 }: {
   sessionName: string;
   para: string;
   texto: string;
+  linkPreview?: boolean;
 }): Promise<{ ok: boolean; messageId?: string; erro?: string }> {
   const { url, headers } = getOpenWAConfig();
   if (!url) {
@@ -214,6 +216,7 @@ export async function enviarMensagemOpenWA({
         body: JSON.stringify({
           chatId: dest,
           text: texto,
+          linkPreview,
         }),
         signal: AbortSignal.timeout(10000),
       });
@@ -245,6 +248,7 @@ export async function enviarMensagemOpenWA({
         session: effectiveSessionId,
         chatId: dest,
         text: texto,
+        linkPreview,
       }),
       signal: AbortSignal.timeout(8000),
     });
