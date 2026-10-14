@@ -21,6 +21,10 @@ import {
   Moon,
   Undo2,
   UserRound,
+  Download,
+  Copy,
+  Check,
+  FolderDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +83,12 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   );
 
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  // Estados de Download em Alta Resolução
+  const [modalDownloadAberto, setModalDownloadAberto] = useState(false);
+  const [baixando, setBaixando] = useState(false);
+  const [statusDownload, setStatusDownload] = useState<string | null>(null);
+  const [copiouLegenda, setCopiouLegenda] = useState(false);
 
   useEffect(() => {
     // O script inline do layout já aplicou o tema (preferência salva ou do SO);
@@ -298,6 +308,111 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
     );
   }
 
+  function sanitizarNome(texto: string): string {
+    return (
+      texto
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9_-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '') || 'post'
+    );
+  }
+
+  function getNomeArquivoDownload(index?: number, total?: number, tipoArquivo?: string): string {
+    const cli = sanitizarNome(item?.cliente?.nome || 'cliente');
+    const tit = sanitizarNome(item?.titulo || 'conteudo');
+    const ext = tipoArquivo === 'video' || (item?.tipo === 'reel' && (index === undefined || index === 0)) ? 'mp4' : 'png';
+    if (total && total > 1 && index != null) {
+      return `${cli}-${tit}-slide-${index + 1}.${ext}`;
+    }
+    return `${cli}-${tit}.${ext}`;
+  }
+
+  async function baixarArquivoIndividual(url: string, nomeArquivo: string) {
+    try {
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error('Falha no download direto');
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = nomeArquivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500);
+      return true;
+    } catch {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nomeArquivo;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return true;
+    }
+  }
+
+  async function handleBaixarSlideAtualOuUnico() {
+    if (!item?.arquivos || item.arquivos.length === 0) return;
+    const idx = Math.min(Math.max(0, slideAtual), item.arquivos.length - 1);
+    const arq = item.arquivos[idx] || item.arquivos[0];
+    if (!arq?.url) return;
+
+    setBaixando(true);
+    const nome = getNomeArquivoDownload(idx, item.arquivos.length, arq.tipo);
+    try {
+      await baixarArquivoIndividual(arq.url, nome);
+      toast.success(
+        item.arquivos.length > 1
+          ? `Slide ${idx + 1} em alta resolução baixado!`
+          : 'Mídia em alta definição baixada com sucesso!'
+      );
+    } catch {
+      toast.error('Não foi possível concluir o download. Verifique sua conexão.');
+    } finally {
+      setBaixando(false);
+    }
+  }
+
+  async function handleBaixarTodos() {
+    if (!item?.arquivos || item.arquivos.length === 0) return;
+    setBaixando(true);
+    const total = item.arquivos.length;
+    try {
+      for (let i = 0; i < total; i++) {
+        const arq = item.arquivos[i];
+        setStatusDownload(`Baixando arte ${i + 1} de ${total}...`);
+        const nome = getNomeArquivoDownload(i, total, arq.tipo);
+        await baixarArquivoIndividual(arq.url, nome);
+        if (i < total - 1) {
+          await new Promise((r) => setTimeout(r, 600));
+        }
+      }
+      toast.success(`Todas as ${total} artes em alta definição foram baixadas!`);
+    } catch {
+      toast.error('Erro ao baixar alguns arquivos.');
+    } finally {
+      setBaixando(false);
+      setStatusDownload(null);
+    }
+  }
+
+  function handleCopiarLegenda() {
+    if (!item?.legenda) {
+      toast.error('Nenhuma legenda cadastrada para este post.');
+      return;
+    }
+    navigator.clipboard.writeText(item.legenda);
+    setCopiouLegenda(true);
+    toast.success('Legenda copiada para a área de transferência!');
+    setTimeout(() => setCopiouLegenda(false), 3000);
+  }
+
   const arquivos = item.arquivos || [];
   const comentarios = (item.comentarios_revisao || []) as ComentarioRevisao[];
   const clienteNome = item.cliente?.nome || 'Minha Empresa';
@@ -323,6 +438,19 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           <span className="hidden sm:inline text-xs font-medium text-muted-foreground mr-1">
             {isStory ? 'Story' : isReel ? 'Reels' : isCarrossel ? `Carrossel (${arquivos.length} fotos)` : 'Feed'}
           </span>
+          {arquivos.length > 0 && (
+            <Tip label="Baixar material em alta definição para postar">
+              <button
+                type="button"
+                onClick={() => setModalDownloadAberto(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-card hover:bg-accent border border-border text-xs font-bold text-foreground transition-ui cursor-pointer shadow-2xs active:scale-[0.98]"
+                aria-label="Baixar material em alta definição"
+              >
+                <Download className="w-3.5 h-3.5 text-primary" />
+                <span className="hidden sm:inline">Baixar HD</span>
+              </button>
+            </Tip>
+          )}
           <Badge
             variant={sucessoAprovado ? 'success' : item.status === 'travado' ? 'destructive' : 'warning'}
             className="text-xs font-bold px-2.5 py-1"
@@ -381,6 +509,86 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             onMudarSlide={setSlideAtual}
             onPedirAjuste={handleAbrirAjusteSlide}
           />
+        )}
+
+        {/* Card de Material em Alta Definição para o Cliente Baixar e Postar */}
+        {arquivos.length > 0 && (
+          <div className="w-full max-w-[420px] bg-card rounded-2xl border border-border p-3.5 shadow-sm flex flex-col gap-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                  <Download className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-foreground truncate">
+                    {isReel ? 'Vídeo em Alta Resolução (HD)' : isCarrossel ? `Carrossel em Alta Resolução (${arquivos.length} artes)` : 'Arte em Alta Resolução (HD)'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {isReel ? 'MP4 original pronto para postar' : 'Arquivos originais em qualidade máxima'}
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setModalDownloadAberto(true)}
+                className="text-xs font-semibold text-primary hover:text-primary/80 h-7 px-2 cursor-pointer"
+              >
+                Opções ↗
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={baixando}
+                onClick={handleBaixarSlideAtualOuUnico}
+                className="h-9 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer bg-accent hover:bg-accent/80 border border-border"
+              >
+                <Download className="w-3.5 h-3.5 text-primary" />
+                <span className="truncate">{isCarrossel ? `Baixar Slide ${slideAtual + 1}` : 'Baixar Mídia HD'}</span>
+              </Button>
+
+              {isCarrossel ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={baixando}
+                  onClick={handleBaixarTodos}
+                  className="h-9 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <FolderDown className="w-3.5 h-3.5" />
+                  <span className="truncate">{statusDownload || `Baixar Todas (${arquivos.length})`}</span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopiarLegenda}
+                  className="h-9 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {copiouLegenda ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span className="truncate">{copiouLegenda ? 'Copiada!' : 'Copiar Legenda'}</span>
+                </Button>
+              )}
+            </div>
+
+            {isCarrossel && item.legenda && (
+              <button
+                type="button"
+                onClick={handleCopiarLegenda}
+                className="text-[11px] font-medium text-muted-foreground hover:text-foreground flex items-center justify-center gap-1.5 pt-0.5 cursor-pointer"
+              >
+                {copiouLegenda ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                <span>{copiouLegenda ? 'Legenda copiada para a área de transferência!' : 'Copiar texto da legenda'}</span>
+              </button>
+            )}
+          </div>
         )}
 
         {/* Histórico de Comentários / Ajustes já pontuados */}
@@ -608,6 +816,18 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                 <Tip label={"Compartilhar"}><button type="button" className="hover:text-muted-foreground transition-transform active:scale-110" aria-label={"Compartilhar"}>
                   <Send className="w-6 h-6" />
                 </button></Tip>
+                {arquivos.length > 0 && (
+                  <Tip label="Baixar em Alta Definição (HD)">
+                    <button
+                      type="button"
+                      onClick={() => setModalDownloadAberto(true)}
+                      className="hover:text-primary transition-transform active:scale-110 cursor-pointer"
+                      aria-label="Baixar em Alta Definição"
+                    >
+                      <Download className="w-6 h-6" />
+                    </button>
+                  </Tip>
+                )}
               </div>
               <Tip label={"Salvar"}><button
                 type="button"
@@ -642,8 +862,23 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                   setNomeSheetAberto(true);
                 }}
                 compacto
-          />
+              />
             </div>
+
+            {arquivos.length > 0 && (
+              <div className="px-3 pb-2.5 bg-accent/30 flex items-center justify-between gap-2 border-t border-border/40">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setModalDownloadAberto(true)}
+                  className="w-full text-xs font-bold gap-1.5 text-primary hover:text-primary hover:bg-primary/10 h-8 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Baixar material em alta resolução (HD)</span>
+                </Button>
+              </div>
+            )}
 
           </div>
 
@@ -775,6 +1010,129 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             </Button>
           </div>
         </form>
+      </Sheet>
+
+      {/* Modal / Sheet Exclusivo para Download em Alta Definição */}
+      <Sheet
+        open={modalDownloadAberto}
+        onClose={() => setModalDownloadAberto(false)}
+        aria-label="Baixar em Alta Definição"
+        className="w-full max-w-md"
+      >
+        <div className="p-6 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-base font-semibold font-display text-foreground">Baixar em Alta Definição</h3>
+            <p className="text-xs text-muted-foreground">Baixe os arquivos originais em resolução máxima no seu dispositivo para postar diretamente.</p>
+          </div>
+          {/* Cartão de Identificação do Post */}
+          <div className="p-3.5 rounded-2xl bg-accent/40 border border-border flex items-center gap-3">
+            <div className="w-12 h-14 rounded-xl bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center">
+              {arquivos[slideAtual]?.tipo === 'video' ? (
+                <Smartphone className="w-5 h-5 text-muted-foreground" />
+              ) : arquivos[slideAtual]?.url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={arquivos[slideAtual]?.url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Smartphone className="w-5 h-5 text-muted-foreground" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-foreground truncate">{item.titulo || 'Publicação do Instagram'}</p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                {isReel ? 'Vídeo Reels (Vertical 9:16)' : isStory ? 'Story (Vertical 9:16)' : isCarrossel ? `Carrossel (${arquivos.length} fotos 4:5)` : 'Post Feed (Retrato 4:5)'}
+              </p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold">
+                  Resolução Original Máxima
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Opções de Download */}
+          <div className="flex flex-col gap-2.5">
+            {isCarrossel ? (
+              <>
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={baixando}
+                  onClick={handleBaixarSlideAtualOuUnico}
+                  className="h-11 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer w-full"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Baixar Slide Atual (#{slideAtual + 1}) em HD</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={baixando}
+                  onClick={handleBaixarTodos}
+                  className="h-11 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer w-full border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <FolderDown className="w-4 h-4" />
+                  <span>{statusDownload || `Baixar Todas as Artes (${arquivos.length} arquivos)`}</span>
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                disabled={baixando}
+                onClick={handleBaixarSlideAtualOuUnico}
+                className="h-11 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer w-full"
+              >
+                <Download className="w-4 h-4" />
+                <span>{isReel ? 'Baixar Vídeo em Alta Definição (HD)' : 'Baixar Arte em Alta Definição (HD)'}</span>
+              </Button>
+            )}
+
+            {/* Copiar Legenda */}
+            {item.legenda && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleCopiarLegenda}
+                className="h-10 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer w-full border border-border"
+              >
+                {copiouLegenda ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+                <span>{copiouLegenda ? 'Legenda copiada com sucesso!' : 'Copiar Legenda do Post'}</span>
+              </Button>
+            )}
+          </div>
+
+          {/* Dica para o Cliente */}
+          <div className="p-3 rounded-xl bg-muted/60 border border-border text-[11px] text-muted-foreground flex flex-col gap-1 leading-relaxed">
+            <span className="font-bold text-foreground flex items-center gap-1.5">
+              💡 Dica para postar pelo celular:
+            </span>
+            <span>
+              1. Ao clicar em baixar, o arquivo de alta qualidade será salvo na galeria de fotos ou downloads do seu smartphone.
+            </span>
+            <span>
+              2. Copie a legenda clicando no botão acima.
+            </span>
+            <span>
+              3. Abra o Instagram, selecione o arquivo baixado e cole a legenda na hora de postar.
+            </span>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setModalDownloadAberto(false)}
+            >
+              Fechar
+            </Button>
+          </div>
+        </div>
       </Sheet>
 
     </div>

@@ -17,6 +17,7 @@ import {
   Sparkles,
   ExternalLink,
   X,
+  Download,
 } from 'lucide-react';
 import { confirmDialog } from '@/components/ui/dialog';
 import { Sheet } from '@/components/ui/sheet';
@@ -383,7 +384,7 @@ export default function FeedAprovacaoPage() {
                 )}
               </div>
 
-              {/* Ação de Aprovação Individual */}
+              {/* Ação de Aprovação Individual & Download */}
               <div className="pt-4 border-t border-border mt-4 flex flex-col gap-2">
                 <a
                   href={`/aprovacao/${postSelecionado.token_aprovacao}`}
@@ -393,6 +394,35 @@ export default function FeedAprovacaoPage() {
                 >
                   Abrir Tela de Aprovação Dedicada ↗
                 </a>
+
+                {postSelecionado.arquivos && postSelecionado.arquivos.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const arq = postSelecionado.arquivos[slideAtivo] || postSelecionado.arquivos[0];
+                      if (!arq?.url) return;
+                      try {
+                        const res = await fetch(arq.url);
+                        const blob = await res.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = `arte-hd-${slideAtivo + 1}.${arq.tipo === 'video' ? 'mp4' : 'png'}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500);
+                        toast.success('Mídia em alta definição baixada com sucesso!');
+                      } catch {
+                        window.open(arq.url, '_blank');
+                      }
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground text-center text-xs font-bold transition-ui shadow-2xs cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-3.5 h-3.5 text-primary" />
+                    <span>Baixar Arte do Post em Alta Definição (HD)</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
