@@ -401,20 +401,29 @@ export default function FeedAprovacaoPage() {
                     onClick={async () => {
                       const arq = postSelecionado.arquivos[slideAtivo] || postSelecionado.arquivos[0];
                       if (!arq?.url) return;
+                      const nomeArquivo = `arte-hd-${slideAtivo + 1}.${arq.tipo === 'video' ? 'mp4' : 'png'}`;
+                      const downloadProxyUrl = `/api/download?url=${encodeURIComponent(arq.url)}&filename=${encodeURIComponent(nomeArquivo)}`;
+
                       try {
-                        const res = await fetch(arq.url);
+                        const res = await fetch(downloadProxyUrl);
+                        if (!res.ok) throw new Error('Falha no proxy de download');
                         const blob = await res.blob();
                         const blobUrl = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = blobUrl;
-                        a.download = `arte-hd-${slideAtivo + 1}.${arq.tipo === 'video' ? 'mp4' : 'png'}`;
+                        a.download = nomeArquivo;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
-                        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500);
+                        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 3000);
                         toast.success('Mídia em alta definição baixada com sucesso!');
                       } catch {
-                        window.open(arq.url, '_blank');
+                        const a = document.createElement('a');
+                        a.href = downloadProxyUrl;
+                        a.download = nomeArquivo;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
                       }
                     }}
                     className="w-full py-2.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground text-center text-xs font-bold transition-ui shadow-2xs cursor-pointer flex items-center justify-center gap-2"

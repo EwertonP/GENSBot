@@ -292,9 +292,12 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   }
 
   async function baixarArquivoIndividual(url: string, nomeArquivo: string) {
+    const downloadProxyUrl = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(nomeArquivo)}`;
+
     try {
-      const res = await fetch(url, { mode: 'cors' });
-      if (!res.ok) throw new Error('Falha no download direto');
+      // 1. Tenta baixar o arquivo via blob na mesma origem para acionar o download do navegador
+      const res = await fetch(downloadProxyUrl);
+      if (!res.ok) throw new Error('Falha no proxy de download');
       const blob = await res.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -303,14 +306,14 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 3000);
       return true;
     } catch {
+      // 2. Fallback direto: aciona a rota /api/download que força 'Content-Disposition: attachment'
+      // O navegador faz o download diretamente para o dispositivo, sem abrir outra guia
       const link = document.createElement('a');
-      link.href = url;
+      link.href = downloadProxyUrl;
       link.download = nomeArquivo;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
