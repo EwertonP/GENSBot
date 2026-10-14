@@ -115,14 +115,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
     if (acao === 'aprovar') {
       novoStatus = 'agendamento';
-      comentarios.push({
-        id: crypto.randomUUID(),
-        autor: nomeAutor,
-        tipo: 'cliente',
-        texto: '✅ Conteúdo aprovado pelo cliente!',
-        criado_em: new Date().toISOString(),
-        resolvido: true,
-      });
+      // Marca todos os ajustes anteriores como resolvidos
+      for (let i = 0; i < comentarios.length; i++) {
+        comentarios[i] = { ...comentarios[i], resolvido: true };
+      }
       historico.push({
         id: crypto.randomUUID(),
         tipo: 'status',

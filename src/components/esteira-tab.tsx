@@ -205,10 +205,26 @@ export default function EsteiraTab({
   }, [items]);
 
   const itemsFiltrados = useMemo(() => {
+    const agora = Date.now();
+    const SETE_DIAS_MS = 7 * 24 * 60 * 60 * 1000;
+
     return items.filter((item) => {
       if (clienteSelecionado !== 'all' && item.cliente_id !== clienteSelecionado) return false;
       if (responsavelFiltro !== 'all' && !ehResponsavel(item, responsavelFiltro)) return false;
       if (ocultarPublicados && item.status === 'publicado') return false;
+
+      // Posts publicados há mais de 7 dias não ocupam espaço na tela de publicados da esteira
+      if (item.status === 'publicado') {
+        const dataPub = item.publicado_em
+          ? new Date(item.publicado_em).getTime()
+          : item.atualizado_em
+          ? new Date(item.atualizado_em).getTime()
+          : 0;
+        if (dataPub > 0 && agora - dataPub > SETE_DIAS_MS) {
+          return false;
+        }
+      }
+
       if (busca.trim()) {
         const termo = busca.toLowerCase();
         const matchTitulo = (item.titulo || '').toLowerCase().includes(termo);
@@ -891,8 +907,16 @@ export default function EsteiraTab({
                 {/* Lista de Cards da Coluna */}
                 <div className="flex flex-col gap-3">
                   {itensDaColuna.map((item) => {
-                    const temComentarios = (item.comentarios_revisao || []).length > 0;
-                    const temAjustes = item.status === 'travado' || (item.status === 'revisao_interna' && temComentarios);
+                    const ajustesPendentes = (item.comentarios_revisao || []).filter(
+                      (c) => !c.resolvido && c.texto && !c.texto.toLowerCase().includes('aprovad')
+                    );
+                    const temAjustes = item.status === 'travado' || (item.status === 'revisao_interna' && ajustesPendentes.length > 0);
+                    const temAjustesPendentes = ajustesPendentes.length > 0;
+                    const foiAprovado =
+                      item.status === 'agendamento' ||
+                      item.status === 'pronto_publicar' ||
+                      item.status === 'publicado' ||
+                      (item.historico_atividades || []).some((h) => h.texto?.toLowerCase().includes('aprovad'));
                     const isDragging = draggingItemId === item.id;
                     const isOverItem = draggingOverItemId === item.id;
 
@@ -1080,7 +1104,7 @@ export default function EsteiraTab({
                             </span>
                           )}
 
-                          {temComentarios && (
+                          {temAjustesPendentes ? (
                             <span
                               className={`px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1 border ${
                                 temAjustes
@@ -1089,9 +1113,16 @@ export default function EsteiraTab({
                               }`}
                             >
                               <MessageSquare className="w-3 h-3" />
-                              {item.comentarios_revisao.length} ajustes
+                              {ajustesPendentes.length} {ajustesPendentes.length === 1 ? 'ajuste' : 'ajustes'}
                             </span>
-                          )}
+                          ) : foiAprovado && (colStatus === 'agendamento' || item.status === 'agendamento') ? (
+                            <span
+                              className="px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 border bg-success-soft text-success border-success-ring"
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                              Aprovado
+                            </span>
+                          ) : null}
                         </div>
 
                         {/* Responsável */}

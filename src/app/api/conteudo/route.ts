@@ -103,7 +103,32 @@ export async function GET(req: Request) {
     return traduzirErroBanco(error, 'GET /api/conteudo');
   }
 
-  const items = (data || []) as any[];
+  const limite7DiasMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const items = ((data || []) as any[]).filter((it) => {
+    if (it.status === 'publicado') {
+      const pubMs = it.publicado_em
+        ? new Date(it.publicado_em).getTime()
+        : it.atualizado_em
+        ? new Date(it.atualizado_em).getTime()
+        : 0;
+      if (pubMs > 0 && pubMs < limite7DiasMs) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // Limpeza assíncrona no banco para posts publicados há mais de 7 dias
+  if (membro?.agencia_id) {
+    const limiteIso = new Date(limite7DiasMs).toISOString();
+    void serviceSupabase
+      .from('conteudo_items')
+      .delete()
+      .eq('agencia_id', membro.agencia_id)
+      .eq('status', 'publicado')
+      .lt('publicado_em', limiteIso);
+  }
+
   const contasIdsParaBuscar = Array.from(
     new Set(
       items

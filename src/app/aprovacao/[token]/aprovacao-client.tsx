@@ -71,9 +71,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   const [nomeSheetAberto, setNomeSheetAberto] = useState(false);
   const [nomeRascunho, setNomeRascunho] = useState('');
   const acaoAposNomeRef = useRef<null | (() => void)>(null);
-  // Aprovação com "Desfazer": só é enviada quando a contagem acaba.
-  const [aprovacaoPendente, setAprovacaoPendente] = useState<number | null>(null); // segundos restantes
-  const aprovacaoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [ajusteEscopo, setAjusteEscopo] = useState<'ponto' | 'geral'>('ponto');
   const [ajusteSlideIndex, setAjusteSlideIndex] = useState<number | null>(null);
   const [ajusteTimestamp, setAjusteTimestamp] = useState<number | null>(null);
@@ -177,49 +175,12 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
     }
   }
 
-  function pararContagem() {
-    if (aprovacaoTimerRef.current) clearInterval(aprovacaoTimerRef.current);
-    aprovacaoTimerRef.current = null;
-  }
-
-  // Clique em "Aprovar": mostra "Aprovado · Desfazer" e só envia ao fim da contagem.
+  // Clique em "Aprovar": envia imediatamente a aprovação para o servidor
   function handleAprovar() {
     comNome(() => {
-      pararContagem();
-      setAprovacaoPendente(SEGUNDOS_DESFAZER);
-      aprovacaoTimerRef.current = setInterval(() => {
-        setAprovacaoPendente((s) => {
-          if (s === null) return null;
-          if (s <= 1) {
-            pararContagem();
-            void enviarAprovacao();
-            return null;
-          }
-          return s - 1;
-        });
-      }, 1000);
+      void enviarAprovacao();
     });
   }
-
-  function desfazerAprovacao() {
-    pararContagem();
-    setAprovacaoPendente(null);
-  }
-
-  // Se a pessoa fechar a aba durante a contagem, a aprovação ainda vale.
-  useEffect(() => {
-    if (aprovacaoPendente === null) return;
-    const onHide = () => {
-      if (aprovacaoTimerRef.current === null) return;
-      pararContagem();
-      navigator.sendBeacon(`/api/aprovacao/${token}`, new Blob([corpoAprovacao(autorNome)], { type: 'application/json' }));
-    };
-    window.addEventListener('pagehide', onHide);
-    return () => window.removeEventListener('pagehide', onHide);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aprovacaoPendente === null, token, autorNome]);
-
-  useEffect(() => () => pararContagem(), []);
 
   // Abrir modal com pré-preenchimento
   function handleAbrirAjusteSlide(slideIndex: number) {
@@ -624,12 +585,10 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
         <div className="w-full max-w-[420px] bg-card rounded-2xl border border-border p-3.5 shadow-md flex flex-col gap-2.5">
           <BarraDecisao
             aprovado={sucessoAprovado}
-            pendente={aprovacaoPendente}
             enviando={enviando}
             rotuloAjuste={isReel ? `Ajustar aos ${formatarTimecode(videoTempo)}` : arquivos.length > 1 ? `Ajustar slide ${slideAtual + 1}` : 'Sugerir ajuste'}
             onAjuste={() => comNome(() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirAjusteSlide(slideAtual + 1)))}
             onAprovar={handleAprovar}
-            onDesfazer={desfazerAprovacao}
             autorNome={autorNome}
             onTrocarNome={() => {
               setNomeRascunho(autorNome);
@@ -850,12 +809,10 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             <div className="p-3 border-t border-border bg-accent/30">
               <BarraDecisao
                 aprovado={sucessoAprovado}
-                pendente={aprovacaoPendente}
                 enviando={enviando}
                 rotuloAjuste={isReel ? `Ajustar aos ${formatarTimecode(videoTempo)}` : arquivos.length > 1 ? `Ajustar slide ${slideAtual + 1}` : 'Sugerir ajuste'}
                 onAjuste={() => comNome(() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirAjusteSlide(slideAtual + 1)))}
                 onAprovar={handleAprovar}
-                onDesfazer={desfazerAprovacao}
                 autorNome={autorNome}
                 onTrocarNome={() => {
                   setNomeRascunho(autorNome);
@@ -1141,23 +1098,19 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
 function BarraDecisao({
   aprovado,
-  pendente,
   enviando,
   rotuloAjuste,
   onAjuste,
   onAprovar,
-  onDesfazer,
   autorNome,
   onTrocarNome,
   compacto,
 }: {
   aprovado: boolean;
-  pendente: number | null;
   enviando: boolean;
   rotuloAjuste: string;
   onAjuste: () => void;
   onAprovar: () => void;
-  onDesfazer: () => void;
   autorNome: string;
   onTrocarNome: () => void;
   compacto?: boolean;
@@ -1167,20 +1120,6 @@ function BarraDecisao({
       <div role="status" className={`${compacto ? 'p-3' : 'p-3.5'} rounded-xl bg-success-soft border border-success-ring text-success flex items-center justify-center gap-2 font-semibold text-sm`}>
         <CheckCircle2 className="w-4 h-4" />
         <span>Publicação aprovada. A agência já foi avisada.</span>
-      </div>
-    );
-  }
-
-  if (pendente !== null) {
-    return (
-      <div role="status" aria-live="polite" className="p-2 pl-3.5 rounded-xl bg-success-soft border border-success-ring flex items-center gap-3">
-        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-        <span className="flex-1 text-sm font-semibold text-success">Aprovado</span>
-        <span className="text-xs text-muted-foreground tabular-nums">envia em {pendente}s</span>
-        <Button type="button" variant="secondary" size="sm" onClick={onDesfazer}>
-          <Undo2 className="w-3.5 h-3.5" />
-          Desfazer
-        </Button>
       </div>
     );
   }
