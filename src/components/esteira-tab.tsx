@@ -21,6 +21,7 @@ import {
   Sparkles,
   Grid3X3,
   Edit2,
+  Loader2,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -150,6 +151,7 @@ export default function EsteiraTab({
   const [itemParaAprovacao, setItemParaAprovacao] = useState<ConteudoItem | null>(null);
   const [telefoneAprovacaoCustom, setTelefoneAprovacaoCustom] = useState('');
   const [uploadingAprovacao, setUploadingAprovacao] = useState(false);
+  const [enviandoAprovacaoId, setEnviandoAprovacaoId] = useState<string | null>(null);
 
   // Notion Sync
   const [sincronizandoNotion, setSincronizandoNotion] = useState(false);
@@ -279,17 +281,90 @@ export default function EsteiraTab({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: novoStatus, ordem: novaOrdem }),
       });
-      if (!res.ok) throw new Error();
-      const msgFeedback =
-        novoStatus === 'revisao_cliente'
-          ? 'Demanda enviada para Aprovação! O link foi disparado no grupo de WhatsApp do cliente.'
-          : moverParaTopo
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || 'Erro ao atualizar status');
+
+      if (novoStatus === 'revisao_cliente') {
+        if (data?.whatsapp?.enviado) {
+          showToast('Demanda em Aprovação! Link disparado automaticamente no WhatsApp do cliente.', 'success');
+        } else if (data?.whatsapp?.jaEnviadoRecentemente) {
+          showToast('Demanda movida para Aprovação (já enviada recentemente ao WhatsApp).', 'success');
+        } else if (data?.whatsapp?.erro) {
+          showToast(`Demanda em Aprovação, mas houve um aviso no WhatsApp: ${data.whatsapp.erro}`, 'error');
+        } else {
+          showToast('Demanda enviada para Aprovação!', 'success');
+        }
+      } else {
+        const msgFeedback = moverParaTopo
           ? 'Demanda movida para o topo da coluna!'
           : `Demanda organizada em ${STATUS_LABELS[novoStatus].label}`;
-      showToast(msgFeedback, 'success');
+        showToast(msgFeedback, 'success');
+      }
     } catch {
       carregarDados();
       showToast('Erro ao atualizar posição.', 'error');
+    }
+  }
+
+  // Disparo 100% Automático de Aprovação via WhatsApp
+  async function handleEnviarParaAprovacao(item: ConteudoItem, reenviar = false) {
+    if (enviandoAprovacaoId === item.id) return;
+    setEnviandoAprovacaoId(item.id);
+
+    const statusAnterior = item.status;
+    const jaEstavaEmAprovacao = statusAnterior === 'revisao_cliente';
+
+    // Otimista: se ainda não está em revisao_cliente, reflete instantaneamente no Kanban
+    if (!jaEstavaEmAprovacao) {
+      setItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, status: 'revisao_cliente' } : i))
+      );
+    }
+
+    try {
+      const res = await fetch(`/api/conteudo/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'revisao_cliente',
+          reenviar_whatsapp: reenviar || jaEstavaEmAprovacao,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao enviar para aprovação.');
+
+      if (data.item) {
+        setItems((prev) => prev.map((i) => (i.id === data.item.id ? data.item : i)));
+      }
+
+      if (data.whatsapp?.enviado) {
+        showToast(
+          reenviar || jaEstavaEmAprovacao
+            ? 'Mensagem e link de aprovação reenviados no grupo de WhatsApp!'
+            : 'Demanda enviada para Aprovação! Link disparado automaticamente no WhatsApp.',
+          'success'
+        );
+      } else if (data.whatsapp?.jaEnviadoRecentemente) {
+        showToast('Demanda em Aprovação (mensagem já disparada recentemente ao WhatsApp).', 'success');
+      } else if (data.whatsapp?.erro) {
+        showToast(
+          `Demanda movida para Aprovação, mas houve um aviso no WhatsApp: ${data.whatsapp.erro}`,
+          'error'
+        );
+      } else {
+        showToast('Demanda movida para Aprovação com sucesso!', 'success');
+      }
+    } catch (err: any) {
+      // Reverte estado otimista caso falhe
+      if (!jaEstavaEmAprovacao) {
+        setItems((prev) =>
+          prev.map((i) => (i.id === item.id ? { ...i, status: statusAnterior } : i))
+        );
+      }
+      showToast(err?.message || 'Erro ao enviar para aprovação.', 'error');
+    } finally {
+      setEnviandoAprovacaoId(null);
     }
   }
 
@@ -311,13 +386,13 @@ export default function EsteiraTab({
     return novos;
   }
 
-  // Abertura do Modal de Envio para Aprovação (WhatsApp Web Seguro)
+  // Fallback manual para compartilhamento / WhatsApp Web Seguro se necessário
   function handleAbrirModalAprovacao(item: ConteudoItem) {
     setItemParaAprovacao(item);
     const contatos = item.cliente?.contatos || [];
     const grupo = contatos.find((c) => c.e_grupo_whatsapp && c.telefone);
     const primeiro = contatos.find((c) => c.telefone);
-    const tel = grupo?.telefone || primeiro?.telefone || '';
+    const tel = grupo?.telefone || primeiro?.telefone || (item.cliente as any)?.whatsapp_grupo_id || '';
     setTelefoneAprovacaoCustom(tel);
     setModalAprovacaoAberto(true);
   }
@@ -1166,26 +1241,37 @@ export default function EsteiraTab({
                               );
                             }
 
+                            const isEnviandoEsteItem = enviandoAprovacaoId === item.id;
+                            const reenviar = item.status === 'revisao_cliente';
+
                             return (
-                              <Tip label={item.status === 'revisao_cliente'
+                              <Tip label={reenviar
                                     ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
-                                    : 'Enviar para aprovação no WhatsApp Web'}><button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAbrirModalAprovacao(item);
-                                }} aria-label={item.status === 'revisao_cliente'
-                                    ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
-                                    : 'Enviar para aprovação no WhatsApp Web'}
-                                className={`text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-ui cursor-pointer ${
-                                  item.status === 'revisao_cliente'
-                                    ? 'bg-warning hover:bg-warning/90 text-warning-foreground border-warning-ring'
-                                    : 'bg-lime hover:bg-lime/90 text-lime-foreground font-bold border-foreground/15 shadow-xs active:scale-[0.98]'
-                                }`}
-                              >
-                                <Send className="w-3 h-3" />
-                                <span>{item.status === 'revisao_cliente' ? 'Reenviar' : 'Aprovação'}</span>
-                              </button></Tip>
+                                    : 'Enviar demanda para aprovação no WhatsApp do cliente'}>
+                                <button
+                                  type="button"
+                                  disabled={isEnviandoEsteItem}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEnviarParaAprovacao(item, reenviar);
+                                  }}
+                                  aria-label={reenviar
+                                      ? 'Reenviar mensagem e link de aprovação no WhatsApp'
+                                      : 'Enviar demanda para aprovação no WhatsApp'}
+                                  className={`text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-ui cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    reenviar
+                                      ? 'bg-warning hover:bg-warning/90 text-warning-foreground border-warning-ring'
+                                      : 'bg-lime hover:bg-lime/90 text-lime-foreground font-bold border-foreground/15 shadow-xs active:scale-[0.98]'
+                                  }`}
+                                >
+                                  {isEnviandoEsteItem ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Send className="w-3 h-3" />
+                                  )}
+                                  <span>{isEnviandoEsteItem ? 'Enviando...' : reenviar ? 'Reenviar' : 'Aprovação'}</span>
+                                </button>
+                              </Tip>
                             );
                           })()}
                         </div>
@@ -1264,7 +1350,14 @@ export default function EsteiraTab({
                 id: 'proximo',
                 header: 'Próximo passo',
                 mobileLabel: 'Próximo',
-                cell: (item) => <ProximoPassoLista item={item} onAgendar={handleLevarParaAgendamento} onAprovacao={handleAbrirModalAprovacao} />,
+                cell: (item) => (
+                  <ProximoPassoLista
+                    item={item}
+                    onAgendar={handleLevarParaAgendamento}
+                    onAprovacao={(it, reenviar) => handleEnviarParaAprovacao(it, reenviar)}
+                    enviandoId={enviandoAprovacaoId}
+                  />
+                ),
               },
             ]}
             actions={(item) => (
@@ -1339,7 +1432,17 @@ export default function EsteiraTab({
 }
 
 /** Botão do próximo passo da demanda na lista: aprovação, agendamento ou selo de publicado. */
-function ProximoPassoLista({ item, onAgendar, onAprovacao }: { item: ConteudoItem; onAgendar: (item: ConteudoItem) => void; onAprovacao: (item: ConteudoItem) => void }) {
+function ProximoPassoLista({
+  item,
+  onAgendar,
+  onAprovacao,
+  enviandoId,
+}: {
+  item: ConteudoItem;
+  onAgendar: (item: ConteudoItem) => void;
+  onAprovacao: (item: ConteudoItem, reenviar?: boolean) => void;
+  enviandoId?: string | null;
+}) {
   const parar = (fn: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
     fn();
@@ -1367,11 +1470,18 @@ function ProximoPassoLista({ item, onAgendar, onAprovacao }: { item: ConteudoIte
   }
 
   const reenviar = item.status === 'revisao_cliente';
+  const carregando = enviandoId === item.id;
   return (
-    <Tip label={reenviar ? 'Reenviar a mensagem e o link de aprovação no WhatsApp' : 'Enviar para aprovação no WhatsApp'}>
-      <Button size="sm" variant={reenviar ? 'secondary' : 'lime'} onClick={parar(() => onAprovacao(item))} className="whitespace-nowrap">
-        <Send className="w-3.5 h-3.5" />
-        {reenviar ? 'Reenviar' : 'WhatsApp'}
+    <Tip label={reenviar ? 'Reenviar a mensagem e o link de aprovação no WhatsApp' : 'Enviar demanda para aprovação no WhatsApp'}>
+      <Button
+        size="sm"
+        disabled={carregando}
+        variant={reenviar ? 'secondary' : 'lime'}
+        onClick={parar(() => onAprovacao(item, reenviar))}
+        className="whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {carregando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+        {carregando ? 'Enviando...' : reenviar ? 'Reenviar' : 'Aprovação'}
       </Button>
     </Tip>
   );

@@ -422,7 +422,11 @@ export function DemandaSheet({
       if (!res.ok) throw new Error(data.error);
 
       onSalvo(data.item, !editando);
-      showToast(editando ? 'Demanda atualizada com sucesso!' : 'Nova demanda cadastrada com sucesso na esteira!', 'success');
+      if (status === 'revisao_cliente' && data?.whatsapp?.enviado) {
+        showToast('Demanda salva e link disparado automaticamente no WhatsApp do cliente!', 'success');
+      } else {
+        showToast(editando ? 'Demanda atualizada com sucesso!' : 'Nova demanda cadastrada com sucesso na esteira!', 'success');
+      }
     } catch (err) {
       showToast(err instanceof Error && err.message ? err.message : 'Erro ao salvar a demanda.', 'error');
     } finally {

@@ -223,6 +223,23 @@ export async function POST(req: Request) {
       return traduzirErroBanco(error, 'POST /api/conteudo');
     }
 
+    if (data?.status === 'revisao_cliente' && !body.pular_notificacao_whatsapp && data.cliente_id) {
+      try {
+        const { notificarGrupoAprovacaoConteudo } = await import('@/lib/conteudo-whatsapp');
+        await notificarGrupoAprovacaoConteudo({
+          agenciaId: membro.agencia_id,
+          clienteId: data.cliente_id,
+          conteudoId: data.id,
+          tituloPost: data.titulo || 'Nova Publicação',
+          tokenAprovacao: data.token_aprovacao,
+          responsavelId: data.responsavel_id || null,
+          remetenteId: membro?.id || null,
+        });
+      } catch (err) {
+        console.warn('[POST Conteudo] Falha ao notificar WhatsApp:', err);
+      }
+    }
+
     return NextResponse.json({ item: data }, { status: 201 });
   } catch (err: any) {
     console.error('Erro em POST /api/conteudo:', err);
