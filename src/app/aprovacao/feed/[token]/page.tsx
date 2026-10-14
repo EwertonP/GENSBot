@@ -401,29 +401,51 @@ export default function FeedAprovacaoPage() {
                     onClick={async () => {
                       const arq = postSelecionado.arquivos[slideAtivo] || postSelecionado.arquivos[0];
                       if (!arq?.url) return;
-                      const nomeArquivo = `arte-hd-${slideAtivo + 1}.${arq.tipo === 'video' ? 'mp4' : 'png'}`;
+                      const ext = arq.tipo === 'video' ? 'mp4' : 'png';
+                      const nomeArquivo = `arte-hd-${slideAtivo + 1}.${ext}`;
                       const downloadProxyUrl = `/api/download?url=${encodeURIComponent(arq.url)}&filename=${encodeURIComponent(nomeArquivo)}`;
 
+                      // 1. Mobile: Web Share API (salva na galeria do celular sem abrir nova aba)
                       try {
-                        const res = await fetch(downloadProxyUrl);
-                        if (!res.ok) throw new Error('Falha no proxy de download');
-                        const blob = await res.blob();
-                        const blobUrl = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = blobUrl;
-                        a.download = nomeArquivo;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 3000);
+                        if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+                          const res = await fetch(downloadProxyUrl);
+                          if (res.ok) {
+                            const blob = await res.blob();
+                            const mimeType = ext === 'mp4' ? 'video/mp4' : 'image/png';
+                            const file = new File([blob], nomeArquivo, { type: mimeType });
+
+                            if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+                              try {
+                                await navigator.share({
+                                  files: [file],
+                                  title: nomeArquivo,
+                                });
+                                toast.success('Mídia em alta definição salva com sucesso!');
+                                return;
+                              } catch (shareErr: any) {
+                                if (shareErr?.name === 'AbortError') return;
+                              }
+                            }
+                          }
+                        }
+                      } catch {}
+
+                      // 2. Desktop e Fallback: Download direto na mesma página sem abrir nova aba
+                      try {
+                        const link = document.createElement('a');
+                        link.style.display = 'none';
+                        link.href = downloadProxyUrl;
+                        link.setAttribute('download', nomeArquivo);
+                        document.body.appendChild(link);
+                        link.click();
+                        setTimeout(() => {
+                          try {
+                            document.body.removeChild(link);
+                          } catch {}
+                        }, 2000);
                         toast.success('Mídia em alta definição baixada com sucesso!');
                       } catch {
-                        const a = document.createElement('a');
-                        a.href = downloadProxyUrl;
-                        a.download = nomeArquivo;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
+                        toast.error('Erro ao baixar arte.');
                       }
                     }}
                     className="w-full py-2.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground text-center text-xs font-bold transition-ui shadow-2xs cursor-pointer flex items-center justify-center gap-2"

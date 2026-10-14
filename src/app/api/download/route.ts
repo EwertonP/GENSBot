@@ -54,15 +54,17 @@ export async function GET(req: Request) {
       );
     }
 
-    const contentType = upstreamRes.headers.get('content-type') || 'application/octet-stream';
     const contentLength = upstreamRes.headers.get('content-length');
+    const safeAscii = nomeFinal.replace(/[^a-zA-Z0-9._-]/g, '_');
 
     const headers = new Headers();
-    headers.set('Content-Type', contentType);
-    // Garante que o navegador trate como download e nunca abra em visualizador de aba
+    // Força application/octet-stream e nosniff para que nenhum navegador (desktop ou mobile)
+    // tente abrir a imagem ou vídeo em uma guia de visualização
+    headers.set('Content-Type', 'application/octet-stream');
+    headers.set('X-Content-Type-Options', 'nosniff');
     headers.set(
       'Content-Disposition',
-      `attachment; filename="${nomeFinal}"; filename*=UTF-8''${encodeURIComponent(nomeFinal)}`
+      `attachment; filename="${safeAscii}"; filename*=UTF-8''${encodeURIComponent(nomeFinal)}`
     );
     headers.set('Cache-Control', 'public, max-age=86400, s-maxage=86400');
     if (contentLength) {

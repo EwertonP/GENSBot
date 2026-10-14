@@ -291,33 +291,88 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
     return `${cli}-${tit}.${ext}`;
   }
 
-  async function baixarArquivoIndividual(url: string, nomeArquivo: string) {
+  function getMimeType(nome: string): string {
+    const ext = nome.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'gif':
+        return 'image/gif';
+      case 'mp4':
+        return 'video/mp4';
+      case 'mov':
+        return 'video/quicktime';
+      case 'webm':
+        return 'video/webm';
+      default:
+        return 'image/png';
+    }
+  }
+
+  function dispararDownloadDireto(downloadProxyUrl: string, nomeArquivo: string) {
+    // Dispara o download diretamente usando a rota /api/download na mesma origem.
+    // Como a rota responde com 'Content-Disposition: attachment' e 'application/octet-stream',
+    // o navegador salva diretamente na pasta de Downloads SEM abrir qualquer nova guia.
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    link.href = downloadProxyUrl;
+    link.setAttribute('download', nomeArquivo);
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      try {
+        document.body.removeChild(link);
+      } catch {}
+    }, 2000);
+  }
+
+  async function baixarArquivoIndividual(url: string, nomeArquivo: string): Promise<'success' | 'aborted' | 'error'> {
     const downloadProxyUrl = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(nomeArquivo)}`;
 
+    // 1. Mobile (iOS Safari / Android Chrome / WhatsApp WebView):
+    // Tenta usar a Web Share API nativa com File.
+    // No iPhone e Android, isso abre a folha nativa do sistema com a ação "Salvar Imagem" / "Salvar Vídeo"
+    // gravando diretamente no rolo da câmera / galeria de fotos, SEM ABRIR NENHUMA NOVA GUIA!
     try {
-      // 1. Tenta baixar o arquivo via blob na mesma origem para acionar o download do navegador
-      const res = await fetch(downloadProxyUrl);
-      if (!res.ok) throw new Error('Falha no proxy de download');
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = nomeArquivo;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 3000);
-      return true;
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        const res = await fetch(downloadProxyUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          const mimeType = getMimeType(nomeArquivo);
+          const file = new File([blob], nomeArquivo, { type: mimeType });
+
+          if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: nomeArquivo,
+              });
+              return 'success';
+            } catch (shareErr: any) {
+              if (shareErr?.name === 'AbortError') {
+                return 'aborted';
+              }
+            }
+          }
+        }
+      }
     } catch {
-      // 2. Fallback direto: aciona a rota /api/download que força 'Content-Disposition: attachment'
-      // O navegador faz o download diretamente para o dispositivo, sem abrir outra guia
-      const link = document.createElement('a');
-      link.href = downloadProxyUrl;
-      link.download = nomeArquivo;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return true;
+      // Segue para o download direto caso a API de compartilhamento não responda
+    }
+
+    // 2. Desktop e Fallback Universal:
+    // Dispara o download diretamente na mesma página via cabeçalho HTTP attachment.
+    // NUNCA usamos blob URLs aqui para garantir que nenhum navegador mobile ou desktop abra o visualizador em nova aba.
+    try {
+      dispararDownloadDireto(downloadProxyUrl, nomeArquivo);
+      return 'success';
+    } catch {
+      return 'error';
     }
   }
 
@@ -330,12 +385,14 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
     setBaixando(true);
     const nome = getNomeArquivoDownload(idx, item.arquivos.length, arq.tipo);
     try {
-      await baixarArquivoIndividual(arq.url, nome);
-      toast.success(
-        item.arquivos.length > 1
-          ? `Slide ${idx + 1} em alta resolução baixado!`
-          : 'Mídia em alta definição baixada com sucesso!'
-      );
+      const res = await baixarArquivoIndividual(arq.url, nome);
+      if (res === 'success') {
+        toast.success(
+          item.arquivos.length > 1
+            ? `Slide ${idx + 1} em alta resolução baixado!`
+            : 'Mídia em alta definição baixada com sucesso!'
+        );
+      }
     } catch {
       toast.error('Não foi possível concluir o download. Verifique sua conexão.');
     } finally {
@@ -347,12 +404,57 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
     if (!item?.arquivos || item.arquivos.length === 0) return;
     setBaixando(true);
     const total = item.arquivos.length;
+
     try {
+      // 1. No Mobile: Tenta agrupar e compartilhar todas as artes de uma vez só via Web Share API.
+      // No iPhone/Android, isso permite ao cliente tocar em "Salvar X Imagens" direto na galeria!
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        const arquivosParaCompartilhar: File[] = [];
+        let falhaNoCarregamento = false;
+
+        for (let i = 0; i < total; i++) {
+          setStatusDownload(`Preparando arte ${i + 1} de ${total}...`);
+          const arq = item.arquivos[i];
+          const nome = getNomeArquivoDownload(i, total, arq.tipo);
+          const downloadProxyUrl = `/api/download?url=${encodeURIComponent(arq.url)}&filename=${encodeURIComponent(nome)}`;
+          try {
+            const res = await fetch(downloadProxyUrl);
+            if (!res.ok) throw new Error('Falha');
+            const blob = await res.blob();
+            const mimeType = getMimeType(nome);
+            arquivosParaCompartilhar.push(new File([blob], nome, { type: mimeType }));
+          } catch {
+            falhaNoCarregamento = true;
+            break;
+          }
+        }
+
+        if (!falhaNoCarregamento && arquivosParaCompartilhar.length === total) {
+          if (typeof navigator.canShare === 'function' && navigator.canShare({ files: arquivosParaCompartilhar })) {
+            try {
+              setStatusDownload('Salvando na galeria do celular...');
+              await navigator.share({
+                files: arquivosParaCompartilhar,
+                title: `Todas as artes em HD - ${item.cliente?.nome || 'Post'}`,
+              });
+              toast.success(`Todas as ${total} artes foram salvas com sucesso!`);
+              return;
+            } catch (shareErr: any) {
+              if (shareErr?.name === 'AbortError') {
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Desktop e Fallback: Dispara o download sequencial direto sem criar novas abas
       for (let i = 0; i < total; i++) {
         const arq = item.arquivos[i];
         setStatusDownload(`Baixando arte ${i + 1} de ${total}...`);
         const nome = getNomeArquivoDownload(i, total, arq.tipo);
-        await baixarArquivoIndividual(arq.url, nome);
+        const downloadProxyUrl = `/api/download?url=${encodeURIComponent(arq.url)}&filename=${encodeURIComponent(nome)}`;
+        dispararDownloadDireto(downloadProxyUrl, nome);
         if (i < total - 1) {
           await new Promise((r) => setTimeout(r, 600));
         }
