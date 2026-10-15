@@ -97,6 +97,8 @@ export async function POST(req: Request) {
           remetenteTelefone: remetente,
           remetenteNome: nomeContato,
           mensagensTexto: mensagensFormatadas.length > 0 ? mensagensFormatadas : [`${deMim ? 'Secretária' : 'Paciente'}: ${conteudo}`],
+          autoCriarCards: sessionData.auto_criar_cards !== false,
+          autoMoverEstagios: sessionData.auto_mover_estagios !== false,
         });
       }
 
