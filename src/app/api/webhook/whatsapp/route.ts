@@ -1,18 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { sincronizarMensagemEAtualizarCrm } from '@/lib/whatsapp-shadow-engine';
+import { validarWebhookOpenWA } from '@/lib/segredos';
 
 // POST: Webhook oficial para receber eventos do OpenWA
 export async function POST(req: Request) {
+  const negado = validarWebhookOpenWA(req);
+  if (negado) return negado;
+
   try {
     const body = await req.json();
-
-    // Validação de token secreto do webhook se configurado
-    const secretKey = process.env.OPENWA_WEBHOOK_SECRET;
-    const authHeader = req.headers.get('x-openwa-secret') || req.headers.get('authorization');
-    if (secretKey && authHeader !== secretKey && authHeader !== `Bearer ${secretKey}`) {
-      return NextResponse.json({ error: 'Assinatura inválida do webhook' }, { status: 401 });
-    }
 
     const { event, session, data } = body;
 
@@ -28,8 +25,14 @@ export async function POST(req: Request) {
         .eq('session_name', sessionName)
         .maybeSingle();
 
-      const agenciaId = sessionData?.agencia_id || 'a6839f40-dc25-4c00-a662-8d90c100b8c2';
-      const clienteId = sessionData?.cliente_id || null;
+      // Sessão que não está cadastrada não pertence a nenhuma agência: descarta em vez de
+      // gravar tudo na agência padrão.
+      if (!sessionData) {
+        return NextResponse.json({ ignored: 'unknown_session' });
+      }
+
+      const agenciaId = sessionData.agencia_id;
+      const clienteId = sessionData.cliente_id || null;
 
       const messageId = msg.id || msg.key?.id || `${Date.now()}-${Math.random()}`;
       const remetente = msg.from || msg.sender || msg.key?.remoteJid || '';
@@ -68,6 +71,7 @@ export async function POST(req: Request) {
           clienteId,
           telefone: remetente,
           nomeContato,
+          sessionName,
         });
       }
 
