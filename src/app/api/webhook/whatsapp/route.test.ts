@@ -2,11 +2,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const upsert = vi.fn();
 const maybeSingle = vi.fn();
+const depois: Promise<unknown>[] = [];
+
+vi.mock('next/server', async (original) => ({
+  ...(await original<typeof import('next/server')>()),
+  // roda o trabalho "pós-resposta" na hora e deixa o teste esperar por ele
+  after: (fn: () => Promise<void>) => {
+    depois.push(Promise.resolve(fn()));
+  },
+}));
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
-      select: () => ({ eq: () => ({ maybeSingle }) }),
+      select: () => ({
+        eq: () => ({ maybeSingle, eq: () => ({ order: () => ({ limit: async () => ({ data: [] }) }) }) }),
+      }),
       upsert,
     })),
   },
@@ -18,7 +29,8 @@ vi.mock('@/lib/whatsapp-followup', () => ({
 }));
 
 import { POST } from './route';
-import { agendarReguaFollowUp } from '@/lib/whatsapp-followup';
+import { agendarReguaFollowUp, cancelarFollowUpsDoLead } from '@/lib/whatsapp-followup';
+import { sincronizarMensagemEAtualizarCrm } from '@/lib/whatsapp-shadow-engine';
 
 const mensagem = {
   event: 'message',
@@ -35,9 +47,13 @@ const post = (body: unknown, headers: Record<string, string> = {}) =>
     })
   );
 
+const sessao = { id: 's1', agencia_id: 'ag-1', cliente_id: null, ia_escuta_ativa: true };
+const insercao = (linhas: unknown[]) => ({ select: async () => ({ data: linhas }) });
+
 describe('POST /api/webhook/whatsapp', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    depois.length = 0;
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('OPENWA_WEBHOOK_SECRET', 'wh');
   });
@@ -65,17 +81,51 @@ describe('POST /api/webhook/whatsapp', () => {
   });
 
   it('grava na agência da sessão e guarda a sessão no follow-up', async () => {
-    maybeSingle.mockResolvedValue({
-      data: { id: 's1', agencia_id: 'ag-1', cliente_id: null, ia_escuta_ativa: false },
-    });
-    upsert.mockResolvedValue({ error: null });
+    maybeSingle.mockResolvedValue({ data: { ...sessao, ia_escuta_ativa: false } });
+    upsert.mockReturnValue(insercao([{ id: 'x' }]));
 
     const res = await post(mensagem, { 'x-openwa-secret': 'wh' });
+    await Promise.all(depois);
 
     expect(res.status).toBe(200);
-    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ agencia_id: 'ag-1' }), expect.anything());
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ agencia_id: 'ag-1' }),
+      expect.objectContaining({ ignoreDuplicates: true })
+    );
     expect(agendarReguaFollowUp).toHaveBeenCalledWith(
       expect.objectContaining({ agenciaId: 'ag-1', sessionName: 'membro-ana' })
     );
+  });
+
+  it('evento repetido pelo gateway não dispara follow-up nem IA de novo', async () => {
+    maybeSingle.mockResolvedValue({ data: sessao });
+    upsert.mockReturnValue(insercao([])); // já existia: nada inserido
+
+    const res = await post(mensagem, { 'x-openwa-secret': 'wh' });
+    await Promise.all(depois);
+
+    expect(await res.json()).toEqual({ ok: true, duplicate: true });
+    expect(depois).toHaveLength(0);
+    expect(agendarReguaFollowUp).not.toHaveBeenCalled();
+    expect(cancelarFollowUpsDoLead).not.toHaveBeenCalled();
+    expect(sincronizarMensagemEAtualizarCrm).not.toHaveBeenCalled();
+  });
+
+  it('responde antes de a IA terminar e a análise roda no pós-resposta', async () => {
+    maybeSingle.mockResolvedValue({ data: sessao });
+    upsert.mockReturnValue(insercao([{ id: 'x' }]));
+    let liberarIA: () => void = () => undefined;
+    vi.mocked(sincronizarMensagemEAtualizarCrm).mockImplementation(
+      () => new Promise<undefined>((ok) => { liberarIA = () => ok(undefined); })
+    );
+
+    const res = await post(mensagem, { 'x-openwa-secret': 'wh' });
+
+    expect(res.status).toBe(200); // resposta saiu mesmo com a IA ainda "pensando"
+    expect(depois).toHaveLength(1);
+    await vi.waitFor(() => expect(sincronizarMensagemEAtualizarCrm).toHaveBeenCalled());
+    liberarIA();
+    await Promise.all(depois);
+    expect(sincronizarMensagemEAtualizarCrm).toHaveBeenCalled();
   });
 });

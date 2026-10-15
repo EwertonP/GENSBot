@@ -47,18 +47,8 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Erro ao criar conta.');
       }
 
-      // Login automático imediatamente após cadastro
-      const { error: loginError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password: password.trim(),
-      });
-
-      if (loginError) {
-        setSuccess(true);
-      } else {
-        router.push('/');
-        router.refresh();
-      }
+      // A conta fica pendente até um administrador aprovar: não há login automático.
+      setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
@@ -75,9 +65,9 @@ export default function RegisterPage() {
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor"/>
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-foreground mb-3">Conta criada com sucesso!</h2>
+          <h2 className="text-xl font-bold text-foreground mb-3">Cadastro enviado!</h2>
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-            Verifique seu e-mail <strong className="text-foreground">{email}</strong> e clique no link de confirmação para ativar sua conta.
+            Sua conta (<strong className="text-foreground">{email}</strong>) foi criada e aguarda a aprovação de um administrador da agência. Você poderá entrar assim que o acesso for liberado.
           </p>
           <a
             href="/login"

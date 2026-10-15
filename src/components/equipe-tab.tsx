@@ -222,7 +222,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
   function handleCopiarLinkCadastro() {
     const registerUrl = `${window.location.origin}/register`;
     navigator.clipboard.writeText(registerUrl);
-    showToast('Link de cadastro da equipe copiado para a área de transferência! 🔗', 'success');
+    showToast('Link copiado! Quem se cadastrar fica pendente até você aprovar aqui na Equipe.', 'success');
   }
 
   const pendentes = membros.filter((m) => !m.ativo);

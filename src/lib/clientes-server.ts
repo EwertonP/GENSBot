@@ -70,55 +70,16 @@ export async function getContextoAgencia(): Promise<
     }
   }
 
-  // 2. Se o usuário existe no Auth mas ainda não tem linha na tabela 'membros' (ex: cadastro via /register)
+  // 2. A conta existe no Auth mas não foi aprovada. Nunca promovemos nem reativamos ninguém
+  // aqui: antes qualquer cadastro virava master da agência.
   if (!membro) {
-    const defaultAgenciaId = 'a6839f40-dc25-4c00-a662-8d90c100b8c2';
-    const userEmail = user.email?.toLowerCase() || '';
-
-    const { data: novoMembro, error: createErr } = await serviceSupabase
-      .from('membros')
-      .upsert({
-        id: user.id,
-        agencia_id: defaultAgenciaId,
-        nome: user.user_metadata?.full_name || user.user_metadata?.nome || userEmail.split('@')[0],
-        email: userEmail,
-        papel: 'master', // Concede acesso master ao sócio/membro cadastrado
-        ativo: true,
-      })
-      .select('id, agencia_id, papel, ativo, cliente_id, nome, cargo, foto_url')
-      .single();
-
-    if (!createErr && novoMembro) {
-      membro = novoMembro;
-    } else {
-      // Fallback virtual seguro para garantir que nenhum sócio/membro autenticado fique bloqueado
-      membro = {
-        id: user.id,
-        agencia_id: defaultAgenciaId,
-        nome: user.user_metadata?.full_name || user.user_metadata?.nome || userEmail.split('@')[0],
-        cargo: 'Diretor / Sócio',
-        foto_url: null,
-        papel: 'master',
-        ativo: true,
-        cliente_id: null,
-      };
-    }
+    return {
+      ok: false,
+      response: respostaErro('Sua conta ainda não está vinculada a uma agência. Peça a um administrador para liberar o acesso.', 403),
+    };
   }
-
-  // 3. Se o membro existe mas estava inativo, ativa-o automaticamente para liberar acesso imediato ao sócio
-  if (membro && !membro.ativo) {
-    const { data: membroAtivado } = await serviceSupabase
-      .from('membros')
-      .update({ ativo: true })
-      .eq('id', user.id)
-      .select('id, agencia_id, papel, ativo, cliente_id, nome, cargo, foto_url')
-      .single();
-
-    if (membroAtivado) {
-      membro = membroAtivado;
-    } else {
-      membro.ativo = true;
-    }
+  if (!membro.ativo) {
+    return { ok: false, response: respostaErro('Seu acesso está aguardando aprovação de um administrador.', 403) };
   }
 
   return { ok: true, ctx: { supabase, user, membro: membro as Membro } };

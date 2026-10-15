@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { segredoConfere } from '@/lib/segredos';
 import { supabase } from '@/lib/supabase';
 import { queryNotionDatabase, mapNotionPageToDemand, correspondeClienteEnotionDb, clienteLabelBate, fetchNotionPageContent, splitEstruturaELegenda } from '@/lib/notion';
 import { getContextoAgencia } from '@/lib/clientes-server';
@@ -62,7 +63,7 @@ export async function handleNotionSync(req: Request) {
   const cronSecret = process.env.CRON_SECRET;
 
   // 1. Vercel Cron com Bearer Token
-  const isVercelCron = Boolean(cronSecret && authHeader === `Bearer ${cronSecret}`);
+  const isVercelCron = Boolean(cronSecret && segredoConfere(authHeader, cronSecret));
 
   // 2. Chamada manual pela interface (Usuário autenticado na sessão do Supabase)
   let isUserAuth = false;

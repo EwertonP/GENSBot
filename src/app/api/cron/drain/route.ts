@@ -1,18 +1,15 @@
 import { NextResponse } from 'next/server';
 import { drainQueue } from '@/lib/drain';
+import { validarCron } from '@/lib/segredos';
 
 // Mesmo padrão de src/app/api/instagram/publish/route.ts — sem isso a Vercel corta
 // em 10s (padrão do plano Hobby), curto demais pra drenar uma fila maior.
 export const maxDuration = 60;
 
 async function handleDrain(req: Request) {
-  const authHeader = req.headers.get('Authorization');
-  const cronSecret = process.env.CRON_SECRET || 'local_secret';
-
-  // Permitir execução local sem auth se for desenvolvimento, senão validar token
-  if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${cronSecret}`) {
-    return new Response('Não autorizado', { status: 401 });
-  }
+  const negado = validarCron(req);
+  if (negado) return negado;
+  const cronSecret = process.env.CRON_SECRET ?? '';
 
   try {
     const result = await drainQueue();

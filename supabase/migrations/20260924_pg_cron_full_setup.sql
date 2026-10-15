@@ -26,7 +26,7 @@ SELECT cron.schedule(
     url := 'https://allingens.vercel.app/api/cron/publish-scheduled',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer 8f3a1c9e7b2d4f6a0c5e8b1d3f7a9c2e5b8d0f4a6c1e9b3d7f2a5c8e0b4d6f9a'
+      'Authorization', 'Bearer SEU_CRON_SECRET_AQUI'
     ),
     body := '{}'::jsonb
   );
@@ -46,7 +46,7 @@ SELECT cron.schedule(
     url := 'https://allingens.vercel.app/api/cron/drain',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer 8f3a1c9e7b2d4f6a0c5e8b1d3f7a9c2e5b8d0f4a6c1e9b3d7f2a5c8e0b4d6f9a'
+      'Authorization', 'Bearer SEU_CRON_SECRET_AQUI'
     ),
     body := '{}'::jsonb
   );
@@ -66,7 +66,7 @@ SELECT cron.schedule(
     url := 'https://allingens.vercel.app/api/cron/refresh-token',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer 8f3a1c9e7b2d4f6a0c5e8b1d3f7a9c2e5b8d0f4a6c1e9b3d7f2a5c8e0b4d6f9a'
+      'Authorization', 'Bearer SEU_CRON_SECRET_AQUI'
     ),
     body := '{}'::jsonb
   );
@@ -86,7 +86,7 @@ SELECT cron.schedule(
     url := 'https://allingens.vercel.app/api/cron/notion-sync',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer 8f3a1c9e7b2d4f6a0c5e8b1d3f7a9c2e5b8d0f4a6c1e9b3d7f2a5c8e0b4d6f9a'
+      'Authorization', 'Bearer SEU_CRON_SECRET_AQUI'
     ),
     body := '{}'::jsonb
   );
