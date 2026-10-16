@@ -12,6 +12,7 @@ import {
   deInputData,
   distanciaEmDias,
   ehDataSemHora,
+  compararPorData,
   horaLocal,
   paraInputData,
   type StatusConteudo,
@@ -53,6 +54,17 @@ describe('datas só de dia (prazo e data programada)', () => {
     expect(horaLocal(agendado)).toBe('11:50');
     expect(horaLocal('2026-09-22T00:00:00+00:00')).toBeNull();
     expect(horaLocal(null)).toBeNull();
+  });
+
+  it('ordena pela data mais próxima e deixa as sem data no fim, na ordem manual', () => {
+    const itens = [
+      { id: 'sem-data-2', ordem: 2 },
+      { id: 'dia-20', data_programada: '2026-10-20T00:00:00+00:00', ordem: 1 },
+      { id: 'sem-data-1', ordem: 1 },
+      { id: 'prazo-18', prazo: '2026-10-18T00:00:00+00:00', ordem: 9 },
+      { id: 'dia-18-15h', data_programada: new Date(2026, 9, 18, 15, 0).toISOString(), ordem: 3 },
+    ];
+    expect([...itens].sort(compararPorData).map((i) => i.id)).toEqual(['prazo-18', 'dia-18-15h', 'dia-20', 'sem-data-1', 'sem-data-2']);
   });
 
   it('descreve a distância em dias', () => {
