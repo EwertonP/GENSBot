@@ -160,13 +160,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updates.publicado_em = new Date().toISOString();
     }
 
+    let itemAtual: any = null;
+
     // Se houve alteração de status ou envio de novo comentário, registra no histórico (audit trail)
     if ('status' in updates || body.novo_comentario_equipe) {
-      let { data: itemAtual } = await supabase
+      const { data: itemAtualDb } = await supabase
         .from('conteudo_items')
         .select('status, historico_atividades, notion_page_id, arquivos, scheduled_post_id, cliente_id, titulo, token_aprovacao, responsavel_id')
         .eq('id', id)
         .single();
+      itemAtual = itemAtualDb;
 
       if (!itemAtual && membro?.agencia_id) {
         const { data: fbItem } = await serviceSupabase
@@ -199,27 +202,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             texto: `Status alterado para ${String(updates.status).toUpperCase()}`,
             criado_em: new Date().toISOString(),
           });
-
-          // Disparo automático: Quando a demanda entra em "Aprovação" (revisao_cliente),
-          // notifica automaticamente o grupo de WhatsApp do cliente com o link de aprovação.
-          // Prioriza o WhatsApp conectado do designer responsável pela demanda!
-          if (updates.status === 'revisao_cliente' && (itemAtual.cliente_id || updates.cliente_id)) {
-            const cid = itemAtual.cliente_id || updates.cliente_id;
-            const tit = updates.titulo || itemAtual.titulo || 'Nova Publicação';
-            const tok = itemAtual.token_aprovacao;
-            const agId = membro?.agencia_id || 'a6839f40-dc25-4c00-a662-8d90c100b8c2';
-            const respId = updates.responsavel_id || itemAtual.responsavel_id || (membro?.id ?? null);
-
-            import('@/lib/conteudo-whatsapp').then(({ notificarGrupoAprovacaoConteudo }) => {
-              notificarGrupoAprovacaoConteudo({
-                agenciaId: agId,
-                clienteId: cid,
-                tituloPost: tit,
-                tokenAprovacao: tok,
-                responsavelId: respId,
-              }).catch((err) => console.warn('[Aprovação WhatsApp] Falha ao notificar grupo:', err));
-            });
-          }
 
           // Sincroniza com Notion se a demanda for vinculada
           if (itemAtual.notion_page_id) {
@@ -299,7 +281,45 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return traduzirErroBanco(error, 'PATCH /api/conteudo/[id]');
     }
 
-    return NextResponse.json({ item: data });
+    // Disparo automático ou reenvio para Aprovação (revisao_cliente)
+    let whatsappResultado: any = null;
+    const entrouEmRevisaoCliente = updates.status === 'revisao_cliente' && itemAtual?.status !== 'revisao_cliente';
+    const forcarReenvio = Boolean(body.reenviar_whatsapp);
+    const deveNotificarWhatsApp =
+      !body.pular_notificacao_whatsapp &&
+      (entrouEmRevisaoCliente || (forcarReenvio && (data?.status === 'revisao_cliente' || updates.status === 'revisao_cliente')));
+
+    if (deveNotificarWhatsApp && (data?.cliente_id || itemAtual?.cliente_id || updates.cliente_id)) {
+      const agId = membro?.agencia_id || 'a6839f40-dc25-4c00-a662-8d90c100b8c2';
+      const cid = data?.cliente_id || itemAtual?.cliente_id || updates.cliente_id;
+      const tit = data?.titulo || updates.titulo || itemAtual?.titulo || 'Nova Publicação';
+      const tok = data?.token_aprovacao || itemAtual?.token_aprovacao;
+      const respId = data?.responsavel_id || updates.responsavel_id || itemAtual?.responsavel_id || null;
+      const remetenteId = membro?.id || null;
+
+      try {
+        const { notificarGrupoAprovacaoConteudo } = await import('@/lib/conteudo-whatsapp');
+        whatsappResultado = await notificarGrupoAprovacaoConteudo({
+          agenciaId: agId,
+          clienteId: cid,
+          conteudoId: id,
+          tituloPost: tit,
+          tokenAprovacao: tok,
+          responsavelId: respId,
+          remetenteId: remetenteId,
+          forcarReenvio,
+        });
+      } catch (err: any) {
+        console.warn('[Aprovação WhatsApp] Falha ao notificar grupo:', err);
+        whatsappResultado = {
+          ok: false,
+          enviado: false,
+          erro: err?.message || String(err),
+        };
+      }
+    }
+
+    return NextResponse.json({ item: data, whatsapp: whatsappResultado });
   } catch (err: any) {
     console.error('Erro inesperado em PATCH /api/conteudo/[id]:', err);
     return respostaErro('Erro ao processar atualização: ' + (err?.message || 'dados inválidos'), 400);

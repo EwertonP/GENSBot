@@ -21,7 +21,11 @@ export async function generateMetadata(
       tipo,
       legenda,
       arquivos,
-      cliente:clientes(nome, foto_url)
+      cliente:clientes(
+        nome,
+        foto_url,
+        instagram_account_id
+      )
     `)
     .eq('token_aprovacao', token)
     .maybeSingle();
@@ -33,7 +37,21 @@ export async function generateMetadata(
     };
   }
 
-  const clienteNome = (item.cliente as any)?.nome || 'Cliente';
+  // Se o cliente tem conta do Instagram vinculada, resolve o @username
+  let clienteHandle = (item.cliente as any)?.nome || 'Cliente';
+  if ((item.cliente as any)?.instagram_account_id) {
+    const { data: conta } = await supabase
+      .from('instagram_accounts')
+      .select('instagram_username')
+      .eq('id', (item.cliente as any).instagram_account_id)
+      .maybeSingle();
+    if (conta?.instagram_username) {
+      clienteHandle = `@${conta.instagram_username}`;
+    }
+  } else if (clienteHandle && !clienteHandle.startsWith('@') && !clienteHandle.includes(' ')) {
+    clienteHandle = `@${clienteHandle}`;
+  }
+
   const tipo = item.tipo;
   const arquivos = Array.isArray(item.arquivos) ? item.arquivos : [];
   const formato =
@@ -45,16 +63,16 @@ export async function generateMetadata(
       ? 'Carrossel'
       : 'Publicação';
 
-  const titulo = `Aprovação de ${formato}: "${item.titulo || 'Nova Postagem'}" | ${clienteNome}`;
-  const descricao = `Prévia visual oficial do ${formato} de ${clienteNome}. Navegue pelos slides, assista ao vídeo e aprove com 1 clique.`;
+  const titulo = `Aprovação de ${formato}: "${item.titulo || 'Nova Postagem'}" | ${clienteHandle}`;
+  const descricao = `Prévia visual oficial do ${formato} de ${clienteHandle}. Navegue pelos slides, assista ao vídeo e aprove com 1 clique.`;
 
-  // Domínio público de produção: a URL do deploy (VERCEL_URL) fica atrás da
-  // proteção da Vercel, e o WhatsApp não consegue baixar a imagem da prévia.
+  // Domínio público de produção para garantir que crawlers do WhatsApp/Facebook
+  // consigam baixar a página e a imagem OG sem restrições.
   const baseUrl = obterUrlBaseApp();
-
   const ogImageUrl = `${baseUrl}/api/aprovacao/${token}/og`;
 
   return {
+    metadataBase: new URL(baseUrl),
     title: titulo,
     description: descricao,
     openGraph: {
@@ -68,6 +86,7 @@ export async function generateMetadata(
           url: ogImageUrl,
           width: 1200,
           height: 630,
+          type: 'image/png',
           alt: `Prévia da publicação ${item.titulo || ''}`,
         },
       ],

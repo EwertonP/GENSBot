@@ -422,7 +422,11 @@ export function DemandaSheet({
       if (!res.ok) throw new Error(data.error);
 
       onSalvo(data.item, !editando);
-      showToast(editando ? 'Demanda atualizada com sucesso!' : 'Nova demanda cadastrada com sucesso na esteira!', 'success');
+      if (status === 'revisao_cliente' && data?.whatsapp?.enviado) {
+        showToast('Demanda salva e link disparado automaticamente no WhatsApp do cliente!', 'success');
+      } else {
+        showToast(editando ? 'Demanda atualizada com sucesso!' : 'Nova demanda cadastrada com sucesso na esteira!', 'success');
+      }
     } catch (err) {
       showToast(err instanceof Error && err.message ? err.message : 'Erro ao salvar a demanda.', 'error');
     } finally {
@@ -1373,21 +1377,45 @@ export function DemandaSheet({
                   )}
                 </div>
 
-                {/* Ajustes do cliente (destaque) */}
-                {(item.comentarios_revisao || []).length > 0 && (
-                  <div className="p-3 rounded-2xl bg-warning-soft border border-warning-ring space-y-2">
-                    <p className="text-xs font-bold text-warning flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      Ajustes pedidos pelo cliente ({item.comentarios_revisao.length})
-                    </p>
-                    {item.comentarios_revisao.map((c) => (
-                      <div key={c.id} className="text-xs p-2.5 rounded-xl bg-card border border-border shadow-2xs">
-                        <span className="text-muted-foreground block text-xs font-semibold">{c.autor || 'Cliente'}</span>
-                        <p className="text-foreground mt-0.5 whitespace-pre-wrap">{c.texto}</p>
+                {/* Ajustes do cliente ou Confirmação de Aprovação */}
+                {(() => {
+                  const ajustesPendentes = (item.comentarios_revisao || []).filter(
+                    (c) => !c.resolvido && c.texto && !c.texto.toLowerCase().includes('aprovad')
+                  );
+                  const foiAprovado =
+                    item.status === 'agendamento' ||
+                    item.status === 'pronto_publicar' ||
+                    item.status === 'publicado' ||
+                    (item.historico_atividades || []).some((h) => h.texto?.toLowerCase().includes('aprovad'));
+
+                  if (ajustesPendentes.length > 0) {
+                    return (
+                      <div className="p-3 rounded-2xl bg-warning-soft border border-warning-ring space-y-2">
+                        <p className="text-xs font-bold text-warning flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          Ajustes pedidos pelo cliente ({ajustesPendentes.length})
+                        </p>
+                        {ajustesPendentes.map((c) => (
+                          <div key={c.id} className="text-xs p-2.5 rounded-xl bg-card border border-border shadow-2xs">
+                            <span className="text-muted-foreground block text-xs font-semibold">{c.autor || 'Cliente'}</span>
+                            <p className="text-foreground mt-0.5 whitespace-pre-wrap">{c.texto}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  }
+
+                  if (foiAprovado) {
+                    return (
+                      <div className="p-3 rounded-2xl bg-success-soft border border-success-ring flex items-center gap-2 text-xs font-semibold text-success">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        <span>Publicação aprovada pelo cliente. Pronta para agendamento e postagem.</span>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })()}
 
                 {/* Thread de balões com avatar e destaque de menções */}
                 <div className="space-y-2.5 max-h-56 sm:max-h-64 overflow-y-auto pr-1 flex-1">

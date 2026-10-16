@@ -334,7 +334,10 @@ export function AprovacaoWhatsappSheet({
                     await fetch(`/api/conteudo/${itemParaAprovacao.id}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ status: 'revisao_cliente' }),
+                      body: JSON.stringify({
+                        status: 'revisao_cliente',
+                        pular_notificacao_whatsapp: true,
+                      }),
                     });
                     setItems((prev) =>
                       prev.map((i) =>

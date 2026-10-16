@@ -171,6 +171,18 @@ async function handlePublishScheduled(req: Request) {
       }
     }
 
+    // Limpeza automática: exclui demandas publicadas há mais de 7 dias para manter a esteira limpa
+    try {
+      const limite7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      await supabase
+        .from('conteudo_items')
+        .delete()
+        .eq('status', 'publicado')
+        .lt('publicado_em', limite7Dias);
+    } catch (errLimpeza) {
+      console.warn('[Cron Publish] Erro na limpeza de posts publicados antigos:', errLimpeza);
+    }
+
     return NextResponse.json({ processed: results.length, results });
   } catch (err: any) {
     console.error('Erro geral no worker de publicação agendada:', err);
