@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
+import { validarCron } from '@/lib/segredos';
+import { carregarSessoesConectadas, escolherSessaoEnvio } from '@/lib/whatsapp-sessions';
 
 export const maxDuration = 60;
 
@@ -8,12 +10,8 @@ export const maxDuration = 60;
  * Executa disparos agendados onde agendado_para <= NOW() e status = 'pendente'
  */
 export async function GET(req: Request) {
-  const authHeader = req.headers.get('Authorization');
-  const cronSecret = process.env.CRON_SECRET || 'local_secret';
-
-  if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${cronSecret}`) {
-    return new Response('Não autorizado', { status: 401 });
-  }
+  const negado = validarCron(req);
+  if (negado) return negado;
 
   try {
     const agoraIso = new Date().toISOString();
@@ -21,7 +19,7 @@ export async function GET(req: Request) {
     // 1. Busca até 15 follow-ups pendentes no horário
     const { data: followups, error } = await serviceSupabase
       .from('whatsapp_followups')
-      .select('id, agencia_id, cliente_id, telefone, mensagem, etapa')
+      .select('id, agencia_id, cliente_id, telefone, mensagem, etapa, session_name')
       .eq('status', 'pendente')
       .lte('agendado_para', agoraIso)
       .limit(15);
@@ -34,8 +32,28 @@ export async function GET(req: Request) {
     const { enviarMensagemOpenWA } = await import('@/lib/openwa-client');
     let enviados = 0;
 
+    const sessoesPorAgencia = new Map<string, Awaited<ReturnType<typeof carregarSessoesConectadas>>>();
+
     for (const item of followups) {
-      const sessionName = item.cliente_id ? `cliente-${item.cliente_id}` : `agencia-${item.agencia_id}`;
+      // Follow-ups novos guardam a sessão que atendeu o lead. Os antigos não têm: usa só a
+      // sessão do cliente ou a geral da agência, nunca a pessoal de um membro.
+      let sessionName: string | null = item.session_name || null;
+      if (!sessionName) {
+        if (!sessoesPorAgencia.has(item.agencia_id)) {
+          sessoesPorAgencia.set(item.agencia_id, await carregarSessoesConectadas(item.agencia_id));
+        }
+        const sessao = escolherSessaoEnvio(sessoesPorAgencia.get(item.agencia_id)!, {
+          papel: 'equipe',
+          membroId: '',
+          clienteId: item.cliente_id,
+        });
+        sessionName = sessao?.session_name || null;
+      }
+
+      if (!sessionName) {
+        await serviceSupabase.from('whatsapp_followups').update({ status: 'cancelado' }).eq('id', item.id);
+        continue;
+      }
 
       try {
         const resultado = await enviarMensagemOpenWA({

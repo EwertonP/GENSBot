@@ -45,6 +45,7 @@ import {
   type StatusConteudo,
   type ArquivoConteudo,
   type PrefillAgendamento,
+  compararPorData,
 } from '@/lib/conteudo';
 import { detectarGatilhosDaLegenda } from '@/lib/publish-automation';
 import type { Cliente } from '@/lib/clientes';
@@ -234,7 +235,7 @@ export default function EsteiraTab({
         if (!matchTitulo && !matchLegenda && !matchCliente && !matchResp) return false;
       }
       return true;
-    });
+    }).sort(compararPorData);
   }, [items, clienteSelecionado, responsavelFiltro, busca, ocultarPublicados]);
 
   async function handleMudarStatus(

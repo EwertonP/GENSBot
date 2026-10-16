@@ -55,6 +55,29 @@ export async function listarSessoesOpenWA(): Promise<OpenWASessionInfo[]> {
 }
 
 /**
+ * Encontra a sessão do gateway pelo nome cadastrado (ou pelo UUID).
+ * Só aceita correspondência de nome: nunca devolve "alguma outra sessão ativa",
+ * senão a mensagem sairia do WhatsApp de outro membro.
+ */
+export function acharSessaoOpenWA<T extends OpenWASessionInfo>(
+  sessions: T[],
+  sessionName: string
+): T | null {
+  const alvo = sessionName.toLowerCase();
+  return (
+    sessions.find((s) => {
+      const nome = (s.name || s.id || '').toLowerCase();
+      return (
+        nome === alvo ||
+        nome === alvo.replace(/-/g, '_') ||
+        nome === alvo.replace(/_/g, '-') ||
+        (Boolean(s.id) && s.id === sessionName)
+      );
+    }) ?? null
+  );
+}
+
+/**
  * Resolve o UUID exato da sessão no OpenWA a partir do sessionName cadastrado
  */
 export async function obterSessionUuidOpenWA(sessionName: string): Promise<{
@@ -72,35 +95,10 @@ export async function obterSessionUuidOpenWA(sessionName: string): Promise<{
     if (!resList.ok) return { sessionUuid: null, sessionExactName: null };
 
     const sessions = await resList.json();
-    if (!Array.isArray(sessions) || sessions.length === 0) {
-      return { sessionUuid: null, sessionExactName: null };
-    }
+    if (!Array.isArray(sessions)) return { sessionUuid: null, sessionExactName: null };
 
-    const sNameNorm = sessionName.toLowerCase();
-    const match = sessions.find((s: any) => {
-      const itemNome = (s.name || s.id || '').toLowerCase();
-      return (
-        itemNome === sNameNorm ||
-        itemNome === sNameNorm.replace(/-/g, '_') ||
-        itemNome === sNameNorm.replace(/_/g, '-') ||
-        (s.id && s.id === sessionName)
-      );
-    });
-
-    if (match) {
-      return { sessionUuid: match.id || null, sessionExactName: match.name || null };
-    }
-
-    // Se só existe 1 sessão no gateway ou se há sessão ativa/conectada, usa como candidata
-    const ativa = sessions.find((s: any) => {
-      const st = String(s.status || '').toLowerCase();
-      return st === 'ready' || st === 'connected' || st === 'working';
-    });
-    if (ativa) {
-      return { sessionUuid: ativa.id || null, sessionExactName: ativa.name || null };
-    }
-
-    return { sessionUuid: sessions[0].id || null, sessionExactName: sessions[0].name || null };
+    const match = acharSessaoOpenWA<OpenWASessionInfo>(sessions, sessionName);
+    return { sessionUuid: match?.id || null, sessionExactName: match?.name || null };
   } catch (err) {
     console.error('[OpenWA] Erro ao resolver session UUID:', err);
     return { sessionUuid: null, sessionExactName: null };
@@ -169,9 +167,16 @@ export async function enviarMensagemOpenWA({
     return { ok: false, erro: 'OPENWA_API_URL não configurada no ambiente.' };
   }
 
-  // 1. Resolve o UUID exato da sessão no OpenWA
+  // 1. Resolve o UUID exato da sessão no OpenWA. Sem correspondência exata não envia:
+  // cair em outra sessão faria a mensagem sair do número de outra pessoa.
   const { sessionUuid, sessionExactName } = await obterSessionUuidOpenWA(sessionName);
-  const effectiveSessionId = sessionUuid || sessionExactName || sessionName;
+  if (!sessionUuid) {
+    return {
+      ok: false,
+      erro: `Sessão "${sessionName}" não encontrada no gateway do WhatsApp. Reconecte o número e tente de novo.`,
+    };
+  }
+  const effectiveSessionId = sessionUuid;
 
   // 2. Se o destinatário for link de convite, resolve o grupo primeiro
   let dest = para.trim();

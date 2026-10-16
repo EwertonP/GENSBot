@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { validarCron } from '@/lib/segredos';
 import { supabase } from '@/lib/supabase';
 import { cacheProfilePicture } from '@/lib/profile-picture';
 import { sendEmail } from '@/lib/email';
@@ -8,12 +9,8 @@ import { sendEmail } from '@/lib/email';
 const JANELA_RENOVACAO_DIAS = 30;
 
 async function handleRefresh(req: Request) {
-  const authHeader = req.headers.get('Authorization');
-  const cronSecret = process.env.CRON_SECRET || 'local_secret';
-
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return new Response('Não autorizado', { status: 401 });
-  }
+  const negado = validarCron(req);
+  if (negado) return negado;
 
   try {
     // Renova toda conta cujo token vence nos próximos JANELA_RENOVACAO_DIAS dias

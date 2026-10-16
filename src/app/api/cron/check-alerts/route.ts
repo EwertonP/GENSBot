@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { validarCron } from '@/lib/segredos';
 import { supabase } from '@/lib/supabase';
 import { getDashboardMetrics, getTokenHealth, buildAlerts } from '@/lib/dashboard-metrics';
 import { sendEmail } from '@/lib/email';
@@ -7,12 +8,8 @@ import { sendEmail } from '@/lib/email';
 const RENOTIFY_AFTER_DAYS = 3;
 
 async function handleCheckAlerts(req: Request) {
-  const authHeader = req.headers.get('Authorization');
-  const cronSecret = process.env.CRON_SECRET || 'local_secret';
-
-  if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${cronSecret}`) {
-    return new Response('Não autorizado', { status: 401 });
-  }
+  const negado = validarCron(req);
+  if (negado) return negado;
 
   try {
     const { data: accountRows, error: accountsError } = await supabase

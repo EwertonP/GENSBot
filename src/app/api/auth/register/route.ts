@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 
+/**
+ * Cadastro público. Cria a conta como membro INATIVO: um administrador precisa aprovar
+ * na tela Equipe. Esta rota nunca altera conta existente nem concede papel de master
+ * (antes ela redefinia a senha de qualquer e-mail já cadastrado e promovia o cadastro).
+ */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -42,9 +47,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nenhuma agência encontrada no sistema.' }, { status: 500 });
     }
 
-    // 2. Tenta criar usuário no Supabase Auth usando admin API (com email_confirm: true)
-    let userId: string;
-
+    // 2. Cria o usuário no Supabase Auth. Se o e-mail já existe, recusa: nada de mexer em
+    // senha ou permissões de uma conta que já existe.
     const { data: authUser, error: authError } = await serviceSupabase.auth.admin.createUser({
       email: emailLimpo,
       password: senhaLimpa,
@@ -57,61 +61,44 @@ export async function POST(req: Request) {
     });
 
     if (authError) {
-      // Se o usuário já existia (ex: convidado pelo painel previamente ou tentativa anterior)
-      const isAlreadyRegistered =
+      const jaExiste =
         authError.message?.toLowerCase().includes('already registered') ||
         authError.code === 'email_exists' ||
         authError.status === 422;
 
-      if (isAlreadyRegistered) {
-        const { data: listData } = await serviceSupabase.auth.admin.listUsers({ perPage: 1000 });
-        const existing = listData?.users?.find((u) => u.email?.toLowerCase() === emailLimpo);
-
-        if (!existing) {
-          return NextResponse.json({ error: 'Erro ao identificar conta existente.' }, { status: 400 });
-        }
-
-        userId = existing.id;
-
-        // Atualiza a senha e confirma o e-mail do usuário existente
-        const { error: updateErr } = await serviceSupabase.auth.admin.updateUserById(userId, {
-          password: senhaLimpa,
-          email_confirm: true,
-          user_metadata: {
-            full_name: name.trim(),
-            username: username?.trim().toLowerCase() || emailLimpo.split('@')[0],
-            cargo: cargo?.trim() || 'Sócio / Membro',
-          },
-        });
-
-        if (updateErr) {
-          return NextResponse.json({ error: updateErr.message || 'Erro ao atualizar senha do usuário.' }, { status: 400 });
-        }
-      } else {
-        return NextResponse.json({ error: authError.message || 'Erro ao criar conta no sistema.' }, { status: 400 });
+      if (jaExiste) {
+        return NextResponse.json(
+          { error: 'Já existe uma conta com este e-mail. Entre pelo login ou peça a um administrador para redefinir a senha.' },
+          { status: 409 }
+        );
       }
-    } else {
-      userId = authUser.user.id;
+      return NextResponse.json({ error: authError.message || 'Erro ao criar conta no sistema.' }, { status: 400 });
     }
 
-    // 3. Garante que o registro na tabela `membros` esteja criado e ativo
-    const { error: membroError } = await serviceSupabase
-      .from('membros')
-      .upsert({
-        id: userId,
-        agencia_id: agenciaId,
-        nome: name.trim(),
-        email: emailLimpo,
-        papel: 'master', // Concede acesso ao membro/sócio cadastrado via link
-        cargo: cargo?.trim() || 'Sócio / Membro',
-        ativo: true,
-      });
+    const userId = authUser.user.id;
+
+    // 3. Registra como membro inativo, aguardando aprovação
+    const { error: membroError } = await serviceSupabase.from('membros').insert({
+      id: userId,
+      agencia_id: agenciaId,
+      nome: name.trim(),
+      email: emailLimpo,
+      papel: 'membro',
+      cargo: cargo?.trim() || 'Sócio / Membro',
+      ativo: false,
+    });
 
     if (membroError) {
-      console.error('Erro ao upsert membro no register:', membroError);
+      console.error('Erro ao registrar membro no register:', membroError);
+      // Não deixa uma conta de Auth órfã, sem vínculo com a agência
+      await serviceSupabase.auth.admin.deleteUser(userId);
+      return NextResponse.json({ error: 'Não foi possível concluir o cadastro. Tente novamente.' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, message: 'Conta criada e ativada com sucesso!' });
+    return NextResponse.json({
+      success: true,
+      message: 'Cadastro enviado! Um administrador da agência precisa aprovar o seu acesso.',
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Erro interno do servidor.' }, { status: 500 });
   }

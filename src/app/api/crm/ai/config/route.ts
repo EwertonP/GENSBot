@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
+import { criptografarSegredo, segredoDisponivel } from '@/lib/cripto';
 import type { AIAgentConfig } from '@/types/ai';
+
+/** A chave de API nunca volta para o navegador: só um aviso de que existe uma salva. */
+function semChave<T extends { api_key?: string | null }>(config: T) {
+  const { api_key, ...resto } = config;
+  return { ...resto, tem_api_key: Boolean(api_key) };
+}
 
 // GET: Retorna a configuração de IA do cliente selecionado ou da agência
 export async function GET(req: Request) {
@@ -28,7 +35,7 @@ export async function GET(req: Request) {
     const { data, error } = await query.maybeSingle();
     if (error) return traduzirErroBanco(error, 'GET /api/crm/ai/config');
 
-    return NextResponse.json(data || null);
+    return NextResponse.json(data ? semChave(data) : null);
   } catch (err: any) {
     console.error('Erro ao buscar configuração de IA:', err);
     return respostaErro('Falha interna ao carregar configuração de IA.', 500);
@@ -80,9 +87,16 @@ export async function POST(req: Request) {
       atualizado_em: new Date().toISOString(),
     };
 
-    // Só atualiza api_key se foi informada (não sobrescreve com vazio se já existia)
+    // Só atualiza api_key se foi informada (não sobrescreve com vazio se já existia).
+    // A chave vai criptografada; sem AI_KEYS_SECRET não salvamos (nada de texto puro no banco).
     if (api_key && api_key.trim()) {
-      payload.api_key = api_key.trim();
+      if (!segredoDisponivel()) {
+        return respostaErro(
+          'AI_KEYS_SECRET não está configurada no servidor, então a chave não foi salva. Gere uma com "openssl rand -base64 32" e defina na Vercel.',
+          500
+        );
+      }
+      payload.api_key = criptografarSegredo(api_key.trim());
     }
 
     const { data, error } = await serviceSupabase
@@ -93,7 +107,7 @@ export async function POST(req: Request) {
 
     if (error) return traduzirErroBanco(error, 'POST /api/crm/ai/config');
 
-    return NextResponse.json(data);
+    return NextResponse.json(semChave(data));
   } catch (err: any) {
     console.error('Erro ao salvar configuração de IA:', err);
     return respostaErro('Falha interna ao salvar configuração de IA.', 500);

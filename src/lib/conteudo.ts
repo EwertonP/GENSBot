@@ -73,6 +73,25 @@ export function horaLocal(iso?: string | null): string | null {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+/**
+ * Ordem da esteira: demandas com data (de postagem ou, sem ela, o prazo) da mais
+ * próxima para a mais distante; as sem data vêm depois, na ordem manual (`ordem`).
+ */
+export function compararPorData(
+  a: { data_programada?: string | null; prazo?: string | null; ordem?: number | null },
+  b: { data_programada?: string | null; prazo?: string | null; ordem?: number | null }
+): number {
+  const da = a.data_programada || a.prazo;
+  const db = b.data_programada || b.prazo;
+  if (da && db) {
+    const diff = dataLocal(da).getTime() - dataLocal(db).getTime();
+    if (diff !== 0) return diff;
+  } else if (da || db) {
+    return da ? -1 : 1;
+  }
+  return (a.ordem ?? 0) - (b.ordem ?? 0);
+}
+
 /** ISO do banco → valor de `<input type="date">` (AAAA-MM-DD no fuso local). */
 export function paraInputData(iso?: string | null): string {
   if (!iso) return '';

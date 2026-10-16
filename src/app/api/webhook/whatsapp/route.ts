@@ -1,18 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { sincronizarMensagemEAtualizarCrm } from '@/lib/whatsapp-shadow-engine';
+import { validarWebhookOpenWA } from '@/lib/segredos';
 
 // POST: Webhook oficial para receber eventos do OpenWA
 export async function POST(req: Request) {
+  const negado = validarWebhookOpenWA(req);
+  if (negado) return negado;
+
   try {
     const body = await req.json();
-
-    // Validação de token secreto do webhook se configurado
-    const secretKey = process.env.OPENWA_WEBHOOK_SECRET;
-    const authHeader = req.headers.get('x-openwa-secret') || req.headers.get('authorization');
-    if (secretKey && authHeader !== secretKey && authHeader !== `Bearer ${secretKey}`) {
-      return NextResponse.json({ error: 'Assinatura inválida do webhook' }, { status: 401 });
-    }
 
     const { event, session, data } = body;
 
@@ -28,8 +25,14 @@ export async function POST(req: Request) {
         .eq('session_name', sessionName)
         .maybeSingle();
 
-      const agenciaId = sessionData?.agencia_id || 'a6839f40-dc25-4c00-a662-8d90c100b8c2';
-      const clienteId = sessionData?.cliente_id || null;
+      // Sessão que não está cadastrada não pertence a nenhuma agência: descarta em vez de
+      // gravar tudo na agência padrão.
+      if (!sessionData) {
+        return NextResponse.json({ ignored: 'unknown_session' });
+      }
+
+      const agenciaId = sessionData.agencia_id;
+      const clienteId = sessionData.cliente_id || null;
 
       const messageId = msg.id || msg.key?.id || `${Date.now()}-${Math.random()}`;
       const remetente = msg.from || msg.sender || msg.key?.remoteJid || '';
@@ -42,59 +45,80 @@ export async function POST(req: Request) {
         return NextResponse.json({ ignored: 'group_message' });
       }
 
-      // 2. Salva no banco a mensagem
-      await serviceSupabase.from('whatsapp_mensagens').upsert({
-        agencia_id: agenciaId,
-        cliente_id: clienteId,
-        session_id: sessionData?.id || null,
-        message_id: messageId,
-        remetente: remetente.replace(/\D/g, ''),
-        de_mim: deMim,
-        tipo: msg.type || 'texto',
-        conteudo,
-        nome_contato: nomeContato,
-        timestamp_msg: new Date().toISOString(),
-      }, { onConflict: 'agencia_id,message_id' });
+      // 2. Salva a mensagem. ignoreDuplicates + select devolve só o que foi inserido agora:
+      // se o gateway reenviar o evento, nada é reprocessado (follow-ups, IA, custo).
+      const { data: inseridas } = await serviceSupabase
+        .from('whatsapp_mensagens')
+        .upsert(
+          {
+            agencia_id: agenciaId,
+            cliente_id: clienteId,
+            session_id: sessionData?.id || null,
+            message_id: messageId,
+            remetente: remetente.replace(/D/g, ''),
+            de_mim: deMim,
+            tipo: msg.type || 'texto',
+            conteudo,
+            nome_contato: nomeContato,
+            timestamp_msg: new Date().toISOString(),
+          },
+          { onConflict: 'agencia_id,message_id', ignoreDuplicates: true }
+        )
+        .select('id');
 
-      // Se a mensagem for do paciente/lead: CANCELA follow-ups pendentes imediatamente
-      if (!deMim) {
-        const { cancelarFollowUpsDoLead } = await import('@/lib/whatsapp-followup');
-        await cancelarFollowUpsDoLead(agenciaId, remetente);
-      } else {
-        // Se a mensagem foi enviada pela secretária: AGENDAR nova régua de follow-up (3h -> 8h -> 48h)
-        const { agendarReguaFollowUp } = await import('@/lib/whatsapp-followup');
-        await agendarReguaFollowUp({
-          agenciaId,
-          clienteId,
-          telefone: remetente,
-          nomeContato,
-        });
+      if (!inseridas || inseridas.length === 0) {
+        return NextResponse.json({ ok: true, duplicate: true });
       }
 
-      // 3. Se a escuta ativa estiver habilitada nesta sessão:
-      if (sessionData?.ia_escuta_ativa !== false && conteudo?.trim()) {
-        // Busca as últimas 6 mensagens dessa conversa para dar contexto completo à IA
-        const { data: historicoRecente } = await serviceSupabase
-          .from('whatsapp_mensagens')
-          .select('de_mim, conteudo, timestamp_msg')
-          .eq('agencia_id', agenciaId)
-          .eq('remetente', remetente.replace(/\D/g, ''))
-          .order('timestamp_msg', { ascending: false })
-          .limit(6);
+      // O resto (follow-ups e análise da IA) roda depois da resposta: o gateway recebe o 200
+      // na hora e não reenvia o evento por timeout enquanto o modelo pensa.
+      after(async () => {
+        try {
+          if (!deMim) {
+            // Mensagem do paciente/lead: CANCELA follow-ups pendentes imediatamente
+            const { cancelarFollowUpsDoLead } = await import('@/lib/whatsapp-followup');
+            await cancelarFollowUpsDoLead(agenciaId, remetente);
+          } else {
+            // Mensagem da secretária: AGENDAR nova régua de follow-up (3h -> 8h -> 48h)
+            const { agendarReguaFollowUp } = await import('@/lib/whatsapp-followup');
+            await agendarReguaFollowUp({
+              agenciaId,
+              clienteId,
+              telefone: remetente,
+              nomeContato,
+              sessionName,
+            });
+          }
 
-        const mensagensFormatadas = (historicoRecente || [])
-          .reverse()
-          .map((m) => `${m.de_mim ? 'Secretária' : 'Paciente'}: ${m.conteudo}`);
+          // Se a escuta ativa estiver habilitada nesta sessão:
+          if (sessionData.ia_escuta_ativa !== false && conteudo?.trim()) {
+            // Últimas 6 mensagens da conversa para dar contexto à IA
+            const { data: historicoRecente } = await serviceSupabase
+              .from('whatsapp_mensagens')
+              .select('de_mim, conteudo, timestamp_msg')
+              .eq('agencia_id', agenciaId)
+              .eq('remetente', remetente.replace(/D/g, ''))
+              .order('timestamp_msg', { ascending: false })
+              .limit(6);
 
-        // Dispara em background a sincronização com o CRM
-        await sincronizarMensagemEAtualizarCrm({
-          agenciaId,
-          clienteId,
-          remetenteTelefone: remetente,
-          remetenteNome: nomeContato,
-          mensagensTexto: mensagensFormatadas.length > 0 ? mensagensFormatadas : [`${deMim ? 'Secretária' : 'Paciente'}: ${conteudo}`],
-        });
-      }
+            const mensagensFormatadas = (historicoRecente || [])
+              .reverse()
+              .map((m) => `${m.de_mim ? 'Secretária' : 'Paciente'}: ${m.conteudo}`);
+
+            await sincronizarMensagemEAtualizarCrm({
+              agenciaId,
+              clienteId,
+              remetenteTelefone: remetente,
+              remetenteNome: nomeContato,
+              mensagensTexto: mensagensFormatadas.length > 0 ? mensagensFormatadas : [`${deMim ? 'Secretária' : 'Paciente'}: ${conteudo}`],
+              autoCriarCards: sessionData.auto_criar_cards !== false,
+              autoMoverEstagios: sessionData.auto_mover_estagios !== false,
+            });
+          }
+        } catch (err) {
+          console.error('[OpenWA Webhook] Erro no processamento posterior:', err);
+        }
+      });
 
       return NextResponse.json({ ok: true, processed: true });
     }

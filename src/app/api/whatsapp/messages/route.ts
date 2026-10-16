@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { ehUuid } from '@/lib/clientes';
+import { carregarSessoesConectadas, escolherSessaoEnvio } from '@/lib/whatsapp-sessions';
 
 // GET: Retorna o histórico de mensagens de uma conversa de WhatsApp
 export async function GET(req: Request) {
@@ -65,26 +66,41 @@ export async function POST(req: Request) {
     }
 
     const telefoneLimpo = telefone.replace(/\D/g, '');
-    const sessionName = targetClienteId ? `cliente_${targetClienteId}` : `agencia_${membro.agencia_id}`;
 
-    let openwaUrl = process.env.OPENWA_API_URL?.trim().replace(/\/$/, '') || null;
-    if (openwaUrl && !openwaUrl.startsWith('http://') && !openwaUrl.startsWith('https://')) {
-      openwaUrl = `https://${openwaUrl}`;
+    // O cliente informado precisa ser da agência de quem envia: o nome da sessão é derivado
+    // dele, e sem essa checagem daria para usar a sessão de outra agência.
+    if (targetClienteId) {
+      if (!ehUuid(targetClienteId)) return respostaErro('cliente_id inválido.', 400);
+      const { data: clienteDaAgencia } = await serviceSupabase
+        .from('clientes')
+        .select('id')
+        .eq('id', targetClienteId)
+        .eq('agencia_id', membro.agencia_id)
+        .maybeSingle();
+      if (!clienteDaAgencia) return respostaErro('Cliente não encontrado.', 404);
     }
-    const openwaKey = process.env.OPENWA_API_KEY || process.env.API_MASTER_KEY;
 
-    let messageId = `msg-out-${Date.now()}`;
+    const sessoes = await carregarSessoesConectadas(membro.agencia_id);
+    const sessao = escolherSessaoEnvio(sessoes, {
+      papel: membro.papel,
+      membroId: membro.id,
+      clienteId: targetClienteId || null,
+    });
+    if (!sessao) {
+      return respostaErro('Nenhum WhatsApp conectado disponível para este envio. Conecte o número no Perfil.', 400);
+    }
 
     // Envia a mensagem pelo gateway centralizado OpenWA
     const { enviarMensagemOpenWA } = await import('@/lib/openwa-client');
     const resultado = await enviarMensagemOpenWA({
-      sessionName,
+      sessionName: sessao.session_name,
       para: telefoneLimpo,
       texto: texto.trim(),
     });
-    if (resultado.ok && resultado.messageId) {
-      messageId = resultado.messageId;
+    if (!resultado.ok) {
+      return respostaErro(resultado.erro || 'Não foi possível enviar a mensagem no WhatsApp.', 502);
     }
+    const messageId = resultado.messageId || `msg-out-${Date.now()}`;
 
     // Salva a mensagem enviada no banco local
     const { data: mensagemSalva, error: errSalvar } = await serviceSupabase

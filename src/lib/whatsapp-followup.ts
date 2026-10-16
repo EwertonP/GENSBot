@@ -6,6 +6,8 @@ interface AgendarFollowupParams {
   clienteId?: string | null;
   telefone: string;
   nomeContato?: string | null;
+  /** Sessão do WhatsApp que atendeu o lead; é por ela que o cron envia os follow-ups. */
+  sessionName?: string | null;
 }
 
 /**
@@ -19,6 +21,7 @@ export async function agendarReguaFollowUp({
   clienteId,
   telefone,
   nomeContato,
+  sessionName,
 }: AgendarFollowupParams): Promise<void> {
   const telLimpo = telefone.replace(/\D/g, '');
   if (!telLimpo) return;
@@ -39,6 +42,7 @@ export async function agendarReguaFollowUp({
     {
       agencia_id: agenciaId,
       cliente_id: clienteId || null,
+      session_name: sessionName || null,
       telefone: telLimpo,
       nome_contato: nomeContato || null,
       etapa: 1,
@@ -49,6 +53,7 @@ export async function agendarReguaFollowUp({
     {
       agencia_id: agenciaId,
       cliente_id: clienteId || null,
+      session_name: sessionName || null,
       telefone: telLimpo,
       nome_contato: nomeContato || null,
       etapa: 2,
@@ -59,6 +64,7 @@ export async function agendarReguaFollowUp({
     {
       agencia_id: agenciaId,
       cliente_id: clienteId || null,
+      session_name: sessionName || null,
       telefone: telLimpo,
       nome_contato: nomeContato || null,
       etapa: 3,

@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { chamarLLM } from './client';
 import { garantirPipelinePadrao } from '@/lib/crm';
 import type { AIAgentConfig, AIContactSession, ChatMessage } from '@/types/ai';
+import { criptografarSegredo, descriptografarSegredo, estaCriptografado, segredoDisponivel } from '@/lib/cripto';
 
 interface ProcessarMensagemDirectOptions {
   instagramUserId: string;
@@ -70,8 +71,14 @@ export async function processarMensagemDirectComIA({
     const aiConfig = config as AIAgentConfig | null;
 
     // Se não há IA ativa ou chave de API configurada, deixa seguir para fluxos normais
-    if (!aiConfig || !aiConfig.api_key) {
+    const apiKeyIA = aiConfig ? descriptografarSegredo(aiConfig.api_key) : null;
+    if (!aiConfig || !apiKeyIA) {
       return { processadoPorIA: false };
+    }
+
+    // Chave antiga gravada em texto puro: criptografa na primeira leitura
+    if (aiConfig.api_key && !estaCriptografado(aiConfig.api_key) && segredoDisponivel()) {
+      await supabase.from('ai_agent_configs').update({ api_key: criptografarSegredo(aiConfig.api_key) }).eq('id', aiConfig.id);
     }
 
     // 3. Checa palavras de pausa imediata (Human Takeover)
@@ -127,7 +134,7 @@ export async function processarMensagemDirectComIA({
     // 6. Chama o modelo de IA com function calling
     const resultadoIA = await chamarLLM({
       provider: aiConfig.provedor,
-      apiKey: aiConfig.api_key,
+      apiKey: apiKeyIA,
       model: aiConfig.modelo,
       temperature: Number(aiConfig.temperatura) || 0.7,
       systemPrompt: aiConfig.prompt_sistema,
