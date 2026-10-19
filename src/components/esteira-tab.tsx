@@ -22,7 +22,11 @@ import {
   Grid3X3,
   Edit2,
   Loader2,
+  Paperclip,
+  MoreHorizontal,
+  AlertCircle,
 } from 'lucide-react';
+import { Menu } from '@base-ui/react/menu';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +72,95 @@ export function formatarDataCurta(dataStr?: string | null): string {
     return '';
   }
 }
+
+const COLUNA_CONFIG: Record<
+  StatusConteudo,
+  {
+    corPill: string;
+    dot: string;
+    bordaColuna: string;
+    fundoColuna: string;
+  }
+> = {
+  planejamento: {
+    corPill: 'bg-muted/80 text-muted-foreground border-border',
+    dot: 'bg-muted-foreground',
+    bordaColuna: 'border-border/70',
+    fundoColuna: 'bg-accent/20',
+  },
+  criacao_arte: {
+    corPill: 'bg-info-soft text-info border-info-ring',
+    dot: 'bg-info',
+    bordaColuna: 'border-info/20',
+    fundoColuna: 'bg-info-soft/20',
+  },
+  revisao_interna: {
+    corPill: 'bg-warning-soft text-warning border-warning-ring',
+    dot: 'bg-warning',
+    bordaColuna: 'border-warning/20',
+    fundoColuna: 'bg-warning-soft/20',
+  },
+  revisao_cliente: {
+    corPill: 'bg-brand-soft text-brand-text border-brand-ring',
+    dot: 'bg-brand-solid',
+    bordaColuna: 'border-brand-ring/40',
+    fundoColuna: 'bg-brand-soft/20',
+  },
+  agendamento: {
+    corPill: 'bg-primary/15 text-primary border-primary/30',
+    dot: 'bg-primary',
+    bordaColuna: 'border-primary/25',
+    fundoColuna: 'bg-primary/5',
+  },
+  publicado: {
+    corPill: 'bg-success-soft text-success border-success-ring',
+    dot: 'bg-success',
+    bordaColuna: 'border-success/20',
+    fundoColuna: 'bg-success-soft/20',
+  },
+  copy: {
+    corPill: 'bg-info-soft text-info border-info-ring',
+    dot: 'bg-info',
+    bordaColuna: 'border-info/20',
+    fundoColuna: 'bg-info-soft/20',
+  },
+  em_gravacao: {
+    corPill: 'bg-info-soft text-info border-info-ring',
+    dot: 'bg-info',
+    bordaColuna: 'border-info/20',
+    fundoColuna: 'bg-info-soft/20',
+  },
+  em_edicao: {
+    corPill: 'bg-info-soft text-info border-info-ring',
+    dot: 'bg-info',
+    bordaColuna: 'border-info/20',
+    fundoColuna: 'bg-info-soft/20',
+  },
+  revisao_arte: {
+    corPill: 'bg-warning-soft text-warning border-warning-ring',
+    dot: 'bg-warning',
+    bordaColuna: 'border-warning/20',
+    fundoColuna: 'bg-warning-soft/20',
+  },
+  travado: {
+    corPill: 'bg-destructive/15 text-destructive border-destructive/30',
+    dot: 'bg-destructive',
+    bordaColuna: 'border-destructive/20',
+    fundoColuna: 'bg-destructive/5',
+  },
+  revisao_agendamento: {
+    corPill: 'bg-primary/15 text-primary border-primary/30',
+    dot: 'bg-primary',
+    bordaColuna: 'border-primary/25',
+    fundoColuna: 'bg-primary/5',
+  },
+  pronto_publicar: {
+    corPill: 'bg-primary/15 text-primary border-primary/30',
+    dot: 'bg-primary',
+    bordaColuna: 'border-primary/25',
+    fundoColuna: 'bg-primary/5',
+  },
+};
 
 interface EsteiraTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
@@ -867,6 +960,7 @@ export default function EsteiraTab({
           {COLUNAS_KANBAN.filter((col) => !ocultarPublicados || col !== 'publicado').map((colStatus) => {
             const itensDaColuna = itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === colStatus);
             const info = STATUS_LABELS[colStatus];
+            const colConfig = COLUNA_CONFIG[colStatus] || COLUNA_CONFIG.planejamento;
             const isOver = draggingOverCol === colStatus;
 
             return (
@@ -888,21 +982,28 @@ export default function EsteiraTab({
                   const itemId = e.dataTransfer.getData('text/plain');
                   if (itemId) handleMudarStatus(itemId, colStatus);
                 }}
-                className={`w-[85vw] max-w-80 sm:w-72 snap-start shrink-0 flex flex-col gap-3 p-3 rounded-2xl border transition-all duration-200 min-h-60 sm:min-h-[520px] ${
+                className={`w-[85vw] max-w-80 sm:w-80 snap-start shrink-0 flex flex-col gap-3 p-3 rounded-2xl border transition-all duration-200 min-h-60 sm:min-h-[540px] ${
                   isOver
-                    ? 'bg-lime/10 border-primary ring-2 ring-primary/20 shadow-md'
-                    : 'bg-accent/25 border-border'
+                    ? 'bg-primary/10 border-primary ring-2 ring-primary/25 shadow-md'
+                    : `${colConfig.fundoColuna} ${colConfig.bordaColuna}`
                 }`}
               >
-                {/* Cabeçalho da Coluna */}
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold font-display text-foreground">{info.label}</span>
-                    <span className="text-xs font-mono font-bold bg-accent text-muted-foreground px-2 py-0.5 rounded-md border border-border">
-                      {itensDaColuna.length}
+                {/* Cabeçalho da Coluna Estilo Pílula Bicolor (Linear / NovaBoard) */}
+                <div className="flex items-center justify-between px-1 py-0.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shadow-2xs ${colConfig.corPill}`}
+                    >
+                      <span className={`size-2 rounded-full ${colConfig.dot}`} />
+                      <span className="font-display truncate">{info.label}</span>
+                      <span className="ml-1 px-1.5 py-0.2 rounded-full bg-background/80 text-[11px] font-mono tabular-nums shadow-2xs border border-border/40">
+                        {itensDaColuna.length}
+                      </span>
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground font-mono">{info.tag}</span>
+                  <span className="text-[11px] text-muted-foreground/80 font-mono tracking-wider font-semibold">
+                    {info.tag}
+                  </span>
                 </div>
 
                 {/* Lista de Cards da Coluna */}
@@ -920,6 +1021,22 @@ export default function EsteiraTab({
                       (item.historico_atividades || []).some((h) => h.texto?.toLowerCase().includes('aprovad'));
                     const isDragging = draggingItemId === item.id;
                     const isOverItem = draggingOverItemId === item.id;
+
+                    // Formato visual
+                    const formatoPill = {
+                      post: { label: 'Carrossel', emoji: '🖼️', cls: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/25' },
+                      reel: { label: 'Reels', emoji: '🎬', cls: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25' },
+                      story: { label: 'Story', emoji: '⚡', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25' },
+                      avulso: { label: 'Avulso', emoji: '📌', cls: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25' },
+                    }[item.tipo] || { label: item.tipo, emoji: '📌', cls: 'bg-accent text-muted-foreground border-border' };
+
+                    // Checklist e Progresso
+                    const checklistTotal = item.checklist?.length || 0;
+                    const checklistConcluidos = item.checklist?.filter((c) => c.concluido).length || 0;
+                    const checklistPct = checklistTotal > 0 ? Math.round((checklistConcluidos / checklistTotal) * 100) : 0;
+
+                    // Capa / Thumbnail
+                    const capaUrl = (item.tipo === 'reel' && item.cover_url) || item.arquivos?.[0]?.url || (item as any).midia_url || null;
 
                     return (
                       <Card
@@ -970,11 +1087,11 @@ export default function EsteiraTab({
                           const draggedId = e.dataTransfer.getData('text/plain');
                           if (draggedId) handleMudarStatus(draggedId, colStatus, item.id);
                         }}
-                        className={`group p-4 rounded-2xl border bg-card shadow-2xs hover:shadow-xs transition-ui duration-200 flex flex-col gap-3 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        className={`group p-3.5 rounded-2xl border bg-card shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col gap-2.5 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           temAjustes
                             ? 'border-destructive/40 bg-destructive/5'
-                            : 'border-border hover:border-foreground/30'
-                        } ${isDragging ? 'opacity-50 scale-98' : 'opacity-100'} ${
+                            : 'border-border/80 hover:border-foreground/25 hover:-translate-y-0.5'
+                        } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'} ${
                           isOverItem ? 'ring-2 ring-primary border-primary bg-primary/10' : ''
                         }`}
                       >
@@ -983,330 +1100,333 @@ export default function EsteiraTab({
                           <div className="absolute -top-1.5 left-2 right-2 h-1 bg-primary rounded-full shadow-xs animate-pulse pointer-events-none z-10" />
                         )}
 
-                        {/* Mover sem arrastar (teclado/toque) */}
-                        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-popup-open]]:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
-                          <MoverEtapaMenu
-                            etapas={ETAPAS_PIPELINE.map((et) => ({ status: et.status, label: et.label }))}
-                            atual={colStatus}
-                            onMover={(novo) => handleMudarStatus(item.id, novo)}
-                          />
-                        </div>
-
-                        {/* Capa da Demanda no Kanban */}
-                        {(() => {
-                          const capaUrl = (item.tipo === 'reel' && item.cover_url) || item.arquivos?.[0]?.url || (item as any).midia_url || null;
-                          if (!capaUrl) return null;
-                          const isReel = item.tipo === 'reel';
-                          const isStory = item.tipo === 'story';
-                          const isCarrossel = item.tipo === 'post';
-
-                          return (
-                            <div className="relative aspect-[16/9] w-full bg-black rounded-xl overflow-hidden border border-border shrink-0">
-                              {isReel && capaUrl.match(/\.(mp4|mov|webm)/i) ? (
-                                <video src={capaUrl} className="w-full h-full object-cover" muted />
-                              ) : (
-                                <img src={capaUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                              )}
-                              <div className="absolute top-2 left-2">
-                                <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold font-mono border backdrop-blur-md uppercase tracking-wider ${
-                                  isReel ? 'bg-destructive/90 text-destructive-foreground border-destructive-ring' :
-                                  isStory ? 'bg-info/90 text-info-foreground border-info-ring' :
-                                  isCarrossel ? 'bg-success/90 text-success-foreground border-success-ring' :
-                                  'bg-warning/90 text-warning-foreground border-warning-ring'
-                                }`}>
-                                  {isReel ? '🎬 Reels' : isStory ? '⚡ Story' : isCarrossel ? '🖼️ Carrossel' : '📌 Post'}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        {/* Header do Card */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <ClienteAvatar
-                              nome={item.cliente?.nome || 'Cliente'}
-                              cor={item.cliente?.cor}
-                              fotoUrl={item.cliente?.foto_url}
-                              tamanho="sm"
-                            />
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-foreground truncate">
-                                {item.cliente?.nome}
-                              </p>
-                              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                                {item.tipo}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {item.prioridade && item.prioridade !== 'media' && PRIORIDADE_CONFIG[item.prioridade] && (
-                              <Tip label={`Prioridade ${PRIORIDADE_CONFIG[item.prioridade].label}`}><span
-                                className={`px-2 py-0.5 rounded-md text-xs font-semibold border flex items-center gap-1.5 ${
-                                  PRIORIDADE_CONFIG[item.prioridade].bg
-                                } ${PRIORIDADE_CONFIG[item.prioridade].text} ${
-                                  PRIORIDADE_CONFIG[item.prioridade].border
-                                }`}
-                              >
-                                <span aria-hidden className={`size-1.5 rounded-full ${PRIORIDADE_CONFIG[item.prioridade].dot}`} />
-                                <span>{PRIORIDADE_CONFIG[item.prioridade].label}</span>
-                              </span></Tip>
-                            )}
-                            <Badge variant={info.variant} className="text-xs font-bold">
-                              {info.label}
-                            </Badge>
-                            <Tip label={"Editar Demanda"}><button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAbrirModalEditar(item);
-                              }} aria-label={"Editar Demanda"}
-                              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 opacity-0 group-hover:opacity-100 transition-opacity"
+                        {/* Topo do Card: Formato + Prioridade + Ações Rápidas */}
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            {/* Pílula de Formato */}
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${formatoPill.cls}`}
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button></Tip>
+                              <span>{formatoPill.emoji}</span>
+                              <span>{formatoPill.label}</span>
+                            </span>
+
+                            {/* Pílula de Prioridade (se alta/urgente/baixa) */}
+                            {item.prioridade && item.prioridade !== 'media' && PRIORIDADE_CONFIG[item.prioridade] && (
+                              <Tip label={`Prioridade ${PRIORIDADE_CONFIG[item.prioridade].label}`}>
+                                <span
+                                  className={`px-1.5 py-0.5 rounded-md text-[11px] font-medium border flex items-center gap-1 ${
+                                    PRIORIDADE_CONFIG[item.prioridade].bg
+                                  } ${PRIORIDADE_CONFIG[item.prioridade].text} ${
+                                    PRIORIDADE_CONFIG[item.prioridade].border
+                                  }`}
+                                >
+                                  <span aria-hidden className={`size-1.5 rounded-full ${PRIORIDADE_CONFIG[item.prioridade].dot}`} />
+                                  <span>{PRIORIDADE_CONFIG[item.prioridade].label}</span>
+                                </span>
+                              </Tip>
+                            )}
+                          </div>
+
+                          {/* Menu de Ações no Card: Mover etapa e Opções `···` */}
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 shrink-0"
+                          >
+                            <MoverEtapaMenu
+                              etapas={ETAPAS_PIPELINE.map((et) => ({ status: et.status, label: et.label }))}
+                              atual={colStatus}
+                              onMover={(novo) => handleMudarStatus(item.id, novo)}
+                            />
+
+                            <Menu.Root>
+                              <Menu.Trigger
+                                aria-label="Mais opções"
+                                className="grid place-items-center size-7 rounded-lg border border-border/80 bg-card/90 text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors shadow-2xs"
+                              >
+                                <MoreHorizontal className="size-3.5" />
+                              </Menu.Trigger>
+                              <Menu.Portal>
+                                <Menu.Positioner side="bottom" align="end" sideOffset={6} className="z-[80]">
+                                  <Menu.Popup className="min-w-48 rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-lg outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95">
+                                    <Menu.Item
+                                      onClick={() => handleAbrirModalEditar(item)}
+                                      className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs cursor-pointer outline-none hover:bg-accent focus:bg-accent"
+                                    >
+                                      <Edit2 className="size-3.5 text-muted-foreground" />
+                                      <span>Editar demanda</span>
+                                    </Menu.Item>
+                                    <Menu.Item
+                                      onClick={() => handleCopiarLinkAprovacao(item.token_aprovacao)}
+                                      className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs cursor-pointer outline-none hover:bg-accent focus:bg-accent"
+                                    >
+                                      <Share2 className="size-3.5 text-muted-foreground" />
+                                      <span>Copiar link de aprovação</span>
+                                    </Menu.Item>
+                                    {item.token_aprovacao && (
+                                      <Menu.Item
+                                        onClick={() => window.open(`/aprovacao/${item.token_aprovacao}`, '_blank')}
+                                        className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs cursor-pointer outline-none hover:bg-accent focus:bg-accent"
+                                      >
+                                        <ExternalLink className="size-3.5 text-muted-foreground" />
+                                        <span>Ver tela de aprovação</span>
+                                      </Menu.Item>
+                                    )}
+                                  </Menu.Popup>
+                                </Menu.Positioner>
+                              </Menu.Portal>
+                            </Menu.Root>
                           </div>
                         </div>
 
-                        {/* Título */}
-                        {item.titulo && (
-                          <h4 className="text-sm font-semibold text-foreground leading-snug line-clamp-2">
+                        {/* Capa da Demanda no Kanban (Aspect 16:9 limpo) */}
+                        {capaUrl && (
+                          <div className="relative aspect-[16/9] w-full bg-black/60 rounded-xl overflow-hidden border border-border/60 shrink-0">
+                            {item.tipo === 'reel' && capaUrl.match(/\.(mp4|mov|webm)/i) ? (
+                              <video src={capaUrl} className="w-full h-full object-cover" muted />
+                            ) : (
+                              <img
+                                src={capaUrl}
+                                alt=""
+                                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        {/* Identificação do Cliente */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ClienteAvatar
+                            nome={item.cliente?.nome || 'Cliente'}
+                            cor={item.cliente?.cor}
+                            fotoUrl={item.cliente?.foto_url}
+                            tamanho="xs"
+                          />
+                          <span className="text-xs font-semibold text-muted-foreground hover:text-foreground truncate transition-colors">
+                            {item.cliente?.nome || 'Cliente'}
+                          </span>
+                        </div>
+
+                        {/* Título da Demanda em Sora */}
+                        {item.titulo ? (
+                          <h4 className="text-sm font-semibold font-display text-foreground leading-snug line-clamp-2">
                             {item.titulo}
+                          </h4>
+                        ) : (
+                          <h4 className="text-sm font-medium italic text-muted-foreground">
+                            Demanda sem título
                           </h4>
                         )}
 
-                        {/* Badges em Pílula de Slides, Checklist, Prazo e Ajustes */}
-                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                          {item.arquivos?.length > 0 && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-accent/60 text-muted-foreground font-mono font-medium border border-border">
-                              {item.arquivos.length} {item.tipo === 'reel' ? 'vídeo' : 'slides'}
-                            </span>
-                          )}
+                        {/* Preview de Briefing / Nota (Inspiração NovaBoard Img 4) */}
+                        {item.briefing && item.briefing.trim().length > 0 && (
+                          <div className="text-xs text-muted-foreground/90 line-clamp-1 bg-accent/40 rounded-lg px-2.5 py-1 border border-border/50 font-normal">
+                            <span className="font-semibold text-foreground/70 not-italic mr-1.5">Nota:</span>
+                            <span>{item.briefing}</span>
+                          </div>
+                        )}
 
-                          {item.checklist && item.checklist.length > 0 && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-accent text-foreground font-mono font-semibold flex items-center gap-1 border border-border">
-                              <CheckSquare className="w-3 h-3 text-primary" />
-                              <span>
-                                {item.checklist.filter((c) => c.concluido).length}/{item.checklist.length}
+                        {/* Barra de Progresso do Checklist (Inspiração NovaBoard Img 4) */}
+                        {checklistTotal > 0 && (
+                          <div className="flex flex-col gap-1 pt-0.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground font-medium flex items-center gap-1.5 text-[11px]">
+                                <CheckSquare className="size-3 text-primary" />
+                                <span>Progresso</span>
                               </span>
-                            </span>
-                          )}
-
-                          {item.prazo && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-accent/60 text-muted-foreground font-mono flex items-center gap-1 border border-border">
-                              <Clock className="w-3 h-3" />
-                              <span>
-                                {dataLocal(item.prazo).toLocaleDateString('pt-BR', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                })}
+                              <span className="text-[11px] font-mono font-bold text-foreground tabular-nums">
+                                {checklistPct}%{' '}
+                                <span className="text-muted-foreground font-normal">
+                                  ({checklistConcluidos}/{checklistTotal})
+                                </span>
                               </span>
+                            </div>
+                            <div className="h-1.5 w-full bg-accent rounded-full overflow-hidden border border-border/40">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  checklistPct === 100 ? 'bg-success' : 'bg-primary'
+                                }`}
+                                style={{ width: `${checklistPct}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Status Contextual: Ajustes Pendentes */}
+                        {temAjustesPendentes && (
+                          <div className="px-2.5 py-1 rounded-xl bg-destructive/10 border border-destructive/25 flex items-center justify-between gap-1.5 text-xs text-destructive font-medium">
+                            <span className="flex items-center gap-1.5 truncate">
+                              <AlertCircle className="size-3.5 shrink-0" />
+                              <span className="truncate">{ajustesPendentes.length} {ajustesPendentes.length === 1 ? 'ajuste solicitado' : 'ajustes solicitados'}</span>
                             </span>
+                          </div>
+                        )}
+
+                        {/* Status Contextual: Aguardando Aprovação do Cliente */}
+                        {item.status === 'revisao_cliente' && (
+                          <div className="p-2 rounded-xl bg-brand-soft border border-brand-ring flex items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-1.5 text-brand-text font-semibold min-w-0">
+                              <span className="size-1.5 rounded-full bg-brand-solid animate-pulse shrink-0" />
+                              <span className="truncate">Aguardando aprovação</span>
+                            </div>
+                            {item.token_aprovacao && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`/aprovacao/${item.token_aprovacao}`, '_blank');
+                                }}
+                                className="text-brand-text hover:underline shrink-0 font-medium text-[11px] cursor-pointer"
+                              >
+                                Ver tela
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Status Contextual: Agendado ou Publicado */}
+                        {(colStatus === 'agendamento' || item.status === 'agendamento' || item.status === 'pronto_publicar') &&
+                          (item.data_programada || item.scheduled_post_id) && (
+                            <div className="p-2 rounded-xl bg-primary/10 border border-primary/25 flex items-center justify-between gap-2 text-xs text-primary font-medium">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Calendar className="size-3.5 shrink-0" />
+                                <span className="truncate font-mono">
+                                  {dataLocal(item.data_programada!).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                  {!ehDataSemHora(item.data_programada!) && ` às ${new Date(item.data_programada!).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
+                                </span>
+                              </div>
+                            </div>
                           )}
 
-                          {temAjustesPendentes ? (
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full font-mono font-bold flex items-center gap-1 border ${
-                                temAjustes
-                                  ? 'bg-destructive/15 text-destructive border-destructive/20'
-                                  : 'bg-brand-soft text-brand-text border-brand-ring'
-                              }`}
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                              {ajustesPendentes.length} {ajustesPendentes.length === 1 ? 'ajuste' : 'ajustes'}
-                            </span>
-                          ) : foiAprovado && (colStatus === 'agendamento' || item.status === 'agendamento') ? (
-                            <span
-                              className="px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 border bg-success-soft text-success border-success-ring"
-                            >
-                              <CheckCircle2 className="w-3 h-3" />
-                              Aprovado
-                            </span>
-                          ) : null}
+                        {/* Rodapé do Card: Avatares à esquerda, Metadados e Ações à direita */}
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/70 mt-auto">
+                          {/* Avatares dos Responsáveis */}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <AvatarGroup pessoas={pessoasResponsaveis(item)} size="xs" max={3} />
+                            {item.responsavel && (
+                              <span className="text-[11px] font-medium text-muted-foreground truncate hidden sm:inline max-w-[80px]">
+                                {item.responsavel.nome.split(' ')[0]}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Metadados Compactos (Linear Img 2 & NovaBoard Img 4) */}
+                          <div className="flex items-center gap-2.5 text-xs text-muted-foreground shrink-0 font-mono">
+                            {item.arquivos?.length > 0 && (
+                              <Tip label={`${item.arquivos.length} ${item.tipo === 'reel' ? 'vídeo' : 'mídias'}`}>
+                                <span className="flex items-center gap-0.5 hover:text-foreground transition-colors">
+                                  <Paperclip className="size-3" />
+                                  <span className="tabular-nums">{item.arquivos.length}</span>
+                                </span>
+                              </Tip>
+                            )}
+
+                            {(item.comentarios_revisao?.length || 0) > 0 && (
+                              <Tip label={`${item.comentarios_revisao.length} comentários`}>
+                                <span
+                                  className={`flex items-center gap-0.5 transition-colors ${
+                                    temAjustesPendentes ? 'text-destructive font-semibold' : 'hover:text-foreground'
+                                  }`}
+                                >
+                                  <MessageSquare className="size-3" />
+                                  <span className="tabular-nums">{item.comentarios_revisao.length}</span>
+                                </span>
+                              </Tip>
+                            )}
+
+                            {item.prazo && (
+                              <Tip label={`Prazo: ${dataLocal(item.prazo).toLocaleDateString('pt-BR')}`}>
+                                <span className="flex items-center gap-0.5 hover:text-foreground transition-colors">
+                                  <Clock className="size-3" />
+                                  <span className="tabular-nums">{formatarDataCurta(item.prazo)}</span>
+                                </span>
+                              </Tip>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Responsável */}
-                        {item.responsavel && (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium pt-1 border-t border-border">
-                            <AvatarGroup pessoas={pessoasResponsaveis(item)} size="xs" max={3} />
-                            <span className="truncate">
-                              {item.responsavel.nome}
-                              {(item.co_responsaveis_ids?.length ?? 0) > 0 && (
-                                <span className="text-muted-foreground"> +{item.co_responsaveis_ids!.length}</span>
-                              )}
-                            </span>
-                          </div>
-                        )}
+                        {/* Botão de Ação Rápida no Rodapé (quando aplicável) */}
+                        {(() => {
+                          const isPublicado = colStatus === 'publicado' || item.status === 'publicado';
+                          const isAgendadoCol = colStatus === 'agendamento' || item.status === 'agendamento' || item.status === 'pronto_publicar';
+                          const isAgendadoComData = isAgendadoCol && Boolean(item.scheduled_post_id || item.data_programada);
 
-                        {/* Status de Aprovação com Cliente */}
-                        {item.status === 'revisao_cliente' && (
-                          <div className="p-2.5 rounded-xl bg-warning-soft border border-warning-ring flex items-center justify-between gap-2 text-xs">
-                            <div className="flex items-center gap-1.5 text-warning font-semibold min-w-0">
-                              <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse shrink-0" />
-                              <span className="truncate">Aguardando {item.cliente?.nome || 'Cliente'}</span>
-                            </div>
-                            <Tip label={"Ver exatamente como o cliente visualiza a tela de aprovação"}><button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(`/aprovacao/${item.token_aprovacao}`, '_blank');
-                              }}
-                              className="text-muted-foreground hover:text-foreground shrink-0 font-mono text-xs underline cursor-pointer"
-                            >
-                              Ver tela
-                            </button></Tip>
-                          </div>
-                        )}
-
-                        {/* Status de Agendamento */}
-                        {(colStatus === 'agendamento' || item.status === 'agendamento' || item.status === 'pronto_publicar') && (
-                          item.data_programada || item.scheduled_post_id ? (
-                            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between gap-2 text-xs">
-                              <div className="flex items-center gap-1.5 text-primary font-semibold min-w-0">
-                                <Calendar className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">
-                                  {item.data_programada
-                                    ? `Agendado: ${dataLocal(item.data_programada).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}${
-                                        ehDataSemHora(item.data_programada)
-                                          ? ''
-                                          : ` às ${new Date(item.data_programada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-                                      }`
-                                    : 'Agendado no Instagram'}
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between gap-2 text-xs">
-                              <div className="flex items-center gap-1.5 text-primary font-semibold min-w-0">
-                                <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Aprovado • Pronto para agendar</span>
-                              </div>
-                            </div>
-                          )
-                        )}
-
-                        {/* Status de Publicado */}
-                        {(colStatus === 'publicado' || item.status === 'publicado') && (
-                          <div className="p-2 rounded-xl bg-success-soft border border-success-ring flex items-center justify-between gap-2 text-xs">
-                            <div className="flex items-center gap-1.5 text-success font-semibold min-w-0">
-                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">
-                                {item.publicado_em
-                                  ? `Publicado: ${new Date(item.publicado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às ${new Date(item.publicado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-                                  : 'Publicado no Instagram'}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Ações Rápidas: Link, Editar e Enviar p/ Aprovação / Agendar */}
-                        <div className="border-t border-border pt-2.5 flex items-center justify-between gap-1">
-                          <div className="flex items-center gap-1">
-                            <Tip label={"Copiar link público de aprovação"}><button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopiarLinkAprovacao(item.token_aprovacao);
-                              }} aria-label={"Copiar link público de aprovação"}
-                              className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
-                            >
-                              <Share2 className="w-3 h-3" />
-                              <span>Link</span>
-                            </button></Tip>
-
-                            <Tip label={"Editar Demanda"}><button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAbrirModalEditar(item);
-                              }} aria-label={"Editar Demanda"}
-                              className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer py-1 px-1.5 rounded-lg hover:bg-accent/60 transition-colors"
-                            >
-                              <Edit2 className="w-3 h-3" />
-                              <span>Editar</span>
-                            </button></Tip>
-                          </div>
-
-                          {(() => {
-                            const isPublicado = colStatus === 'publicado' || item.status === 'publicado';
-                            const isAgendadoCol = colStatus === 'agendamento' || item.status === 'agendamento' || item.status === 'pronto_publicar';
-                            const isAgendadoComData = isAgendadoCol && Boolean(item.scheduled_post_id || item.data_programada);
-
-                            if (isPublicado) {
-                              return (
-                                <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg bg-success-soft text-success border border-success-ring">
-                                  <CheckCircle2 className="w-3 h-3" />
+                          if (isPublicado) {
+                            return (
+                              <div className="flex items-center justify-end pt-1">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-success-soft text-success border border-success-ring">
+                                  <CheckCircle2 className="size-3" />
                                   <span>Publicado</span>
                                 </span>
-                              );
-                            }
+                              </div>
+                            );
+                          }
 
-                            if (isAgendadoCol) {
-                              if (isAgendadoComData) {
-                                return (
-                                  <Tip label={"Ver ou reagendar publicação agendada"}><button
+                          if (isAgendadoCol) {
+                            return (
+                              <div className="flex items-center justify-end pt-1">
+                                <Tip label={isAgendadoComData ? 'Ver ou reagendar' : 'Levar para Agendamento do Instagram'}>
+                                  <button
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleLevarParaAgendamento(item);
-                                    }} aria-label={"Ver ou reagendar publicação agendada"}
-                                    className="text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 transition-ui cursor-pointer"
+                                    }}
+                                    className={`w-full text-xs font-semibold px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1.5 transition-ui cursor-pointer shadow-2xs ${
+                                      isAgendadoComData
+                                        ? 'bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30'
+                                        : 'bg-primary hover:bg-primary/90 text-primary-foreground border border-primary/40'
+                                    }`}
                                   >
-                                    <Calendar className="w-3 h-3" />
-                                    <span>Agendado</span>
-                                  </button></Tip>
-                                );
-                              }
-                              return (
-                                <Tip label={"Levar demanda aprovada direto para a tela de Agendamento do Instagram"}><button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleLevarParaAgendamento(item);
-                                  }} aria-label={"Levar demanda aprovada direto para a tela de Agendamento do Instagram"}
-                                  className="text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 bg-primary hover:bg-primary/85 text-primary-foreground border border-primary/40 shadow-xs transition-ui cursor-pointer"
-                                >
-                                  <Sparkles className="w-3 h-3" />
-                                  <span>Agendar</span>
-                                </button></Tip>
-                              );
-                            }
-
-                            const isEnviandoEsteItem = enviandoAprovacaoId === item.id;
-                            const reenviar = item.status === 'revisao_cliente';
-
-                            return (
-                              <Tip label={reenviar
-                                    ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente/grupo'
-                                    : 'Enviar demanda para aprovação no WhatsApp do cliente'}>
-                                <button
-                                  type="button"
-                                  disabled={isEnviandoEsteItem}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEnviarParaAprovacao(item, reenviar);
-                                  }}
-                                  aria-label={reenviar
-                                      ? 'Reenviar mensagem e link de aprovação no WhatsApp'
-                                      : 'Enviar demanda para aprovação no WhatsApp'}
-                                  className={`text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border shadow-2xs transition-ui cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                                    reenviar
-                                      ? 'bg-warning hover:bg-warning/90 text-warning-foreground border-warning-ring'
-                                      : 'bg-lime hover:bg-lime/90 text-lime-foreground font-bold border-foreground/15 shadow-xs active:scale-[0.98]'
-                                  }`}
-                                >
-                                  {isEnviandoEsteItem ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <Send className="w-3 h-3" />
-                                  )}
-                                  <span>{isEnviandoEsteItem ? 'Enviando...' : reenviar ? 'Reenviar' : 'Aprovação'}</span>
-                                </button>
-                              </Tip>
+                                    <Sparkles className="size-3.5" />
+                                    <span>{isAgendadoComData ? 'Reagendar' : 'Agendar post'}</span>
+                                  </button>
+                                </Tip>
+                              </div>
                             );
-                          })()}
-                        </div>
+                          }
+
+                          const isEnviandoEsteItem = enviandoAprovacaoId === item.id;
+                          const reenviar = item.status === 'revisao_cliente';
+
+                          // Se estiver em revisão ou etapa de criação, permite disparar aprovação
+                          if (item.status === 'revisao_interna' || item.status === 'revisao_cliente' || item.status === 'criacao_arte') {
+                            return (
+                              <div className="flex items-center justify-end pt-1">
+                                <Tip
+                                  label={
+                                    reenviar
+                                      ? 'Reenviar mensagem e link de aprovação no WhatsApp do cliente'
+                                      : 'Enviar demanda para aprovação no WhatsApp do cliente'
+                                  }
+                                >
+                                  <button
+                                    type="button"
+                                    disabled={isEnviandoEsteItem}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEnviarParaAprovacao(item, reenviar);
+                                    }}
+                                    className={`w-full text-xs font-semibold px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1.5 border transition-ui cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
+                                      reenviar
+                                        ? 'bg-brand-soft hover:bg-brand-soft/80 text-brand-text border-brand-ring'
+                                        : 'bg-lime hover:bg-lime/90 text-lime-foreground font-bold border-foreground/15 active:scale-[0.98]'
+                                    }`}
+                                  >
+                                    {isEnviandoEsteItem ? (
+                                      <Loader2 className="size-3.5 animate-spin" />
+                                    ) : (
+                                      <Send className="size-3.5" />
+                                    )}
+                                    <span>{isEnviandoEsteItem ? 'Enviando...' : reenviar ? 'Reenviar WhatsApp' : 'Enviar para Aprovação'}</span>
+                                  </button>
+                                </Tip>
+                              </div>
+                            );
+                          }
+
+                          return null;
+                        })()}
                       </Card>
                     );
                   })}
