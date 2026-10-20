@@ -1,3 +1,4 @@
+'use client';
 async function safeParseResponse(res: Response): Promise<{ ok: boolean; data: any; error: string | null }> {
   const text = await res.text();
   try {
@@ -30,7 +31,6 @@ async function safeParseResponse(res: Response): Promise<{ ok: boolean; data: an
   }
 }
 
-'use client';
 import { Tip } from '@/components/ui/tooltip';
 import { Select } from '@/components/ui/select';
 import { SegmentedItem } from '@/components/ui/segmented';
