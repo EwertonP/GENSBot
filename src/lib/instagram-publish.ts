@@ -29,9 +29,21 @@ interface CreateContainerParams {
   avisos?: string[];
 }
 
-interface PublishParams extends CreateContainerParams {
+export interface PublishParams extends CreateContainerParams {
   /** Só usado quando mediaType === 'CAROUSEL' — 2 a 10 URLs, na ordem de exibição. */
   mediaUrls?: string[] | null;
+  /** Timeout máximo em ms aguardando o processamento assíncrono pela Meta (padrão 120s, ou 35s em rotas HTTP). */
+  waitTimeoutMs?: number;
+}
+
+/** Erro quando a Meta ainda está processando o vídeo, mas o tempo limite do request expirou */
+export class ContainerPendingError extends Error {
+  creationId: string;
+  constructor(message: string, creationId: string) {
+    super(message);
+    this.name = 'ContainerPendingError';
+    this.creationId = creationId;
+  }
 }
 
 /** A Meta só aceita até 3 @usernames em `collaborators` (feed, Reels e carrossel). */
@@ -344,7 +356,7 @@ export async function waitForContainerReady(
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 
-  throw new Error('Tempo esgotado aguardando o processamento da mídia pela Meta.');
+  throw new ContainerPendingError('Tempo limite aguardando o processamento do vídeo pela Meta.', creationId);
 }
 
 export async function publishContainer(
@@ -386,7 +398,7 @@ export async function publishPost(
     });
     // O container pai do carrossel também passa por processamento antes
     // de poder ser publicado, mesmo quando todos os itens são imagem.
-    await waitForContainerReady(creationId, params.accessToken);
+    await waitForContainerReady(creationId, params.accessToken, { timeoutMs: params.waitTimeoutMs ?? 120_000 });
     const igMediaId = await publishContainer(params.instagramUserId, params.accessToken, creationId);
     return resultado(igMediaId);
   }
@@ -401,7 +413,7 @@ export async function publishPost(
   if (params.mediaType === 'IMAGE') {
     await new Promise((resolve) => setTimeout(resolve, 2_000));
   } else {
-    await waitForContainerReady(creationId, params.accessToken);
+    await waitForContainerReady(creationId, params.accessToken, { timeoutMs: params.waitTimeoutMs ?? 120_000 });
   }
 
   const igMediaId = await publishContainer(params.instagramUserId, params.accessToken, creationId);

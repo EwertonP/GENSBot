@@ -1,3 +1,35 @@
+async function safeParseResponse(res: Response): Promise<{ ok: boolean; data: any; error: string | null }> {
+  const text = await res.text();
+  try {
+    const json = JSON.parse(text);
+    return {
+      ok: res.ok,
+      data: json,
+      error: res.ok ? null : (json.error || `Erro do servidor (${res.status})`),
+    };
+  } catch {
+    if (res.status === 504 || text.includes('FUNCTION_INVOCATION_TIMEOUT') || text.includes('GATEWAY_TIMEOUT')) {
+      return {
+        ok: false,
+        data: null,
+        error: 'O Instagram demorou para processar este vídeo de alta resolução/tamanho (Timeout do servidor). Dica: use a opção "Agendar" (mesmo que para 2 minutos à frente) para que vídeos grandes sejam publicados em segundo plano sem risco de timeout.',
+      };
+    }
+    if (res.status === 413 || text.includes('PAYLOAD_TOO_LARGE')) {
+      return {
+        ok: false,
+        data: null,
+        error: 'O arquivo de mídia é muito grande para o servidor. Comprima o vídeo ou envie pelo Cloudflare R2.',
+      };
+    }
+    return {
+      ok: false,
+      data: null,
+      error: `Erro no servidor (${res.status}): ${text.slice(0, 150) || 'Resposta inválida do servidor.'}`,
+    };
+  }
+}
+
 'use client';
 import { Tip } from '@/components/ui/tooltip';
 import { Select } from '@/components/ui/select';

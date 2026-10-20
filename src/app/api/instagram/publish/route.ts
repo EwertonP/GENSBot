@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
 import { getAccountForUserOrAgency, listInstagramAccountsForUser, getUserIdsInSameAgency } from '@/lib/instagram-account';
-import { publishPost, PublishMediaType, erroLimiteColaboradores } from '@/lib/instagram-publish';
+import { publishPost, PublishMediaType, erroLimiteColaboradores, ContainerPendingError } from '@/lib/instagram-publish';
 import { supabase } from '@/lib/supabase';
 import { createAutomationForPublishedPost, PublishAutomationConfig } from '@/lib/publish-automation';
 
@@ -134,6 +134,7 @@ export async function POST(req: Request) {
         locationId: location_id,
         coverUrl: cover_url,
         audioName: audio_name,
+        waitTimeoutMs: 35_000,
       });
 
       let createdAutomationId: string | null = null;
@@ -216,6 +217,43 @@ export async function POST(req: Request) {
 
       return NextResponse.json(data);
     } catch (publishErr: any) {
+      if (publishErr instanceof ContainerPendingError || publishErr?.name === 'ContainerPendingError') {
+        const publishedDate = new Date().toISOString();
+        const { data, error } = await supabase
+          .from('scheduled_posts')
+          .insert({
+            ...commonFields,
+            scheduled_at: publishedDate,
+            status: 'scheduled',
+            aviso: 'Vídeo em processamento na Meta; a publicação será finalizada automaticamente pelo sistema em instantes.',
+          })
+          .select()
+          .single();
+
+        if (!error && conteudo_item_id) {
+          await supabase
+            .from('conteudo_items')
+            .update({
+              scheduled_post_id: data?.id,
+              status: 'agendamento',
+              data_programada: publishedDate,
+              cover_url: cover_url || null,
+              location_id: location_id || null,
+              location_name: location_name || null,
+              audio_name: audio_name || null,
+              automacao_config: automation_config?.enabled ? automation_config : null,
+              atualizado_em: publishedDate,
+            })
+            .eq('id', conteudo_item_id);
+        }
+
+        return NextResponse.json({
+          ...(data || {}),
+          queued: true,
+          message: 'Vídeo enviado com sucesso para o Instagram! Devido ao tamanho do arquivo, o Instagram está concluindo a transcodificação e o post será publicado em instantes.',
+        });
+      }
+
       const { data } = await supabase
         .from('scheduled_posts')
         .insert({
