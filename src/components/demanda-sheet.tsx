@@ -1395,12 +1395,44 @@ export function DemandaSheet({
                           <AlertCircle className="w-3.5 h-3.5" />
                           Ajustes pedidos pelo cliente ({ajustesPendentes.length})
                         </p>
-                        {ajustesPendentes.map((c) => (
-                          <div key={c.id} className="text-xs p-2.5 rounded-xl bg-card border border-border shadow-2xs">
-                            <span className="text-muted-foreground block text-xs font-semibold">{c.autor || 'Cliente'}</span>
-                            <p className="text-foreground mt-0.5 whitespace-pre-wrap">{c.texto}</p>
-                          </div>
-                        ))}
+                        {ajustesPendentes.map((c) => {
+                          const slideImg = (c.slide_index && item.arquivos && item.arquivos[c.slide_index - 1]?.url) || null;
+                          return (
+                            <div key={c.id} className="text-xs p-2.5 rounded-xl bg-card border border-border shadow-2xs space-y-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-muted-foreground text-xs font-semibold">{c.autor || 'Cliente'}</span>
+                                {c.slide_index ? (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-warning-soft text-warning border border-warning-ring font-mono font-bold text-[10px]">
+                                    Slide #{c.slide_index}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground font-medium">Geral / Post</span>
+                                )}
+                              </div>
+                              <div className="flex gap-2.5 items-start">
+                                {slideImg && (
+                                  <a
+                                    href={slideImg}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="relative shrink-0 w-11 h-14 rounded-lg overflow-hidden border border-border bg-muted group/thumb block shadow-2xs"
+                                    title={`Ver Slide ${c.slide_index}`}
+                                  >
+                                    <img
+                                      src={slideImg}
+                                      alt={`Slide ${c.slide_index}`}
+                                      className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
+                                    />
+                                    <span className="absolute bottom-0 inset-x-0 bg-black/75 text-white font-mono text-[8px] text-center font-bold py-0.5">
+                                      #{c.slide_index}
+                                    </span>
+                                  </a>
+                                )}
+                                <p className="text-foreground flex-1 whitespace-pre-wrap">{c.texto}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   }
