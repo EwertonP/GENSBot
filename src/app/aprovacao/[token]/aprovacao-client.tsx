@@ -183,12 +183,26 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
     });
   }
 
-  // Abrir modal com pré-preenchimento
-  function handleAbrirAjusteSlide(slideIndex: number) {
-    setAjusteSlideIndex(slideIndex);
-    setAjusteTimestamp(null);
-    setAjusteEscopo(arquivos.length > 1 ? 'ponto' : 'geral');
+  // Abrir modal de ajuste com seletor de slides
+  function handleAbrirModalAjuste(slideEscolhido?: number) {
+    if (slideEscolhido != null) {
+      setAjusteSlideIndex(slideEscolhido);
+      setAjusteEscopo('ponto');
+      setSlideAtual(slideEscolhido - 1);
+    } else if (arquivos.length > 1) {
+      setAjusteSlideIndex(slideAtual + 1);
+      setAjusteEscopo('ponto');
+    } else {
+      setAjusteSlideIndex(null);
+      setAjusteEscopo(arquivos.length === 1 ? 'ponto' : 'geral');
+    }
+    setAjusteTimestamp(isReel ? videoTempo : null);
+    setTextoAjuste('');
     setModalAjusteAberto(true);
+  }
+
+  function handleAbrirAjusteSlide(slideIndex?: number) {
+    handleAbrirModalAjuste(slideIndex);
   }
 
   function handleAbrirAjusteVideo(segundos: number) {
@@ -202,6 +216,10 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   async function handleEnviarAjuste(e: React.FormEvent) {
     e.preventDefault();
     if (!textoAjuste.trim() || !token) return;
+    if (!autorNome.trim()) {
+      toast.error('Informe seu nome', { description: 'Por favor, digite seu nome para que a equipe saiba quem solicitou o ajuste.' });
+      return;
+    }
 
     setEnviando(true);
     try {
@@ -236,10 +254,15 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       setItem(data.item);
       setTextoAjuste('');
       setModalAjusteAberto(false);
-      toast.success('Ajuste enviado', { description: 'A equipe da agência já foi avisada.' });
       try {
         if (autorNome.trim()) localStorage.setItem(NOME_STORAGE_KEY, autorNome.trim());
       } catch {}
+      const msgSlide = ajusteSlideIndex && arquivos.length > 1
+        ? `Ajuste no Slide #${ajusteSlideIndex} registrado!`
+        : 'Ajuste registrado!';
+      toast.success(msgSlide, {
+        description: 'Você pode clicar em Ajustar novamente para indicar mudanças em outras páginas se desejar.',
+      });
     } catch (err: any) {
       toast.error('Não foi possível enviar o ajuste', { description: err.message || 'Seu texto continua aqui — tente enviar de novo.' });
     } finally {
@@ -692,8 +715,8 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           <BarraDecisao
             aprovado={sucessoAprovado}
             enviando={enviando}
-            rotuloAjuste={isReel ? 'Pedir ajuste no vídeo' : arquivos.length > 1 ? 'Pedir ajuste nos slides' : 'Pedir ajuste'}
-            onAjuste={() => comNome(() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirAjusteSlide(slideAtual + 1)))}
+            rotuloAjuste="Ajustar"
+            onAjuste={() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirModalAjuste(slideAtual + 1))}
             onAprovar={handleAprovar}
             autorNome={autorNome}
             onTrocarNome={() => {
@@ -873,7 +896,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                 </button></Tip>
                 <Tip label={"Comentar / Sugerir Ajuste"}><button
                   type="button"
-                  onClick={() => comNome(() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirAjusteSlide(slideAtual + 1)))}
+                  onClick={() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirModalAjuste(slideAtual + 1))}
                   className="hover:text-muted-foreground transition-transform active:scale-110" aria-label={"Comentar / Sugerir Ajuste"}
                 >
                   <MessageCircle className="w-6 h-6" />
@@ -986,23 +1009,24 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           <div>
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ajuste de Conteúdo</span>
             <h3 className="text-lg font-bold font-display text-foreground mt-0.5">
-              {arquivos.length > 1
-                ? 'Onde será a alteração no Carrossel?'
-                : isReel && ajusteTimestamp != null
-                ? `Pedir ajuste aos ${formatarTimecode(ajusteTimestamp)}`
-                : 'Pedir ajuste na publicação'}
+              Solicitar Ajuste
             </h3>
-            {arquivos.length > 1 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Escolha o slide que deseja alterar ou selecione a publicação toda:
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              {arquivos.length > 1
+                ? 'Selecione o slide onde você quer fazer a alteração (suporta até 10 slides):'
+                : 'Descreva a alteração que a equipe deve realizar na publicação:'}
+            </p>
           </div>
 
-          {/* Seletor Visual de Miniaturas dos Slides para Carrossel */}
+          {/* Seletor Visual de Miniaturas dos Slides para Carrossel (até 10 slides) */}
           {arquivos.length > 1 && (
-            <div className="flex flex-col gap-2.5">
-              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-52 overflow-y-auto p-2 bg-accent/25 rounded-2xl border border-border">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <span>Escolha o Slide ({arquivos.length} slides)</span>
+                <span className="text-[11px] text-muted-foreground font-normal">Clique para selecionar</span>
+              </label>
+
+              <div className="grid grid-cols-5 gap-2 max-h-56 overflow-y-auto p-2.5 bg-accent/30 rounded-2xl border border-border">
                 {arquivos.map((arq, idx) => {
                   const slideNum = idx + 1;
                   const selecionado = ajusteEscopo === 'ponto' && ajusteSlideIndex === slideNum;
@@ -1017,8 +1041,8 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                       }}
                       className={`group relative aspect-[4/5] rounded-xl overflow-hidden border-2 transition-all cursor-pointer flex flex-col items-center justify-center ${
                         selecionado
-                          ? 'border-primary ring-2 ring-primary/40 shadow-md scale-102 bg-primary/10'
-                          : 'border-border/70 hover:border-foreground/30 bg-card opacity-80 hover:opacity-100'
+                          ? 'border-brand-solid ring-2 ring-brand-solid/40 shadow-md scale-102 bg-brand-soft'
+                          : 'border-border/80 hover:border-foreground/40 bg-card opacity-80 hover:opacity-100'
                       }`}
                     >
                       {arq.tipo === 'video' ? (
@@ -1030,7 +1054,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                       {/* Tag do número */}
                       <span
                         className={`absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold shadow-xs ${
-                          selecionado ? 'bg-primary text-primary-foreground' : 'bg-black/70 text-white'
+                          selecionado ? 'bg-brand-solid text-brand-solid-fg' : 'bg-black/75 text-white'
                         }`}
                       >
                         #{slideNum}
@@ -1038,7 +1062,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
                       {/* Check de selecionado */}
                       {selecionado && (
-                        <div className="absolute top-1 right-1 size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xs">
+                        <div className="absolute top-1 right-1 size-5 rounded-full bg-brand-solid text-brand-solid-fg flex items-center justify-center shadow-xs">
                           <Check className="size-3 stroke-[3]" />
                         </div>
                       )}
@@ -1056,16 +1080,16 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                 }}
                 className={`p-2.5 rounded-xl border text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
                   ajusteEscopo === 'geral'
-                    ? 'bg-card border-primary text-foreground ring-1 ring-primary/25 shadow-xs'
+                    ? 'bg-card border-brand-solid text-foreground ring-1 ring-brand-ring shadow-xs'
                     : 'bg-accent/30 border-border text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <span className="flex items-center gap-2">
                   <FileText className="size-3.5 text-primary" />
-                  <span>Ajuste geral (legenda, texto ou ideia de toda a publicação)</span>
+                  <span>Ajuste geral (legenda, texto ou post todo)</span>
                 </span>
                 {ajusteEscopo === 'geral' && (
-                  <span className="size-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">
+                  <span className="size-4 rounded-full bg-brand-solid text-brand-solid-fg flex items-center justify-center text-[10px] font-bold">
                     ✓
                   </span>
                 )}
@@ -1097,16 +1121,16 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           )}
 
           {/* Feedback do destino do ajuste */}
-          <div className="p-3 rounded-2xl bg-accent/50 border border-border text-xs flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-accent/40 border border-border text-xs flex items-center gap-3">
             {ajusteEscopo === 'geral' ? (
               <>
                 <Smartphone className="w-4 h-4 text-primary shrink-0" />
-                <span>O ajuste será registrado para a <strong>publicação inteira</strong> (legenda ou ideia geral).</span>
+                <span>O ajuste será registrado para a <strong>publicação inteira</strong> (legenda ou post todo).</span>
               </>
             ) : ajusteTimestamp != null ? (
               <>
                 <Clock className="w-4 h-4 text-primary shrink-0" />
-                <span>O ajuste ficará fixado exatamente aos <strong>{formatarTimecode(ajusteTimestamp)}</strong> do vídeo.</span>
+                <span>O ajuste ficará fixado aos <strong>{formatarTimecode(ajusteTimestamp)}</strong> do vídeo.</span>
               </>
             ) : ajusteSlideIndex != null && arquivos.length > 1 ? (
               <>
@@ -1114,15 +1138,15 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                   <img
                     src={arquivos[ajusteSlideIndex - 1].url}
                     alt=""
-                    className="size-10 rounded-xl object-cover border border-border shrink-0 shadow-2xs"
+                    className="size-11 rounded-xl object-cover border border-border shrink-0 shadow-2xs"
                   />
                 )}
                 <div className="flex flex-col min-w-0">
                   <span className="font-bold text-foreground">
-                    Alteração específica no Slide #{ajusteSlideIndex} de {arquivos.length}
+                    Alteração no Slide #{ajusteSlideIndex} de {arquivos.length}
                   </span>
                   <span className="text-[11px] text-muted-foreground truncate">
-                    A alteração ficará vinculada a esta imagem para a equipe.
+                    A equipe verá este apontamento fixado nesta página.
                   </span>
                 </div>
               </>
@@ -1134,17 +1158,26 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             )}
           </div>
 
+          {/* Campo de Identificação (Seu Nome) */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground">Seu Nome</label>
-            <input
-              type="text"
-              placeholder="Ex.: Dr. Paulo / Mariana"
-              value={autorNome}
-              onChange={(e) => setAutorNome(e.target.value)}
-              className="w-full bg-card border border-input rounded-xl px-3.5 py-2 text-xs text-foreground focus:outline-hidden focus:border-foreground/50"
-            />
+            <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+              <span>Seu Nome</span>
+              <span className="text-[11px] text-muted-foreground font-normal">Quem está solicitando a alteração</span>
+            </label>
+            <div className="relative">
+              <UserRound className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                required
+                placeholder="Ex.: Dr. Roberto / Camila"
+                value={autorNome}
+                onChange={(e) => setAutorNome(e.target.value)}
+                className="w-full bg-card border border-input rounded-xl pl-9 pr-3.5 py-2 text-xs text-foreground focus:outline-hidden focus:border-foreground/50"
+              />
+            </div>
           </div>
 
+          {/* Campo da Descrição do Ajuste */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-foreground">
               {ajusteSlideIndex != null && arquivos.length > 1
@@ -1154,8 +1187,8 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             <Textarea
               placeholder={
                 ajusteSlideIndex != null && arquivos.length > 1
-                  ? `Descreva o que alterar no Slide #${ajusteSlideIndex} (ex: trocar a foto, corrigir texto, alterar a cor ou título...)`
-                  : 'Descreva a alteração desejada (ex: trocar foto, alterar legenda, mudar roteiro...)'
+                  ? `Descreva a alteração no Slide #${ajusteSlideIndex} (ex: trocar foto de fundo, corrigir texto do título, mudar frase...)`
+                  : 'Descreva a alteração desejada (ex: trocar foto, corrigir legenda, alterar frase...)'
               }
               value={textoAjuste}
               onChange={(e) => setTextoAjuste(e.target.value)}

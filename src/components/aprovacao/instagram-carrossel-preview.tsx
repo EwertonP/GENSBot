@@ -23,7 +23,7 @@ interface InstagramCarrosselPreviewProps {
   legenda?: string | null;
   slideAtual: number;
   onMudarSlide: (novoSlide: number) => void;
-  onPedirAjuste?: (slideIndex: number) => void;
+  onPedirAjuste?: (slideIndex?: number) => void;
 }
 
 export function InstagramCarrosselPreview({
@@ -147,15 +147,15 @@ export function InstagramCarrosselPreview({
               </>
             )}
 
-            {/* Botão de Atalho Rápido para Ajuste no Slide Ativo */}
+            {/* Botão de Atalho Rápido para Ajuste */}
             {onPedirAjuste && (
               <button
                 type="button"
                 onClick={() => onPedirAjuste(slideValido + 1)}
-                className="absolute bottom-3 right-3 bg-black/75 hover:bg-black text-white text-[10px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-md border border-white/20 flex items-center gap-1 shadow-md transition-ui active:scale-95"
+                className="absolute bottom-3 right-3 bg-black/75 hover:bg-black text-white text-xs font-semibold px-3 py-1.5 rounded-xl backdrop-blur-md border border-white/20 flex items-center gap-1.5 shadow-md transition-ui active:scale-95 cursor-pointer"
               >
-                <Sparkles className="w-3 h-3 text-lime" />
-                <span>Ajustar Slide #{slideValido + 1}</span>
+                <Sparkles className="w-3.5 h-3.5 text-lime" />
+                <span>Ajustar</span>
               </button>
             )}
           </div>

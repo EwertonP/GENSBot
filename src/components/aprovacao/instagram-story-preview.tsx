@@ -21,7 +21,7 @@ interface InstagramStoryPreviewProps {
   arquivos: ArquivoConteudo[];
   slideAtual: number;
   onMudarSlide: (novoSlide: number) => void;
-  onPedirAjuste?: (slideIndex: number) => void;
+  onPedirAjuste?: (slideIndex?: number) => void;
 }
 
 export function InstagramStoryPreview({
@@ -212,7 +212,7 @@ export function InstagramStoryPreview({
             className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-card border border-border text-foreground hover:bg-accent flex items-center gap-1.5 shadow-2xs cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span>Sugerir Ajuste no Story #{slideValido + 1}</span>
+            <span>Ajustar</span>
           </button>
         </div>
       )}
