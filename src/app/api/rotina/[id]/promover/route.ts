@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { getContextoAgencia, respostaErro, traduzirErroBanco, respostaSeMembroEscopado } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 
 type Params = { params: Promise<{ id: string }> };
@@ -14,6 +14,8 @@ const PRIORIDADE_DEMANDA: Record<string, string> = { baixa: 'baixa', normal: 'me
 export async function POST(req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
+  const bloqueio = respostaSeMembroEscopado(auth.ctx);
+  if (bloqueio) return bloqueio;
   const { supabase, membro } = auth.ctx;
   const { id } = await params;
 

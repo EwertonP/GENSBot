@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
-import { getContextoAgencia } from '@/lib/clientes-server';
+import { getContextoAgencia, respostaSeMembroEscopado } from '@/lib/clientes-server';
 import { getActiveInstagramAccountForUser } from '@/lib/instagram-account';
 import { ehUuid } from '@/lib/clientes';
 
@@ -33,6 +33,10 @@ export async function GET(req: Request) {
     const authCtx = await getContextoAgencia();
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
+    if (authCtx.ok) {
+      const bloqueio = respostaSeMembroEscopado(authCtx.ctx);
+      if (bloqueio) return bloqueio;
+    }
 
     const { searchParams } = new URL(req.url);
     const canalFiltro = searchParams.get('canal'); // 'todos' | 'instagram' | 'whatsapp'

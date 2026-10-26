@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { getContextoAgencia, respostaErro, salvarVinculosClientes, traduzirErroBanco } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 
 type Params = { params: Promise<{ id: string }> };
@@ -19,6 +19,11 @@ export async function PATCH(req: Request, { params }: Params) {
   try {
     const body = await req.json();
     const permitidos = ['nome', 'cargo', 'papel', 'ativo', 'foto_url'];
+    // Quais clientes o membro acessa: só master define.
+    const clientesIds = Array.isArray(body.clientes_ids) ? body.clientes_ids : undefined;
+    if (clientesIds !== undefined && membro.papel !== 'master') {
+      return respostaErro('Apenas administradores definem os clientes de um membro.', 403);
+    }
     const updates: Record<string, any> = {};
 
     for (const key of permitidos) {
@@ -31,8 +36,18 @@ export async function PATCH(req: Request, { params }: Params) {
       }
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates).length === 0 && clientesIds === undefined) {
       return respostaErro('Nenhum campo válido para atualização.', 400);
+    }
+
+    if (clientesIds !== undefined && membro.papel === 'master') {
+      const vinculos = await salvarVinculosClientes(auth.ctx, id, clientesIds);
+      if (!vinculos.ok) return vinculos.response;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      const { data: atual } = await serviceSupabase.from('membros').select('*').eq('id', id).eq('agencia_id', membro.agencia_id).maybeSingle();
+      return NextResponse.json({ membro: atual });
     }
 
     const { data: membroAtualizado, error } = await serviceSupabase

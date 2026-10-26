@@ -15,6 +15,7 @@ vi.mock('@/lib/supabase', () => ({
 vi.mock('@/lib/clientes-server', () => ({
   getContextoAgencia: vi.fn(async () => ({ ok: true, ctx: { membro: { agencia_id: 'ag-1' } } })),
   respostaErro: (erro: string, status: number) => Response.json({ error: erro }, { status }),
+  respostaSeMembroEscopado: () => null,
   traduzirErroBanco: () => Response.json({ error: 'db' }, { status: 500 }),
 }));
 

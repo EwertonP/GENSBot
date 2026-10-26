@@ -50,7 +50,7 @@ import { toast } from '@/components/ui/toast';
 import { Tip } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAutomationEditor } from '@/hooks/use-automation-editor';
-import { TELAS, GRUPOS_MENU, ABAS, isAbaId, type AbaId } from '@/components/nav-config';
+import { TELAS, GRUPOS_MENU, ABAS, abasDoMembro, isAbaId, type AbaId } from '@/components/nav-config';
 import { CommandPalette, type ComandoItem } from '@/components/command-palette';
 
 interface InstagramAccountSummary {
@@ -71,6 +71,8 @@ export default function Dashboard() {
   // Auth state
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [membroPerfil, setMembroPerfil] = useState<{ id?: string; nome?: string; cargo?: string | null; foto_url?: string | null; papel: string; cliente_id: string | null } | null>(null);
+  // Telas que este usuário pode abrir. Membro comum fica restrito à esteira e aos clientes liberados.
+  const abasVisiveis = abasDoMembro(membroPerfil?.papel);
 
   // Configurações de estado do app
   const [loading, setLoading] = useState(true);
@@ -596,6 +598,18 @@ export default function Dashboard() {
     else toast.success(message);
   };
 
+  // Aba inicial de quem tem acesso restrito: se a URL aponta para uma tela fora do
+  // escopo (ou o padrão 'dashboard'), vai para a primeira liberada.
+  useEffect(() => {
+    if (!membroPerfil || abasVisiveis.includes(activeTab)) return;
+    const destino = abasVisiveis[0];
+    setActiveTab(destino);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', destino);
+    url.searchParams.delete('item');
+    window.history.replaceState(null, '', url.toString());
+  }, [membroPerfil, activeTab, abasVisiveis]);
+
   /**
    * Única porta de navegação entre telas: confere edição não salva, fecha o
    * menu do celular, atualiza a URL (histórico do navegador) e o foco.
@@ -603,6 +617,10 @@ export default function Dashboard() {
   const navegarPara = async (tab: AbaId, opts: { item?: string | null; replace?: boolean } = {}) => {
     if (membroPerfil?.papel === 'cliente' && tab !== 'crm' && tab !== 'contacts' && tab !== 'inbox') {
       showToast('Acesso restrito ao CRM e Contatos da sua conta.', 'error');
+      return false;
+    }
+    if (!abasVisiveis.includes(tab)) {
+      showToast('Essa área não está disponível para o seu acesso.', 'error');
       return false;
     }
     if (!(await podeSairDaEdicao())) return false;
@@ -870,7 +888,7 @@ export default function Dashboard() {
   }
 
   const itensBusca: ComandoItem[] = [
-    ...ABAS.map((id) => ({
+    ...abasVisiveis.map((id) => ({
       id: `tela-${id}`,
       label: TELAS[id].label,
       hint: TELAS[id].grupo === 'instagram' ? 'Instagram' : TELAS[id].grupo === 'admin' ? 'Administração' : 'Agência',
@@ -1063,7 +1081,7 @@ export default function Dashboard() {
               label: g.id === 'instagram'
                 ? `Instagram · ${selectedAccountId && selectedAccountId !== 'all' ? '@' + (config?.instagram_username || '…') : 'todas as contas'}`
                 : g.label,
-              items: ABAS.filter((id) => TELAS[id].grupo === g.id).map((id) => ({ id, label: TELAS[id].label, icon: TELAS[id].icon })),
+              items: abasVisiveis.filter((id) => TELAS[id].grupo === g.id).map((id) => ({ id, label: TELAS[id].label, icon: TELAS[id].icon })),
             })).map((group, gi) => (
             <div key={gi} className="flex flex-col gap-1">
               {!sidebarCompacta ? (

@@ -136,3 +136,21 @@ export const GRUPOS_MENU: { id: 'agencia' | 'instagram'; label: string }[] = [
   { id: 'agencia', label: 'Agência' },
   { id: 'instagram', label: 'Instagram' },
 ];
+
+/**
+ * Telas que um membro com escopo de clientes enxerga: só a esteira e a ficha
+ * dos clientes liberados. O resto é área da agência inteira (CRM, Inbox,
+ * Calendário, Métricas…). Nota: esconder aqui não bloqueia a API. As rotas
+ * globais ainda precisam de filtro próprio no servidor.
+ */
+export const ABAS_MEMBRO_ESCOPADO: AbaId[] = ['esteira', 'clientes'];
+
+/** Portal do cliente (papel 'cliente'): mesmas telas que page.tsx já liberava. */
+const ABAS_PORTAL_CLIENTE: AbaId[] = ['crm', 'inbox', 'contacts'];
+
+/** Telas visíveis para o papel do usuário logado. Sem papel conhecido, fica no mínimo. */
+export function abasDoMembro(papel: string | null | undefined): AbaId[] {
+  if (papel === 'master') return ABAS;
+  if (papel === 'cliente') return ABAS_PORTAL_CLIENTE;
+  return ABAS_MEMBRO_ESCOPADO;
+}

@@ -20,6 +20,7 @@ vi.mock('@/lib/clientes', () => ({
 vi.mock('@/lib/clientes-server', () => ({
   getContextoAgencia: vi.fn(),
   respostaErro: (erro: string, status: number) => Response.json({ error: erro }, { status }),
+  respostaSeMembroEscopado: () => null,
   traduzirErroBanco: () => Response.json({ error: 'db' }, { status: 500 }),
 }));
 
