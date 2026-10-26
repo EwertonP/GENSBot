@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { getContextoAgencia, respostaErro, traduzirErroBanco, respostaSeMembroEscopado } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import {
   STATUS_TAREFA_VALIDOS,
@@ -13,6 +13,8 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
+  const bloqueio = respostaSeMembroEscopado(auth.ctx);
+  if (bloqueio) return bloqueio;
   const { supabase, membro } = auth.ctx;
 
   const { id } = await params;
@@ -91,6 +93,8 @@ export async function PATCH(req: Request, { params }: Params) {
 export async function DELETE(_req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
+  const bloqueio = respostaSeMembroEscopado(auth.ctx);
+  if (bloqueio) return bloqueio;
   const { supabase, membro } = auth.ctx;
 
   const { id } = await params;

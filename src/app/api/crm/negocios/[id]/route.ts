@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { getContextoAgencia, respostaErro, traduzirErroBanco, respostaSeMembroEscopado } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 
 type Params = { params: Promise<{ id: string }> };
@@ -15,6 +15,8 @@ const SELECT_NEGOCIO = `
 export async function GET(req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
+  const bloqueio = respostaSeMembroEscopado(auth.ctx);
+  if (bloqueio) return bloqueio;
   const { membro } = auth.ctx;
 
   const { id } = await params;
@@ -66,6 +68,8 @@ export async function GET(req: Request, { params }: Params) {
 export async function PATCH(req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
+  const bloqueio = respostaSeMembroEscopado(auth.ctx);
+  if (bloqueio) return bloqueio;
   const { membro, user } = auth.ctx;
 
   const { id } = await params;
@@ -139,6 +143,8 @@ export async function PATCH(req: Request, { params }: Params) {
 export async function DELETE(req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
+  const bloqueio = respostaSeMembroEscopado(auth.ctx);
+  if (bloqueio) return bloqueio;
   const { membro } = auth.ctx;
 
   const { id } = await params;

@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select } from '@/components/ui/select';
 import { Sheet } from '@/components/ui/sheet';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -39,6 +40,14 @@ export interface MembroEquipe {
   foto_url: string | null;
   criado_em: string;
   total_demandas?: number;
+  clientes_ids?: string[];
+}
+
+interface ClienteOpcao {
+  id: string;
+  nome: string;
+  cor: string | null;
+  ativo: boolean;
 }
 
 interface EquipeTabProps {
@@ -61,6 +70,8 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
   const [formFotoUrl, setFormFotoUrl] = useState('');
   const [formPapel, setFormPapel] = useState<'master' | 'membro'>('master');
   const [formPassword, setFormPassword] = useState('');
+  const [clientesAgencia, setClientesAgencia] = useState<ClienteOpcao[]>([]);
+  const [formClientesIds, setFormClientesIds] = useState<string[]>([]);
   const [senhaGeradaMsg, setSenhaGeradaMsg] = useState<string | null>(null);
   const [uploadingFoto, setUploadingFoto] = useState(false);
 
@@ -83,6 +94,10 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
 
   useEffect(() => {
     carregarMembros();
+    fetch('/api/clientes')
+      .then((r) => (r.ok ? r.json() : { clientes: [] }))
+      .then((data) => setClientesAgencia(Array.isArray(data.clientes) ? data.clientes : []))
+      .catch(() => setClientesAgencia([]));
   }, []);
 
   function abrirModalCriar() {
@@ -93,6 +108,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
     setFormFotoUrl('');
     setFormPapel('master');
     setFormPassword('');
+    setFormClientesIds([]);
     setSenhaGeradaMsg(null);
     setModalAberto(true);
   }
@@ -105,6 +121,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
     setFormFotoUrl(m.foto_url || '');
     setFormPapel(m.papel);
     setFormPassword('');
+    setFormClientesIds(m.clientes_ids ?? []);
     setSenhaGeradaMsg(null);
     setModalAberto(true);
   }
@@ -145,6 +162,8 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             cargo: formCargo.trim() || null,
             papel: formPapel,
             foto_url: formFotoUrl.trim() || null,
+            // Master não precisa de lista: enxerga todos os clientes.
+            ...(formPapel === 'membro' && { clientes_ids: formClientesIds }),
           }),
         });
         const data = await res.json();
@@ -167,6 +186,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             papel: formPapel,
             password: formPassword.trim() || undefined,
             foto_url: formFotoUrl.trim() || null,
+            ...(formPapel === 'membro' && { clientes_ids: formClientesIds }),
           }),
         });
         const data = await res.json();
@@ -533,6 +553,33 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                   onChange={(e) => setFormCargo(e.target.value)}
                 />
               </div>
+
+              {formPapel === 'membro' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground">Clientes que pode acessar</label>
+                  <p className="text-[11px] text-muted-foreground -mt-0.5">
+                    Só os clientes marcados aparecem para este membro, com as demandas deles. Sem nenhum marcado, ele não vê nada.
+                  </p>
+                  {clientesAgencia.filter((c) => c.ativo).length === 0 ? (
+                    <span className="text-xs text-muted-foreground">Nenhum cliente ativo cadastrado.</span>
+                  ) : (
+                    <div className="flex flex-col gap-2 rounded-xl border border-border p-3 max-h-56 overflow-y-auto">
+                      {clientesAgencia.filter((c) => c.ativo).map((cli) => (
+                        <Checkbox
+                          key={cli.id}
+                          checked={formClientesIds.includes(cli.id)}
+                          onCheckedChange={(marcado) =>
+                            setFormClientesIds((prev) =>
+                              marcado ? [...prev, cli.id] : prev.filter((id) => id !== cli.id)
+                            )
+                          }
+                          label={cli.nome}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-foreground">Papel na Agência</label>

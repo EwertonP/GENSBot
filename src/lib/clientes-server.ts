@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { listInstagramAccountsForUser } from '@/lib/instagram-account';
+import { ehUuid } from '@/lib/clientes';
 
 import { supabase as serviceSupabase } from '@/lib/supabase';
 
@@ -132,4 +133,128 @@ export function traduzirErroBanco(error: { code?: string; message: string }, con
       console.error(`Erro em ${contexto}:`, error.code, error.message);
       return respostaErro('Erro interno. Tente novamente.', 500);
   }
+}
+
+/**
+ * Quais clientes o usuário logado pode trabalhar.
+ * - master: `total` (vê a agência inteira, como antes).
+ * - papel 'cliente' (portal): só o próprio cliente.
+ * - membro comum: só os clientes vinculados em membro_clientes.
+ *
+ * A RLS já aplica a mesma regra no banco para a sessão do usuário. Esta função
+ * existe porque as rotas que usam a service role ignoram RLS e precisam filtrar
+ * na mão.
+ */
+export type EscopoClientes = { total: true } | { total: false; ids: string[] };
+
+export async function escopoClientes(ctx: ContextoAgencia): Promise<EscopoClientes> {
+  const { membro } = ctx;
+  if (membro.papel === 'master') return { total: true };
+  if (membro.papel === 'cliente') {
+    return { total: false, ids: membro.cliente_id ? [membro.cliente_id] : [] };
+  }
+  // Falha fechada: se a consulta falhar, o escopo fica vazio.
+  const { data, error } = await serviceSupabase
+    .from('membro_clientes')
+    .select('cliente_id')
+    .eq('membro_id', membro.id)
+    .eq('agencia_id', membro.agencia_id);
+  if (error) {
+    console.error('Erro ao carregar escopo de clientes:', error.message);
+    return { total: false, ids: [] };
+  }
+  return { total: false, ids: (data ?? []).map((r) => r.cliente_id as string) };
+}
+
+/** Confere se o escopo cobre este cliente. */
+export function podeAcessarCliente(escopo: EscopoClientes, clienteId: string | null | undefined): boolean {
+  if (escopo.total) return true;
+  return !!clienteId && escopo.ids.includes(clienteId);
+}
+
+/**
+ * Guarda para rotas de uma demanda (conteudo_items) por id. Retorna uma resposta de
+ * erro se o usuário não puder ver a demanda, ou null se pode seguir.
+ * Responde 404 (e não 403) para não confirmar que a demanda existe.
+ */
+export async function validarAcessoItemConteudo(
+  ctx: ContextoAgencia,
+  itemId: string
+): Promise<NextResponse | null> {
+  const escopo = await escopoClientes(ctx);
+  if (escopo.total) return null;
+
+  const { data } = await serviceSupabase
+    .from('conteudo_items')
+    .select('cliente_id, agencia_id')
+    .eq('id', itemId)
+    .maybeSingle();
+
+  if (!data || data.agencia_id !== ctx.membro.agencia_id || !podeAcessarCliente(escopo, data.cliente_id)) {
+    return respostaErro('Demanda não encontrada.', 404);
+  }
+  return null;
+}
+
+/**
+ * Troca os clientes liberados para um membro. Usa o cliente da sessão: a RLS de
+ * membro_clientes já garante que só master escreve.
+ */
+export async function salvarVinculosClientes(
+  ctx: ContextoAgencia,
+  membroId: string,
+  clientesIds: unknown[]
+): Promise<{ ok: true } | { ok: false; response: NextResponse }> {
+  const ids = Array.from(new Set(clientesIds.filter((c): c is string => typeof c === 'string' && ehUuid(c))));
+  const { supabase, membro } = ctx;
+
+  const { error: erroApagar } = await supabase
+    .from('membro_clientes')
+    .delete()
+    .eq('membro_id', membroId)
+    .eq('agencia_id', membro.agencia_id);
+  if (erroApagar) return { ok: false, response: traduzirErroBanco(erroApagar, 'equipe vinculos apagar') };
+
+  if (ids.length > 0) {
+    const linhas = ids.map((cliente_id) => ({ membro_id: membroId, cliente_id, agencia_id: membro.agencia_id }));
+    const { error: erroInserir } = await supabase.from('membro_clientes').insert(linhas);
+    if (erroInserir) return { ok: false, response: traduzirErroBanco(erroInserir, 'equipe vinculos inserir') };
+  }
+  return { ok: true };
+}
+
+/**
+ * Áreas da agência inteira (CRM, Inbox, Rotina, Calendário, WhatsApp) não são de
+ * quem tem escopo de clientes. Papel 'membro' (não master) recebe 403. Papel
+ * 'cliente' segue as regras de cada rota.
+ */
+export function respostaSeMembroEscopado(ctx: ContextoAgencia): NextResponse | null {
+  if (ctx.membro.papel === 'membro') {
+    return respostaErro('Essa área é restrita à administração da agência.', 403);
+  }
+  return null;
+}
+
+/** Campos da ficha de cliente que são financeiros ou jurídicos. Só master vê. */
+export const CAMPOS_FINANCEIROS_CLIENTE = [
+  'valor_mensal',
+  'dia_vencimento',
+  'contrato_inicio',
+  'contrato_duracao_meses',
+  'contrato_arquivo_url',
+  'cnpj_cpf',
+  'responsavel_legal',
+  'cpf_responsavel',
+  'endereco',
+  'responsavel_venda_id',
+  'convertido_em',
+  'lead_id',
+] as const;
+
+/** Remove os campos financeiros de um cliente quando quem consulta não é master. */
+export function ocultarCamposFinanceiros<T extends object>(cliente: T, escopo: EscopoClientes): T {
+  if (escopo.total) return cliente;
+  const copia: Record<string, unknown> = { ...(cliente as Record<string, unknown>) };
+  for (const campo of CAMPOS_FINANCEIROS_CLIENTE) delete copia[campo];
+  return copia as T;
 }

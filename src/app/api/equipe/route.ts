@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { getContextoAgencia, respostaErro, salvarVinculosClientes, traduzirErroBanco } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { idsResponsaveis } from '@/lib/conteudo';
 
@@ -34,6 +34,15 @@ export async function GET() {
   }
 
   // Busca contagem de demandas ativas sob responsabilidade
+  const { data: vinculos } = await supabase
+    .from('membro_clientes')
+    .select('membro_id, cliente_id')
+    .eq('agencia_id', membro.agencia_id);
+  const clientesPorMembro: Record<string, string[]> = {};
+  for (const v of vinculos ?? []) {
+    (clientesPorMembro[v.membro_id] ??= []).push(v.cliente_id);
+  }
+
   const { data: demandas } = await supabase
     .from('conteudo_items')
     .select('responsavel_id, co_responsaveis_ids')
@@ -53,6 +62,7 @@ export async function GET() {
   const membrosFormatados: MembroEquipe[] = (membros || []).map((m: any) => ({
     ...m,
     total_demandas: contagemDemandas[m.id] || 0,
+    clientes_ids: clientesPorMembro[m.id] || [],
   }));
 
   return NextResponse.json({ membros: membrosFormatados });
@@ -69,7 +79,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { nome, email, papel = 'membro', cargo, password } = body;
+    const { nome, email, papel = 'membro', cargo, password, clientes_ids } = body;
 
     if (!nome?.trim() || !email?.trim()) {
       return respostaErro('Nome e e-mail são obrigatórios.', 400);
@@ -120,6 +130,11 @@ export async function POST(req: Request) {
 
     if (membroError) {
       return traduzirErroBanco(membroError, 'POST /api/equipe upsert membro');
+    }
+
+    if (Array.isArray(clientes_ids) && papel !== 'master') {
+      const vinculos = await salvarVinculosClientes(auth.ctx, membroCriado.id, clientes_ids);
+      if (!vinculos.ok) return vinculos.response;
     }
 
     return NextResponse.json(

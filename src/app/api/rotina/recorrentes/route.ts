@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { getContextoAgencia, respostaErro, traduzirErroBanco, respostaSeMembroEscopado } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { hojeBrasilia, ocorreEm, somarDias, validarRegra } from '@/lib/rotina-recorrencia';
 
@@ -14,6 +14,8 @@ const PRIORIDADES = ['baixa', 'normal', 'alta', 'urgente'];
 export async function GET() {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
+  const bloqueio = respostaSeMembroEscopado(auth.ctx);
+  if (bloqueio) return bloqueio;
   const { supabase, membro } = auth.ctx;
 
   const consultar = (db: typeof supabase) => {
@@ -34,6 +36,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
+  const bloqueio = respostaSeMembroEscopado(auth.ctx);
+  if (bloqueio) return bloqueio;
   const { supabase, user, membro } = auth.ctx;
 
   let body: Record<string, unknown>;

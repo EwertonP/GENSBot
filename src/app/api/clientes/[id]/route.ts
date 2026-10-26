@@ -1,12 +1,19 @@
 import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
-import { ehUuid, parseClienteInput } from '@/lib/clientes';
+import { ehUuid, parseClienteInput, type Cliente } from '@/lib/clientes';
+import type { PostgrestError } from '@supabase/supabase-js';
 import {
+  escopoClientes,
   getContextoAgencia,
+  ocultarCamposFinanceiros,
+  podeAcessarCliente,
   respostaErro,
   traduzirErroBanco,
   validarContaInstagram,
 } from '@/lib/clientes-server';
+
+// Única parte da ficha que um membro com escopo pode salvar: o próprio grupo de WhatsApp.
+const CHAVES_WHATSAPP_MEMBRO = ['whatsapp_grupo_id', 'whatsapp_notificar_agendamento'];
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -19,8 +26,9 @@ export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
   if (!ehUuid(id)) return respostaErro('Cliente não encontrado.', 404);
 
-  if (membro.papel === 'cliente' && membro.cliente_id !== id) {
-    return respostaErro('Acesso não autorizado a este cliente.', 403);
+  const escopo = await escopoClientes(auth.ctx);
+  if (!podeAcessarCliente(escopo, id)) {
+    return respostaErro('Cliente não encontrado.', 404);
   }
 
   // A RLS já limita à agência: cliente de outra agência simplesmente não aparece.
@@ -77,7 +85,7 @@ export async function GET(_req: Request, { params }: Params) {
     .order('criado_em', { ascending: true });
   if (erroContatos) return traduzirErroBanco(erroContatos, 'GET /api/clientes/[id] contatos');
 
-  return NextResponse.json({ cliente: clienteFinal, contatos: contatos ?? [] });
+  return NextResponse.json({ cliente: ocultarCamposFinanceiros(clienteFinal, escopo), contatos: contatos ?? [] });
 }
 
 // PATCH: edição parcial. Arquivar/restaurar é só `{ ativo: false | true }`.
@@ -89,11 +97,23 @@ export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   if (!ehUuid(id)) return respostaErro('Cliente não encontrado.', 404);
 
+  const escopo = await escopoClientes(auth.ctx);
+  if (!podeAcessarCliente(escopo, id)) {
+    return respostaErro('Cliente não encontrado.', 404);
+  }
+
   let body: unknown;
   try {
     body = await req.json();
   } catch {
     return respostaErro('Corpo da requisição inválido.', 400);
+  }
+
+  // Membro com escopo não edita a ficha (dados, arquivar, link público): só o próprio grupo de WhatsApp.
+  const chavesBody = body && typeof body === 'object' ? Object.keys(body) : [];
+  const soWhatsapp = chavesBody.length > 0 && chavesBody.every((k) => CHAVES_WHATSAPP_MEMBRO.includes(k));
+  if (!escopo.total && !soWhatsapp) {
+    return respostaErro('Só administradores podem editar a ficha do cliente.', 403);
   }
 
   // Ação de revogação/renovação de link público do feed
@@ -108,32 +128,39 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json(ren);
   }
 
-  const parsed = parseClienteInput(body, 'editar');
-  if (!parsed.ok) return respostaErro(parsed.error, 400);
+  let data: Cliente | null = null;
+  let error: PostgrestError | null = null;
+  if (!escopo.total) {
+    // Só o grupo de WhatsApp do próprio membro é salvo abaixo; a ficha fica como está.
+    ({ data, error } = await supabase.from('clientes').select('*').eq('id', id).maybeSingle());
+  } else {
+    const parsed = parseClienteInput(body, 'editar');
+    if (!parsed.ok) return respostaErro(parsed.error, 400);
 
-  const contaId = parsed.data.instagram_account_id;
-  if (typeof contaId === 'string' && !(await validarContaInstagram(user.id, contaId))) {
-    return respostaErro('Conta de Instagram não encontrada.', 400);
-  }
-
-  const updateData = { ...parsed.data };
-  if (!updateData.foto_url && contaId) {
-    const { data: conta } = await serviceSupabase
-      .from('instagram_accounts')
-      .select('profile_picture_url')
-      .eq('id', contaId)
-      .maybeSingle();
-    if (conta?.profile_picture_url) {
-      updateData.foto_url = conta.profile_picture_url;
+    const contaId = parsed.data.instagram_account_id;
+    if (typeof contaId === 'string' && !(await validarContaInstagram(user.id, contaId))) {
+      return respostaErro('Conta de Instagram não encontrada.', 400);
     }
-  }
 
-  const { data, error } = await supabase
-    .from('clientes')
-    .update(updateData)
-    .eq('id', id)
-    .select('*')
-    .maybeSingle();
+    const updateData = { ...parsed.data };
+    if (!updateData.foto_url && contaId) {
+      const { data: conta } = await serviceSupabase
+        .from('instagram_accounts')
+        .select('profile_picture_url')
+        .eq('id', contaId)
+        .maybeSingle();
+      if (conta?.profile_picture_url) {
+        updateData.foto_url = conta.profile_picture_url;
+      }
+    }
+
+    ({ data, error } = await supabase
+      .from('clientes')
+      .update(updateData)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle());
+  }
 
   if (error) return traduzirErroBanco(error, 'PATCH /api/clientes/[id]');
   // Sem linha: não existe ou é de outra agência (a RLS esconde as duas coisas).
@@ -173,10 +200,13 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 
   return NextResponse.json({
-    cliente: {
-      ...data,
-      whatsapp_grupo_id: grupoSalvo,
-      whatsapp_notificar_agendamento: notificarSalvo,
-    },
+    cliente: ocultarCamposFinanceiros(
+      {
+        ...data,
+        whatsapp_grupo_id: grupoSalvo,
+        whatsapp_notificar_agendamento: notificarSalvo,
+      },
+      escopo
+    ),
   });
 }

@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { parseClienteInput } from '@/lib/clientes';
 import {
+  escopoClientes,
   getContextoAgencia,
   listarContasSeguro,
+  ocultarCamposFinanceiros,
   respostaErro,
   traduzirErroBanco,
   validarContaInstagram,
@@ -17,21 +19,23 @@ export async function GET(req: Request) {
   const { supabase, user, membro } = auth.ctx;
 
   const incluirArquivados = new URL(req.url).searchParams.get('arquivados') === '1';
+  const escopo = await escopoClientes(auth.ctx);
+
+  // Sem nenhum cliente liberado, nem consulta: a resposta é vazia.
+  if (!escopo.total && escopo.ids.length === 0) {
+    const contas = await listarContasSeguro(user.id);
+    return NextResponse.json({ clientes: [], contas });
+  }
 
   let query = supabase.from('clientes').select('*').order('nome', { ascending: true });
   if (!incluirArquivados) query = query.eq('ativo', true);
-
-  if (membro.papel === 'cliente') {
-    if (!membro.cliente_id) {
-      return respostaErro('Usuário de cliente sem cliente vinculado.', 403);
-    }
-    query = query.eq('id', membro.cliente_id);
-  }
+  if (!escopo.total) query = query.in('id', escopo.ids);
 
   let { data: clientes, error } = await query;
 
-  // Fallback de resiliência caso RLS de sessão retorne vazio
-  if ((!clientes || clientes.length === 0) && membro?.agencia_id) {
+  // Fallback de resiliência caso RLS de sessão retorne vazio. Só para master:
+  // para os demais, ele devolveria clientes fora do escopo.
+  if (escopo.total && (!clientes || clientes.length === 0) && membro?.agencia_id) {
     const { data: fallbackClientes } = await serviceSupabase
       .from('clientes')
       .select('*')
@@ -59,7 +63,9 @@ export async function GET(req: Request) {
     };
   });
 
-  return NextResponse.json({ clientes: clientesTratados, contas });
+  // Quem não é master não vê valor de contrato, CPF/CNPJ nem dados jurídicos.
+  const clientesVisiveis = clientesTratados.map((c) => ocultarCamposFinanceiros(c, escopo));
+  return NextResponse.json({ clientes: clientesVisiveis, contas });
 }
 
 // POST: cria um cliente. A agência vem do membro autenticado, nunca do corpo.
@@ -67,6 +73,11 @@ export async function POST(req: Request) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
   const { supabase, user, membro } = auth.ctx;
+
+  // Criar cliente é ficha: só master.
+  if (membro.papel !== 'master') {
+    return respostaErro('Só administradores podem cadastrar clientes.', 403);
+  }
 
   let body: unknown;
   try {

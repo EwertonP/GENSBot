@@ -26,8 +26,9 @@ export async function GET(_req: Request, { params }: Params) {
   const { id: clienteId } = await params;
   if (!ehUuid(clienteId)) return respostaErro('Cliente não encontrado.', 404);
 
-  // Se for usuário com perfil cliente, só pode ver do seu próprio cliente
-  if (membro.papel === 'cliente' && membro.cliente_id !== clienteId) {
+  // Acessos externos são cofre: master vê tudo; portal do cliente, só o próprio cliente.
+  const podeVer = membro.papel === 'master' || (membro.papel === 'cliente' && membro.cliente_id === clienteId);
+  if (!podeVer) {
     return respostaErro('Permissão negada.', 403);
   }
 
@@ -54,9 +55,9 @@ export async function POST(req: Request, { params }: Params) {
   if (!auth.ok) return auth.response;
   const { membro } = auth.ctx;
 
-  // Apenas equipe/master da agência pode gerar acessos externos
-  if (membro.papel === 'cliente') {
-    return respostaErro('Apenas membros da agência podem criar acessos de clientes.', 403);
+  // Só master gera acessos externos (cofre).
+  if (membro.papel !== 'master') {
+    return respostaErro('Apenas administradores podem criar acessos de clientes.', 403);
   }
 
   const { id: clienteId } = await params;

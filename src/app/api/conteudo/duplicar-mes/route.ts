@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { escopoClientes, getContextoAgencia, podeAcessarCliente, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
 
 export async function POST(req: Request) {
   const auth = await getContextoAgencia();
@@ -12,6 +12,9 @@ export async function POST(req: Request) {
 
     if (!cliente_id || !mes_origem || !mes_destino) {
       return respostaErro('cliente_id, mes_origem e mes_destino são obrigatórios.', 400);
+    }
+    if (!podeAcessarCliente(await escopoClientes(auth.ctx), cliente_id)) {
+      return respostaErro('Cliente não encontrado.', 404);
     }
 
     // 1. Busca os itens do mês de origem

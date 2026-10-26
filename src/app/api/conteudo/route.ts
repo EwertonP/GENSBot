@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
-import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import {
+  escopoClientes,
+  getContextoAgencia,
+  podeAcessarCliente,
+  respostaErro,
+  traduzirErroBanco,
+} from '@/lib/clientes-server';
 import { ehUuid } from '@/lib/clientes';
 import { normalizarCoResponsaveis } from '@/lib/conteudo';
 
@@ -42,6 +48,7 @@ export async function GET(req: Request) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
   const { supabase, membro } = auth.ctx;
+  const escopo = await escopoClientes(auth.ctx);
 
   const { searchParams } = new URL(req.url);
   const clienteId = searchParams.get('cliente_id');
@@ -49,12 +56,20 @@ export async function GET(req: Request) {
   const mes = searchParams.get('mes');
   const responsavelId = searchParams.get('responsavel_id');
 
+  // Membro com escopo só vê demandas dos clientes liberados. Sem nenhum, nem consulta.
+  if (!escopo.total && escopo.ids.length === 0) {
+    return NextResponse.json({ items: [] });
+  }
+
   let query = supabase
     .from('conteudo_items')
     .select(SELECT_CONTEUDO)
     .order('ordem', { ascending: true })
     .order('criado_em', { ascending: false });
 
+  if (!escopo.total) {
+    query = query.in('cliente_id', escopo.ids);
+  }
   if (clienteId) {
     query = query.eq('cliente_id', clienteId);
   }
@@ -78,8 +93,9 @@ export async function GET(req: Request) {
 
   let { data, error } = await query;
 
-  // Fallback seguro usando serviceSupabase caso RLS retorne vazio
-  if ((!data || data.length === 0) && membro?.agencia_id) {
+  // Fallback usando serviceSupabase caso RLS retorne vazio. Só para master: o fallback
+  // ignora RLS e, para os demais, traria demandas fora do escopo.
+  if (escopo.total && (!data || data.length === 0) && membro?.agencia_id) {
     let fallbackQuery = serviceSupabase
       .from('conteudo_items')
       .select(SELECT_CONTEUDO)
@@ -172,6 +188,7 @@ export async function POST(req: Request) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
   const { supabase, user, membro } = auth.ctx;
+  const escopo = await escopoClientes(auth.ctx);
 
   try {
     const body = await req.json();
@@ -196,6 +213,9 @@ export async function POST(req: Request) {
 
     if (!cliente_id) {
       return respostaErro('Cliente é obrigatório', 400);
+    }
+    if (!podeAcessarCliente(escopo, cliente_id)) {
+      return respostaErro('Cliente não encontrado.', 404);
     }
 
     const hoje = new Date();

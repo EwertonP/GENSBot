@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
-import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import {
+  escopoClientes,
+  getContextoAgencia,
+  podeAcessarCliente,
+  respostaErro,
+  traduzirErroBanco,
+  validarAcessoItemConteudo,
+} from '@/lib/clientes-server';
 import { normalizarCoResponsaveis } from '@/lib/conteudo';
 
 const SELECT_CONTEUDO = `
@@ -43,6 +50,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { supabase, membro } = auth.ctx;
 
   const { id } = await params;
+  const negado = await validarAcessoItemConteudo(auth.ctx, id);
+  if (negado) return negado;
   let { data, error } = await supabase
     .from('conteudo_items')
     .select(SELECT_CONTEUDO)
@@ -96,6 +105,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { supabase, membro } = auth.ctx;
 
   const { id } = await params;
+  const negado = await validarAcessoItemConteudo(auth.ctx, id);
+  if (negado) return negado;
 
   try {
     const body = await req.json();
@@ -144,6 +155,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
     if ('cliente_id' in updates && !updates.cliente_id) {
       updates.cliente_id = null;
+    }
+    // Não dá para mover a demanda para um cliente fora do escopo de quem edita.
+    if (updates.cliente_id && !podeAcessarCliente(await escopoClientes(auth.ctx), updates.cliente_id)) {
+      return respostaErro('Você não tem acesso a esse cliente.', 403);
     }
     if ('data_programada' in updates && !updates.data_programada) {
       updates.data_programada = null;
@@ -332,6 +347,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { supabase, membro } = auth.ctx;
 
   const { id } = await params;
+  const negado = await validarAcessoItemConteudo(auth.ctx, id);
+  if (negado) return negado;
   let { error } = await supabase.from('conteudo_items').delete().eq('id', id);
 
   if (error && membro?.agencia_id) {

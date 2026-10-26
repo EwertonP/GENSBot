@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getContextoAgencia, respostaErro, traduzirErroBanco } from '@/lib/clientes-server';
+import { getContextoAgencia, respostaErro, traduzirErroBanco, respostaSeMembroEscopado } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 
 type Params = { params: Promise<{ id: string }> };
@@ -8,6 +8,8 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
+  const bloqueio = respostaSeMembroEscopado(auth.ctx);
+  if (bloqueio) return bloqueio;
   const { membro } = auth.ctx;
 
   const { id } = await params;
@@ -76,6 +78,8 @@ export async function PATCH(req: Request, { params }: Params) {
 export async function DELETE(req: Request, { params }: Params) {
   const auth = await getContextoAgencia();
   if (!auth.ok) return auth.response;
+  const bloqueio = respostaSeMembroEscopado(auth.ctx);
+  if (bloqueio) return bloqueio;
   const { membro } = auth.ctx;
 
   const { id } = await params;
