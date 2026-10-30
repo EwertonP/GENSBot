@@ -225,3 +225,31 @@ describe('Instagram Publish with Location, Cover, Audio and Collaborators', () =
     expect(erroLimiteColaboradores(undefined)).toBeNull();
   });
 });
+
+describe('graphFetch: erro transitório da Meta', () => {
+  it('tenta de novo no código 2 e acaba publicando', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ error: { message: 'An unexpected error has occurred. Please retry your request later.', code: 2, is_transient: true } }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'c1' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const p = createMediaContainer({ instagramUserId: '1', accessToken: 't', mediaType: 'IMAGE', mediaUrl: 'https://x/a.png' });
+    await vi.runAllTimersAsync();
+    await expect(p).resolves.toBe('c1');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it('esgotadas as tentativas, informa passo e código', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({ error: { message: 'An unexpected error has occurred.', code: 2 } }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const p = createMediaContainer({ instagramUserId: '1', accessToken: 't', mediaType: 'IMAGE', mediaUrl: 'https://x/a.png' });
+    const assertion = expect(p).rejects.toThrow(/passo: criar container, código 2, 3 tentativas/);
+    await vi.runAllTimersAsync();
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
+  });
+});
