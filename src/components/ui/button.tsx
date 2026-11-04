@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Spinner } from './spinner';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 pointer-coarse:min-h-11 font-semibold rounded-xl transition-ui duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer select-none',
+  'inline-flex items-center justify-center gap-2 pointer-coarse:min-h-11 font-semibold rounded-full transition-ui duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer select-none',
   {
     variants: {
       variant: {
@@ -16,9 +16,9 @@ const buttonVariants = cva(
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-xs',
       },
       size: {
-        sm: 'h-9 text-xs px-3 rounded-lg',
-        md: 'h-10 text-sm px-4 rounded-xl max-md:h-11',
-        lg: 'h-12 text-base px-5 rounded-xl',
+        sm: 'h-9 text-xs px-3.5',
+        md: 'h-10 text-sm px-5 max-md:h-11',
+        lg: 'h-12 text-base px-6',
       },
     },
     defaultVariants: {
