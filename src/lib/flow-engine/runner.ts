@@ -1,3 +1,4 @@
+import { notificar } from '../notificar';
 import { randomUUID } from 'crypto';
 import { supabase } from '@/lib/supabase';
 import type { Automation } from '@/types/automation';
@@ -266,6 +267,12 @@ async function recordLeadCaptured(automation: Automation, ctx: FlowRunContext, c
     event_type: 'lead_captured',
   });
   if (error) console.error('[flow-engine] Erro ao registrar lead_captured:', error);
+  await notificar(ctx.ownerUserId, {
+    tipo: 'lead_novo',
+    titulo: 'Novo lead',
+    corpo: `${contact?.name || (contact?.username ? '@' + contact.username : 'Alguém')} entrou pela automação "${automation.name}".`,
+    url: '/?tab=contacts',
+  });
   if (automation.webhook_url) triggerExternalWebhook(automation.webhook_url, contact, automation);
 
   // Sincroniza automaticamente o lead com o funil do CRM daquele cliente

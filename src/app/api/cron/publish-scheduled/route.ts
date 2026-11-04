@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { publishPost, PublishMediaType } from '@/lib/instagram-publish';
 import { createAutomationForPublishedPost } from '@/lib/publish-automation';
 import { getContextoAgencia } from '@/lib/clientes-server';
+import { notificar } from '@/lib/notificar';
 
 // Cada publicação pode esperar o processamento de vídeo pela Meta (waitForContainerReady) —
 // mesmo teto de src/app/api/instagram/publish/route.ts, teto do plano Hobby.
@@ -84,6 +85,7 @@ async function handlePublishScheduled(req: Request) {
           .from('scheduled_posts')
           .update({ status: 'failed', error_message: 'Conta do Instagram sem token válido.' })
           .eq('id', post.id);
+        await notificar(post.user_id, { tipo: 'post_falhou', titulo: 'Um post não saiu', corpo: 'A conta do Instagram está sem acesso válido. Reconecte a conta.', url: '/?tab=publish' });
         results.push({ id: post.id, status: 'failed' });
         continue;
       }
@@ -167,6 +169,7 @@ async function handlePublishScheduled(req: Request) {
           .from('scheduled_posts')
           .update({ status: 'failed', error_message: publishErr.message })
           .eq('id', post.id);
+        await notificar(post.user_id, { tipo: 'post_falhou', titulo: 'Um post não saiu', corpo: String(publishErr.message || 'Falha ao publicar.'), url: '/?tab=publish' });
         results.push({ id: post.id, status: 'failed' });
       }
     }
