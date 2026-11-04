@@ -28,7 +28,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
         type={type}
         aria-label={label}
         className={cn(
-          'inline-flex size-10 sm:size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors cursor-pointer [&_svg]:size-4',
+          'inline-flex size-10 sm:size-8 pointer-coarse:size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors cursor-pointer [&_svg]:size-4',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none',
           tone === 'destructive' ? 'hover:bg-destructive-soft hover:text-destructive' : 'hover:bg-accent hover:text-foreground',
           className

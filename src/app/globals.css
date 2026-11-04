@@ -394,3 +394,17 @@
   }
 }
 
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Toque (sem mouse): ações que só apareciam no hover passam a ficar visíveis.
+   No Tailwind v4, `group-hover:` só vale com ponteiro que passa o mouse, então
+   no celular o botão ficaria escondido para sempre.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (hover: none) {
+  .opacity-0[class*="group-hover:opacity-100"] {
+    opacity: 1;
+  }
+  .hidden[class*="group-hover:flex"] {
+    display: flex;
+  }
+}

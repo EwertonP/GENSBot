@@ -50,6 +50,7 @@ import { toast } from '@/components/ui/toast';
 import { Tip } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAutomationEditor } from '@/hooks/use-automation-editor';
+import { MobileBottomNav } from '@/components/mobile-bottom-nav';
 import { TELAS, GRUPOS_MENU, ABAS, abasDoMembro, isAbaId, type AbaId } from '@/components/nav-config';
 import { CommandPalette, type ComandoItem } from '@/components/command-palette';
 
@@ -870,7 +871,7 @@ export default function Dashboard() {
     return (
       // Esqueleto com o formato real do shell: sidebar + cabeçalho + cards,
       // em vez de spinner solto — a tela "chega" sem salto de layout.
-      <div role="status" aria-label="Carregando o GENSBot" className="h-screen w-screen flex bg-background">
+      <div role="status" aria-label="Carregando o GENSBot" className="h-dvh w-screen flex bg-background">
         <div className="hidden md:flex w-64 shrink-0 flex-col gap-3 border-r border-sidebar-border bg-sidebar p-4">
           <Skeleton className="h-9 w-32" />
           <Skeleton className="h-12 w-full mt-2" />
@@ -964,7 +965,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased">
+    <div className="h-dvh w-screen overflow-hidden flex bg-background text-foreground font-sans antialiased">
       <CommandPalette open={paletteAberta} onOpenChange={setPaletteAberta} itens={itensBusca} />
       {/* Overlay para o Menu Mobile */}
       {isMobileMenuOpen && (
@@ -1156,7 +1157,7 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-y-auto relative">
 
         {/* Mobile Top Bar */}
-        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-1.5 bg-card/90 backdrop-blur-xl border-b border-border">
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-1.5 pt-[calc(0.375rem+env(safe-area-inset-top))] bg-card/90 backdrop-blur-xl border-b border-border">
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
@@ -1300,7 +1301,7 @@ export default function Dashboard() {
             <div className="h-full w-1/3 bg-primary animate-[progresso_1.1s_ease-in-out_infinite]" />
           </div>
         )}
-        <main aria-busy={trocandoConta} className="flex-1 p-4 sm:p-6 md:p-8 bg-background max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] w-full mx-auto space-y-6">
+        <main aria-busy={trocandoConta} className="flex-1 p-4 sm:p-6 md:p-8 max-md:pb-[calc(5.5rem+env(safe-area-inset-bottom))] bg-background max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] w-full mx-auto space-y-6">
           {/* Entrada só com opacidade e sem esperar a saída da tela anterior: a troca
               é imediata (interrompível) e, com "reduzir movimento", segue sendo só fade. */}
           <p className="md:hidden -mt-1 text-sm text-muted-foreground">{TELAS[activeTab].subtitulo}</p>
@@ -1536,6 +1537,13 @@ export default function Dashboard() {
           </motion.div>
 
         </main>
+
+        <MobileBottomNav
+          abasVisiveis={abasVisiveis}
+          activeTab={activeTab}
+          onNavigate={(tab) => { void navegarPara(tab); }}
+          onMais={() => setIsMobileMenuOpen(true)}
+        />
         
         {/* Footer integrado no final da página */}
         <footer className="py-4 bg-card/60 border-t border-border px-8 text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2 select-none mt-auto">

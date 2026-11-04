@@ -23,6 +23,16 @@ const popupMotion =
   'data-starting-style:opacity-0 data-starting-style:scale-[0.97] data-starting-style:translate-y-2 ' +
   'data-ending-style:opacity-0 data-ending-style:scale-[0.97] data-ending-style:duration-150';
 
+/**
+ * Abaixo de `sm` o modal vira folha de baixo: encosta no rodapé, ocupa a
+ * largura toda, tem só os cantos de cima arredondados e respeita a área segura.
+ */
+const folhaNoCelular =
+  'max-sm:w-full max-sm:max-w-none max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:border-b-0 ' +
+  'max-sm:pb-[env(safe-area-inset-bottom)] ' +
+  'max-sm:data-starting-style:translate-y-full max-sm:data-starting-style:scale-100 ' +
+  'max-sm:data-ending-style:translate-y-full max-sm:data-ending-style:scale-100';
+
 export interface DialogShellProps {
   open: boolean;
   /** Chamado quando o usuário pede pra fechar (Esc, clique fora, botão). */
@@ -37,15 +47,17 @@ export function DialogShell({ open, onRequestClose, children, className, 'aria-l
     <Dialog.Root open={open} onOpenChange={(next) => { if (!next) onRequestClose(); }}>
       <Dialog.Portal>
         <Dialog.Backdrop className={backdropClass} />
-        <Dialog.Viewport className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <Dialog.Viewport className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
           <Dialog.Popup
             aria-label={ariaLabel}
             className={cn(
-              'bg-card border border-border rounded-2xl shadow-2xl overflow-hidden text-foreground max-h-[92vh] flex flex-col outline-none',
+              'bg-card border border-border rounded-2xl shadow-2xl overflow-hidden text-foreground max-h-[92dvh] flex flex-col outline-none',
+              folhaNoCelular,
               popupMotion,
               className
             )}
           >
+            <div aria-hidden className="mx-auto mb-1 mt-2.5 h-1 w-10 shrink-0 rounded-full bg-border-strong sm:hidden" />
             {children}
           </Dialog.Popup>
         </Dialog.Viewport>

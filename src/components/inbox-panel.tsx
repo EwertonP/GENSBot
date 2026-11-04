@@ -308,7 +308,7 @@ export default function InboxPanel({ withAccount, clienteId, papelUsuario }: Inb
   }, [pipelines, selectedConv]);
 
   return (
-    <div className="flex flex-col gap-3 h-[calc(100vh-140px)]">
+    <div className="flex flex-col gap-3 h-[calc(100dvh-140px)]">
       {/* Banner / Barra Superior de Status & Filtros */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-card rounded-2xl border border-border shadow-2xs">
         <div className="flex items-center gap-2">
