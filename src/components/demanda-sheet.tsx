@@ -1,6 +1,5 @@
 'use client';
 
-import { ActionBar } from '@/components/ui/action-bar';
 import { Tip } from '@/components/ui/tooltip';
 import React, { useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
