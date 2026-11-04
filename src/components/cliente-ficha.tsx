@@ -43,6 +43,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { Instagram as InstagramGlyph } from '@/components/instagram-icon';
 import { conectarContaInstagram } from '@/lib/instagram-oauth';
+import { conectarContaThreads } from '@/lib/threads-oauth';
 import {
   CORES_CLIENTE,
   textoSobre,
@@ -473,7 +474,17 @@ export default function ClienteFicha({
                     className="gap-1.5 text-xs font-semibold cursor-pointer"
                   >
                     <InstagramGlyph className="w-3.5 h-3.5" />
-                    {contaAtual ? 'Reconectar / Conectar Nova' : 'Conectar Conta do Instagram'}
+                    {contaAtual ? 'Reconectar / Conectar Nova' : 'Conectar Instagram'}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => conectarContaThreads(clienteId)}
+                    className="gap-1.5 text-xs font-semibold cursor-pointer"
+                  >
+                    <span className="font-bold">@</span>
+                    <span>Conectar Threads</span>
                   </Button>
                 </div>
               </div>
@@ -1166,6 +1177,17 @@ function ConexaoInstagram({
           >
             <InstagramGlyph className="w-3.5 h-3.5" />
             {estaConectado ? 'Reconectar / Trocar via Meta' : 'Conectar Conta do Instagram'}
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => conectarContaThreads(clienteId)}
+            className="gap-1.5 text-xs font-semibold cursor-pointer"
+          >
+            <span className="font-bold">@</span>
+            <span>Conectar Threads</span>
           </Button>
 
           {contaAtual && (
