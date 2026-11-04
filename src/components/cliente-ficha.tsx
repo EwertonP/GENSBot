@@ -32,7 +32,9 @@ import {
   AlertCircle,
   Link2,
   Info,
+  Megaphone,
 } from 'lucide-react';
+import { PainelAnuncios } from '@/components/meta-ads/painel-anuncios';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -265,7 +267,7 @@ export default function ClienteFicha({
     }
   }
 
-  const [abaAtiva, setAbaAtiva] = useState<'geral' | 'integracoes' | 'equipe'>('geral');
+  const [abaAtiva, setAbaAtiva] = useState<'geral' | 'integracoes' | 'equipe' | 'anuncios'>('geral');
 
   // --------------------------------------------------------------- estados ---
   if (carregando) {
@@ -393,6 +395,19 @@ export default function ClienteFicha({
         >
           <Users className="w-4 h-4" />
           Contatos & Acessos Portal
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAbaAtiva('anuncios')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-ui cursor-pointer shrink-0 ${
+            abaAtiva === 'anuncios'
+              ? 'bg-primary text-primary-foreground shadow-2xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+        >
+          <Megaphone className="w-4 h-4" />
+          Meta Ads & Tráfego
         </button>
       </div>
 
@@ -635,6 +650,13 @@ export default function ClienteFicha({
             clienteNome={cliente?.nome || nomeInicial}
             showToast={showToast}
           />
+        </div>
+      )}
+
+      {/* Aba 4: Meta Ads & Tráfego */}
+      {abaAtiva === 'anuncios' && (
+        <div className="animate-in fade-in duration-150">
+          <PainelAnuncios clienteNome={cliente?.nome || nomeInicial} />
         </div>
       )}
     </div>
