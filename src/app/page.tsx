@@ -20,6 +20,7 @@ import ClientesTab from '@/components/clientes-tab';
 import EsteiraTab from '@/components/esteira-tab';
 import EquipeTab from '@/components/equipe-tab';
 import RotinaTab from '@/components/rotina-tab';
+import FinanceiroTab from '@/components/financeiro-tab';
 import CalendarioGeral from '@/components/calendario-geral';
 import FormsTab from '@/components/forms-tab';
 import CrmTab from '@/components/crm/crm-tab';
@@ -1449,6 +1450,8 @@ export default function Dashboard() {
           {activeTab === 'rotina' && (
             <RotinaTab showToast={showToast} onAbrirDemanda={(itemId) => navegarPara('esteira', { item: itemId })} />
           )}
+
+          {activeTab === 'financeiro' && <FinanceiroTab showToast={showToast} />}
 
           {/* TAB: CLIENTES — a espinha do sistema unificado */}
           {activeTab === 'clientes' && (
