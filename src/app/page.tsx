@@ -998,9 +998,6 @@ export default function Dashboard() {
               ) : (
                 <>
                   <Logo className="h-6.5 w-auto" />
-                  <span className="text-xs font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded border border-border">
-                    2.0
-                  </span>
                 </>
               )}
             </div>

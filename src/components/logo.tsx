@@ -32,8 +32,8 @@ export default function Logo({ className = '' }: { className?: string }) {
         src="/logo-light.png"
         alt="GENSBot"
         className="h-full w-auto object-contain block dark:hidden"
-        width={581}
-        height={196}
+        width={845}
+        height={200}
         loading="eager"
       />
       {/* Versão tema escuro */}
@@ -41,8 +41,8 @@ export default function Logo({ className = '' }: { className?: string }) {
         src="/logo-dark.png"
         alt="GENSBot"
         className="h-full w-auto object-contain hidden dark:block"
-        width={581}
-        height={196}
+        width={845}
+        height={200}
         loading="eager"
       />
     </span>
