@@ -172,7 +172,7 @@ export function PublishAppKitModal({
         onClose();
       }}
       aria-label="Kit de Publicação no App com Música"
-      className="w-full max-w-xl bg-card border-border shadow-2xl flex flex-col max-h-[90vh] rounded-3xl overflow-hidden"
+      className="w-full max-w-xl bg-card border-border shadow-2xl flex flex-col max-h-[90dvh] rounded-3xl overflow-hidden"
     >
       {/* Header */}
       <div className="p-5 pb-3.5 border-b border-border flex items-start justify-between gap-3 bg-card/60 backdrop-blur-md">

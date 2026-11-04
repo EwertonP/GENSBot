@@ -382,7 +382,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
 
   if (!currentField) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center">
+      <div className="min-h-dvh flex items-center justify-center p-6 text-center">
         <p className="font-medium text-sm" style={{ color: resolvedMutedFg }}>
           Este formulário não possui etapas ativas.
         </p>
@@ -393,7 +393,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
   return (
     <div
       data-theme={isDark ? 'dark' : 'light'}
-      className={`min-h-screen flex flex-col justify-between select-none relative font-sans transition-colors duration-200 overflow-x-hidden ${
+      className={`min-h-dvh flex flex-col justify-between select-none relative font-sans transition-colors duration-200 overflow-x-hidden ${
         isDark ? 'dark' : ''
       }`}
       style={containerStyles}

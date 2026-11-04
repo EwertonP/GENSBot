@@ -73,6 +73,8 @@ Mexe em poucos lugares e melhora tudo de uma vez.
 - Comportamento do botão voltar do celular entre telas (a navegação é por aba dentro de `page.tsx`; conferir se o voltar sai do app em vez de voltar de tela).
 
 ### Fase 2, Telas do dia a dia
+
+> **Status 04/11/2026 (branch `feat/mobile-telas`, parte 1, feita só pelo código, sem ver as telas logadas):** Inbox vira duas telas no celular (lista de conversas, depois a conversa com botão voltar; o painel de detalhes some abaixo de `md`), colunas do funil do CRM em 85% da largura, todas as alturas em `vh` dos modais e das páginas públicas passaram para `dvh`, e o painel da demanda ganha base reta como folha de baixo. **Ainda não tocado:** esteira, demanda aberta, calendário, Agendamentos e Dashboard, que dependem de ver a tela real.
 Ordem pelo uso esperado no celular (a Fase 0 pode reordenar):
 1. **Esteira e demanda:** `demanda-sheet` em tela cheia no celular, com a barra de metadados em rolagem horizontal e os comentários no fim; mover etapa com um toque.
 2. **Aprovação** (interna): já boa; só alinhar à folha de baixo e ao piso de toque.

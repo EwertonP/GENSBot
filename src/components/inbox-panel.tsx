@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import {
+  ArrowLeft,
   Send,
   MessageCircle,
   RefreshCw,
@@ -308,7 +309,7 @@ export default function InboxPanel({ withAccount, clienteId, papelUsuario }: Inb
   }, [pipelines, selectedConv]);
 
   return (
-    <div className="flex flex-col gap-3 h-[calc(100dvh-140px)]">
+    <div className="flex flex-col gap-3 h-[calc(100dvh-140px)] max-md:h-[calc(100dvh-13rem)]">
       {/* Banner / Barra Superior de Status & Filtros */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-card rounded-2xl border border-border shadow-2xs">
         <div className="flex items-center gap-2">
@@ -391,7 +392,7 @@ export default function InboxPanel({ withAccount, clienteId, papelUsuario }: Inb
       {/* Grid Principal: 3 Colunas (Lista de Conversas | Chat Central | Informações do Lead CRM) */}
       <div className="grid grid-cols-1 md:grid-cols-[320px_1fr_300px] gap-3 flex-1 min-h-0 overflow-hidden">
         {/* COLUNA 1: LISTA DE CONVERSAS */}
-        <Card padding="none" className="rounded-2xl flex flex-col overflow-hidden border border-border">
+        <Card padding="none" className={`rounded-2xl flex flex-col overflow-hidden border border-border ${selectedConv ? 'max-md:hidden' : ''}`}>
           <div className="p-2.5 border-b border-border">
             <input
               type="text"
@@ -497,7 +498,7 @@ export default function InboxPanel({ withAccount, clienteId, papelUsuario }: Inb
         </Card>
 
         {/* COLUNA 2: CHAT CENTRAL */}
-        <Card padding="none" className="rounded-2xl flex flex-col overflow-hidden border border-border">
+        <Card padding="none" className={`rounded-2xl flex flex-col overflow-hidden border border-border ${!selectedConv ? 'max-md:hidden' : ''}`}>
           {!selectedConv ? (
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
               <MessageCircle className="w-12 h-12 stroke-[1.2] mb-3 text-muted-foreground/40" />
@@ -511,6 +512,14 @@ export default function InboxPanel({ withAccount, clienteId, papelUsuario }: Inb
               {/* Header do Chat */}
               <div className="p-3 border-b border-border flex items-center justify-between bg-card">
                 <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedConv(null)}
+                    aria-label="Voltar para as conversas"
+                    className="md:hidden -ml-1 inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
+                  >
+                    <ArrowLeft className="size-5" />
+                  </button>
                   <div className="relative">
                     {selectedConv.foto_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -627,7 +636,7 @@ export default function InboxPanel({ withAccount, clienteId, papelUsuario }: Inb
         </Card>
 
         {/* COLUNA 3: PAINEL LATERAL DO LEAD (CRM 360°) */}
-        <Card padding="sm" className="rounded-2xl flex flex-col overflow-y-auto border border-border bg-card">
+        <Card padding="sm" className="max-md:hidden rounded-2xl flex flex-col overflow-y-auto border border-border bg-card">
           {!selectedConv ? (
             <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground p-4 text-center">
               Selecione uma conversa para ver a ficha completa do lead e o estágio no CRM.

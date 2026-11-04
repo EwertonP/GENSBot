@@ -128,7 +128,7 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
     !dados?.metrics.followerGrowthUnavailable && growth.length > 1 ? growth[growth.length - 1].followers - growth[0].followers : null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans antialiased pb-16">
+    <div className="min-h-dvh bg-background text-foreground font-sans antialiased pb-16">
       <style>{`
         @media print {
           body { background-color: #ffffff !important; color: #000000 !important; }
@@ -384,7 +384,7 @@ function EstadoCard({ icon: Icon, titulo, texto, compacto }: { icon: React.Eleme
 
 function EstadoTela(props: { icon: React.ElementType; titulo: string; texto: string }) {
   return (
-    <div className="min-h-screen bg-background text-foreground grid place-items-center p-6">
+    <div className="min-h-dvh bg-background text-foreground grid place-items-center p-6">
       <Card padding="lg" className="max-w-md w-full">
         <EstadoCard {...props} />
       </Card>

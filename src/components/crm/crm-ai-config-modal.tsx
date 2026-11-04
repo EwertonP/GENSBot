@@ -144,7 +144,7 @@ export default function CrmAiConfigModal({
 
   return (
     <DialogShell open={open} onRequestClose={onClose} aria-label="Configurar Agente de IA Multi-LLM" className="max-w-2xl w-full">
-      <form onSubmit={handleSalvar} className="flex flex-col max-h-[90vh]">
+      <form onSubmit={handleSalvar} className="flex flex-col max-h-[90dvh]">
         {/* Header */}
         <div className="p-5 border-b border-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">

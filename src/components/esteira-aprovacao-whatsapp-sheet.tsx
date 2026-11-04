@@ -45,7 +45,7 @@ export function AprovacaoWhatsappSheet({
       aria-label="Enviar para Aprovação"
     >
       {itemParaAprovacao && (
-        <div className="flex flex-col max-h-[85vh] sm:max-h-[88vh] max-w-lg w-full">
+        <div className="flex flex-col max-h-[85dvh] sm:max-h-[88dvh] max-w-lg w-full">
           {/* Header Fixo */}
           <div className="p-5 sm:p-6 border-b border-border shrink-0 flex items-start justify-between gap-4">
             <div>

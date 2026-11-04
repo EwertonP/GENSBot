@@ -757,7 +757,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
         open={showMediaModal}
         onClose={() => setShowMediaModal(false)}
         aria-label="Selecionar Post ou Reels"
-        className="w-full max-w-2xl max-h-[85vh] flex flex-col"
+        className="w-full max-w-2xl max-h-[85dvh] flex flex-col"
       >
             {/* Modal Header */}
             <div className="p-5 border-b border-accent flex items-center justify-between">
@@ -848,7 +848,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
         open={showStoryModal}
         onClose={() => setShowStoryModal(false)}
         aria-label="Selecionar Story Ativo"
-        className="w-full max-w-2xl max-h-[85vh] flex flex-col"
+        className="w-full max-w-2xl max-h-[85dvh] flex flex-col"
       >
             {/* Modal Header */}
             <div className="p-5 border-b border-accent flex items-center justify-between">

@@ -57,7 +57,9 @@ export function DialogShell({ open, onRequestClose, children, className, 'aria-l
               className
             )}
           >
-            <div aria-hidden className="mx-auto mb-1 mt-2.5 h-1 w-10 shrink-0 rounded-full bg-border-strong sm:hidden" />
+            {!className?.includes('bg-transparent') && (
+              <div aria-hidden className="mx-auto mb-1 mt-2.5 h-1 w-10 shrink-0 rounded-full bg-border-strong sm:hidden" />
+            )}
             {children}
           </Dialog.Popup>
         </Dialog.Viewport>
@@ -171,7 +173,7 @@ export function MediaLightbox({ src, onClose, alt = 'Pré-visualização da míd
       <Dialog.Portal>
         <Dialog.Backdrop forceRender className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm transition-opacity duration-200 data-starting-style:opacity-0 data-ending-style:opacity-0" />
         <Dialog.Viewport className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <Dialog.Popup aria-label={alt} className={cn('relative max-w-4xl max-h-[88vh] flex flex-col items-center outline-none', popupMotion)}>
+          <Dialog.Popup aria-label={alt} className={cn('relative max-w-4xl max-h-[88dvh] flex flex-col items-center outline-none', popupMotion)}>
             <Dialog.Close
               aria-label="Fechar visualização"
               className="absolute -top-11 right-0 p-2 rounded-full bg-white/15 hover:bg-white/30 text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
@@ -179,10 +181,10 @@ export function MediaLightbox({ src, onClose, alt = 'Pré-visualização da míd
               <X className="w-5 h-5" />
             </Dialog.Close>
             {url && (isVideo ? (
-              <video src={url} controls autoPlay className="max-w-full max-h-[82vh] rounded-2xl shadow-2xl object-contain border border-white/20" />
+              <video src={url} controls autoPlay className="max-w-full max-h-[82dvh] rounded-2xl shadow-2xl object-contain border border-white/20" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={url} alt={alt} className="max-w-full max-h-[82vh] rounded-2xl shadow-2xl object-contain border border-white/20" />
+              <img src={url} alt={alt} className="max-w-full max-h-[82dvh] rounded-2xl shadow-2xl object-contain border border-white/20" />
             ))}
           </Dialog.Popup>
         </Dialog.Viewport>
