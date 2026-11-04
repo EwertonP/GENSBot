@@ -13,6 +13,7 @@ import {
   Users2,
   FileQuestion,
   Target,
+  Wallet,
 } from 'lucide-react';
 
 /**
@@ -63,6 +64,13 @@ export const TELAS = {
     titulo: 'Equipe & Produtividade',
     subtitulo: 'Membros, sócios, papéis e relatório de entregas da equipe.',
     icon: Users2,
+    grupo: 'gestao',
+  },
+  financeiro: {
+    label: 'Financeiro',
+    titulo: 'Financeiro',
+    subtitulo: 'Receitas, despesas e mensalidades dos clientes, com projeção do mês.',
+    icon: Wallet,
     grupo: 'gestao',
   },
   publish: {
