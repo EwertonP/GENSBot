@@ -108,6 +108,8 @@ Referências analisadas: cartão de visita digital, marketplace com assistente, 
 
 **Status:** direção aprovada em 04/11/2026. **H1 feita** (branch `feat/mobile-toque-texto`, junto com a rede de segurança de toque e texto): barra flutuante com "+" central e folha Criar, conferida em 375px numa página de teste.
 
+**H2 feita** (branch `feat/esteira-mobile`): a esteira no celular não rola mais para os lados. Medido em produção antes: 3 áreas com rolagem lateral (a página inteira a 699px, os chips de etapa e o quadro a 1658px). Agora: busca + botão Filtros (cliente, equipe, visualização, publicados e Notion numa folha), um seletor "Etapa" que abre a lista das 13 etapas e **uma etapa por vez em lista vertical**. Conferido em 375px numa página de teste com dados de exemplo: 0 áreas com rolagem lateral. Também corrigido o avatar que saía da barra superior (o sino empurrava).
+
 Etapas, cada uma um PR: **H1** barra inferior com "+" e folha Criar; **H2** esteira (busca + Filtros, cartão enxuto); **H3** Início (número grande, ação única); **H4** o mesmo cabeçalho enxuto nas demais telas (título grande, contexto em uma linha). Antes disso, a rede de segurança de toque e texto (`feat/mobile-toque-texto`) pode ir.
 
 ### Fase 3, Relatórios e anúncios
