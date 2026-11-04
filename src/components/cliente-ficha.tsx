@@ -44,6 +44,7 @@ import { ClienteAvatar } from '@/components/cliente-avatar';
 import { Instagram as InstagramGlyph } from '@/components/instagram-icon';
 import { conectarContaInstagram } from '@/lib/instagram-oauth';
 import { conectarContaThreads } from '@/lib/threads-oauth';
+import { conectarContaTikTok } from '@/lib/tiktok-oauth';
 import {
   CORES_CLIENTE,
   textoSobre,
@@ -484,7 +485,17 @@ export default function ClienteFicha({
                     className="gap-1.5 text-xs font-semibold cursor-pointer"
                   >
                     <span className="font-bold">@</span>
-                    <span>Conectar Threads</span>
+                    <span>Threads</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => conectarContaTikTok(clienteId)}
+                    className="gap-1.5 text-xs font-semibold cursor-pointer"
+                  >
+                    <span className="font-bold">♪</span>
+                    <span>TikTok</span>
                   </Button>
                 </div>
               </div>
@@ -1187,7 +1198,18 @@ function ConexaoInstagram({
             className="gap-1.5 text-xs font-semibold cursor-pointer"
           >
             <span className="font-bold">@</span>
-            <span>Conectar Threads</span>
+            <span>Threads</span>
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => conectarContaTikTok(clienteId)}
+            className="gap-1.5 text-xs font-semibold cursor-pointer"
+          >
+            <span className="font-bold">♪</span>
+            <span>TikTok</span>
           </Button>
 
           {contaAtual && (
