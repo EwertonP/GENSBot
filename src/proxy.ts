@@ -20,8 +20,9 @@ export async function proxy(request: NextRequest) {
     '/r',
     '/f',
     '/.well-known',
+    '/tiktok',
   ];
-  if (publicContentRoutes.some((r) => pathname.startsWith(r))) {
+  if (pathname.endsWith('.txt') || publicContentRoutes.some((r) => pathname.startsWith(r))) {
     return NextResponse.next();
   }
 
@@ -72,6 +73,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|txt)$).*)',
   ],
 };
