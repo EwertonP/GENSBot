@@ -21,6 +21,9 @@ export async function proxy(request: NextRequest) {
     '/f',
     '/.well-known',
     '/tiktok',
+    '/sw.js',
+    '/manifest.webmanifest',
+    '/icons',
   ];
   if (pathname.endsWith('.txt') || publicContentRoutes.some((r) => pathname.startsWith(r))) {
     return NextResponse.next();

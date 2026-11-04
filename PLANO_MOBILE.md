@@ -96,6 +96,8 @@ Ordem pelo uso esperado no celular (a Fase 0 pode reordenar):
 - **Construtor de fluxo (canvas) e construtor de formulário:** são ferramentas de mesa. No celular, abrir em modo leitura com prévia e aviso "editar no computador". Não vale tentar um canvas de arrastar em tela de 6 polegadas.
 
 ### Fase 5, PWA (depende da Fase 1)
+
+> **Status 04/11/2026:** primeira parte pronta na branch `feat/pwa-fundacao`: manifest e ícones (192, 512, maskable e badge), service worker só de notificações (sem cache de páginas), tabela `push_subscriptions` (migração `20261104_push_subscriptions.sql`), rotas `/api/push/subscribe` e `/api/push/test`, biblioteca de envio com chaves VAPID, item "Ligar notificações neste aparelho" no menu do perfil e o `check-alerts` mandando push antes do e-mail. **Para funcionar em produção:** aplicar a migração e configurar `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` na Vercel (par gerado com `npx web-push generate-vapid-keys`). **Falta (parte 2):** eventos em tempo real (post que falhou, lead novo, aprovação do cliente, demanda atribuída), preferências por pessoa e a central de notificações dentro do app.
 Manifest, ícones, service worker, push e central de notificações, conforme conversamos. Pode rodar em paralelo à Fase 2, pois mexe em arquivos diferentes. Sem a Fase 1 (área segura, `dvh`, barra inferior) o app instalado parece um site dentro de uma moldura.
 
 ### Fase 6, Manter assim
