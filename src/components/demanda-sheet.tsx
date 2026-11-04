@@ -3,6 +3,7 @@
 import { ActionBar } from '@/components/ui/action-bar';
 import { Tip } from '@/components/ui/tooltip';
 import React, { useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Menu } from '@base-ui/react/menu';
 import {
   AlertCircle,
@@ -260,6 +261,7 @@ export function DemandaSheet({
 
   // Campo da legenda (abas ou dividido): os botões da barra inserem onde está o cursor.
   const legendaRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const clienteObj =
     clientes.find((c) => c.id === clienteId) || (item?.cliente_id === clienteId ? item?.cliente : undefined);
@@ -533,6 +535,7 @@ export function DemandaSheet({
       className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl p-0 overflow-hidden rounded-[32px] border border-border/80 shadow-2xl"
     >
       <form
+        ref={formRef}
         onSubmit={handleSalvar}
         onKeyDown={(e) => {
           // Ctrl+S / ⌘+S salva sem tirar a mão do teclado (e não abre o "salvar página" do navegador).
@@ -703,6 +706,40 @@ export function DemandaSheet({
             </div>
           </div>
 
+          {/* Barra de comandos no celular: Excluir / Cancelar / Salvar sempre à vista,
+              sem depender do rodapé (que o teclado empurra). */}
+          <div className="md:hidden flex items-center gap-2">
+            {editando && (
+              <Tip label="Excluir demanda">
+                <button
+                  type="button"
+                  onClick={handleExcluir}
+                  disabled={excluindo || salvando}
+                  aria-label="Excluir demanda"
+                  className="grid size-11 shrink-0 place-items-center rounded-full bg-destructive-soft text-destructive hover:bg-destructive/20 cursor-pointer disabled:opacity-50"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </Tip>
+            )}
+            <span aria-live="polite" className="min-w-0 flex-1 truncate text-xs">
+              {excluindo ? (
+                <span className="text-muted-foreground">Excluindo…</span>
+              ) : sujo ? (
+                <span className="inline-flex items-center gap-1.5 font-medium text-warning">
+                  <span aria-hidden className="size-1.5 rounded-full bg-warning shrink-0" />
+                  {editando ? 'Não salvo' : 'Ainda não criada'}
+                </span>
+              ) : null}
+            </span>
+            <Button type="button" variant="outline" size="md" onClick={fechar}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary" size="md" loading={salvando}>
+              {editando ? 'Salvar' : 'Criar'}
+            </Button>
+          </div>
+
           {/* Título editorial em Sora */}
           <AutoTextarea
             bare
@@ -736,6 +773,34 @@ export function DemandaSheet({
               {PRIORIDADE_CONFIG[prioridade].label}
             </span>
 
+            {/* Só no celular: prazo e responsáveis moram na mesma linha de chips. */}
+            <span className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/60 text-foreground border border-border">
+              <Calendar className="w-3 h-3 text-muted-foreground" />
+              {prazoInterno
+                ? new Date(`${prazoInterno}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+                : 'Sem prazo'}
+            </span>
+            <span className="md:hidden inline-flex items-center gap-1.5 pl-1 pr-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/60 text-foreground border border-border">
+              <span className="flex items-center -space-x-1.5">
+                {[responsavelId, ...coResponsaveis]
+                  .filter((id, i, arr) => !!id && arr.indexOf(id) === i)
+                  .slice(0, 3)
+                  .map((id) => {
+                    const m = membros.find((mb) => mb.id === id);
+                    return (
+                      <ClienteAvatar
+                        key={id}
+                        nome={m?.nome || 'Membro'}
+                        fotoUrl={m && 'foto_url' in m ? (m.foto_url as string) : undefined}
+                        tamanho="xs"
+                        className="ring-2 ring-card"
+                      />
+                    );
+                  })}
+              </span>
+              {[responsavelId, ...coResponsaveis].some(Boolean) ? null : <span className="pl-1.5 italic text-muted-foreground">Sem responsável</span>}
+            </span>
+
             {status === 'travado' && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-destructive-soft text-destructive border border-destructive-ring">
                 <AlertCircle className="w-3 h-3 shrink-0" />
@@ -745,7 +810,7 @@ export function DemandaSheet({
           </div>
 
           {/* Barra Horizontal de Metadados Integrada (Estilo Imagem 3) */}
-          <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-border/60 text-xs md:flex md:flex-wrap md:items-center md:gap-4">
+          <div className="max-md:hidden grid grid-cols-2 gap-3 pt-2.5 border-t border-border/60 text-xs md:flex md:flex-wrap md:items-center md:gap-4">
             {/* Responsáveis */}
             <div className="flex flex-col items-start gap-1 md:flex-row md:items-center md:gap-2">
               <span className="font-semibold text-muted-foreground">Responsáveis</span>
@@ -780,15 +845,6 @@ export function DemandaSheet({
                     ? new Date(`${prazoInterno}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
                     : 'Sem prazo'}
                 </span>
-              </span>
-            </div>
-
-            {/* Prioridade */}
-            <div className="max-md:hidden flex items-center gap-1.5">
-              <span className="font-semibold text-muted-foreground">Prioridade</span>
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold border ${PRIORIDADE_CONFIG[prioridade].bg} ${PRIORIDADE_CONFIG[prioridade].text} ${PRIORIDADE_CONFIG[prioridade].border}`}>
-                <span className={`size-1.5 rounded-full ${PRIORIDADE_CONFIG[prioridade].dot}`} />
-                <span>{PRIORIDADE_CONFIG[prioridade].label}</span>
               </span>
             </div>
           </div>
@@ -1070,6 +1126,23 @@ export function DemandaSheet({
 
           {/* Coluna da direita: propriedades + comentários */}
           <div className="lg:col-span-5 flex flex-col gap-3">
+            {editando && getEtapaIndex(status) < 4 && status !== 'travado' && (
+              <Button
+                type="button"
+                variant="primary"
+                size="lg"
+                block
+                loading={salvando}
+                onClick={() => {
+                  // Salvar já em "Aprovação do cliente" é o que dispara o envio ao cliente.
+                  flushSync(() => setStatus('revisao_cliente'));
+                  formRef.current?.requestSubmit();
+                }}
+              >
+                <Send className="size-4" />
+                Enviar para aprovação
+              </Button>
+            )}
             <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 shrink-0">
               {/* Cliente */}
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
@@ -1527,7 +1600,7 @@ export function DemandaSheet({
         </div>
 
         {/* 3. Rodapé fixo: estado do formulário + ações */}
-        <div className="p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex items-center justify-between gap-2 z-20 max-md:flex-col max-md:items-stretch max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="max-md:hidden p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex items-center justify-between gap-2 z-20">
           <span aria-live="polite" className="text-xs min-w-0">
             {excluindo ? (
               <span className="text-muted-foreground">Excluindo…</span>
