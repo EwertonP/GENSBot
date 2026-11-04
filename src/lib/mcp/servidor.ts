@@ -17,6 +17,7 @@ import { FERRAMENTAS_C10 } from './ferramentas-c10';
 import { FERRAMENTAS_C13 } from './ferramentas-c13';
 import { FERRAMENTAS_C14 } from './ferramentas-c14';
 import { FERRAMENTAS_CRM } from './ferramentas-crm';
+import { FERRAMENTAS_SAUDE } from './ferramentas-saude';
 
 const FERRAMENTAS = [
   ...FERRAMENTAS_C1,
@@ -32,6 +33,7 @@ const FERRAMENTAS = [
   ...FERRAMENTAS_C13,
   ...FERRAMENTAS_C14,
   ...FERRAMENTAS_CRM,
+  ...FERRAMENTAS_SAUDE,
 ];
 
 export const VERSOES_PROTOCOLO = ['2025-06-18', '2025-03-26', '2024-11-05'];
