@@ -2475,9 +2475,9 @@ export default function PublishPanel({
                         )}
                         {post.automation_config?.enabled && (
                           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                            <Badge variant="info" className="text-xs px-2 py-0 font-bold flex items-center gap-1">
-                              <Zap className="w-2.5 h-2.5" />
-                              <span>Gatilho: {(post.automation_config.keywords || ['QUERO']).join(', ')}</span>
+                            <Badge variant="info" className="text-xs px-2 py-0 font-bold flex items-center gap-1 max-w-full min-w-0">
+                              <Zap className="w-2.5 h-2.5 shrink-0" />
+                              <span className="truncate">Gatilho: {(post.automation_config.keywords || ['QUERO']).join(', ')}</span>
                             </Badge>
                             {post.created_automation_id ? (
                               <span className="text-xs text-primary font-bold flex items-center gap-0.5">
