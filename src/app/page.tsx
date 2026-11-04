@@ -1505,7 +1505,12 @@ export default function Dashboard() {
 
           {/* TAB 3: CONTACTS */}
           {activeTab === 'contacts' && (
-            <ContactsTab withAccount={withAccount} showToast={showToast} accountKey={selectedAccountId || 'none'} />
+            <ContactsTab
+              withAccount={withAccount}
+              showToast={showToast}
+              accountKey={selectedAccountId || 'none'}
+              readOnly={membroPerfil?.papel === 'membro'}
+            />
           )}
 
           {/* TAB: INBOX (Mensagens Unificadas: Direct + WhatsApp) */}

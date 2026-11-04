@@ -27,6 +27,7 @@ vi.mock('@/lib/instagram-account', () => ({ listInstagramAccountsForUser: vi.fn(
 
 import {
   escopoClientes,
+  contasInstagramPermitidas,
   ocultarCamposFinanceiros,
   podeAcessarCliente,
   respostaSeMembroEscopado,
@@ -117,5 +118,20 @@ describe('ocultarCamposFinanceiros', () => {
   it('não altera o objeto original', () => {
     ocultarCamposFinanceiros(cliente, { total: false, ids: [] });
     expect(cliente.valor_mensal).toBe(1500);
+  });
+});
+
+describe('contasInstagramPermitidas', () => {
+  it('master tem acesso total a todas as contas', async () => {
+    expect(await contasInstagramPermitidas(ctx('master'))).toEqual({ total: true });
+  });
+
+  it('membro sem clientes vinculados não tem nenhuma conta liberada', async () => {
+    linhasNoBanco = [];
+    expect(await contasInstagramPermitidas(ctx('membro'))).toEqual({
+      total: false,
+      instagramUserIds: [],
+      accountIds: [],
+    });
   });
 });

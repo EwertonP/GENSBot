@@ -65,6 +65,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Conta do Instagram não encontrada.' }, { status: 404 });
     }
 
+    // Validação de escopo para membro colaborador
+    const { data: membro } = await supabase
+      .from('membros')
+      .select('papel')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (membro?.papel === 'membro') {
+      const { data: vinculos } = await supabase
+        .from('membro_clientes')
+        .select('cliente:clientes(instagram_account_id, instagram_accounts(instagram_user_id))')
+        .eq('membro_id', user.id);
+
+      const permitidas = new Set(
+        (vinculos || [])
+          .map((v: any) => v.cliente?.instagram_accounts?.instagram_user_id)
+          .filter(Boolean)
+      );
+
+      if (!permitidas.has(instagram_user_id)) {
+        return NextResponse.json(
+          { error: 'Você não tem permissão para publicar nesta conta do Instagram.' },
+          { status: 403 }
+        );
+      }
+    }
+
     const isFuture = scheduled_at && new Date(scheduled_at).getTime() > Date.now() + 60_000;
 
     const commonFields = {

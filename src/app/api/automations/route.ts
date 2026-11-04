@@ -17,6 +17,29 @@ export async function GET(req: Request) {
       return NextResponse.json([]);
     }
 
+    const { data: membro } = await supabase
+      .from('membros')
+      .select('papel')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (membro?.papel === 'membro') {
+      const { data: vinculos } = await supabase
+        .from('membro_clientes')
+        .select('cliente:clientes(instagram_account_id, instagram_accounts(instagram_user_id))')
+        .eq('membro_id', user.id);
+
+      const permitidas = new Set(
+        (vinculos || [])
+          .map((v: any) => v.cliente?.instagram_accounts?.instagram_user_id)
+          .filter(Boolean)
+      );
+
+      if (!permitidas.has(config.instagram_user_id)) {
+        return NextResponse.json([]);
+      }
+    }
+
     const agencyUserIds = await getUserIdsInSameAgency(user.id);
     const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
 
@@ -52,6 +75,32 @@ export async function POST(req: Request) {
 
     if (!config?.instagram_user_id) {
       return NextResponse.json({ error: 'Você precisa conectar uma conta do Instagram primeiro.' }, { status: 400 });
+    }
+
+    const { data: membro } = await supabase
+      .from('membros')
+      .select('papel')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (membro?.papel === 'membro') {
+      const { data: vinculos } = await supabase
+        .from('membro_clientes')
+        .select('cliente:clientes(instagram_account_id, instagram_accounts(instagram_user_id))')
+        .eq('membro_id', user.id);
+
+      const permitidas = new Set(
+        (vinculos || [])
+          .map((v: any) => v.cliente?.instagram_accounts?.instagram_user_id)
+          .filter(Boolean)
+      );
+
+      if (!permitidas.has(config.instagram_user_id)) {
+        return NextResponse.json(
+          { error: 'Você não tem permissão para criar automações nesta conta.' },
+          { status: 403 }
+        );
+      }
     }
 
     const { data, error } = await supabase

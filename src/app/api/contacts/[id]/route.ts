@@ -17,9 +17,41 @@ async function loadOwnedContact(userId: string, id: string, columns = '*') {
   if (!UUID_RE.test(id)) return null;
   const { data: contact } = await supabase.from('contacts').select(columns).eq('id', id).maybeSingle();
   if (!contact) return null;
+
+  const { data: membro } = await supabase
+    .from('membros')
+    .select('papel, cliente_id, agencia_id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  const row = contact as unknown as { instagram_user_id: string };
+
+  if (membro?.papel === 'cliente' && membro.cliente_id) {
+    const { data: cli } = await supabase
+      .from('clientes')
+      .select('instagram_account_id, instagram_accounts(instagram_user_id)')
+      .eq('id', membro.cliente_id)
+      .maybeSingle();
+    const cliIgUserId = (cli as any)?.instagram_accounts?.instagram_user_id;
+    return cliIgUserId === row.instagram_user_id ? (contact as unknown as Record<string, unknown>) : null;
+  }
+
+  if (membro?.papel === 'membro') {
+    const { data: vinculos } = await supabase
+      .from('membro_clientes')
+      .select('cliente:clientes(instagram_account_id, instagram_accounts(instagram_user_id))')
+      .eq('membro_id', userId);
+
+    const allowedIgUserIds = new Set(
+      (vinculos || [])
+        .map((v: any) => v.cliente?.instagram_accounts?.instagram_user_id)
+        .filter((val): val is string => Boolean(val))
+    );
+    return allowedIgUserIds.has(row.instagram_user_id) ? (contact as unknown as Record<string, unknown>) : null;
+  }
+
   const accounts = await listInstagramAccountsForUser(userId);
   const accountIds = new Set(accounts.map((a) => a.instagram_user_id));
-  const row = contact as unknown as { instagram_user_id: string };
   return accountIds.has(row.instagram_user_id) ? (contact as unknown as Record<string, unknown>) : null;
 }
 
@@ -91,6 +123,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
+
+    // Membro com escopo tem acesso somente-leitura aos contatos
+    const { data: membro } = await supabase
+      .from('membros')
+      .select('papel')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (membro?.papel === 'membro') {
+      return NextResponse.json(
+        { error: 'Membros colaboradores têm acesso somente-leitura aos contatos.' },
+        { status: 403 }
+      );
+    }
 
     const { id } = await params;
     const body = await req.json();
@@ -165,6 +211,20 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   try {
     const user = await getAuthUser();
     if (!user) return unauthorizedResponse();
+
+    // Membro com escopo não pode excluir contatos
+    const { data: membro } = await supabase
+      .from('membros')
+      .select('papel')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (membro?.papel === 'membro') {
+      return NextResponse.json(
+        { error: 'Membros colaboradores não têm permissão para excluir contatos.' },
+        { status: 403 }
+      );
+    }
 
     const { id } = await params;
     const contact = await loadOwnedContact(user.id, id, 'id, instagram_user_id');

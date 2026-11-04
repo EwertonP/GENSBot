@@ -15,6 +15,7 @@ import {
   Sparkles,
   UploadCloud,
   Camera,
+  BarChart3,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { uploadMediaFile } from '@/lib/storage-upload';
 import { confirmDialog } from '@/components/ui/dialog';
+import { SegmentedItem } from '@/components/ui/segmented';
+import { PainelProdutividade } from '@/components/equipe/painel-produtividade';
 
 
 export interface MembroEquipe {
@@ -55,6 +58,7 @@ interface EquipeTabProps {
 }
 
 export default function EquipeTab({ showToast }: EquipeTabProps) {
+  const [subAba, setSubAba] = useState<'membros' | 'produtividade'>('membros');
   const [membros, setMembros] = useState<MembroEquipe[]>([]);
   const [carregando, setCarregando] = useState(true);
 
@@ -268,28 +272,58 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={handleCopiarLinkCadastro}
-            variant="outline"
-            className="rounded-xl shadow-xs text-xs"
-            title="Copiar link para enviar a novos membros se cadastrarem"
-          >
-            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-primary" />
-            Copiar Link de Convite
-          </Button>
+          {subAba === 'membros' && (
+            <>
+              <Button
+                onClick={handleCopiarLinkCadastro}
+                variant="outline"
+                className="rounded-xl shadow-xs text-xs"
+                title="Copiar link para enviar a novos membros se cadastrarem"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                Copiar Link de Convite
+              </Button>
 
-          <Button
-            onClick={abrirModalCriar}
-            variant="primary"
-            className="rounded-xl shadow-xs text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30"
-          >
-            <UserPlus className="w-4 h-4 mr-1.5" />
-            Cadastrar Membro
-          </Button>
+              <Button
+                onClick={abrirModalCriar}
+                variant="primary"
+                className="rounded-xl shadow-xs text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30"
+              >
+                <UserPlus className="w-4 h-4 mr-1.5" />
+                Cadastrar Membro
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Alerta de Cadastros Pendentes */}
+      {/* Navegação entre Membros & Produtividade */}
+      <div className="flex items-center gap-2 border-b border-border pb-3">
+        <div className="inline-flex rounded-xl bg-muted/60 p-1 border border-border/40">
+          <SegmentedItem
+            active={subAba === 'membros'}
+            group="equipe-sub-aba"
+            onClick={() => setSubAba('membros')}
+          >
+            <Users2 className="size-3.5" />
+            Membros & Acessos ({ativos.length})
+          </SegmentedItem>
+          <SegmentedItem
+            active={subAba === 'produtividade'}
+            group="equipe-sub-aba"
+            onClick={() => setSubAba('produtividade')}
+          >
+            <BarChart3 className="size-3.5" />
+            Produtividade & Entregas
+          </SegmentedItem>
+        </div>
+      </div>
+
+      {subAba === 'produtividade' ? (
+        <PainelProdutividade showToast={showToast} />
+      ) : (
+        <>
+          {/* Alerta de Cadastros Pendentes */}
       {pendentes.length > 0 && (
         <Card className="p-4 rounded-2xl border-warning/40 bg-warning/5 flex flex-col gap-3">
           <div className="flex items-center gap-2">
@@ -450,6 +484,8 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             );
           })}
         </div>
+      )}
+        </>
       )}
 
       {/* Modal / Sheet para Adicionar ou Editar Membro */}

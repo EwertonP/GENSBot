@@ -12,6 +12,41 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
 
     const { id } = await params;
+
+    const { data: membro } = await supabase
+      .from('membros')
+      .select('papel')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (membro?.papel === 'membro') {
+      const { data: auto } = await supabase
+        .from('automations')
+        .select('instagram_user_id')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (!auto) return NextResponse.json({ error: 'Automação não encontrada.' }, { status: 404 });
+
+      const { data: vinculos } = await supabase
+        .from('membro_clientes')
+        .select('cliente:clientes(instagram_account_id, instagram_accounts(instagram_user_id))')
+        .eq('membro_id', user.id);
+
+      const permitidas = new Set(
+        (vinculos || [])
+          .map((v: any) => v.cliente?.instagram_accounts?.instagram_user_id)
+          .filter(Boolean)
+      );
+
+      if (!permitidas.has(auto.instagram_user_id)) {
+        return NextResponse.json(
+          { error: 'Você não tem permissão para editar automações desta conta.' },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await req.json();
 
     // Se o body trouxer flow_definition, é um save vindo do editor visual (Fase 3) —
@@ -83,6 +118,40 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const userIds = agencyUserIds.length > 0 ? agencyUserIds : [user.id];
 
     const { id } = await params;
+
+    const { data: membro } = await supabase
+      .from('membros')
+      .select('papel')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (membro?.papel === 'membro') {
+      const { data: auto } = await supabase
+        .from('automations')
+        .select('instagram_user_id')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (!auto) return NextResponse.json({ error: 'Automação não encontrada.' }, { status: 404 });
+
+      const { data: vinculos } = await supabase
+        .from('membro_clientes')
+        .select('cliente:clientes(instagram_account_id, instagram_accounts(instagram_user_id))')
+        .eq('membro_id', user.id);
+
+      const permitidas = new Set(
+        (vinculos || [])
+          .map((v: any) => v.cliente?.instagram_accounts?.instagram_user_id)
+          .filter(Boolean)
+      );
+
+      if (!permitidas.has(auto.instagram_user_id)) {
+        return NextResponse.json(
+          { error: 'Você não tem permissão para excluir automações desta conta.' },
+          { status: 403 }
+        );
+      }
+    }
 
     const { error } = await supabase
       .from('automations')

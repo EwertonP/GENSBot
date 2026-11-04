@@ -54,6 +54,24 @@ export async function GET(req: Request) {
           accountIds = [igAcc.instagram_user_id];
         }
       }
+    } else if (membroInfo?.papel === 'membro') {
+      // Membro com escopo: busca apenas as contas dos clientes aos quais está vinculado
+      const { data: vinculos } = await supabase
+        .from('membro_clientes')
+        .select('cliente:clientes(instagram_account_id, instagram_accounts(instagram_user_id))')
+        .eq('membro_id', user.id);
+
+      const permitidas = (vinculos || [])
+        .map((v: any) => v.cliente?.instagram_accounts?.instagram_user_id)
+        .filter((id): id is string => Boolean(id));
+
+      if (isAggregate) {
+        accountIds = permitidas;
+      } else if (accountParam && accountParam !== 'all') {
+        accountIds = permitidas.includes(accountParam) ? [accountParam] : [];
+      } else {
+        accountIds = permitidas.length > 0 ? [permitidas[0]] : [];
+      }
     } else {
       if (isAggregate) {
         const allAccounts = await listInstagramAccountsForUser(user.id);

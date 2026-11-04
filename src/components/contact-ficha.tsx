@@ -45,6 +45,7 @@ interface ContactFichaProps {
   onSaved: (contact: Partial<FichaContact> & { id: string }) => void;
   onDeleted: (id: string) => void;
   showToast: (message: string, type: 'success' | 'error') => void;
+  readOnly?: boolean;
 }
 
 const EVENT_LABELS: Record<string, string> = {
@@ -94,7 +95,7 @@ function Section({ title, children, aside }: { title: string; children: React.Re
  * dados capturados, respostas das perguntas, por quais automações ela passou e as
  * últimas mensagens. Dados, respostas, tags e observações são editáveis.
  */
-export function ContactFicha({ contactId, onClose, onSaved, onDeleted, showToast }: ContactFichaProps) {
+export function ContactFicha({ contactId, onClose, onSaved, onDeleted, showToast, readOnly = false }: ContactFichaProps) {
   const [ficha, setFicha] = useState<Ficha | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -138,9 +139,9 @@ export function ContactFicha({ contactId, onClose, onSaved, onDeleted, showToast
   }, [contactId]);
 
   const dirty = useMemo(() => {
-    if (!ficha || !form) return false;
+    if (readOnly || !ficha || !form) return false;
     return JSON.stringify(formFrom(ficha)) !== JSON.stringify(form) || !!tagDraft.trim();
-  }, [ficha, form, tagDraft]);
+  }, [readOnly, ficha, form, tagDraft]);
 
   // Jornada agrupada por automação, da mais recente pra mais antiga.
   const jornada = useMemo(() => {
@@ -290,10 +291,10 @@ export function ContactFicha({ contactId, onClose, onSaved, onDeleted, showToast
           <>
             <Section title="Dados do lead">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input label="E-mail" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Ainda não informou" />
-                <Input label="Telefone" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Ainda não informou" className="tabular-nums" />
+                <Input label="E-mail" type="email" disabled={readOnly} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Ainda não informou" />
+                <Input label="Telefone" type="tel" disabled={readOnly} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Ainda não informou" className="tabular-nums" />
               </div>
-              <Input label="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={c.name ? '' : 'A Meta não liberou o nome'} />
+              <Input label="Nome" disabled={readOnly} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={c.name ? '' : 'A Meta não liberou o nome'} />
             </Section>
 
             <Section title="Respostas">
@@ -304,7 +305,7 @@ export function ContactFicha({ contactId, onClose, onSaved, onDeleted, showToast
                   {Object.entries(form.respostas).map(([campo, valor]) => (
                     <div key={campo} className="grid grid-cols-[minmax(0,140px)_1fr] items-center gap-3">
                       <span className="text-label font-medium text-muted-foreground truncate">{campo}</span>
-                      <Input aria-label={`Resposta: ${campo}`} value={valor} onChange={(e) => setForm({ ...form, respostas: { ...form.respostas, [campo]: e.target.value } })} />
+                      <Input aria-label={`Resposta: ${campo}`} disabled={readOnly} value={valor} onChange={(e) => setForm({ ...form, respostas: { ...form.respostas, [campo]: e.target.value } })} />
                     </div>
                   ))}
                 </div>
@@ -316,29 +317,33 @@ export function ContactFicha({ contactId, onClose, onSaved, onDeleted, showToast
                 {form.tags.map((tag) => (
                   <span key={tag} className={`flex items-center gap-1 font-semibold px-2 py-0.5 rounded-full border text-xs ${tagColorClasses(tag)}`}>
                     {tag}
-                    <button type="button" onClick={() => setForm({ ...form, tags: form.tags.filter((t) => t !== tag) })} className="hover:text-destructive cursor-pointer" aria-label={`Remover tag ${tag}`}>
-                      <X className="w-3 h-3" />
-                    </button>
+                    {!readOnly && (
+                      <button type="button" onClick={() => setForm({ ...form, tags: form.tags.filter((t) => t !== tag) })} className="hover:text-destructive cursor-pointer" aria-label={`Remover tag ${tag}`}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
                   </span>
                 ))}
-                <input
-                  type="text"
-                  value={tagDraft}
-                  onChange={(e) => setTagDraft(e.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  onBlur={() => {
-                    addTag(tagDraft);
-                    setTagDraft('');
-                  }}
-                  aria-label="Nova tag"
-                  placeholder={form.tags.length === 0 ? 'ex: quente, cliente' : 'nova tag...'}
-                  className="flex-1 min-w-[100px] bg-transparent text-sm focus:outline-none text-foreground placeholder-muted-foreground py-0.5"
-                />
+                {!readOnly && (
+                  <input
+                    type="text"
+                    value={tagDraft}
+                    onChange={(e) => setTagDraft(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    onBlur={() => {
+                      addTag(tagDraft);
+                      setTagDraft('');
+                    }}
+                    aria-label="Nova tag"
+                    placeholder={form.tags.length === 0 ? 'ex: quente, cliente' : 'nova tag...'}
+                    className="flex-1 min-w-[100px] bg-transparent text-sm focus:outline-none text-foreground placeholder-muted-foreground py-0.5"
+                  />
+                )}
               </div>
             </Section>
 
             <Section title="Observações">
-              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} placeholder="Anotações livres. Só a equipe vê, nunca vai pro lead." />
+              <Textarea disabled={readOnly} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} placeholder={readOnly ? 'Nenhuma observação registrada.' : 'Anotações livres. Só a equipe vê, nunca vai pro lead.'} />
             </Section>
 
             <Section title="Jornada" aside={c.origem?.name ? <Badge variant="brand">Entrou por: {c.origem.name}</Badge> : undefined}>
@@ -412,18 +417,29 @@ export function ContactFicha({ contactId, onClose, onSaved, onDeleted, showToast
 
       {/* Rodapé */}
       <div className="flex items-center justify-between gap-2 px-6 py-4 border-t border-border bg-card">
-        <Button variant="ghost" size="sm" onClick={remove} disabled={!ficha || saving} className="text-destructive hover:text-destructive">
-          <Trash2 className="w-3.5 h-3.5" />
-          Excluir
-        </Button>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={requestClose} disabled={saving}>
-            Fechar
-          </Button>
-          <Button size="sm" onClick={save} loading={saving} disabled={!dirty}>
-            Salvar
-          </Button>
-        </div>
+        {readOnly ? (
+          <>
+            <span className="text-xs text-muted-foreground italic">Visualização de contato (somente leitura)</span>
+            <Button variant="secondary" size="sm" onClick={requestClose}>
+              Fechar
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="ghost" size="sm" onClick={remove} disabled={!ficha || saving} className="text-destructive hover:text-destructive">
+              <Trash2 className="w-3.5 h-3.5" />
+              Excluir
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" onClick={requestClose} disabled={saving}>
+                Fechar
+              </Button>
+              <Button size="sm" onClick={save} loading={saving} disabled={!dirty}>
+                Salvar
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </Sheet>
   );
