@@ -408,3 +408,21 @@
     display: flex;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Celular (< 640px): rede de segurança até a limpeza de cada tela (D1).
+   Medido em produção em 375px: a esteira tinha ~280 botões de 28px e ~340
+   textos de 11px; a Rotina, 19 botões pequenos. Com estas duas regras, a
+   esteira foi para 3 e 11, e a Rotina para 0 botões pequenos.
+   Não vale para campos de seleção em abas (role=tab) nem para interruptores.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  [class*="text-[11px]"],
+  [class*="text-[10px]"] {
+    font-size: 0.75rem;
+  }
+  button:not([class*="w-full"]):not([role="switch"]):not([role="tab"]) {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
+}

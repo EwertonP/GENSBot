@@ -85,6 +85,31 @@ Ordem pelo uso esperado no celular (a Fase 0 pode reordenar):
 7. **Inbox:** duas telas (lista de conversas, depois a conversa), campo de mensagem acima do teclado.
 8. **Clientes e ficha:** abas roláveis, seções em sanfona, conectar contas (Instagram, Threads, TikTok) em cartões de toque.
 
+### Resultado da auditoria em produção (04/11/2026, 375px, telas logadas)
+
+Vistas: Dashboard, esteira, demanda aberta, calendário, Agendamentos, Rotina, Clientes, Inbox e CRM.
+- **Sem rolagem lateral em nenhuma tela.** Calendário em lista por dia, Agendamentos em passos, demanda aberta como folha de baixo e barra inferior funcionam.
+- **Dois problemas generalizados:** botões de 28px (esteira ~280, Rotina 19) e texto de 11px (esteira ~340). Resolvidos como rede de segurança em `globals.css` (esteira para 3 botões e 11 textos; Rotina para 0), enquanto a limpeza por tela (D1) não acontece.
+- **Ainda não vistas:** Automações, Audiência, Métricas, Equipe, UTM e Formulários.
+
+### Fase H, Hierarquia no celular (a partir de 4 referências)
+
+Referências analisadas: cartão de visita digital, marketplace com assistente, app de viagem e app de finanças. Skill aplicada: Apple Design (simplicidade como hierarquia, agrupamento, tipografia, materiais). Prévia: `design/previa-hierarquia-mobile.html`.
+
+| O que as referências fazem | Como está o GENSBot (produção, 375px) | Proposta |
+|---|---|---|
+| **Uma ação cheia dominante por tela** (pílula grande, de cor própria) | Esteira: 2 a 3 botões cheios competindo; Dashboard tem "Nova Demanda" misturado aos atalhos | Uma ação cheia por tela, no polegar |
+| **Número grande, legenda pequena** (36+, 05, $120.650) | Dashboard abre com 3 controles e só depois o número | Número de 52px no topo do Início, com atrasadas, para aprovar e da semana ao lado |
+| **Título grande e o resto em silêncio** | Título pequeno, subtítulo repetido e uma barra "Contexto ativo" em todas as telas | Título de 26px; subtítulo e barra de contexto viram uma linha de 12px |
+| **Filtros recolhidos** (busca com botão de filtro, chips) | Esteira: 4 linhas de controle; primeiro cartão a ~55% da tela | Uma linha (busca + Filtros n); o resto numa folha. Primeiro cartão a ~23% |
+| **Barra inferior flutuante com ação central** | Barra fixa de 5 itens sem destaque | Início, Demandas, **+**, Calendário, Mais. O "+" abre Nova demanda, Agendar e Nova tarefa |
+| **Lista com avatar à esquerda, título, 1 linha de apoio e 1 status à direita** | Cartões com tags, nota, ações e data juntas | Mesmo padrão nas listas; "Alta" só aparece quando for alta |
+| **Cor com papel** (verde de ação, amarelo de atenção) | Já definido no tema Floresta | Manter: menta ação, sol atenção, coral atraso |
+
+**Status:** direção aprovada em 04/11/2026. **H1 feita** (branch `feat/mobile-toque-texto`, junto com a rede de segurança de toque e texto): barra flutuante com "+" central e folha Criar, conferida em 375px numa página de teste.
+
+Etapas, cada uma um PR: **H1** barra inferior com "+" e folha Criar; **H2** esteira (busca + Filtros, cartão enxuto); **H3** Início (número grande, ação única); **H4** o mesmo cabeçalho enxuto nas demais telas (título grande, contexto em uma linha). Antes disso, a rede de segurança de toque e texto (`feat/mobile-toque-texto`) pode ir.
+
 ### Fase 3, Relatórios e anúncios
 - **Relatório público (`/relatorio/[token]`):** o cliente abre pelo celular, provavelmente por link no WhatsApp. É a tela de maior impacto externo; revisar primeiro nela: cartões de número em 2 colunas, gráficos que se ajustam à largura, leitura em uma coluna, carregamento rápido.
 - **Painel de anúncios:** trocar a tabela por `DataTable` com modo celular (campanha como título, gasto e resultado como metadado), filtro de período numa folha, controle de campanha (pausar/ativar) com confirmação.

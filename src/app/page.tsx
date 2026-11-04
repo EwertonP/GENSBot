@@ -1315,7 +1315,7 @@ export default function Dashboard() {
             <div className="h-full w-1/3 bg-primary animate-[progresso_1.1s_ease-in-out_infinite]" />
           </div>
         )}
-        <main aria-busy={trocandoConta} className="flex-1 p-4 sm:p-6 md:p-8 max-md:pb-[calc(5.5rem+env(safe-area-inset-bottom))] bg-background max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] w-full mx-auto space-y-6">
+        <main aria-busy={trocandoConta} className="flex-1 p-4 sm:p-6 md:p-8 max-md:pb-[calc(7.5rem+env(safe-area-inset-bottom))] bg-background max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] w-full mx-auto space-y-6">
           {/* Entrada só com opacidade e sem esperar a saída da tela anterior: a troca
               é imediata (interrompível) e, com "reduzir movimento", segue sendo só fade. */}
           <p className="md:hidden -mt-1 text-sm text-muted-foreground">{TELAS[activeTab].subtitulo}</p>
@@ -1557,6 +1557,38 @@ export default function Dashboard() {
           activeTab={activeTab}
           onNavigate={(tab) => { void navegarPara(tab); }}
           onMais={() => setIsMobileMenuOpen(true)}
+          acoes={[
+            ...(abasVisiveis.includes('esteira')
+              ? [{
+                  id: 'nova-demanda',
+                  titulo: 'Nova demanda',
+                  descricao: 'Post, reel ou story para um cliente',
+                  icon: TELAS.esteira.icon,
+                  tom: 'brand' as const,
+                  executar: async () => { if (await navegarPara('esteira')) setNovaDemandaSinal((n) => n + 1); },
+                }]
+              : []),
+            ...(abasVisiveis.includes('publish')
+              ? [{
+                  id: 'agendar',
+                  titulo: 'Agendar publicação',
+                  descricao: 'Programar um post no Instagram',
+                  icon: Send,
+                  tom: 'info' as const,
+                  executar: () => { void navegarPara('publish'); },
+                }]
+              : []),
+            ...(abasVisiveis.includes('rotina')
+              ? [{
+                  id: 'nova-tarefa',
+                  titulo: 'Nova tarefa',
+                  descricao: 'Pendência interna da agência',
+                  icon: TELAS.rotina.icon,
+                  tom: 'warning' as const,
+                  executar: () => { void navegarPara('rotina'); },
+                }]
+              : []),
+          ]}
         />
         
         {/* Footer integrado no final da página */}
