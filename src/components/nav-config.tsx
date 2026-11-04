@@ -28,62 +28,48 @@ export const TELAS = {
     titulo: 'Dashboard',
     subtitulo: 'Visão unificada das métricas, da fila e das automações.',
     icon: BarChart3,
-    grupo: 'agencia',
-  },
-  rotina: {
-    label: 'Rotina',
-    titulo: 'Rotina da agência',
-    subtitulo: 'Tarefas internas e pendências do dia a dia.',
-    icon: CheckSquare,
-    grupo: 'agencia',
-  },
-  clientes: {
-    label: 'Clientes',
-    titulo: 'Clientes',
-    subtitulo: 'Dossiê, contratos e contatos de cada cliente.',
-    icon: Briefcase,
-    grupo: 'agencia',
+    grupo: 'operacao',
   },
   esteira: {
-    label: 'Demandas & Aprovação',
+    label: 'Demandas & Esteira',
     titulo: 'Demandas & Aprovação',
     subtitulo: 'Produção de posts e reels, com aprovação do cliente pelo WhatsApp.',
     icon: Layers,
-    grupo: 'agencia',
+    grupo: 'operacao',
   },
   calendario_geral: {
     label: 'Calendário',
     titulo: 'Calendário de postagens',
     subtitulo: 'Todos os posts de todos os clientes, com conflitos de horário em destaque.',
     icon: CalendarDays,
-    grupo: 'agencia',
+    grupo: 'operacao',
   },
-  forms: {
-    label: 'Formulários',
-    titulo: 'Construtor de Formulários',
-    subtitulo: 'Formulários conversacionais estilo Typeform para captação e qualificação de leads.',
-    icon: FileQuestion,
-    grupo: 'agencia',
+  rotina: {
+    label: 'Rotina & Tarefas',
+    titulo: 'Rotina da agência',
+    subtitulo: 'Tarefas internas e pendências do dia a dia.',
+    icon: CheckSquare,
+    grupo: 'operacao',
   },
-  crm: {
-    label: 'CRM de Vendas',
-    titulo: 'CRM de Vendas',
-    subtitulo: 'Funis de negociação, gestão de oportunidades e acompanhamento de leads.',
-    icon: Target,
-    grupo: 'agencia',
+  clientes: {
+    label: 'Clientes',
+    titulo: 'Clientes',
+    subtitulo: 'Dossiê, contratos e contatos de cada cliente.',
+    icon: Briefcase,
+    grupo: 'gestao',
+  },
+  equipe: {
+    label: 'Equipe & Produtividade',
+    titulo: 'Equipe & Produtividade',
+    subtitulo: 'Membros, sócios, papéis e relatório de entregas da equipe.',
+    icon: Users2,
+    grupo: 'gestao',
   },
   publish: {
     label: 'Agendamentos',
     titulo: 'Agendamentos',
     subtitulo: 'Publique ou agende posts, reels e stories na conta selecionada.',
     icon: Send,
-    grupo: 'instagram',
-  },
-  metrics: {
-    label: 'Métricas',
-    titulo: 'Métricas',
-    subtitulo: 'Alcance, seguidores e desempenho do conteúdo, direto da Meta.',
-    icon: TrendingUp,
     grupo: 'instagram',
   },
   automations: {
@@ -94,8 +80,8 @@ export const TELAS = {
     grupo: 'instagram',
   },
   contacts: {
-    label: 'Contatos & Leads',
-    titulo: 'Contatos & Leads',
+    label: 'Audiência & Leads',
+    titulo: 'Audiência & Leads',
     subtitulo: 'Pessoas captadas e qualificadas pelas automações.',
     icon: Users,
     grupo: 'instagram',
@@ -107,6 +93,13 @@ export const TELAS = {
     icon: MessageCircle,
     grupo: 'instagram',
   },
+  metrics: {
+    label: 'Métricas',
+    titulo: 'Métricas',
+    subtitulo: 'Alcance, seguidores e desempenho do conteúdo, direto da Meta.',
+    icon: TrendingUp,
+    grupo: 'instagram',
+  },
   utm: {
     label: 'Links UTM',
     titulo: 'Links UTM',
@@ -114,13 +107,19 @@ export const TELAS = {
     icon: Link2,
     grupo: 'instagram',
   },
-  equipe: {
-    label: 'Equipe & Sócios',
-    titulo: 'Equipe & Sócios',
-    subtitulo: 'Membros, sócios, papéis e permissões da agência.',
-    icon: Users2,
-    // Administração — fica no menu do perfil, não no menu do dia a dia.
-    grupo: 'admin',
+  crm: {
+    label: 'CRM de Vendas',
+    titulo: 'CRM de Vendas',
+    subtitulo: 'Funis de negociação, gestão de oportunidades e acompanhamento de leads.',
+    icon: Target,
+    grupo: 'comercial',
+  },
+  forms: {
+    label: 'Formulários',
+    titulo: 'Construtor de Formulários',
+    subtitulo: 'Formulários conversacionais estilo Typeform para captação e qualificação de leads.',
+    icon: FileQuestion,
+    grupo: 'comercial',
   },
 } as const;
 
@@ -132,9 +131,13 @@ export function isAbaId(v: string | null | undefined): v is AbaId {
   return !!v && v in TELAS;
 }
 
-export const GRUPOS_MENU: { id: 'agencia' | 'instagram'; label: string }[] = [
-  { id: 'agencia', label: 'Agência' },
+export type GrupoMenuId = 'operacao' | 'gestao' | 'instagram' | 'comercial';
+
+export const GRUPOS_MENU: { id: GrupoMenuId; label: string }[] = [
+  { id: 'operacao', label: 'Operação' },
+  { id: 'gestao', label: 'Gestão' },
   { id: 'instagram', label: 'Instagram' },
+  { id: 'comercial', label: 'Comercial' },
 ];
 
 /**

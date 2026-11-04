@@ -891,7 +891,14 @@ export default function Dashboard() {
     ...abasVisiveis.map((id) => ({
       id: `tela-${id}`,
       label: TELAS[id].label,
-      hint: TELAS[id].grupo === 'instagram' ? 'Instagram' : TELAS[id].grupo === 'admin' ? 'Administração' : 'Agência',
+      hint:
+        TELAS[id].grupo === 'operacao'
+          ? 'Operação'
+          : TELAS[id].grupo === 'gestao'
+          ? 'Gestão'
+          : TELAS[id].grupo === 'comercial'
+          ? 'Comercial'
+          : 'Instagram',
       grupo: 'Ir para',
       icon: TELAS[id].icon,
       keywords: TELAS[id].titulo,
@@ -1078,15 +1085,18 @@ export default function Dashboard() {
             </div>
           ) : (
             GRUPOS_MENU.map((g) => ({
+              id: g.id,
               label: g.id === 'instagram'
                 ? `Instagram · ${selectedAccountId && selectedAccountId !== 'all' ? '@' + (config?.instagram_username || '…') : 'todas as contas'}`
                 : g.label,
               items: abasVisiveis.filter((id) => TELAS[id].grupo === g.id).map((id) => ({ id, label: TELAS[id].label, icon: TELAS[id].icon })),
-            })).map((group, gi) => (
-            <div key={gi} className="flex flex-col gap-1">
+            }))
+            .filter((group) => group.items.length > 0)
+            .map((group, gi) => (
+            <div key={group.id} className="flex flex-col gap-1">
               {!sidebarCompacta ? (
                 group.label && (
-                  <span className="text-xs font-medium text-muted-foreground px-3 mb-0.5 truncate">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 px-3 pt-2 pb-1 truncate">
                     {group.label}
                   </span>
                 )
