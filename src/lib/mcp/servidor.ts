@@ -14,6 +14,7 @@ import { FERRAMENTAS_C7 } from './ferramentas-c7';
 import { FERRAMENTAS_C8 } from './ferramentas-c8';
 import { FERRAMENTAS_C9 } from './ferramentas-c9';
 import { FERRAMENTAS_C10 } from './ferramentas-c10';
+import { FERRAMENTAS_C13 } from './ferramentas-c13';
 import { FERRAMENTAS_CRM } from './ferramentas-crm';
 
 const FERRAMENTAS = [
@@ -27,6 +28,7 @@ const FERRAMENTAS = [
   ...FERRAMENTAS_C8,
   ...FERRAMENTAS_C9,
   ...FERRAMENTAS_C10,
+  ...FERRAMENTAS_C13,
   ...FERRAMENTAS_CRM,
 ];
 

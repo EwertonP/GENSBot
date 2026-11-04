@@ -57,7 +57,11 @@ export async function getPresignedUploadUrl(
 
   const uploadUrl = await getSignedUrl(client, command, { expiresIn: expiresInSeconds });
 
-  // Constrói a URL pública final
+  return { uploadUrl, publicUrl: buildPublicUrl(key) };
+}
+
+/** URL pública final de um objeto do R2 (domínio público do bucket ou proxy do app). */
+export function buildPublicUrl(key: string): string {
   const publicBaseUrl = (process.env.R2_PUBLIC_URL || '').replace(/\/+$/, '');
   const appHost = (
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -65,13 +69,19 @@ export async function getPresignedUploadUrl(
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
   ).replace(/\/+$/, '');
 
-  const publicUrl = publicBaseUrl
+  return publicBaseUrl
     ? `${publicBaseUrl}/${key}`
     : appHost
     ? `${appHost}/api/storage/media/${key}`
     : `/api/storage/media/${key}`;
+}
 
-  return { uploadUrl, publicUrl };
+/** Grava um arquivo no R2 direto do servidor e devolve a URL pública. */
+export async function putR2Object(key: string, body: Buffer, contentType: string): Promise<string> {
+  const bucketName = process.env.R2_BUCKET_NAME;
+  if (!bucketName) throw new Error('R2_BUCKET_NAME não configurado.');
+  await getR2Client().send(new PutObjectCommand({ Bucket: bucketName, Key: key, Body: body, ContentType: contentType }));
+  return buildPublicUrl(key);
 }
 
 /**

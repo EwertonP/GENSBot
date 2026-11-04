@@ -24,7 +24,7 @@ Todas com testes automatizados e consultas validadas contra o banco real antes d
 
 ---
 
-## Catálogo completo (33 ferramentas)
+## Catálogo completo (39 ferramentas)
 
 ### Operação e clientes
 | Ferramenta | Faz o quê |
@@ -85,6 +85,13 @@ Todas com testes automatizados e consultas validadas contra o banco real antes d
 | Ferramenta | Faz o quê |
 |---|---|
 | `listar_fila_publicacao` ✨ | O que está agendado, publicando ou falhou. Só leitura. |
+
+### Mídia (C13)
+| Ferramenta | Faz o quê |
+|---|---|
+| `preparar_upload_midia` | URL assinada (PUT, 10 min) + URL pública final. Só JPG, MP4, MOV. Só master. |
+| `importar_midia_url` | O servidor baixa uma URL https (export do Figma) e grava no R2. Recusa PNG e endereços internos. Só master. |
+| `anexar_midia_demanda` | Liga as URLs à demanda, na ordem dos slides (1 a 10). Só master. |
 
 ✨ = novo nesta rodada (01/10/2026).
 
