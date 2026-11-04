@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GENSBot, hierarquia no celular</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#00140F; --rail:#000E0A; --card:#04221A; --pop:#083026; --acc:#0B3A2E; --bd:#12392E; --bd2:#21574A; --inp:#4F8F7C;
+    --fg:#EAF6F0; --mut:#9DBEB1; --menta:#00DC94; --on:#00281E; --sol:#FFD84D; --coral:#FF8A70; --ceu:#6CC9FF; --lilas:#B9A5FF;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:"DM Sans",system-ui,sans-serif;background:#0b0b0c;color:#ddd;padding:24px;-webkit-font-smoothing:antialiased}
+  h1.page{font:700 20px Sora,sans-serif;color:#fff;margin-bottom:4px}
+  p.sub{color:#a3a3a3;font-size:14px;max-width:820px;line-height:1.5;margin-bottom:18px}
+  .grid{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;gap:8px}
+  .cap{font:600 12px "DM Sans";letter-spacing:.1em;text-transform:uppercase;color:#8a8a8a}
+  .note{max-width:320px;font-size:13px;color:#a8a8a8;line-height:1.45}
+  svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .phone{width:320px;height:660px;border-radius:32px;border:6px solid #1c1c1e;overflow:hidden;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;position:relative;font-size:14px}
+  .scroll{flex:1;overflow:hidden;padding:0 16px 96px;display:flex;flex-direction:column;gap:12px}
+  /* topo: título grande à esquerda, ações à direita (hierarquia 1) */
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 4px}
+  .top h2{font:700 26px Sora,sans-serif;letter-spacing:-.02em}
+  .circ{width:40px;height:40px;border-radius:50%;background:var(--card);border:1px solid var(--bd);display:grid;place-items:center;color:var(--fg);position:relative}
+  .circ.dot::after{content:"";position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:50%;background:var(--coral);border:2px solid var(--card)}
+  .ctx{padding:0 16px;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .ctx i{width:6px;height:6px;border-radius:50%;background:var(--menta)}
+  .row{display:flex;gap:8px;align-items:center}
+  .field{flex:1;height:44px;border-radius:14px;background:var(--card);border:1px solid var(--bd);display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--mut)}
+  .btnf{height:44px;border-radius:14px;background:var(--card);border:1px solid var(--bd2);padding:0 14px;display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--fg)}
+  .btnf b{background:var(--menta);color:var(--on);border-radius:999px;min-width:20px;height:20px;display:grid;place-items:center;font-size:12px}
+  .chips{display:flex;gap:6px;overflow:hidden}
+  .chip{height:36px;padding:0 13px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-weight:600;background:var(--card);border:1px solid var(--bd);color:var(--mut)}
+  .chip i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+  .chip.on{background:color-mix(in srgb,var(--c) 20%,var(--bg));border-color:color-mix(in srgb,var(--c) 40%,transparent);color:var(--fg)}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .tags{display:flex;gap:6px;align-items:center}
+  .tag{height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--card))}
+  .body{display:flex;gap:12px;align-items:center}
+  .thumb{width:60px;height:60px;border-radius:14px;flex:none}
+  .t1{background:linear-gradient(135deg,#014130,#00DC94)}.t2{background:linear-gradient(135deg,#1F1447,#B9A5FF)}.t3{background:linear-gradient(135deg,#3A1006,#FF8A70)}
+  .ttl{font-weight:700;font-size:16px;line-height:1.25}
+  .meta{font-size:12px;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .av{width:20px;height:20px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#00281E;background:var(--menta)}
+  .foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mut);border-top:1px solid var(--bd);padding-top:8px}
+  .more{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--mut);margin:-6px -6px -6px 0}
+  /* dashboard */
+  .hello{padding:6px 16px 0}.hello small{color:var(--mut);font-size:13px}.hello h2{font:700 28px Sora,sans-serif;letter-spacing:-.02em;margin-top:2px}
+  .hero{background:#014130;border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:14px}
+  .hero .big{font:700 52px Sora,sans-serif;letter-spacing:-.03em;line-height:1;color:var(--menta)}
+  .hero .lbl{font-size:13px;color:#B5D4C8;margin-top:4px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat{background:rgba(0,20,15,.45);border-radius:14px;padding:10px}
+  .stat b{display:block;font:700 22px Sora,sans-serif;letter-spacing:-.02em;color:var(--c)}
+  .stat span{font-size:12px;color:#B5D4C8}
+  .cta{height:52px;border-radius:999px;background:var(--menta);color:var(--on);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+  .sec{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}
+  .sec b{font:700 18px Sora,sans-serif;letter-spacing:-.01em}.sec a{font-size:13px;color:var(--menta);font-weight:600}
+  .li{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--bd)}
+  .li:first-of-type{border-top:0}
+  .li .av{width:36px;height:36px;border-radius:12px;font-size:13px}
+  .li .tx{flex:1;min-width:0}.li .tx b{display:block;font-size:15px}.li .tx span{font-size:12px;color:var(--mut)}
+  .st{height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--card))}
+  /* barra inferior flutuante com "+" central */
+  .nav{position:absolute;left:14px;right:14px;bottom:14px;height:64px;border-radius:32px;background:var(--rail);border:1px solid var(--bd);display:grid;grid-template-columns:repeat(5,1fr);align-items:center;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+  .nav div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--mut);min-height:44px;justify-content:center}
+  .nav div.on{color:var(--menta);font-weight:600}
+  .nav .plus{width:52px;height:52px;border-radius:50%;background:var(--menta);color:var(--on);margin:0 auto;display:grid;place-items:center;min-height:0}
+  .nav .plus svg{width:26px;height:26px;stroke-width:2.4}
+  /* folhas */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--pop);border-radius:28px 28px 0 0;padding:8px 16px 18px;display:flex;flex-direction:column;gap:10px}
+  .grab{width:40px;height:4px;border-radius:99px;background:var(--bd2);margin:0 auto 4px}
+  .sh{display:flex;justify-content:space-between;align-items:center}.sh b{font:700 20px Sora,sans-serif}.sh a{color:var(--mut);font-size:14px;font-weight:600}
+  .opt{display:flex;align-items:center;justify-content:space-between;height:52px;border-bottom:1px solid var(--bd);font-weight:500}
+  .opt span{color:var(--mut);font-weight:400;display:flex;gap:6px;align-items:center}
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--bg);border-radius:14px;padding:4px;gap:4px}
+  .seg div{height:36px;border-radius:10px;display:grid;place-items:center;font-weight:600;color:var(--mut)}.seg div.on{background:var(--acc);color:var(--fg)}
+  .sw{width:46px;height:26px;border-radius:99px;background:var(--bd2);position:relative}.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+  .sw.on{background:var(--menta)}.sw.on::after{left:23px;background:var(--on)}
+  .row2{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:6px}
+  .ghost{height:52px;border-radius:999px;border:1.5px solid var(--bd2);display:grid;place-items:center;font-weight:700}
+  .act{display:flex;align-items:center;gap:14px;padding:14px;border-radius:20px;background:var(--card);border:1px solid var(--bd)}
+  .act .ic{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,var(--bg));color:var(--c)}
+  .act b{display:block;font-size:16px}.act span{font-size:13px;color:var(--mut)}
+  table{border-collapse:collapse;font-size:13px;margin-top:6px}td,th{border-bottom:1px solid #2a2a2c;padding:6px 10px;text-align:left}th{color:#8a8a8a;font-weight:600}
+</style>
+</head>
+<body>
+<h1 class="page">GENSBot · hierarquia no celular</h1>
+<p class="sub">Aplicando o que as quatro referências têm em comum: <b>uma ação dominante por tela</b>, <b>número grande com legenda pequena</b>, <b>título grande e o resto em silêncio</b>, <b>filtros recolhidos</b> e uma <b>barra inferior flutuante com o "+" no centro</b>. Dados são só exemplo.</p>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="board" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 4v16"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+  <symbol id="send" viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12l2.5 2.5L16 9.5"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+</defs></svg>
+
+<div class="grid">
+
+<!-- 1. ESTEIRA -->
+<div class="col"><span class="cap">1 · Demandas</span>
+<div class="phone">
+  <div class="top"><h2>Demandas</h2><div class="row"><span class="circ dot"><svg class="i"><use href="#bell"/></svg></span></div></div>
+  <div class="ctx"><i></i>Agência GENS · todos os clientes</div>
+  <div class="scroll" style="padding-top:8px">
+    <div class="row"><div class="field"><svg class="i"><use href="#search"/></svg>Buscar demandas</div><span class="btnf"><svg class="i"><use href="#sliders"/></svg>Filtros <b>2</b></span></div>
+    <div class="chips"><span class="chip on" style="--c:var(--ceu)"><i></i>Planejamento 126</span><span class="chip" style="--c:var(--lilas)"><i></i>Criação 8</span><span class="chip" style="--c:var(--sol)"><i></i>Revisão 0</span></div>
+    <div class="card">
+      <div class="tags"><span class="tag" style="--c:var(--ceu)">Carrossel</span><span class="tag" style="--c:var(--sol)">Alta</span><span style="flex:1"></span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+      <div class="body"><span class="thumb t1"></span><div><div class="ttl">Prova do Seridó: onde estão os pontos?</div></div></div>
+      <div class="foot"><span class="meta"><span class="av">PH</span>ph__cursos</span><span>Entrega 20/10</span></div>
+    </div>
+    <div class="card">
+      <div class="tags"><span class="tag" style="--c:var(--lilas)">Reel</span><span style="flex:1"></span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+      <div class="body"><span class="thumb t2"></span><div><div class="ttl">Maratona Bakana: Chernobyl já está no ar</div></div></div>
+      <div class="foot"><span class="meta"><span class="av" style="background:var(--ceu)">BK</span>bakanasnet</span><span>Entrega 22/10</span></div>
+    </div>
+  </div>
+  <div class="nav"><div><svg class="i"><use href="#home"/></svg>Início</div><div class="on"><svg class="i"><use href="#board"/></svg>Demandas</div><div><span class="plus"><svg class="i"><use href="#plus"/></svg></span></div><div><svg class="i"><use href="#cal"/></svg>Calendário</div><div><svg class="i"><use href="#menu"/></svg>Mais</div></div>
+</div>
+<p class="note">Antes, 4 linhas de controle (contexto, busca, dois seletores, visualização, Notion) empurravam o primeiro cartão para a metade da tela. Agora é uma linha de busca e o cartão já aparece.</p></div>
+
+<!-- 2. DASHBOARD -->
+<div class="col"><span class="cap">2 · Início</span>
+<div class="phone">
+  <div class="top"><div class="hello" style="padding:0"><small>Quarta, 4 de novembro</small><h2>Olá, Ewerton</h2></div><span class="circ dot"><svg class="i"><use href="#bell"/></svg></span></div>
+  <div class="scroll" style="padding-top:10px">
+    <div class="hero">
+      <div><div class="big">140</div><div class="lbl">demandas em andamento</div></div>
+      <div class="stats">
+        <div class="stat" style="--c:var(--coral)"><b>3</b><span>atrasadas</span></div>
+        <div class="stat" style="--c:var(--sol)"><b>7</b><span>p/ aprovar</span></div>
+        <div class="stat" style="--c:var(--menta)"><b>12</b><span>na semana</span></div>
+      </div>
+    </div>
+    <div class="cta"><svg class="i"><use href="#plus"/></svg>Nova demanda</div>
+    <div class="sec"><b>Entregas da semana</b><a>Ver todas</a></div>
+    <div>
+      <div class="li"><span class="av">ES</span><div class="tx"><b>Carrossel de outubro</b><span>EduSaúde · hoje</span></div><span class="st" style="--c:var(--ceu)">Revisão</span></div>
+      <div class="li"><span class="av" style="background:var(--ceu)">HD</span><div class="tx"><b>Reel de aniversário</b><span>HDIA · sexta</span></div><span class="st" style="--c:var(--menta)">Aprovado</span></div>
+      <div class="li"><span class="av" style="background:var(--coral)">NT</span><div class="tx"><b>Story de enquete</b><span>NETMais+ · ontem</span></div><span class="st" style="--c:var(--coral)">Atrasada</span></div>
+    </div>
+  </div>
+  <div class="nav"><div class="on"><svg class="i"><use href="#home"/></svg>Início</div><div><svg class="i"><use href="#board"/></svg>Demandas</div><div><span class="plus"><svg class="i"><use href="#plus"/></svg></span></div><div><svg class="i"><use href="#cal"/></svg>Calendário</div><div><svg class="i"><use href="#menu"/></svg>Mais</div></div>
+</div>
+<p class="note">O número que importa ocupa o maior espaço. Atrasadas, para aprovar e da semana viram três números curtos, cada um na cor do seu papel. Uma só ação cheia: "Nova demanda".</p></div>
+
+<!-- 3. FILTROS -->
+<div class="col"><span class="cap">3 · Filtros (folha)</span>
+<div class="phone">
+  <div class="top"><h2>Demandas</h2><span class="circ"><svg class="i"><use href="#bell"/></svg></span></div>
+  <div class="scroll" style="padding-top:8px;opacity:.4"><div class="row"><div class="field"><svg class="i"><use href="#search"/></svg>Buscar demandas</div></div><div class="card"><div class="ttl">Prova do Seridó</div></div></div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sh"><b>Filtros</b><a>Limpar</a></div>
+    <div class="opt">Cliente<span>Todos <svg class="i" style="width:16px;height:16px"><use href="#chev"/></svg></span></div>
+    <div class="opt">Equipe<span>Toda a equipe <svg class="i" style="width:16px;height:16px"><use href="#chev"/></svg></span></div>
+    <div><div style="font-size:13px;color:var(--mut);margin:6px 0">Visualização</div><div class="seg"><div class="on">Quadro</div><div>Lista</div><div>Grade</div></div></div>
+    <div class="opt">Mostrar publicados<span><i class="sw"></i></span></div>
+    <div class="opt" style="border:0">Sincronizar com o Notion<span><svg class="i" style="width:16px;height:16px"><use href="#chev"/></svg></span></div>
+    <div class="row2"><div class="ghost">Limpar</div><div class="cta">Aplicar</div></div>
+  </div>
+</div>
+<p class="note">Cliente, equipe, visualização, publicados e Notion saem do topo e ficam numa folha. Aparecem só quando a pessoa pede, e o contador no botão mostra quantos filtros estão ligados.</p></div>
+
+<!-- 4. + -->
+<div class="col"><span class="cap">4 · Criar (botão central)</span>
+<div class="phone">
+  <div class="top"><h2>Início</h2><span class="circ"><svg class="i"><use href="#bell"/></svg></span></div>
+  <div class="scroll" style="padding-top:8px;opacity:.4"><div class="hero"><div class="big">140</div></div></div>
+  <div class="scrim"></div>
+  <div class="sheet" style="padding-bottom:96px">
+    <div class="grab"></div>
+    <div class="sh"><b>Criar</b></div>
+    <div class="act" style="--c:var(--menta)"><span class="ic"><svg class="i"><use href="#board"/></svg></span><div><b>Nova demanda</b><span>Post, reel ou story para um cliente</span></div></div>
+    <div class="act" style="--c:var(--ceu)"><span class="ic"><svg class="i"><use href="#send"/></svg></span><div><b>Agendar publicação</b><span>Programar um post no Instagram</span></div></div>
+    <div class="act" style="--c:var(--sol)"><span class="ic"><svg class="i"><use href="#check"/></svg></span><div><b>Nova tarefa</b><span>Pendência interna da agência</span></div></div>
+  </div>
+  <div class="nav"><div><svg class="i"><use href="#home"/></svg>Início</div><div><svg class="i"><use href="#board"/></svg>Demandas</div><div><span class="plus" style="transform:rotate(45deg)"><svg class="i"><use href="#plus"/></svg></span></div><div><svg class="i"><use href="#cal"/></svg>Calendário</div><div><svg class="i"><use href="#menu"/></svg>Mais</div></div>
+</div>
+<p class="note">"Agendar" sai da barra e entra aqui, junto das outras formas de criar. A barra passa a ter: Início, Demandas, + , Calendário e Mais.</p></div>
+
+</div>
+
+<table>
+  <tr><th>Medida (esteira, 375×812)</th><th>Hoje</th><th>Proposta</th></tr>
+  <tr><td>Altura até o primeiro cartão</td><td>~360px (55% da tela)</td><td>~190px (23%)</td></tr>
+  <tr><td>Linhas de controle antes do conteúdo</td><td>4</td><td>1</td></tr>
+  <tr><td>Ações cheias competindo na tela</td><td>2 a 3</td><td>1</td></tr>
+</table>
+</body>
+</html>
