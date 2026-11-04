@@ -24,7 +24,7 @@ Todas com testes automatizados e consultas validadas contra o banco real antes d
 
 ---
 
-## Catálogo completo (33 ferramentas)
+## Catálogo completo (43 ferramentas)
 
 ### Operação e clientes
 | Ferramenta | Faz o quê |
@@ -85,6 +85,23 @@ Todas com testes automatizados e consultas validadas contra o banco real antes d
 | Ferramenta | Faz o quê |
 |---|---|
 | `listar_fila_publicacao` ✨ | O que está agendado, publicando ou falhou. Só leitura. |
+
+### Mídia (C13)
+| Ferramenta | Faz o quê |
+|---|---|
+| `preparar_upload_midia` | URL assinada (PUT, 10 min) + URL pública final. Só JPG, MP4, MOV. Só master. |
+| `importar_midia_url` | O servidor baixa uma URL https (export do Figma) e grava no R2. Recusa PNG e endereços internos. Só master. |
+| `anexar_midia_demanda` | Liga as URLs à demanda, na ordem dos slides (1 a 10). Só master. |
+
+### Publicação (C14)
+| Ferramenta | Faz o quê |
+|---|---|
+| `agendar_post` | Agenda pra uma data futura (IMAGE, CAROUSEL, REELS, STORIES). Move a demanda pra "agendamento". O cron publica. |
+| `publicar_agora` | Publica na hora. Exige `confirmar: true` (só após o "aprovado" no chat). Devolve o link, ou "processando" em Reels pesado. |
+| `editar_post_agendado` | Legenda, data, mídias, colaboradores de post que ainda não publicou. |
+| `cancelar_post_agendado` | Tira da fila e solta a demanda. Post já no feed só pelo app do Instagram. |
+
+Travas: só master; `confirmar_conta` repete o @; a conta precisa estar vinculada a um cliente; a demanda precisa ser desse cliente; token válido. A automação de DM do post vai em `automacao` (nasce ativa, `copy_humanizada: true`).
 
 ✨ = novo nesta rodada (01/10/2026).
 

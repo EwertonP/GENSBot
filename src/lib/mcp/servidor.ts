@@ -14,6 +14,8 @@ import { FERRAMENTAS_C7 } from './ferramentas-c7';
 import { FERRAMENTAS_C8 } from './ferramentas-c8';
 import { FERRAMENTAS_C9 } from './ferramentas-c9';
 import { FERRAMENTAS_C10 } from './ferramentas-c10';
+import { FERRAMENTAS_C13 } from './ferramentas-c13';
+import { FERRAMENTAS_C14 } from './ferramentas-c14';
 import { FERRAMENTAS_CRM } from './ferramentas-crm';
 
 const FERRAMENTAS = [
@@ -27,6 +29,8 @@ const FERRAMENTAS = [
   ...FERRAMENTAS_C8,
   ...FERRAMENTAS_C9,
   ...FERRAMENTAS_C10,
+  ...FERRAMENTAS_C13,
+  ...FERRAMENTAS_C14,
   ...FERRAMENTAS_CRM,
 ];
 
@@ -38,7 +42,7 @@ const INSTRUCOES = [
   'Conteúdo (post/reel/story) só entra via criar_demandas_lote com o scorecard do MetodoViral (média ≥ 9 e humanizer rodado).',
   'Automações de DM nascem pausadas, só são editadas pausadas e exigem a copy já passada pelo humanizer; ativar é sempre pela tela.',
   'Formulários criados ficam em rascunho; aprovações devolvem link e mensagem para a equipe enviar.',
-  'Você não publica, não envia mensagens a clientes e não exclui nada. Confirme com a pessoa antes de mover várias demandas de uma vez.',
+  'Você só publica (publicar_agora) depois do "aprovado" explícito do Ewerton no chat para aquela peça, e confere sempre a conta e o cliente. Não envia mensagens a clientes e não exclui nada. Confirme com a pessoa antes de mover várias demandas de uma vez.',
 ].join(' ');
 
 interface RequisicaoRpc {
