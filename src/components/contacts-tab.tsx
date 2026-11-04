@@ -29,6 +29,8 @@ interface ContactsTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
   /** Muda sempre que o usuário troca de conta no seletor da sidebar — reseta a paginação. */
   accountKey: string;
+  /** Membro colaborador: visualiza contatos em modo somente-leitura (sem exclusão/edição). */
+  readOnly?: boolean;
 }
 
 /** CSV com uma coluna por resposta de pergunta (cargo, cidade...), além dos dados fixos do lead. */
@@ -73,7 +75,7 @@ function Vazio() {
  * consulta no dia a dia (quem é, e-mail, telefone, de onde veio); o resto — respostas,
  * jornada, conversa, ID do Instagram — fica na ficha que abre ao clicar na linha.
  */
-export default function ContactsTab({ withAccount, showToast, accountKey }: ContactsTabProps) {
+export default function ContactsTab({ withAccount, showToast, accountKey, readOnly = false }: ContactsTabProps) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
@@ -198,9 +200,12 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
           <h3 className="text-title font-bold text-foreground">Audiência</h3>
           <p className="text-sm text-muted-foreground mt-0.5">Quem entrou nas suas automações. Clique numa pessoa pra ver a ficha completa.</p>
         </div>
-        <Badge variant="muted" className="tabular-nums">
-          {total} contato{total !== 1 ? 's' : ''}
-        </Badge>
+        <div className="flex items-center gap-2">
+          {readOnly && <Badge variant="muted">Somente leitura</Badge>}
+          <Badge variant="muted" className="tabular-nums">
+            {total} contato{total !== 1 ? 's' : ''}
+          </Badge>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -225,10 +230,12 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
                 <FileText className="w-3.5 h-3.5" />
                 Exportar {selectedContacts.length}
               </Button>
-              <Button variant="secondary" size="sm" onClick={handleDeleteSelected} className="text-destructive">
-                <Trash2 className="w-3.5 h-3.5" />
-                Excluir {selectedContacts.length}
-              </Button>
+              {!readOnly && (
+                <Button variant="secondary" size="sm" onClick={handleDeleteSelected} className="text-destructive">
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Excluir {selectedContacts.length}
+                </Button>
+              )}
             </>
           )}
           <Tip label={filtrando ? 'Exporta todos os contatos deste filtro, com as respostas das perguntas' : 'Exporta toda a audiência, com as respostas das perguntas'}>
@@ -245,7 +252,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
         loading={loading}
         getRowId={(c) => c.id}
         onRowClick={(c) => setFichaId(c.id)}
-        selection={{ selectedIds, onToggle: toggleOne, onToggleAll: toggleAll, rowLabel: (c) => c.name || c.username || 'contato' }}
+        selection={readOnly ? undefined : { selectedIds, onToggle: toggleOne, onToggleAll: toggleAll, rowLabel: (c) => c.name || c.username || 'contato' }}
         empty={
           filtrando ? (
             <EmptyState size="compact" icon={Search} title="Ninguém encontrado" description="Nenhum contato bate com essa busca ou tag." action={{ label: 'Limpar filtros', onClick: () => { setSearchInput(''); setSearch(''); setTagFilter(''); } }} />
@@ -329,6 +336,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey }: Cont
           setTotal((t) => Math.max(0, t - 1));
         }}
         showToast={showToast}
+        readOnly={readOnly}
       />
     </Card>
   );

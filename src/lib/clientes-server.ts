@@ -172,6 +172,46 @@ export function podeAcessarCliente(escopo: EscopoClientes, clienteId: string | n
   return !!clienteId && escopo.ids.includes(clienteId);
 }
 
+export type EscopoContasInstagram =
+  | { total: true }
+  | { total: false; instagramUserIds: string[]; accountIds: string[] };
+
+/**
+ * Quais contas de Instagram o usuário logado tem permissão para operar.
+ * - master: total: true (todas as contas da agência).
+ * - cliente (portal): apenas a conta do cliente dele.
+ * - membro (equipe): apenas as contas dos clientes aos quais ele está vinculado em membro_clientes.
+ */
+export async function contasInstagramPermitidas(ctx: ContextoAgencia): Promise<EscopoContasInstagram> {
+  const escopo = await escopoClientes(ctx);
+  if (escopo.total) return { total: true };
+  if (escopo.ids.length === 0) return { total: false, instagramUserIds: [], accountIds: [] };
+
+  const { data: clientesRows } = await serviceSupabase
+    .from('clientes')
+    .select('id, instagram_account_id')
+    .in('id', escopo.ids);
+
+  const accountIds = (clientesRows || [])
+    .map((c) => c.instagram_account_id)
+    .filter((id): id is string => Boolean(id));
+
+  if (accountIds.length === 0) {
+    return { total: false, instagramUserIds: [], accountIds: [] };
+  }
+
+  const { data: accountsRows } = await serviceSupabase
+    .from('instagram_accounts')
+    .select('id, instagram_user_id')
+    .in('id', accountIds);
+
+  const instagramUserIds = (accountsRows || [])
+    .map((a) => a.instagram_user_id)
+    .filter((id): id is string => Boolean(id));
+
+  return { total: false, instagramUserIds, accountIds };
+}
+
 /**
  * Guarda para rotas de uma demanda (conteudo_items) por id. Retorna uma resposta de
  * erro se o usuário não puder ver a demanda, ou null se pode seguir.
