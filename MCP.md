@@ -24,7 +24,7 @@ Todas com testes automatizados e consultas validadas contra o banco real antes d
 
 ---
 
-## Catálogo completo (43 ferramentas)
+## Catálogo completo (44 ferramentas)
 
 ### Operação e clientes
 | Ferramenta | Faz o quê |
@@ -102,6 +102,20 @@ Todas com testes automatizados e consultas validadas contra o banco real antes d
 | `cancelar_post_agendado` | Tira da fila e solta a demanda. Post já no feed só pelo app do Instagram. |
 
 Travas: só master; `confirmar_conta` repete o @; a conta precisa estar vinculada a um cliente; a demanda precisa ser desse cliente; token válido. A automação de DM do post vai em `automacao` (nasce ativa, `copy_humanizada: true`).
+
+### Saúde da operação
+| Ferramenta | Faz o quê |
+|---|---|
+| `saude_da_operacao` | Varredura só de leitura, só master. Lista priorizada (crítico primeiro) do que está quebrado ou prestes a quebrar, com o que fazer em cada item. |
+
+O que ela confere, com os limiares em `LIMIARES` (`ferramentas-saude.ts`):
+- **Instagram:** acesso vencido (crítico), vencendo em até 3 dias (crítico) ou até 10 dias (atenção, a renovação automática começa com 30 de folga), conta sem data de vencimento (atenção).
+- **Fila de publicação:** post que falhou nos últimos 14 dias, post agendado há mais de 10 min sem sair, post preso em "publicando" há mais de 20 min (todos críticos).
+- **Automações ativas:** 5 ou mais mensagens iniciais em 14 dias e nenhum clique no link (atenção; sintoma de automação parando na 1ª DM).
+- **Demandas:** atrasadas, travadas e esperando o cliente há mais de 5 dias, agrupadas por cliente (atenção).
+- **Agenda:** cliente ativo com Instagram conectado e nada agendado nos próximos 7 dias (atenção).
+
+Nunca lê nem devolve o token das contas. Para o panorama de quem não é master, continua o `resumo_operacao`.
 
 ✨ = novo nesta rodada (01/10/2026).
 
