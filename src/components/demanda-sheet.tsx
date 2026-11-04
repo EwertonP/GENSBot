@@ -1,5 +1,6 @@
 'use client';
 
+import { ActionBar } from '@/components/ui/action-bar';
 import { Tip } from '@/components/ui/tooltip';
 import React, { useMemo, useRef, useState } from 'react';
 import { Menu } from '@base-ui/react/menu';
@@ -544,7 +545,7 @@ export function DemandaSheet({
       >
         {/* 1. Cabeçalho: contexto + etapa + ações; título em linha própria */}
         <div className="px-4 sm:px-6 pt-4 pb-4 border-b border-border flex flex-col gap-3 bg-card shrink-0">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 max-md:flex-wrap">
             {/* Breadcrumb contextual no estilo Imagem 3: • [Cliente] > • [Etapa] */}
             <div className="flex items-center gap-1.5 flex-1 min-w-0 text-xs">
               {!editando && (
@@ -572,7 +573,16 @@ export function DemandaSheet({
               </span>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={fechar}
+              className="md:hidden inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
+              aria-label="Fechar"
+            >
+              <X className="size-5" />
+            </button>
+
+            <div className="flex items-center gap-2 shrink-0 max-md:order-last max-md:w-full">
               <div
                 role="group"
                 aria-label={editando ? 'Etapa da demanda' : 'Etapa inicial'}
@@ -610,12 +620,12 @@ export function DemandaSheet({
                 })}
               </div>
 
-              <div className="md:hidden">
+              <div className="md:hidden flex-1">
                 <Select
                   value={status === 'travado' ? 'travado' : ETAPAS_PIPELINE[getEtapaIndex(status) - 1]?.status ?? status}
                   onChange={(e) => setStatus(e.target.value as StatusConteudo)}
                   aria-label={editando ? 'Etapa da demanda' : 'Etapa inicial'}
-                  className="h-8 text-xs font-semibold"
+                  className="h-11 w-full text-sm font-semibold"
                 >
                   {status === 'travado' && <option value="travado">Ajuste pedido</option>}
                   {ETAPAS_PIPELINE.map((etapa) => (
@@ -630,7 +640,7 @@ export function DemandaSheet({
                 <button
                   type="button"
                   onClick={() => onCopiarLinkAprovacao(item.token_aprovacao)}
-                  className="px-2.5 py-1.5 rounded-xl bg-accent/60 hover:bg-accent border border-border text-foreground font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs shadow-2xs"
+                  className="px-2.5 py-1.5 max-md:size-11 max-md:justify-center rounded-xl bg-accent/60 hover:bg-accent border border-border text-foreground font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs shadow-2xs"
                   aria-label="Copiar link de aprovação do cliente"
                 >
                   <Share2 className="w-3.5 h-3.5 text-brand-text" />
@@ -642,7 +652,7 @@ export function DemandaSheet({
                 <button
                   type="button"
                   onClick={() => onLevarParaAgendamento(itemComEdicoes(item))}
-                  className="px-2.5 py-1.5 rounded-xl bg-primary hover:bg-primary/85 text-primary-foreground font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer text-xs"
+                  className="px-2.5 py-1.5 max-md:size-11 max-md:justify-center rounded-xl bg-primary hover:bg-primary/85 text-primary-foreground font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer text-xs"
                   aria-label="Agendar postagem"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -654,7 +664,7 @@ export function DemandaSheet({
                 <Menu.Root>
                   <Menu.Trigger
                     aria-label="Mais ações da demanda"
-                    className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors data-popup-open:bg-accent data-popup-open:text-foreground"
+                    className="p-1.5 max-md:size-11 max-md:grid max-md:place-items-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors data-popup-open:bg-accent data-popup-open:text-foreground"
                   >
                     <MoreHorizontal className="w-4 h-4" />
                   </Menu.Trigger>
@@ -685,7 +695,7 @@ export function DemandaSheet({
               <button
                 type="button"
                 onClick={fechar}
-                className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
+                className="max-md:hidden p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
                 aria-label="Fechar"
               >
                 <X className="w-4 h-4" />
@@ -735,9 +745,9 @@ export function DemandaSheet({
           </div>
 
           {/* Barra Horizontal de Metadados Integrada (Estilo Imagem 3) */}
-          <div className="flex items-center flex-wrap gap-4 pt-2.5 border-t border-border/60 text-xs">
+          <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-border/60 text-xs md:flex md:flex-wrap md:items-center md:gap-4">
             {/* Responsáveis */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-start gap-1 md:flex-row md:items-center md:gap-2">
               <span className="font-semibold text-muted-foreground">Responsáveis</span>
               <div className="flex items-center -space-x-1.5">
                 {[responsavelId, ...coResponsaveis]
@@ -761,7 +771,7 @@ export function DemandaSheet({
             </div>
 
             {/* Prazo */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-col items-start gap-1 md:flex-row md:items-center md:gap-1.5">
               <span className="font-semibold text-muted-foreground">Prazo</span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-accent/60 text-foreground font-mono font-medium border border-border">
                 <Calendar className="w-3 h-3 text-muted-foreground" />
@@ -774,7 +784,7 @@ export function DemandaSheet({
             </div>
 
             {/* Prioridade */}
-            <div className="flex items-center gap-1.5">
+            <div className="max-md:hidden flex items-center gap-1.5">
               <span className="font-semibold text-muted-foreground">Prioridade</span>
               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold border ${PRIORIDADE_CONFIG[prioridade].bg} ${PRIORIDADE_CONFIG[prioridade].text} ${PRIORIDADE_CONFIG[prioridade].border}`}>
                 <span className={`size-1.5 rounded-full ${PRIORIDADE_CONFIG[prioridade].dot}`} />
@@ -1517,7 +1527,7 @@ export function DemandaSheet({
         </div>
 
         {/* 3. Rodapé fixo: estado do formulário + ações */}
-        <div className="p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex items-center justify-between gap-2 z-20">
+        <div className="p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex items-center justify-between gap-2 z-20 max-md:flex-col max-md:items-stretch max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <span aria-live="polite" className="text-xs min-w-0">
             {excluindo ? (
               <span className="text-muted-foreground">Excluindo…</span>
@@ -1533,16 +1543,16 @@ export function DemandaSheet({
             )}
           </span>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Button type="button" variant="outline" size="sm" onClick={fechar} className="rounded-xl text-xs font-semibold">
+          <ActionBar className="max-md:w-full md:shrink-0">
+            <Button type="button" variant="outline" size="md" onClick={fechar} className="rounded-xl font-semibold">
               Cancelar
             </Button>
             <Button
               type="submit"
               variant="primary"
-              size="sm"
+              size="md"
               loading={salvando}
-              className="rounded-xl text-xs font-semibold shadow-2xs px-4"
+              className="rounded-xl font-semibold shadow-2xs px-4"
               title={editando ? 'Salvar (Ctrl+S)' : 'Criar demanda (Ctrl+S)'}
             >
               {editando ? 'Salvar alterações' : 'Criar demanda'}
@@ -1550,7 +1560,7 @@ export function DemandaSheet({
                 Ctrl S
               </kbd>
             </Button>
-          </div>
+          </ActionBar>
         </div>
       </form>
 

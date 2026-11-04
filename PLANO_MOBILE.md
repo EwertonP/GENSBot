@@ -112,6 +112,37 @@ Referências analisadas: cartão de visita digital, marketplace com assistente, 
 
 Etapas, cada uma um PR: **H1** barra inferior com "+" e folha Criar; **H2** esteira (busca + Filtros, cartão enxuto); **H3** Início (número grande, ação única); **H4** o mesmo cabeçalho enxuto nas demais telas (título grande, contexto em uma linha). Antes disso, a rede de segurança de toque e texto (`feat/mobile-toque-texto`) pode ir.
 
+### Fase C, Componentes responsivos (um só jeito de fazer cada coisa)
+
+**O problema, medido em produção a 375px** (calendário, agendamentos e esteira): botões e campos com 5 alturas diferentes (32, 36, 38, 40, 48, 52 e 54px) e larguras de 30%, 50%, 60%, 70% e 90% do conteúdo na mesma tela. Em cada tela os controles eram montados com `flex-wrap` e larguras soltas (`w-48`, `w-44`, `w-40`), por isso uns cabiam lado a lado e outros iam para a linha de baixo. Nos prints da demanda, do calendário e dos agendamentos, o cabeçalho tinha 5 elementos competindo numa linha, os metadados quebravam em ordem aleatória e o rodapé tinha dois botões de tamanhos diferentes.
+
+**Regras (valem para celular e desktop):**
+1. **Alturas só em 3 degraus:** 36 (dentro de grupos), 40/44 (campos e botões comuns, 44 no celular) e 48 (ação principal e barra de ações no celular).
+2. **Largura:** no celular, todo controle isolado ocupa a linha inteira; dois controles dividem a linha em partes iguais; três ou mais empilham. Nunca largura automática.
+3. **Uma ação cheia por tela.** Ações secundárias ficam em contorno ou em texto.
+4. **Filtros recolhidos:** busca + botão "Filtros" que abre uma folha; no desktop, tudo na mesma linha.
+5. **O que o título já diz não se repete:** subtítulo, rótulo "Creator Studio" e título interno saem no celular.
+6. **Sem valor solto:** nenhuma largura fixa (`w-NN`) nem altura (`h-NN`) em campo ou botão de tela; entra pelo componente.
+
+**Componentes:**
+
+| Componente | O que resolve | Estado |
+|---|---|---|
+| `Button` | Alturas `sm` 36, `md` 40 (44 no celular), `lg` 48; prop `block` para largura total | feito |
+| `ActionBar` (`ui/action-bar.tsx`) | 1 botão ocupa a linha, 2 dividem em partes iguais, 3+ empilham, todos com 48px; no desktop, fila à direita; `sticky` para rodapé | feito |
+| `FilterBar` (`ui/filter-bar.tsx`) | Busca + seletores; no celular vira busca + "Filtros n" com folha | feito |
+| Barra de contexto | Uma linha de 48px no celular (nome + "Trocar") | feito |
+| `PageHeader` | Título, ação principal e contexto num só padrão para todas as telas | a fazer |
+| `MetaGrid` | Pares rótulo/valor em 2 colunas (responsáveis, prazo, prioridade) | a fazer |
+| `Stepper` | Passos com o ativo maior e os outros só com o número | feito dentro de Agendamentos; extrair |
+| `SheetHeader` / `SheetFooter` | Estrutura fixa de folha: cabeçalho, corpo que rola, rodapé com `ActionBar` | a fazer |
+
+**Telas migradas (branch `feat/componentes-mobile`):** Calendário (filtros, modo Mês/Semana/Dia e navegação de mês em largura total), Agendamentos (seletor de conta em largura total e passos compactos), demanda (cabeçalho em duas linhas, metadados em 2 colunas, prioridade sem repetir, rodapé com `ActionBar`) e a barra de contexto de todas as telas.
+
+**Próximas telas:** esteira (trocar a folha de filtros própria pelo `FilterBar`), Início (H3), Clientes, Rotina, CRM, Audiência, Métricas, Equipe, Formulários e a página de aprovação do cliente.
+
+**Travar para não voltar:** regra de lint ou script de CI que reprova `w-48`/`h-9` etc. em `Select`, `Input` e `Button` dentro de `src/components/*-tab.tsx`, e um teste que mede a altura dos controles em 375px nas telas-chave.
+
 ### Fase 3, Relatórios e anúncios
 - **Relatório público (`/relatorio/[token]`):** o cliente abre pelo celular, provavelmente por link no WhatsApp. É a tela de maior impacto externo; revisar primeiro nela: cartões de número em 2 colunas, gráficos que se ajustam à largura, leitura em uma coluna, carregamento rápido.
 - **Painel de anúncios:** trocar a tabela por `DataTable` com modo celular (campanha como título, gasto e resultado como metadado), filtro de período numa folha, controle de campanha (pausar/ativar) com confirmação.

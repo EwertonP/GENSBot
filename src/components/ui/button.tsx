@@ -16,9 +16,9 @@ const buttonVariants = cva(
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-xs',
       },
       size: {
-        sm: 'text-xs px-3 py-1.5 rounded-lg',
-        md: 'text-sm px-4 py-2 rounded-xl',
-        lg: 'text-base px-5 py-2.5 rounded-xl',
+        sm: 'h-9 text-xs px-3 rounded-lg',
+        md: 'h-10 text-sm px-4 rounded-xl max-md:h-11',
+        lg: 'h-12 text-base px-5 rounded-xl',
       },
     },
     defaultVariants: {
@@ -32,13 +32,15 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   loading?: boolean;
+  /** Ocupa a largura toda do contêiner. */
+  block?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, loading, disabled, children, ...props }, ref) => (
+  ({ className, variant, size, loading, block, disabled, children, ...props }, ref) => (
     <button
       ref={ref}
-      className={cn(buttonVariants({ variant, size }), className)}
+      className={cn(buttonVariants({ variant, size }), block && 'w-full', className)}
       disabled={disabled || loading}
       {...props}
     >

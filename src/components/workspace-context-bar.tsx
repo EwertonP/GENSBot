@@ -20,7 +20,7 @@ export default function WorkspaceContextBar({
   const isAgencia = workspace.tipo === 'agencia';
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-card/60 border border-border/80 shadow-2xs backdrop-blur-xs mb-4">
+    <div className="flex items-center justify-between gap-3 px-3.5 py-2 max-md:h-12 rounded-xl bg-card/60 border border-border/80 shadow-2xs backdrop-blur-xs mb-4 md:flex-wrap">
       <div className="flex items-center gap-2.5 min-w-0">
         {isAgencia ? (
           <div className="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center text-primary shrink-0 border border-primary/30">
@@ -36,12 +36,12 @@ export default function WorkspaceContextBar({
           />
         )}
 
-        <div className="flex items-center gap-2 min-w-0 flex-wrap">
-          <span className="text-xs text-muted-foreground">Contexto ativo:</span>
+        <div className="flex items-center gap-2 min-w-0 md:flex-wrap">
+          <span className="text-xs text-muted-foreground max-md:hidden">Contexto ativo:</span>
           <span className="text-xs font-bold text-foreground truncate">{workspace.nome}</span>
 
           {isAgencia ? (
-            <Badge variant="brand" className="text-[10px] py-0 px-1.5 h-5">
+            <Badge variant="brand" className="text-[10px] py-0 px-1.5 h-5 max-md:hidden">
               🏢 Visão Agência
             </Badge>
           ) : (
@@ -71,7 +71,7 @@ export default function WorkspaceContextBar({
           <button
             type="button"
             onClick={onTrocarWorkspace}
-            className="text-xs text-primary hover:underline font-medium inline-flex items-center gap-1 cursor-pointer"
+            className="text-xs text-primary hover:underline font-medium inline-flex items-center gap-1 cursor-pointer max-md:h-10 max-md:px-1"
           >
             Trocar cliente
             <ArrowRight className="w-3 h-3" />

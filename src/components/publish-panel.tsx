@@ -1098,8 +1098,8 @@ export default function PublishPanel({
   return (
     <div className="flex flex-col gap-8 animate-fade-in pb-12">
       {/* 1. Header do Estúdio de Agendamento */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5 max-md:border-0 max-md:pb-0">
+        <div className="max-md:hidden">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest bg-accent px-2 py-0.5 rounded-md border border-border">
               Creator Studio
@@ -1141,12 +1141,12 @@ export default function PublishPanel({
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-2.5 bg-accent/60 p-1.5 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">
-            <span className="text-xs font-bold text-muted-foreground px-2">Conta da Agência:</span>
+          <div className="flex items-center gap-2.5 bg-accent/60 p-1.5 rounded-2xl border border-border self-start sm:self-auto shadow-2xs max-md:w-full max-md:self-stretch">
+            <span className="text-xs font-bold text-muted-foreground px-2 max-md:sr-only">Conta da Agência:</span>
             <Select
               value={targetAccount}
               onChange={(e) => setTargetAccount(e.target.value)}
-              className="h-8 text-xs font-bold bg-card border border-input rounded-xl px-3 text-foreground shadow-2xs focus:outline-none"
+              className="h-8 max-md:h-11 max-md:w-full max-md:text-sm text-xs font-bold bg-card border border-input rounded-xl px-3 text-foreground shadow-2xs focus:outline-none"
             >
               {accounts.map((acc) => (
                 <option key={acc.instagram_user_id} value={acc.instagram_user_id}>
@@ -1233,7 +1233,7 @@ export default function PublishPanel({
           )}
 
           {/* Passos do composer — tudo continua montado, só um passo aparece por vez */}
-          <div role="tablist" aria-label="Etapas da publicação" className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-2xl bg-muted border border-border">
+          <div role="tablist" aria-label="Etapas da publicação" className="flex sm:grid sm:grid-cols-4 gap-1 p-1 rounded-2xl bg-muted border border-border">
             {PASSOS.map((pa, i) => {
               const ativo = passo === pa.id;
               const ok = passoCompleto(pa.id);
@@ -1246,12 +1246,12 @@ export default function PublishPanel({
                   aria-selected={ativo}
                   aria-controls={`passo-${pa.id}`}
                   onClick={() => setPasso(pa.id)}
-                  className={`flex items-center gap-2 h-10 px-3 rounded-xl text-sm font-medium transition-colors cursor-pointer ${ativo ? 'bg-card text-foreground shadow-xs ring-1 ring-border-strong' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`flex items-center justify-center sm:justify-start gap-2 h-11 sm:h-10 px-3 rounded-xl text-sm font-medium transition-colors cursor-pointer ${ativo ? 'max-sm:flex-[3]' : 'max-sm:flex-1'} ${ativo ? 'bg-card text-foreground shadow-xs ring-1 ring-border-strong' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                   <span className={`grid place-items-center size-5 rounded-full text-xs font-semibold shrink-0 ${ok ? 'bg-success-soft text-success ring-1 ring-success-ring' : ativo ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground ring-1 ring-border-strong'}`}>
                     {ok ? <Check aria-hidden className="size-3" /> : i + 1}
                   </span>
-                  <span className="truncate">{pa.label}</span>
+                  <span className={`truncate ${ativo ? '' : 'max-sm:hidden'}`}>{pa.label}</span>
                 </button>
               );
             })}
