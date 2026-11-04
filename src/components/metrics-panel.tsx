@@ -739,7 +739,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
     <div className="flex flex-col gap-6 pb-12 animate-fade-in">
       {/* Header do Painel Profissional com Seleção de Mês e Comparativo */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border pb-5">
-        <div className="flex items-center gap-3 max-md:hidden">
+        <div className="hidden">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-white shadow-md">
             <InstagramIcon className="w-5 h-5 text-white" />
           </div>

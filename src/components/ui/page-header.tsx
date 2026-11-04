@@ -25,7 +25,7 @@ export function PageHeader({ icon: Icon, title, description, actions, as: Tag = 
           {Icon && <Icon aria-hidden className="size-5 shrink-0 text-lime" strokeWidth={1.5} />}
           <span className="min-w-0 text-balance">{title}</span>
         </Tag>
-        {description && <p className="mt-2 max-w-prose text-sm text-muted-foreground text-pretty">{description}</p>}
+        {description && <p className="mt-2 max-sm:hidden max-w-prose text-sm text-muted-foreground text-pretty">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>

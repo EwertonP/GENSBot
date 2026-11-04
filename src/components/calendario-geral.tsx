@@ -299,7 +299,7 @@ export default function CalendarioGeral({
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
       {/* 1. Header do Calendário (Estilo Manageko & Datewise) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="max-md:hidden">
+        <div className="hidden">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest font-mono">
             Visão Geral da Agência
           </span>

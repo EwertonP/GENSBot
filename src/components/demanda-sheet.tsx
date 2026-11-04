@@ -1,6 +1,5 @@
 'use client';
 
-import { ActionBar } from '@/components/ui/action-bar';
 import { Tip } from '@/components/ui/tooltip';
 import React, { useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -708,7 +707,7 @@ export function DemandaSheet({
 
           {/* Barra de comandos no celular: Excluir / Cancelar / Salvar sempre à vista,
               sem depender do rodapé (que o teclado empurra). */}
-          <div className="md:hidden flex items-center gap-2">
+          <div className="flex items-center gap-2">
             {editando && (
               <Tip label="Excluir demanda">
                 <button
@@ -728,14 +727,14 @@ export function DemandaSheet({
               ) : sujo ? (
                 <span className="inline-flex items-center gap-1.5 font-medium text-warning">
                   <span aria-hidden className="size-1.5 rounded-full bg-warning shrink-0" />
-                  {editando ? 'Não salvo' : 'Ainda não criada'}
+                  {editando ? 'Alterações não salvas' : 'Ainda não criada'}
                 </span>
               ) : null}
             </span>
             <Button type="button" variant="outline" size="md" onClick={fechar}>
               Cancelar
             </Button>
-            <Button type="submit" variant="primary" size="md" loading={salvando}>
+            <Button type="submit" variant="primary" size="md" loading={salvando} title={editando ? 'Salvar (Ctrl+S)' : 'Criar demanda (Ctrl+S)'}>
               {editando ? 'Salvar' : 'Criar'}
             </Button>
           </div>
@@ -774,13 +773,13 @@ export function DemandaSheet({
             </span>
 
             {/* Só no celular: prazo e responsáveis moram na mesma linha de chips. */}
-            <span className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/60 text-foreground border border-border">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/60 text-foreground border border-border">
               <Calendar className="w-3 h-3 text-muted-foreground" />
               {prazoInterno
                 ? new Date(`${prazoInterno}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
                 : 'Sem prazo'}
             </span>
-            <span className="md:hidden inline-flex items-center gap-1.5 pl-1 pr-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/60 text-foreground border border-border">
+            <span className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/60 text-foreground border border-border">
               <span className="flex items-center -space-x-1.5">
                 {[responsavelId, ...coResponsaveis]
                   .filter((id, i, arr) => !!id && arr.indexOf(id) === i)
@@ -807,46 +806,6 @@ export function DemandaSheet({
                 Ajuste pedido
               </span>
             )}
-          </div>
-
-          {/* Barra Horizontal de Metadados Integrada (Estilo Imagem 3) */}
-          <div className="max-md:hidden grid grid-cols-2 gap-3 pt-2.5 border-t border-border/60 text-xs md:flex md:flex-wrap md:items-center md:gap-4">
-            {/* Responsáveis */}
-            <div className="flex flex-col items-start gap-1 md:flex-row md:items-center md:gap-2">
-              <span className="font-semibold text-muted-foreground">Responsáveis</span>
-              <div className="flex items-center -space-x-1.5">
-                {[responsavelId, ...coResponsaveis]
-                  .filter((id, i, arr) => !!id && arr.indexOf(id) === i)
-                  .map((id) => {
-                    const m = membros.find((mb) => mb.id === id);
-                    return (
-                      <ClienteAvatar
-                        key={id}
-                        nome={m?.nome || 'Membro'}
-                        fotoUrl={m && 'foto_url' in m ? (m.foto_url as string) : undefined}
-                        tamanho="xs"
-                        className="ring-2 ring-card"
-                      />
-                    );
-                  })}
-                {![responsavelId, ...coResponsaveis].some(Boolean) && (
-                  <span className="text-xs text-muted-foreground italic">Não atribuído</span>
-                )}
-              </div>
-            </div>
-
-            {/* Prazo */}
-            <div className="flex flex-col items-start gap-1 md:flex-row md:items-center md:gap-1.5">
-              <span className="font-semibold text-muted-foreground">Prazo</span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-accent/60 text-foreground font-mono font-medium border border-border">
-                <Calendar className="w-3 h-3 text-muted-foreground" />
-                <span>
-                  {prazoInterno
-                    ? new Date(`${prazoInterno}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-                    : 'Sem prazo'}
-                </span>
-              </span>
-            </div>
           </div>
         </div>
 
@@ -1597,43 +1556,6 @@ export function DemandaSheet({
               </p>
             )}
           </div>
-        </div>
-
-        {/* 3. Rodapé fixo: estado do formulário + ações */}
-        <div className="max-md:hidden p-4 sm:p-5 border-t border-border shrink-0 bg-card sticky bottom-0 flex items-center justify-between gap-2 z-20">
-          <span aria-live="polite" className="text-xs min-w-0">
-            {excluindo ? (
-              <span className="text-muted-foreground">Excluindo…</span>
-            ) : sujo ? (
-              <span className="flex items-center gap-1.5 text-warning font-medium">
-                <span aria-hidden className="size-1.5 rounded-full bg-warning shrink-0" />
-                {editando ? 'Alterações não salvas' : 'Ainda não criada'}
-              </span>
-            ) : (
-              <span className="hidden sm:inline text-muted-foreground">
-                {editando ? 'Nenhuma alteração pendente' : 'Preencha o título e escolha o cliente'}
-              </span>
-            )}
-          </span>
-
-          <ActionBar className="max-md:w-full md:shrink-0">
-            <Button type="button" variant="outline" size="md" onClick={fechar} className="rounded-xl font-semibold">
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              loading={salvando}
-              className="rounded-xl font-semibold shadow-2xs px-4"
-              title={editando ? 'Salvar (Ctrl+S)' : 'Criar demanda (Ctrl+S)'}
-            >
-              {editando ? 'Salvar alterações' : 'Criar demanda'}
-              <kbd className="hidden sm:inline ml-2 rounded border border-primary-foreground/30 px-1 font-mono text-xs font-medium opacity-70">
-                Ctrl S
-              </kbd>
-            </Button>
-          </ActionBar>
         </div>
       </form>
 
