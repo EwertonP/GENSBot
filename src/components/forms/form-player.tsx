@@ -215,8 +215,8 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
   }
 
   const tema = form.tema_config || {
-    cor_primaria: '#d8ff3c',
-    cor_fundo: '#09090b',
+    cor_primaria: '#00DC94',
+    cor_fundo: '#00140F',
     cor_texto: '#f4f4f5',
     cor_card: '#141417',
     modo: 'dark',
@@ -225,7 +225,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
   const isDark = useMemo(() => {
     if (tema.modo === 'dark') return true;
     if (tema.modo === 'light') return false;
-    return isColorDark(tema.cor_fundo || '#09090b');
+    return isColorDark(tema.cor_fundo || '#00140F');
   }, [tema.modo, tema.cor_fundo]);
 
   // Sincroniza tema no documento HTML se for rota pública isolada (/f/[slug])
@@ -259,7 +259,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
 
   // 1. Resolução rigorosa das cores com proteção anti-colapso WCAG
   const resolvedBg = useMemo(() => {
-    return tema.cor_fundo || (isDark ? '#09090b' : '#f7f8f2');
+    return tema.cor_fundo || (isDark ? '#00140F' : '#F6F4EC');
   }, [tema.cor_fundo, isDark]);
 
   const resolvedFg = useMemo(() => {
@@ -287,11 +287,11 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
   }, [isDark]);
 
   const resolvedSecondary = useMemo(() => {
-    return isDark ? 'rgba(255, 255, 255, 0.08)' : '#edf4d8';
+    return isDark ? 'rgba(255, 255, 255, 0.08)' : '#E6EFE9';
   }, [isDark]);
 
   const resolvedBrandText = useMemo(() => {
-    return isDark ? '#d8ff3c' : '#3f6212';
+    return isDark ? '#00DC94' : '#016D4B';
   }, [isDark]);
 
   const resolvedBrandRing = useMemo(() => {
@@ -299,7 +299,7 @@ export default function FormPlayer({ form, isPreview = false, onFinishPreview }:
   }, [isDark]);
 
   const resolvedPrimary = useMemo(() => {
-    return tema.cor_primaria || (isDark ? '#d8ff3c' : '#192313');
+    return tema.cor_primaria || (isDark ? '#00DC94' : '#014130');
   }, [tema.cor_primaria, isDark]);
 
   const primaryBtnTextColor = useMemo(() => {

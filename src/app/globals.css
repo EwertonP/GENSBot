@@ -120,120 +120,120 @@
    ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --background: #f7f8f2; /* paper */
-  --foreground: #192313; /* ink — 15.6:1 */
-  --card: #ffffff;
-  --card-foreground: #192313;
-  --popover: #ffffff;
-  --popover-foreground: #192313;
-  --primary: #192313; /* ink — botão primário */
-  --primary-foreground: #f7f8f2;
-  --secondary: #edf4d8; /* hero-soft */
-  --secondary-foreground: #192313;
-  --muted: #eef0e7;
-  --muted-foreground: #545c4a; /* 6.5:1 no bg, 6.1:1 no muted */
-  --accent: #eceee4;
-  --accent-foreground: #192313;
-  --lime: #d8ff3c; /* marca GENS — só como superfície, nunca como texto no claro */
-  --lime-foreground: #192313;
-  --brand-text: #3f6212; /* verde da marca legível como texto: ≥5.5:1 inclusive sobre o brand-soft */
+  --background: #F6F4EC; /* papel creme */
+  --foreground: #0D231C; /* tinta floresta, 14.97:1 no papel */
+  --card: #FFFFFF;
+  --card-foreground: #0D231C;
+  --popover: #FFFFFF;
+  --popover-foreground: #0D231C;
+  --primary: #014130; /* floresta da marca, botão primário (11.67:1 com texto branco) */
+  --primary-foreground: #FFFFFF;
+  --secondary: #E6EFE9; /* verde-névoa */
+  --secondary-foreground: #0D231C;
+  --muted: #EFEDE2;
+  --muted-foreground: #55655B; /* 5.61:1 no papel, 5.0:1 no hover */
+  --accent: #E9E7DA;
+  --accent-foreground: #0D231C;
+  --lime: #00DC94; /* menta da marca (nome antigo mantido); só como superfície no claro, nunca como texto */
+  --lime-foreground: #00281E; /* 8.8:1 sobre a menta */
+  --brand-text: #016D4B; /* verde de marca legível como texto: 5.8:1 no papel */
 
-  --success: #065f46;
+  --success: #03694C; /* 5.4:1 sobre o soft */
   --success-foreground: #ffffff;
-  --warning: #92400e; /* 5.7:1 sobre o soft */
+  --warning: #8A5A00; /* 4.9:1 sobre o soft */
   --warning-foreground: #ffffff;
-  --destructive: #be123c;
+  --destructive: #B23A0A; /* coral escuro, 4.8:1 sobre o soft */
   --destructive-foreground: #ffffff;
-  --info: #0369a1;
+  --info: #0369A1; /* 4.8:1 sobre o soft */
   --info-foreground: #ffffff;
 
-  --border: #d9dfce; /* hairline decorativa */
-  --border-strong: #b9c1ab; /* divisória que precisa ser vista */
-  --input: #8a917e; /* contorno de controle: 3.3:1 no card (WCAG 1.4.11) */
-  --ring: #192313;
+  --border: #E1DFD1; /* hairline decorativa */
+  --border-strong: #C6C5B4; /* divisória que precisa ser vista */
+  --input: #7E8A7E; /* contorno de controle: 3.6:1 no card (WCAG 1.4.11) */
+  --ring: #014130;
 
-  --chart-1: #4d7c0f;
-  --chart-2: #0f766e;
-  --chart-3: #b45309;
-  --chart-4: #6d28d9;
-  --chart-5: #be123c;
+  --chart-1: #018B61;
+  --chart-2: #0369A1;
+  --chart-3: #B45309;
+  --chart-4: #6D28D9;
+  --chart-5: #B23A0A;
   --radius: 0.625rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #192313;
-  --sidebar-primary: #192313;
-  --sidebar-primary-foreground: #f7f8f2;
-  --sidebar-accent: #eff2e6;
-  --sidebar-accent-foreground: #192313;
-  --sidebar-border: #e3e8d8;
-  --sidebar-ring: #192313;
+  --sidebar: #FBFAF4;
+  --sidebar-foreground: #0D231C;
+  --sidebar-primary: #014130;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EFEDE2;
+  --sidebar-accent-foreground: #0D231C;
+  --sidebar-border: #E1DFD1;
+  --sidebar-ring: #014130;
   --font-sans: var(--font-dm-sans), var(--font-sora), system-ui, sans-serif;
   --font-display: var(--font-sora), system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --shadow-color: #192313;
+  --shadow-color: #0D231C;
   --letter-spacing: -0.01em;
   --spacing: 0.25rem;
   /* Sombra suave em camadas (offset + blur). A antiga sombra "bloco" sem blur
      (9px 9px 0 #bdd094) saiu — não fazia parte da linguagem do produto. */
-  --shadow-2xs: 0 1px 0 0 rgb(25 35 19 / 0.04);
-  --shadow-xs: 0 1px 2px 0 rgb(25 35 19 / 0.06);
-  --shadow-sm: 0 1px 2px 0 rgb(25 35 19 / 0.06), 0 1px 3px 0 rgb(25 35 19 / 0.08);
-  --shadow: 0 2px 4px -1px rgb(25 35 19 / 0.06), 0 4px 8px -2px rgb(25 35 19 / 0.08);
-  --shadow-md: 0 4px 6px -2px rgb(25 35 19 / 0.06), 0 8px 16px -4px rgb(25 35 19 / 0.1);
-  --shadow-lg: 0 8px 12px -4px rgb(25 35 19 / 0.08), 0 16px 32px -8px rgb(25 35 19 / 0.12);
-  --shadow-xl: 0 12px 20px -6px rgb(25 35 19 / 0.1), 0 24px 48px -12px rgb(25 35 19 / 0.16);
-  --shadow-2xl: 0 24px 64px -16px rgb(25 35 19 / 0.22);
+  --shadow-2xs: 0 1px 0 0 rgb(13 35 28 / 0.04);
+  --shadow-xs: 0 1px 2px 0 rgb(13 35 28 / 0.06);
+  --shadow-sm: 0 1px 2px 0 rgb(13 35 28 / 0.06), 0 1px 3px 0 rgb(13 35 28 / 0.08);
+  --shadow: 0 2px 4px -1px rgb(13 35 28 / 0.06), 0 4px 8px -2px rgb(13 35 28 / 0.08);
+  --shadow-md: 0 4px 6px -2px rgb(13 35 28 / 0.06), 0 8px 16px -4px rgb(13 35 28 / 0.1);
+  --shadow-lg: 0 8px 12px -4px rgb(13 35 28 / 0.08), 0 16px 32px -8px rgb(13 35 28 / 0.12);
+  --shadow-xl: 0 12px 20px -6px rgb(13 35 28 / 0.1), 0 24px 48px -12px rgb(13 35 28 / 0.16);
+  --shadow-2xl: 0 24px 64px -16px rgb(13 35 28 / 0.22);
   --tracking-normal: -0.011em;
 }
 
 .dark, :root[class~="dark"], [data-theme="dark"] {
-  /* Preto neutro (estilo Linear): elevação por degrau de tom + hairline,
-     lima é o ÚNICO ponto de cor saturada (CTA, estado ativo, gráfico). */
-  --background: #09090b;
-  --foreground: #f4f4f5; /* 18.1:1 */
-  --card: #141417;
-  --card-foreground: #f4f4f5;
-  --popover: #1b1b1f;
-  --popover-foreground: #f4f4f5;
-  --primary: #d8ff3c;
-  --primary-foreground: #12180d; /* 15.7:1 */
-  --secondary: #1d1d21;
-  --secondary-foreground: #f4f4f5;
-  --muted: #18181b;
-  --muted-foreground: #a1a1aa; /* 7.8:1 bg / 7.2:1 card / 6.3:1 accent */
-  --accent: #202025;
-  --accent-foreground: #f4f4f5;
-  --lime: #d8ff3c;
-  --lime-foreground: #12180d;
-  --brand-text: #d8ff3c; /* 16:1 no card */
+  /* Floresta: verde-floresta quase preto (#00140F). Elevação por degrau de tom + hairline;
+     menta (#00DC94) é a cor de ação; sol, coral, céu e lilás só em status, categorias e gráficos. */
+  --background: #00140F; /* verde-floresta quase preto */
+  --foreground: #EAF6F0; /* 17.1:1 */
+  --card: #04221A;
+  --card-foreground: #EAF6F0;
+  --popover: #083026;
+  --popover-foreground: #EAF6F0;
+  --primary: #00DC94; /* menta: ação */
+  --primary-foreground: #00281E; /* 8.8:1 */
+  --secondary: #062A20;
+  --secondary-foreground: #EAF6F0;
+  --muted: #062A20;
+  --muted-foreground: #9DBEB1; /* 9.4:1 no fundo, 8.4:1 no card, 6.3:1 no hover */
+  --accent: #0B3A2E;
+  --accent-foreground: #EAF6F0;
+  --lime: #00DC94; /* menta da marca (nome antigo mantido) */
+  --lime-foreground: #00281E;
+  --brand-text: #00DC94; /* 10.5:1 no fundo */
 
-  --success: #34d399;
-  --success-foreground: #09090b;
-  --warning: #fbbf24;
-  --warning-foreground: #09090b;
-  --destructive: #fb7185;
-  --destructive-foreground: #09090b;
-  --info: #7dd3fc;
-  --info-foreground: #09090b;
+  --success: #4ADE80;
+  --success-foreground: #00140F;
+  --warning: #FFD84D;
+  --warning-foreground: #2E2500;
+  --destructive: #FF8A70; /* coral */
+  --destructive-foreground: #3A1006;
+  --info: #6CC9FF;
+  --info-foreground: #04283F;
 
-  --border: #2a2a30;
-  --border-strong: #3f3f46;
-  --input: #63636b; /* 3.1:1 no card / 3.3:1 no bg */
-  --ring: #d8ff3c;
+  --border: #12392E;
+  --border-strong: #21574A;
+  --input: #4F8F7C; /* 4.5:1 no card */
+  --ring: #00DC94;
 
-  --chart-1: #d8ff3c;
-  --chart-2: #2dd4bf;
-  --chart-3: #fbbf24;
-  --chart-4: #a78bfa;
-  --chart-5: #fb7185;
-  --sidebar: #0c0c0e;
-  --sidebar-foreground: #f4f4f5;
-  --sidebar-primary: #d8ff3c;
-  --sidebar-primary-foreground: #12180d;
-  --sidebar-accent: #1c1c20;
-  --sidebar-accent-foreground: #f4f4f5;
-  --sidebar-border: #1f1f24;
-  --sidebar-ring: #d8ff3c;
+  --chart-1: #00DC94;
+  --chart-2: #6CC9FF;
+  --chart-3: #FFD84D;
+  --chart-4: #B9A5FF;
+  --chart-5: #FF8A70;
+  --sidebar: #000E0A;
+  --sidebar-foreground: #EAF6F0;
+  --sidebar-primary: #00DC94;
+  --sidebar-primary-foreground: #00281E;
+  --sidebar-accent: #0B3A2E;
+  --sidebar-accent-foreground: #EAF6F0;
+  --sidebar-border: #12392E;
+  --sidebar-ring: #00DC94;
   --shadow-color: #000000;
   /* No escuro a sombra quase não aparece: a elevação vem do tom da superfície
      + um filete de luz no topo (inset), como material físico. */

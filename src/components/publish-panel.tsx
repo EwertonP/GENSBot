@@ -252,7 +252,7 @@ function InstagramPhoneMockup({
       {/* Header do Post no Instagram */}
       <div className="p-3 flex items-center justify-between bg-card border-b border-border">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#d8ff3c] via-[#55703a] to-[#192313] p-0.5 shadow-2xs shrink-0">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#00DC94] via-[#018B61] to-[#014130] p-0.5 shadow-2xs shrink-0">
             <div className="w-full h-full rounded-full bg-card flex items-center justify-center font-bold text-[10px] text-foreground">
               {username[1]?.toUpperCase() || 'G'}
             </div>
@@ -2116,7 +2116,7 @@ export default function PublishPanel({
               {/* 1. Conta Selecionada (Destaque Principal) */}
               <div className="p-4 rounded-2xl bg-primary/10 border-2 border-primary/40 flex items-center justify-between gap-3 shadow-2xs">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#d8ff3c] via-[#55703a] to-[#192313] p-0.5 shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#00DC94] via-[#018B61] to-[#014130] p-0.5 shrink-0">
                     <div className="w-full h-full rounded-full bg-card flex items-center justify-center font-bold text-xs text-foreground uppercase">
                       {(accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || 'G')[0]}
                     </div>

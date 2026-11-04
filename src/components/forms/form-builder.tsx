@@ -63,32 +63,32 @@ const TEMA_PRESETS: {
   {
     nome: 'GENS Assinatura (Escuro)',
     config: {
-      cor_primaria: '#d8ff3c',
-      cor_fundo: '#09090b',
+      cor_primaria: '#00DC94',
+      cor_fundo: '#00140F',
       cor_texto: '#f4f4f5',
       cor_card: '#141417',
       modo: 'dark',
     },
-    badge: 'bg-[#d8ff3c] border border-black/20',
+    badge: 'bg-[#00DC94] border border-black/20',
   },
   {
     nome: 'GENS Papel Warm (Claro)',
     config: {
-      cor_primaria: '#192313',
-      cor_fundo: '#f7f8f2',
-      cor_texto: '#192313',
+      cor_primaria: '#014130',
+      cor_fundo: '#F6F4EC',
+      cor_texto: '#0D231C',
       cor_card: '#ffffff',
       modo: 'light',
     },
-    badge: 'bg-[#192313]',
+    badge: 'bg-[#014130]',
   },
   {
     nome: 'Clínica Pure (Claro)',
     config: {
       cor_primaria: '#0f766e',
       cor_fundo: '#ffffff',
-      cor_texto: '#192313',
-      cor_card: '#f7f8f2',
+      cor_texto: '#0D231C',
+      cor_card: '#F6F4EC',
       modo: 'light',
     },
     badge: 'bg-teal-600',
@@ -847,7 +847,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={form.tema_config?.cor_primaria || '#d8ff3c'}
+                        value={form.tema_config?.cor_primaria || '#00DC94'}
                         onChange={(e) =>
                           setForm({
                             ...form,
@@ -858,7 +858,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                       />
                       <Input
                         type="text"
-                        value={form.tema_config?.cor_primaria || '#d8ff3c'}
+                        value={form.tema_config?.cor_primaria || '#00DC94'}
                         onChange={(e) =>
                           setForm({
                             ...form,
@@ -877,7 +877,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={form.tema_config?.cor_fundo || '#09090b'}
+                        value={form.tema_config?.cor_fundo || '#00140F'}
                         onChange={(e) => {
                           const newBg = e.target.value;
                           const autoTextColor = ensureAccessibleTextColor(form.tema_config?.cor_texto, newBg);
@@ -894,7 +894,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                       />
                       <Input
                         type="text"
-                        value={form.tema_config?.cor_fundo || '#09090b'}
+                        value={form.tema_config?.cor_fundo || '#00140F'}
                         onChange={(e) => {
                           const newBg = e.target.value;
                           const autoTextColor = ensureAccessibleTextColor(form.tema_config?.cor_texto, newBg);
@@ -919,7 +919,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={form.tema_config?.cor_texto || (isColorDark(form.tema_config?.cor_fundo || '#09090b') ? '#f4f4f5' : '#192313')}
+                        value={form.tema_config?.cor_texto || (isColorDark(form.tema_config?.cor_fundo || '#00140F') ? '#f4f4f5' : '#014130')}
                         onChange={(e) =>
                           setForm({
                             ...form,
@@ -930,7 +930,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
                       />
                       <Input
                         type="text"
-                        value={form.tema_config?.cor_texto || (isColorDark(form.tema_config?.cor_fundo || '#09090b') ? '#f4f4f5' : '#192313')}
+                        value={form.tema_config?.cor_texto || (isColorDark(form.tema_config?.cor_fundo || '#00140F') ? '#f4f4f5' : '#014130')}
                         onChange={(e) =>
                           setForm({
                             ...form,

@@ -109,7 +109,7 @@ export async function GET(
                     width: '8px',
                     height: '8px',
                     borderRadius: '100%',
-                    backgroundColor: '#d8ff3c',
+                    backgroundColor: '#00DC94',
                   }}
                 />
                 <span
@@ -127,7 +127,7 @@ export async function GET(
               <div
                 style={{
                   display: 'flex',
-                  backgroundColor: '#d8ff3c',
+                  backgroundColor: '#00DC94',
                   color: '#0c100a',
                   padding: '6px 14px',
                   borderRadius: '100px',
@@ -200,7 +200,7 @@ export async function GET(
                   width: '24px',
                   height: '24px',
                   borderRadius: '100%',
-                  backgroundColor: '#d8ff3c',
+                  backgroundColor: '#00DC94',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -215,7 +215,7 @@ export async function GET(
                 style={{
                   fontSize: '16px',
                   fontWeight: 700,
-                  color: '#d8ff3c',
+                  color: '#00DC94',
                 }}
               >
                 Aprovação Rápida & Feedback por Minutagem
@@ -268,12 +268,12 @@ export async function GET(
                     height: '70px',
                     borderRadius: '100%',
                     backgroundColor: 'rgba(216, 255, 60, 0.2)',
-                    border: '2px solid #d8ff3c',
+                    border: '2px solid #00DC94',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '28px',
-                    color: '#d8ff3c',
+                    color: '#00DC94',
                   }}
                 >
                   ▶

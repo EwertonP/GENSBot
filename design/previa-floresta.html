@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GENSBot, prévia do tema Floresta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== Tokens propostos (mesmos nomes do globals.css) ===== */
+  .t-dark{
+    --background:#02241B; --sidebar:#021D16; --card:#042F24; --popover:#014130;
+    --muted:#05382B; --accent:#084535; --border:#114537; --border-strong:#1F5C4B; --input:#4F8F7C;
+    --foreground:#E8F5EF; --muted-foreground:#9FBFB3;
+    --primary:#00DC94; --primary-foreground:#012A20; --brand-text:#00DC94; --ring:#00DC94; --brand-mid:#018B61;
+    --success:#4ADE80; --warning:#FBBF24; --destructive:#FB7185; --info:#7DD3FC;
+    --chart-prev:#2C6B58; --chart-now:#00DC94; --c2:#38BDF8; --c3:#FBBF24; --c4:#A78BFA; --c5:#FB7185;
+    --grid:rgba(213,255,235,.03); --grid-strong:rgba(213,255,235,.05);
+    --shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 8px 16px -4px rgba(0,0,0,.55);
+  }
+  .t-light{
+    --background:#F2F8F6; --sidebar:#FCFDFD; --card:#FFFFFF; --popover:#FFFFFF;
+    --muted:#E9F1EF; --accent:#E2EEEB; --border:#D4E2DF; --border-strong:#B8CCC6; --input:#6F8F84;
+    --foreground:#02261D; --muted-foreground:#4B6B60;
+    --primary:#014130; --primary-foreground:#FFFFFF; --brand-text:#016D4B; --ring:#014130; --brand-mid:#018B61;
+    --success:#047857; --warning:#92400E; --destructive:#BE123C; --info:#0369A1;
+    --chart-prev:#B6D3CA; --chart-now:#018B61; --c2:#0369A1; --c3:#B45309; --c4:#6D28D9; --c5:#BE123C;
+    --grid:rgba(1,65,48,.05); --grid-strong:rgba(1,65,48,.08);
+    --shadow:0 2px 4px -1px rgba(2,38,29,.06), 0 4px 8px -2px rgba(2,38,29,.08);
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:"DM Sans",system-ui,sans-serif;background:#0b0b0c;color:#ddd;padding:24px;-webkit-font-smoothing:antialiased}
+  h1.page{font:700 20px Sora,sans-serif;color:#fff;margin-bottom:4px}
+  p.sub{color:#9a9a9a;font-size:14px;margin-bottom:20px;max-width:760px;line-height:1.5}
+  .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(560px,1fr));gap:20px;align-items:start}
+  .label{font:600 12px "DM Sans";letter-spacing:.12em;text-transform:uppercase;color:#8a8a8a;margin:0 0 8px}
+  /* ===== app ===== */
+  .app{display:grid;grid-template-columns:200px 1fr;min-height:560px;border-radius:16px;overflow:hidden;background:var(--background);color:var(--foreground);border:1px solid var(--border);font-size:13px}
+  .side{background:var(--sidebar);border-right:1px solid var(--border);padding:14px 10px;display:flex;flex-direction:column;gap:10px}
+  .logo{display:flex;align-items:center;gap:9px;padding:2px 6px 8px;font:700 16px Sora,sans-serif;color:var(--foreground);letter-spacing:-.02em}
+  .logo svg{width:24px;height:22px}
+  .grp{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-foreground);padding:8px 8px 4px}
+  .nav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:12px;color:var(--muted-foreground);font-weight:500;position:relative}
+  .nav i{width:14px;height:14px;border-radius:4px;border:1.6px solid currentColor;opacity:.8}
+  .nav.on{background:var(--accent);color:var(--foreground)}
+  .nav.on::before{content:"";position:absolute;left:0;top:50%;height:16px;width:3px;border-radius:3px;background:var(--brand-mid);transform:translateY(-50%)}
+  .nav.on i{color:var(--brand-text);opacity:1}
+  .main{padding:16px 18px;display:flex;flex-direction:column;gap:14px;background-image:radial-gradient(var(--grid-strong) 1.2px,transparent 1.2px);background-size:28px 28px}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .top h2{font:700 18px Sora,sans-serif;letter-spacing:-.02em}
+  .btns{display:flex;gap:8px}
+  .btn{height:36px;padding:0 14px;border-radius:12px;font:600 13px "DM Sans";display:inline-flex;align-items:center;gap:6px;border:1px solid transparent;cursor:default}
+  .btn.p{background:var(--primary);color:var(--primary-foreground)}
+  .btn.s{background:var(--muted);color:var(--foreground);border-color:var(--border)}
+  .btn.g{background:transparent;color:var(--foreground);border-color:var(--border-strong)}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:12px 14px}
+  .kpi small{display:block;color:var(--muted-foreground);font-size:12px;margin-bottom:4px}
+  .kpi b{font:700 22px Sora,sans-serif;letter-spacing:-.02em}
+  .kpi em{font-style:normal;font-size:12px;color:var(--success);font-weight:600;margin-left:6px}
+  .two{display:grid;grid-template-columns:1.2fr 1fr;gap:10px}
+  .pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid color-mix(in srgb,currentColor 28%,transparent);background:color-mix(in srgb,currentColor 12%,transparent)}
+  .ok{color:var(--success)} .wa{color:var(--warning)} .er{color:var(--destructive)} .in{color:var(--info)}
+  .task{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--border)}
+  .task:first-of-type{border-top:0}
+  .task span{display:block;color:var(--muted-foreground);font-size:12px}
+  .field{height:36px;border-radius:12px;border:1px solid var(--input);background:var(--card);color:var(--muted-foreground);padding:0 12px;display:flex;align-items:center;font-size:13px}
+  .bars{display:flex;align-items:flex-end;gap:14px;height:96px;padding-top:6px}
+  .bars div{display:flex;gap:4px;align-items:flex-end;height:100%;flex:1}
+  .bars i{flex:1;border-radius:6px 6px 2px 2px;display:block}
+  .bars i.a{background:var(--chart-prev)} .bars i.b{background:var(--chart-now)}
+  .legend{display:flex;gap:12px;font-size:12px;color:var(--muted-foreground);margin-top:8px}
+  .legend s{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;text-decoration:none}
+  .dots{display:flex;gap:8px;margin-top:2px}
+  .dots i{width:14px;height:14px;border-radius:5px;display:block}
+  /* ===== celular ===== */
+  .phones{display:flex;gap:20px;flex-wrap:wrap;margin-top:22px}
+  .phone{width:300px;border-radius:30px;border:6px solid #1c1c1e;overflow:hidden;background:var(--background);color:var(--foreground);display:flex;flex-direction:column;height:560px;font-size:13px}
+  .pt{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--sidebar)}
+  .pt b{font:700 15px Sora,sans-serif;letter-spacing:-.02em}
+  .pb{flex:1;padding:12px;display:flex;flex-direction:column;gap:10px;overflow:hidden;background-image:radial-gradient(var(--grid-strong) 1.2px,transparent 1.2px);background-size:26px 26px}
+  .bar{display:grid;grid-template-columns:repeat(5,1fr);background:var(--sidebar);border-top:1px solid var(--border);padding:6px 4px 14px}
+  .bar div{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;color:var(--muted-foreground);padding:4px 0;min-height:44px;justify-content:center}
+  .bar div i{width:20px;height:20px;border-radius:7px;border:1.8px solid currentColor}
+  .bar div.on{color:var(--brand-text);font-weight:600}
+  .bar div.on i{background:var(--accent)}
+  .sw{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+  .sw span{display:flex;align-items:center;gap:8px;font-size:12px;color:#bbb;background:#151516;border:1px solid #2a2a2c;padding:6px 10px;border-radius:10px}
+  .sw i{width:18px;height:18px;border-radius:6px;display:block;border:1px solid rgba(255,255,255,.15)}
+  @media(max-width:640px){.row{grid-template-columns:1fr}.app{grid-template-columns:1fr}.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1 class="page">GENSBot · prévia do tema Floresta</h1>
+<p class="sub">Os mesmos componentes nos dois temas, com as cores tiradas dos seus logos (<b>#014130</b> floresta, <b>#00DC94</b> menta, <b>#018B61</b> verde médio). Os tons escuros são degraus do mesmo verde. Fundo, cartões e menus sobem de brilho, e o menta aparece só em ação, estado ativo e destaque.</p>
+
+<div class="sw">
+  <span><i style="background:#014130"></i>Floresta #014130 (marca)</span>
+  <span><i style="background:#00DC94"></i>Menta #00DC94 (ação no escuro)</span>
+  <span><i style="background:#018B61"></i>Verde médio #018B61 (destaque, barra ativa)</span>
+  <span><i style="background:#02241B"></i>Fundo escuro #02241B</span>
+  <span><i style="background:#042F24"></i>Cartão escuro #042F24</span>
+  <span><i style="background:#F2F8F6"></i>Fundo claro #F2F8F6</span>
+</div>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="mark" viewBox="0 0 446 424"><path d="M70 0H251V424H70A70 70 0 0 1 0 354V70A70 70 0 0 1 70 0Z"/><path d="M317 0H376A70 70 0 0 1 446 70V354A70 70 0 0 1 376 424H317Z" fill="#018B61"/></symbol>
+</defs></svg>
+
+<div class="row" style="margin-top:22px">
+<!-- ESCURO -->
+<div>
+<p class="label">Escuro</p>
+<div class="app t-dark">
+  <aside class="side">
+    <div class="logo"><svg style="fill:#00DC94"><use href="#mark"/></svg>gensbot</div>
+    <div class="grp">Operação</div>
+    <div class="nav on"><i></i>Dashboard</div>
+    <div class="nav"><i></i>Demandas</div>
+    <div class="nav"><i></i>Calendário</div>
+    <div class="nav"><i></i>Rotina</div>
+    <div class="grp">Gestão</div>
+    <div class="nav"><i></i>Clientes</div>
+    <div class="nav"><i></i>Equipe</div>
+  </aside>
+  <section class="main">
+    <div class="top"><h2>Dashboard</h2><div class="btns"><span class="btn g">Filtrar</span><span class="btn p">+ Criar</span></div></div>
+    <div class="kpis">
+      <div class="card kpi"><small>Posts no mês</small><b>48</b><em>+12%</em></div>
+      <div class="card kpi"><small>Aprovações</small><b>7</b></div>
+      <div class="card kpi"><small>Atrasadas</small><b style="color:var(--destructive)">3</b></div>
+      <div class="card kpi"><small>Leads</small><b>126</b><em>+8%</em></div>
+    </div>
+    <div class="two">
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:6px">Esteira de hoje</div>
+        <div class="task"><div>Carrossel de outubro<span>EduSaúde</span></div><span class="pill in">Revisão</span></div>
+        <div class="task"><div>Reel de aniversário<span>HDIA</span></div><span class="pill ok">Aprovado</span></div>
+        <div class="task"><div>Post de edital<span>PH Cursos</span></div><span class="pill wa">Aguardando</span></div>
+        <div class="task"><div>Story de enquete<span>NETMais+</span></div><span class="pill er">Atrasada</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="card"><div style="font-weight:600">Alcance</div>
+          <div class="bars"><div><i class="a" style="height:46%"></i><i class="b" style="height:62%"></i></div><div><i class="a" style="height:58%"></i><i class="b" style="height:86%"></i></div><div><i class="a" style="height:40%"></i><i class="b" style="height:50%"></i></div></div>
+          <div class="legend"><span><s style="background:var(--chart-prev)"></s>Mês anterior</span><span><s style="background:var(--chart-now)"></s>Este mês</span></div></div>
+        <div class="card"><div class="field">Buscar cliente ou demanda</div>
+          <div class="btns" style="margin-top:8px"><span class="btn p">Agendar</span><span class="btn s">Salvar</span></div>
+          <div class="dots"><i style="background:var(--chart-now)"></i><i style="background:var(--c2)"></i><i style="background:var(--c3)"></i><i style="background:var(--c4)"></i><i style="background:var(--c5)"></i></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+</div>
+
+<!-- CLARO -->
+<div>
+<p class="label">Claro</p>
+<div class="app t-light">
+  <aside class="side">
+    <div class="logo"><svg style="fill:#014130"><use href="#mark"/></svg>gensbot</div>
+    <div class="grp">Operação</div>
+    <div class="nav on"><i></i>Dashboard</div>
+    <div class="nav"><i></i>Demandas</div>
+    <div class="nav"><i></i>Calendário</div>
+    <div class="nav"><i></i>Rotina</div>
+    <div class="grp">Gestão</div>
+    <div class="nav"><i></i>Clientes</div>
+    <div class="nav"><i></i>Equipe</div>
+  </aside>
+  <section class="main">
+    <div class="top"><h2>Dashboard</h2><div class="btns"><span class="btn g">Filtrar</span><span class="btn p">+ Criar</span></div></div>
+    <div class="kpis">
+      <div class="card kpi"><small>Posts no mês</small><b>48</b><em>+12%</em></div>
+      <div class="card kpi"><small>Aprovações</small><b>7</b></div>
+      <div class="card kpi"><small>Atrasadas</small><b style="color:var(--destructive)">3</b></div>
+      <div class="card kpi"><small>Leads</small><b>126</b><em>+8%</em></div>
+    </div>
+    <div class="two">
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:6px">Esteira de hoje</div>
+        <div class="task"><div>Carrossel de outubro<span>EduSaúde</span></div><span class="pill in">Revisão</span></div>
+        <div class="task"><div>Reel de aniversário<span>HDIA</span></div><span class="pill ok">Aprovado</span></div>
+        <div class="task"><div>Post de edital<span>PH Cursos</span></div><span class="pill wa">Aguardando</span></div>
+        <div class="task"><div>Story de enquete<span>NETMais+</span></div><span class="pill er">Atrasada</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="card"><div style="font-weight:600">Alcance</div>
+          <div class="bars"><div><i class="a" style="height:46%"></i><i class="b" style="height:62%"></i></div><div><i class="a" style="height:58%"></i><i class="b" style="height:86%"></i></div><div><i class="a" style="height:40%"></i><i class="b" style="height:50%"></i></div></div>
+          <div class="legend"><span><s style="background:var(--chart-prev)"></s>Mês anterior</span><span><s style="background:var(--chart-now)"></s>Este mês</span></div></div>
+        <div class="card"><div class="field">Buscar cliente ou demanda</div>
+          <div class="btns" style="margin-top:8px"><span class="btn p">Agendar</span><span class="btn s">Salvar</span></div>
+          <div class="dots"><i style="background:var(--chart-now)"></i><i style="background:var(--c2)"></i><i style="background:var(--c3)"></i><i style="background:var(--c4)"></i><i style="background:var(--c5)"></i></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+</div>
+</div>
+
+<p class="label" style="margin-top:26px">No celular, com a barra inferior do plano mobile</p>
+<div class="phones">
+<div class="phone t-dark">
+  <div class="pt"><b>Esteira</b><span class="btn p" style="height:32px">+ Criar</span></div>
+  <div class="pb">
+    <div class="card"><div style="display:flex;justify-content:space-between"><b>Carrossel de outubro</b><span class="pill in">Revisão</span></div><span style="color:var(--muted-foreground);font-size:12px">EduSaúde · entrega amanhã</span></div>
+    <div class="card"><div style="display:flex;justify-content:space-between"><b>Reel de aniversário</b><span class="pill ok">Aprovado</span></div><span style="color:var(--muted-foreground);font-size:12px">HDIA · sexta</span></div>
+    <div class="card"><div style="display:flex;justify-content:space-between"><b>Story de enquete</b><span class="pill er">Atrasada</span></div><span style="color:var(--muted-foreground);font-size:12px">NETMais+ · ontem</span></div>
+  </div>
+  <div class="bar"><div class="on"><i></i>Início</div><div><i></i>Esteira</div><div><i></i>Calendário</div><div><i></i>Agendar</div><div><i></i>Mais</div></div>
+</div>
+<div class="phone t-light">
+  <div class="pt"><b>Esteira</b><span class="btn p" style="height:32px">+ Criar</span></div>
+  <div class="pb">
+    <div class="card"><div style="display:flex;justify-content:space-between"><b>Carrossel de outubro</b><span class="pill in">Revisão</span></div><span style="color:var(--muted-foreground);font-size:12px">EduSaúde · entrega amanhã</span></div>
+    <div class="card"><div style="display:flex;justify-content:space-between"><b>Reel de aniversário</b><span class="pill ok">Aprovado</span></div><span style="color:var(--muted-foreground);font-size:12px">HDIA · sexta</span></div>
+    <div class="card"><div style="display:flex;justify-content:space-between"><b>Story de enquete</b><span class="pill er">Atrasada</span></div><span style="color:var(--muted-foreground);font-size:12px">NETMais+ · ontem</span></div>
+  </div>
+  <div class="bar"><div class="on"><i></i>Início</div><div><i></i>Esteira</div><div><i></i>Calendário</div><div><i></i>Agendar</div><div><i></i>Mais</div></div>
+</div>
+</div>
+</body>
+</html>

@@ -2,11 +2,14 @@
 
 Contrato visual do **GENSBot** (Agência GENS). É a fonte de verdade para qualquer pessoa ou agente que mexa na UI. Se o código e este documento divergirem, o `src/app/globals.css` vence, e este arquivo deve ser corrigido no mesmo PR.
 
-**Versão atual: v6, "Fundação" (Onda 1, set/2026).**
-- O dark mode voltou para **preto neutro + lima só como destaque**, na direção Linear da v5 que tinha se perdido para um tom oliva.
+**Versão atual: v7, "Floresta" (nov/2026).**
+- A marca é a do logo novo do GENSBot: **floresta `#014130`, menta `#00DC94` e verde médio `#018B61`**. O lima saiu do produto.
+- **Escuro:** fundo verde-floresta quase preto (`#00140F`), cartões em `#04221A` e **menta como única cor de ação**. Sol, coral, céu e lilás existem só para status, categorias e gráficos.
+- **Claro:** papel creme (`#F6F4EC`), cartões brancos e **floresta como botão primário**. A menta aparece só como superfície e destaque, nunca como texto.
 - Os status seguem o padrão de contraste do **Spectrum UI**.
 - A tipografia tem **piso de 12px**.
-- Não existe mais paleta crua do Tailwind nas telas.
+- Origem das decisões e prévias: `PLANO_MOBILE.md` (seção 3B) e `design/previa-floresta-v2.html`.
+- ⚠️ **Dívida conhecida:** ainda há cerca de 186 `#hex` e 190 cores cruas do Tailwind em componentes (a regra abaixo é a meta, não o estado atual), e o nome do token `--lime` foi mantido para não quebrar `bg-lime`/`text-lime`, mas hoje vale **menta**. Renomear faz parte da limpeza (D1 do plano).
 
 ---
 
@@ -20,31 +23,34 @@ Os contrastes abaixo foram medidos (WCAG 2.x) no navegador, nos dois temas.
 
 | Papel | Classe | Claro | Escuro | Contraste |
 |---|---|---|---|---|
-| Fundo da página | `bg-background` | `#f7f8f2` (papel) | `#09090b` | — |
-| Sidebar | `bg-sidebar` | `#ffffff` | `#0c0c0e` | — |
-| Card / painel | `bg-card` | `#ffffff` | `#141417` | — |
-| Popover / menu | `bg-popover` | `#ffffff` | `#1b1b1f` | — |
-| Hover / item ativo | `bg-accent` | `#eceee4` | `#202025` | — |
-| Superfície suave | `bg-muted` / `bg-secondary` | `#eef0e7` / `#edf4d8` | `#18181b` / `#1d1d21` | — |
-| Texto principal | `text-foreground` | `#192313` (tinta) | `#f4f4f5` | 15.6 / 18.1 |
-| Texto secundário | `text-muted-foreground` | `#545c4a` | `#a1a1aa` | ≥6.1 / ≥6.3 |
-| Hairline decorativa | `border-border` | `#d9dfce` | `#2a2a30` | decorativa |
-| Divisória que precisa ser vista | `border-border-strong` | `#b9c1ab` | `#3f3f46` | — |
-| Contorno de campo | `border-input` | `#8a917e` | `#63636b` | ≥3:1 (WCAG 1.4.11) |
-| Foco | `ring-ring` | `#192313` | `#d8ff3c` | — |
+| Fundo da página | `bg-background` | `#F6F4EC` (papel) | `#00140F` | — |
+| Sidebar | `bg-sidebar` | `#FBFAF4` | `#000E0A` | — |
+| Card / painel | `bg-card` | `#FFFFFF` | `#04221A` | — |
+| Popover / menu | `bg-popover` | `#FFFFFF` | `#083026` | — |
+| Hover / item ativo | `bg-accent` | `#E9E7DA` | `#0B3A2E` | — |
+| Superfície suave | `bg-muted` / `bg-secondary` | `#EFEDE2` / `#E6EFE9` | `#062A20` / `#062A20` | — |
+| Texto principal | `text-foreground` | `#0D231C` | `#EAF6F0` | 15.0 / 17.1 |
+| Texto secundário | `text-muted-foreground` | `#55655B` | `#9DBEB1` | ≥4.9 / ≥6.3 |
+| Hairline decorativa | `border-border` | `#E1DFD1` | `#12392E` | decorativa |
+| Divisória que precisa ser vista | `border-border-strong` | `#C6C5B4` | `#21574A` | — |
+| Contorno de campo | `border-input` | `#7E8A7E` | `#4F8F7C` | 3.6 / 4.5 (≥3:1, WCAG 1.4.11) |
+| Foco | `ring-ring` | `#014130` | `#00DC94` | — |
 
-No escuro, a elevação vem do **degrau de tom** (`background → sidebar → card → popover`) mais um filete de luz `inset` no topo, que já está dentro das sombras. Sombra projetada quase não aparece sobre preto.
+No escuro, a elevação vem do **degrau de tom** (`background → card → popover`, com a sidebar um degrau abaixo do fundo) mais um filete de luz `inset` no topo, que já está dentro das sombras. Sombra projetada quase não aparece sobre o verde-floresta.
 
 ### Marca
 
 | Papel | Classe | Claro | Escuro |
 |---|---|---|---|
-| Ação primária | `bg-primary text-primary-foreground` | tinta `#192313` / papel | lima `#d8ff3c` / `#12180d` |
-| Superfície de marca (CTA "Publicar", selos) | `bg-lime text-lime-foreground` | `#d8ff3c` / `#192313` | igual |
-| Verde da marca **como texto** | `text-brand-text` | `#3f6212` | `#d8ff3c` |
+| Ação primária | `bg-primary text-primary-foreground` | floresta `#014130` / branco (11.7:1) | menta `#00DC94` / `#00281E` (8.8:1) |
+| Superfície de marca (CTA "Publicar", selos) | `bg-lime text-lime-foreground` | menta `#00DC94` / `#00281E` | igual |
+| Verde da marca **como texto** | `text-brand-text` | `#016D4B` (5.8:1 no papel) | `#00DC94` (10.5:1 no fundo) |
 | Selo de marca | `bg-brand-soft text-brand-text ring-brand-ring` | — | — |
+| Verde médio (barra do item ativo, ícone) | `#018B61` | — | — |
 
-> ⚠️ **`text-lime` nunca vai sobre superfície clara.** Dá ~1.1:1, é invisível. Para verde legível use `text-brand-text`. `text-lime` só é permitido sobre overlay escuro de imagem.
+> ⚠️ **`text-lime` (menta) nunca vai sobre superfície clara.** Dá ~1.8:1. Para verde legível use `text-brand-text`. `text-lime` só é permitido sobre fundo escuro. O token se chama `lime` por herança; hoje a cor é a menta da marca.
+
+> **Ação e sucesso são os dois verdes.** Ação é sempre botão cheio ou item ativo; sucesso é sempre pílula suave com ícone e texto (`success` no escuro é `#4ADE80`, mais amarelado que a menta).
 
 ### Status (padrão Spectrum UI)
 
@@ -56,10 +62,10 @@ Cada status tem quatro tokens:
 
 | Status | Claro | Escuro | Texto no soft (claro / escuro) |
 |---|---|---|---|
-| `success` | `#065f46` | `#34d399` | ≥6 / 7.8 |
-| `warning` | `#92400e` | `#fbbf24` | 5.7 / 8.7 |
-| `destructive` | `#be123c` | `#fb7185` | 5.1 / 5.9 |
-| `info` | `#0369a1` | `#7dd3fc` | 5.1 / 8.7 |
+| `success` | `#03694C` | `#4ADE80` | 5.4 / 8.4 |
+| `warning` | `#8A5A00` | `#FFD84D` (sol) | 4.9 / 8.8 |
+| `destructive` | `#B23A0A` | `#FF8A70` (coral) | 4.8 / 5.9 |
+| `info` | `#0369A1` | `#6CC9FF` (céu) | 4.8 / 6.8 |
 
 Receita:
 - **Pill / alerta suave:** `bg-{s}-soft text-{s} border-{s}-ring` (ou `ring-1 ring-{s}-ring`).
@@ -67,7 +73,7 @@ Receita:
 
 ### Gráficos
 
-`chart-1` (marca), `chart-2` (teal), `chart-3` (âmbar), `chart-4` (violeta), `chart-5` (rosa). Em SVG use `stroke="var(--chart-1)"`, nunca hex.
+Escuro: `chart-1` menta, `chart-2` céu, `chart-3` sol, `chart-4` lilás, `chart-5` coral. Claro: verde médio `#018B61`, azul `#0369A1`, âmbar `#B45309`, violeta `#6D28D9`, coral `#B23A0A`. Em SVG use `stroke="var(--chart-1)"`, nunca hex. Para comparar períodos, use o mesmo verde em dois tons (anterior apagado, atual forte), em vez de duas cores.
 
 ### Paleta crua: onde ainda é permitida
 
@@ -134,7 +140,7 @@ Raios: card/modal `rounded-2xl`, campo/botão `rounded-xl`, pill/avatar `rounded
 - O script inline em `layout.tsx` aplica `.dark` antes da hidratação. Se existir preferência salva (`localStorage.gensbot_theme`), ela vale; senão, segue `prefers-color-scheme`.
 - Os toggles em `page.tsx` e na aprovação só **leem** a classe do `<html>` e gravam a escolha.
 - Nunca condicione cor ao tema no componente (`theme === 'dark' ? … : …`). O token resolve.
-- `color-scheme`, seleção de texto (lima), caret (`brand-text`), placeholder e scrollbar já são temáticos no `@layer base`.
+- `color-scheme`, seleção de texto (menta), caret (`brand-text`), placeholder e scrollbar já são temáticos no `@layer base`.
 
 ---
 
@@ -228,6 +234,10 @@ Referências de produto: **Linear** (sidebar e cor só em estado/ação), **Atti
 
 ## 7. Histórico
 
+- **v6 → v7 (nov/2026):**
+  - Marca nova do GENSBot (floresta, menta e verde médio). Substitui o preto neutro com lima e a paleta IDV antiga (a decisão de set/2026 foi revertida a pedido).
+  - Tokens claro e escuro reescritos; logos, ícones do app e favicon trocados; cores fixas da marca antiga trocadas nos formulários, na imagem de aprovação, nos avatares e no QR code.
+  - Não foi tocado: o tema claro com menu escuro, a esteira em trilho de ícones e o PWA (ver `PLANO_MOBILE.md`).
 - **v5 → v6:**
   - O dark voltou ao preto neutro; o código tinha migrado para "obsidian forest" oliva sem atualizar este documento.
   - Tokens de status passaram para o padrão soft/ring e ganharam `info`, `brand-text`, `border-strong` e `input` real.

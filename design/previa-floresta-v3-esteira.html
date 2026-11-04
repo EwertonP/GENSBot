@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GENSBot, esteira no tema escuro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --background:#00140F; --rail:#04221A; --card:#04221A; --popover:#083026;
+    --muted:#062A20; --accent:#0B3A2E; --border:#12392E; --border-strong:#21574A; --input:#4F8F7C;
+    --foreground:#EAF6F0; --muted-foreground:#9DBEB1; --primary:#00DC94; --primary-foreground:#00281E;
+    --menta:#00DC94; --sol:#FFD84D; --coral:#FF8A70; --ceu:#6CC9FF; --lilas:#B9A5FF;
+    --shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 8px 16px -6px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:"DM Sans",system-ui,sans-serif;background:#0b0b0c;color:#ddd;padding:24px;-webkit-font-smoothing:antialiased}
+  h1.page{font:700 20px Sora,sans-serif;color:#fff;margin-bottom:4px}
+  p.sub{color:#a3a3a3;font-size:14px;margin-bottom:18px;max-width:800px;line-height:1.5}
+  .label{font:600 12px "DM Sans";letter-spacing:.12em;text-transform:uppercase;color:#8a8a8a;margin:26px 0 8px}
+  svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+  /* ===== app ===== */
+  .app{display:grid;grid-template-columns:76px minmax(0,1fr);gap:14px;padding:14px;border-radius:20px;background:var(--background);color:var(--foreground);border:1px solid var(--border);font-size:13px;position:relative;overflow:hidden}
+  /* textura de curvas de nível, bem discreta, só no fundo da tela */
+  .topo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;color:rgba(213,255,235,.05)}
+  .app>*:not(.topo){position:relative}
+  .col-rail{display:flex;flex-direction:column;gap:10px;align-items:center}
+  .tile{width:56px;height:56px;border-radius:18px;background:#014130;display:grid;place-items:center}
+  .tile svg{width:26px;height:25px}
+  .rail{width:56px;border-radius:20px;background:var(--rail);border:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:4px;align-items:center}
+  .ri{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;color:var(--muted-foreground);position:relative}
+  .ri.on{background:var(--primary);color:var(--primary-foreground)}
+  .ri.on::after{content:"";position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:var(--coral);border:2px solid var(--rail)}
+  .sep{width:22px;height:1px;background:var(--border-strong);margin:4px 0}
+
+  .main{min-width:0;display:flex;flex-direction:column;gap:12px}
+  .when{font-size:12px;color:var(--muted-foreground)}
+  .head{display:flex;align-items:center;gap:10px}
+  .head h2{font:700 24px Sora,sans-serif;letter-spacing:-.02em}
+  .head svg{color:var(--menta);width:22px;height:22px}
+  .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .chip{height:36px;padding:0 13px;border-radius:999px;background:var(--card);border:1px solid var(--border);display:inline-flex;align-items:center;gap:7px;color:var(--foreground);font-weight:500;white-space:nowrap}
+  .chip.q{color:var(--muted-foreground);min-width:190px}
+  .chip svg{width:15px;height:15px;color:var(--muted-foreground)}
+  .n{height:20px;min-width:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:12px;font-weight:700;background:var(--accent);color:var(--foreground)}
+  .n.alert{background:var(--coral);color:#3A1006}
+  .cta{margin-left:auto;height:36px;padding:0 14px;border-radius:12px;background:var(--primary);color:var(--primary-foreground);font-weight:700;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+
+  /* quadro */
+  .board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:12px;overflow:hidden}
+  .column{--tint:color-mix(in srgb,var(--c) 10%,var(--background));background:var(--tint);border:1px solid color-mix(in srgb,var(--c) 22%,transparent);border-radius:22px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+  .ch{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+  .ch i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+  .ch small{font-size:12px;color:var(--muted-foreground);font-weight:600}
+  .ch svg{margin-left:auto;color:var(--muted-foreground);width:16px;height:16px}
+  /* botão da coluna em tom suave: a ação cheia continua sendo só a do topo */
+  .add{height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;color:var(--c);background:color-mix(in srgb,var(--c) 20%,var(--background));border:1px solid color-mix(in srgb,var(--c) 30%,transparent)}
+  .add svg{width:15px;height:15px}
+  .tc{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:11px;display:flex;flex-direction:column;gap:9px;min-width:0}
+  .tr{display:flex;align-items:center;gap:7px}
+  .tr .more{margin-left:auto;color:var(--muted-foreground);display:grid}
+  .tr .more svg{width:15px;height:15px}
+  .chk{width:18px;height:18px;border-radius:50%;border:1.6px solid var(--input);flex:none}
+  .tag{height:20px;padding:0 8px;border-radius:999px;display:inline-flex;align-items:center;font-size:12px;font-weight:700;color:var(--c,var(--foreground));background:color-mix(in srgb,var(--c,#9DBEB1) 14%,var(--card))}
+  .body{display:flex;gap:10px;align-items:center;min-width:0}
+  .thumb{width:56px;height:56px;border-radius:12px;flex:none;display:block}
+  .title{font-weight:600;line-height:1.3;min-width:0}
+  .client{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted-foreground);min-width:0}
+  .client span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .av{width:20px;height:20px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+  .a1{background:#00DC94;color:#00281E}.a2{background:#6CC9FF;color:#04283F}.a3{background:#FFD84D;color:#2E2500}.a4{background:#B9A5FF;color:#1F1447}.a5{background:#FF8A70;color:#3A1006}
+  .foot{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted-foreground);border-top:1px solid var(--border);padding-top:8px}
+  .foot span{display:inline-flex;align-items:center;gap:4px}
+  .foot svg{width:13px;height:13px}
+  .foot .me{margin-left:auto;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--foreground);display:grid;place-items:center;font-weight:700}
+  .t1{background:linear-gradient(135deg,#014130,#00DC94)}
+  .t2{background:linear-gradient(135deg,#1F1447,#B9A5FF)}
+  .t3{background:linear-gradient(135deg,#3A1006,#FF8A70)}
+  .t4{background:linear-gradient(135deg,#04283F,#6CC9FF)}
+  .t5{background:linear-gradient(135deg,#2E2500,#FFD84D)}
+
+  /* ===== celular ===== */
+  .phones{display:flex;gap:20px;flex-wrap:wrap}
+  .phone{width:320px;border-radius:30px;border:6px solid #1c1c1e;overflow:hidden;background:var(--background);color:var(--foreground);display:flex;flex-direction:column;height:640px;font-size:13px}
+  .pt{display:flex;align-items:center;justify-content:space-between;padding:12px 14px}
+  .pt b{font:700 18px Sora,sans-serif;letter-spacing:-.02em}
+  .stages{display:flex;gap:6px;padding:0 12px 10px;overflow:hidden}
+  .st{height:36px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-weight:600;background:var(--card);border:1px solid var(--border);color:var(--muted-foreground)}
+  .st i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+  .st.on{color:var(--foreground);background:color-mix(in srgb,var(--c) 20%,var(--background));border-color:color-mix(in srgb,var(--c) 40%,transparent)}
+  .pb{flex:1;padding:0 12px;overflow:hidden}
+  .pb .column{height:100%;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:0}
+  .bar{display:grid;grid-template-columns:repeat(5,1fr);background:var(--rail);border-top:1px solid var(--border);padding:6px 4px 14px;color:var(--muted-foreground)}
+  .bar div{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;padding:4px 0;min-height:44px;justify-content:center}
+  .bar div.on{color:var(--menta);font-weight:600}
+  @media(max-width:760px){body{padding:12px}.app{grid-template-columns:1fr}.col-rail{display:none}.board{grid-template-columns:minmax(0,1fr)}.chip.q{min-width:0;flex:1}.cta{margin-left:0}}
+</style>
+</head>
+<body>
+<h1 class="page">GENSBot · esteira no tema escuro</h1>
+<p class="sub">O tema escuro da proposta 2 com as ideias de layout que valem da referência: menu em trilho de ícones, colunas com cor própria, miniatura da arte no cartão e filtros em pílula. Nomes e números são só exemplo, e as miniaturas são degradês no lugar das artes.</p>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="mark" viewBox="0 0 446 424"><path d="M70 0H251V424H70A70 70 0 0 1 0 354V70A70 70 0 0 1 70 0Z" fill="#00DC94"/><path d="M317 0H376A70 70 0 0 1 446 70V354A70 70 0 0 1 376 424H317Z" fill="#018B61"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="board" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 4v16"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12l2.5 2.5L16 9.5"/></symbol>
+  <symbol id="brief" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="send" viewBox="0 0 24 24"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></symbol>
+  <symbol id="flow" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h4a3 3 0 0 1 3 3v6"/></symbol>
+  <symbol id="chart" viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="dots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M17 4a4 4 0 0 1 0 8M22 21a6 6 0 0 0-4-5.6"/></symbol>
+  <symbol id="list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="clip" viewBox="0 0 24 24"><path d="M21 11l-9 9a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></symbol>
+  <symbol id="more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+</defs></svg>
+
+<p class="label">Computador</p>
+<div class="app">
+  <svg class="topo" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+    <path d="M-20 120C180 40 300 210 520 130S860 20 1220 150"/><path d="M-20 170C190 90 310 260 530 180S870 70 1220 200"/><path d="M-20 225C200 145 320 315 540 235S880 125 1220 255"/>
+    <path d="M-20 470C160 400 340 560 560 480S900 390 1220 500"/><path d="M-20 525C170 455 350 615 570 535S910 445 1220 555"/><path d="M-20 585C180 515 360 675 580 595S920 505 1220 615"/>
+  </svg>
+  <div class="col-rail">
+    <div class="tile"><svg><use href="#mark"/></svg></div>
+    <nav class="rail" aria-label="Menu">
+      <div class="ri"><svg class="i"><use href="#home"/></svg></div>
+      <div class="ri on"><svg class="i"><use href="#board"/></svg></div>
+      <div class="ri"><svg class="i"><use href="#cal"/></svg></div>
+      <div class="ri"><svg class="i"><use href="#check"/></svg></div>
+      <div class="sep"></div>
+      <div class="ri"><svg class="i"><use href="#brief"/></svg></div>
+      <div class="ri"><svg class="i"><use href="#users"/></svg></div>
+      <div class="sep"></div>
+      <div class="ri"><svg class="i"><use href="#send"/></svg></div>
+      <div class="ri"><svg class="i"><use href="#flow"/></svg></div>
+      <div class="ri"><svg class="i"><use href="#chart"/></svg></div>
+    </nav>
+  </div>
+  <section class="main">
+    <div class="when">Quarta-feira, 4 de novembro</div>
+    <div class="head"><svg class="i"><use href="#board"/></svg><h2>Demandas</h2></div>
+    <div class="tools">
+      <span class="chip">Novembro <span class="n">24</span><span class="n alert">3</span></span>
+      <span class="chip"><svg class="i"><use href="#users"/></svg>Todos os clientes</span>
+      <span class="chip q"><svg class="i"><use href="#search"/></svg>Buscar demanda</span>
+      <span class="cta"><svg class="i" style="width:15px;height:15px"><use href="#plus"/></svg>Nova demanda</span>
+    </div>
+    <div class="board">
+      <!-- Planejar -->
+      <div class="column" style="--c:var(--ceu)">
+        <div class="ch"><i></i>Planejar <small>6</small><svg class="i"><use href="#dots"/></svg></div>
+        <div class="add"><svg class="i"><use href="#plus"/></svg>Adicionar</div>
+        <div class="tc">
+          <div class="tr"><span class="chk"></span><span class="tag" style="--c:var(--lilas)">Reel</span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+          <div class="body"><span class="thumb t4"></span><div class="title">Bastidores do atendimento</div></div>
+          <div class="client"><span class="av a2">HD</span><span>HDIA Santa Maria</span></div>
+          <div class="foot"><span><svg class="i"><use href="#list"/></svg>0/4</span><span class="me">E</span></div>
+        </div>
+        <div class="tc">
+          <div class="tr"><span class="chk"></span><span class="tag" style="--c:var(--ceu)">Post</span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+          <div class="body"><span class="thumb t5"></span><div class="title">Edital de novembro</div></div>
+          <div class="client"><span class="av a3">PH</span><span>PH Cursos</span></div>
+          <div class="foot"><span><svg class="i"><use href="#list"/></svg>1/4</span><span class="me">L</span></div>
+        </div>
+      </div>
+      <!-- Produzir -->
+      <div class="column" style="--c:var(--lilas)">
+        <div class="ch"><i></i>Produzir <small>9</small><svg class="i"><use href="#dots"/></svg></div>
+        <div class="add"><svg class="i"><use href="#plus"/></svg>Adicionar</div>
+        <div class="tc">
+          <div class="tr"><span class="chk"></span><span class="tag" style="--c:var(--ceu)">Carrossel</span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+          <div class="body"><span class="thumb t1"></span><div class="title">Carrossel de outubro</div></div>
+          <div class="client"><span class="av a1">ES</span><span>EduSaúde</span></div>
+          <div class="foot"><span><svg class="i"><use href="#list"/></svg>2/4</span><span><svg class="i"><use href="#clip"/></svg>3</span><span class="me">M</span></div>
+        </div>
+        <div class="tc">
+          <div class="tr"><span class="chk"></span><span class="tag" style="--c:var(--lilas)">Reel</span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+          <div class="body"><span class="thumb t2"></span><div class="title">Vídeo do plano novo</div></div>
+          <div class="client"><span class="av a4">BK</span><span>Bakanas Net</span></div>
+          <div class="foot"><span><svg class="i"><use href="#list"/></svg>3/4</span><span class="me">E</span></div>
+        </div>
+      </div>
+      <!-- Revisar -->
+      <div class="column" style="--c:var(--sol)">
+        <div class="ch"><i></i>Revisar <small>5</small><svg class="i"><use href="#dots"/></svg></div>
+        <div class="add"><svg class="i"><use href="#plus"/></svg>Adicionar</div>
+        <div class="tc">
+          <div class="tr"><span class="chk"></span><span class="tag" style="--c:var(--ceu)">Post</span><span class="tag" style="--c:var(--sol)">Com o cliente</span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+          <div class="body"><span class="thumb t5"></span><div class="title">Mito ou verdade</div></div>
+          <div class="client"><span class="av a3">LS</span><span>Lab Santa Sophia</span></div>
+          <div class="foot"><span><svg class="i"><use href="#list"/></svg>4/4</span><span class="me">L</span></div>
+        </div>
+        <div class="tc">
+          <div class="tr"><span class="chk"></span><span class="tag" style="--c:var(--lilas)">Reel</span><span class="tag" style="--c:var(--coral)">Atrasada</span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+          <div class="body"><span class="thumb t3"></span><div class="title">Story de enquete</div></div>
+          <div class="client"><span class="av a5">NT</span><span>NETMais+</span></div>
+          <div class="foot"><span><svg class="i"><use href="#list"/></svg>2/4</span><span class="me">M</span></div>
+        </div>
+      </div>
+      <!-- Agendar -->
+      <div class="column" style="--c:var(--menta)">
+        <div class="ch"><i></i>Agendar <small>4</small><svg class="i"><use href="#dots"/></svg></div>
+        <div class="add"><svg class="i"><use href="#plus"/></svg>Adicionar</div>
+        <div class="tc">
+          <div class="tr"><span class="chk"></span><span class="tag" style="--c:var(--ceu)">Post</span><span class="tag" style="--c:var(--menta)">Aprovado</span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+          <div class="body"><span class="thumb t1"></span><div class="title">Check-up por fase da vida</div></div>
+          <div class="client"><span class="av a1">LL</span><span>Dra. Laís Leal</span></div>
+          <div class="foot"><span><svg class="i"><use href="#list"/></svg>4/4</span><span class="me">E</span></div>
+        </div>
+        <div class="tc">
+          <div class="tr"><span class="chk"></span><span class="tag" style="--c:var(--lilas)">Reel</span><span class="tag" style="--c:var(--menta)">Aprovado</span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+          <div class="body"><span class="thumb t4"></span><div class="title">Reel de aniversário</div></div>
+          <div class="client"><span class="av a2">HD</span><span>HDIA Santa Maria</span></div>
+          <div class="foot"><span><svg class="i"><use href="#list"/></svg>4/4</span><span class="me">L</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<p class="label">Celular</p>
+<div class="phones">
+  <div class="phone">
+    <div class="pt"><b>Demandas</b><span class="cta" style="margin:0"><svg class="i" style="width:15px;height:15px"><use href="#plus"/></svg>Nova</span></div>
+    <div class="stages">
+      <span class="st" style="--c:var(--ceu)"><i></i>Planejar 6</span>
+      <span class="st on" style="--c:var(--lilas)"><i></i>Produzir 9</span>
+      <span class="st" style="--c:var(--sol)"><i></i>Revisar 5</span>
+    </div>
+    <div class="pb">
+      <div class="column" style="--c:var(--lilas)">
+        <div class="tc">
+          <div class="tr"><span class="chk"></span><span class="tag" style="--c:var(--ceu)">Carrossel</span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+          <div class="body"><span class="thumb t1"></span><div class="title">Carrossel de outubro</div></div>
+          <div class="client"><span class="av a1">ES</span><span>EduSaúde</span></div>
+          <div class="foot"><span><svg class="i"><use href="#list"/></svg>2/4</span><span><svg class="i"><use href="#clip"/></svg>3</span><span class="me">M</span></div>
+        </div>
+        <div class="tc">
+          <div class="tr"><span class="chk"></span><span class="tag" style="--c:var(--lilas)">Reel</span><span class="more"><svg class="i"><use href="#more"/></svg></span></div>
+          <div class="body"><span class="thumb t2"></span><div class="title">Vídeo do plano novo</div></div>
+          <div class="client"><span class="av a4">BK</span><span>Bakanas Net</span></div>
+          <div class="foot"><span><svg class="i"><use href="#list"/></svg>3/4</span><span class="me">E</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="bar">
+      <div><svg class="i"><use href="#home"/></svg>Início</div>
+      <div class="on"><svg class="i"><use href="#board"/></svg>Esteira</div>
+      <div><svg class="i"><use href="#cal"/></svg>Calendário</div>
+      <div><svg class="i"><use href="#send"/></svg>Agendar</div>
+      <div><svg class="i"><use href="#more"/></svg>Mais</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,221 @@
+{
+  "_meta": {
+    "source": "https://onovocarrossel.com/",
+    "captured_at": "2026-11-04",
+    "note": "Variáveis CSS lidas direto dos blocos <style> do site (alta confiança). Referência de estudo; não é a paleta do GENSBot."
+  },
+  "color": {
+    "dark": {
+      "bg": {
+        "$value": "#00251D",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "bg-deep": {
+        "$value": "#001A14",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "surface": {
+        "$value": "#013027",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "surface-2": {
+        "$value": "#01382D",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "fill": {
+        "$value": "#0A4436",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "line": {
+        "$value": "#0C3A2E",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "line-2": {
+        "$value": "#1A5341",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "ink": {
+        "$value": "#E9F5EC",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "ink-2": {
+        "$value": "#9DBFB0",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "ink-3": {
+        "$value": "#587F70",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "cta": {
+        "$value": "#00D898",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "cta-ink": {
+        "$value": "#00281E",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "mint": {
+        "$value": "#A5EFC7",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "ok": {
+        "$value": "#7CDCA3",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "ok-deep": {
+        "$value": "#1B7A4E",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "yellow": {
+        "$value": "#F0D100",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "yellow-ink": {
+        "$value": "#3A2E00",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "danger": {
+        "$value": "#E06B6A",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "danger-deep": {
+        "$value": "#C9403F",
+        "$type": "color",
+        "confidence": "high"
+      }
+    },
+    "light": {
+      "l-bg": {
+        "$value": "#EEF2EC",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "l-surface": {
+        "$value": "#FFFFFF",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "l-fill": {
+        "$value": "#E4EBE2",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "l-ink": {
+        "$value": "#0D231C",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "l-ink-2": {
+        "$value": "#64786E",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "l-ink-3": {
+        "$value": "#93A69B",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "l-line": {
+        "$value": "#E2E9DF",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "l-line-2": {
+        "$value": "#D2DCCF",
+        "$type": "color",
+        "confidence": "high"
+      },
+      "papel": {
+        "$value": "#FBFAF6",
+        "$type": "color",
+        "confidence": "high"
+      }
+    }
+  },
+  "radius": {
+    "sm": {
+      "$value": "9px",
+      "$type": "dimension",
+      "confidence": "high"
+    },
+    "md": {
+      "$value": "11px",
+      "$type": "dimension",
+      "confidence": "high"
+    },
+    "lg": {
+      "$value": "15px",
+      "$type": "dimension",
+      "confidence": "high"
+    },
+    "xl": {
+      "$value": "20px",
+      "$type": "dimension",
+      "confidence": "high"
+    },
+    "full": {
+      "$value": "999px",
+      "$type": "dimension",
+      "confidence": "high"
+    }
+  },
+  "shadow": {
+    "shadow-1": {
+      "$value": "0 1px 2px rgba(0,0,0,.25), 0 6px 16px rgba(0,0,0,.22)",
+      "$type": "shadow",
+      "confidence": "high"
+    },
+    "shadow-2": {
+      "$value": "0 4px 14px rgba(0,0,0,.3), 0 20px 56px rgba(0,0,0,.38)",
+      "$type": "shadow",
+      "confidence": "high"
+    },
+    "l-shadow-1": {
+      "$value": "0 1px 2px rgba(6,32,24,.05), 0 5px 12px rgba(6,32,24,.06)",
+      "$type": "shadow",
+      "confidence": "high"
+    }
+  },
+  "font": {
+    "display": {
+      "$value": "Manrope",
+      "$type": "fontFamily",
+      "confidence": "high"
+    },
+    "ui": {
+      "$value": "Rubik",
+      "$type": "fontFamily",
+      "confidence": "high"
+    }
+  },
+  "motion": {
+    "ease": {
+      "$value": "cubic-bezier(.25,.1,.25,1)",
+      "$type": "cubicBezier",
+      "confidence": "high"
+    },
+    "stagger": {
+      "$value": "70ms",
+      "$type": "duration",
+      "confidence": "high"
+    }
+  }
+}
