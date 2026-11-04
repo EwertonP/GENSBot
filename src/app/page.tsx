@@ -1225,13 +1225,14 @@ export default function Dashboard() {
 
         {/* Top Header Bar — Com Respiro Padronizado e Ações Rápidas (Estilo Imagens de Referência) */}
         <header className="hidden md:flex sticky top-0 z-30 min-h-[64px] py-3 px-6 sm:px-8 items-center justify-between flex-shrink-0 bg-background/90 backdrop-blur-md border-b border-border shadow-2xs">
+          {/* O título grande de cada tela vive no PageHeader; a barra só repete no Dashboard. */}
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-light font-display text-foreground tracking-[-0.02em]">{TELAS[activeTab].titulo}</h2>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {TELAS[activeTab].subtitulo}
-            </p>
+            {activeTab === 'dashboard' && (
+              <>
+                <h2 className="text-xl font-light font-display text-foreground tracking-[-0.02em]">{TELAS[activeTab].titulo}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{TELAS[activeTab].subtitulo}</p>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -1325,7 +1326,7 @@ export default function Dashboard() {
           />
 
           {activeTab !== 'dashboard' && (
-            <PageHeader className="md:hidden" icon={TELAS[activeTab].icon} title={TELAS[activeTab].titulo} />
+            <PageHeader icon={TELAS[activeTab].icon} title={TELAS[activeTab].titulo} description={TELAS[activeTab].subtitulo} />
           )}
 
           <motion.div

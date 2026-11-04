@@ -256,7 +256,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
     <div className="flex flex-col gap-6 animate-fade-in max-w-6xl mx-auto pb-12">
       {/* Header com Ação de Criar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-        <div className="max-md:hidden">
+        <div className="hidden">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest font-mono">
             Administração · Multi-membros
           </span>
