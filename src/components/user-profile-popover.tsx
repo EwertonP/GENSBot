@@ -4,7 +4,6 @@ import { Tip } from '@/components/ui/tooltip';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   User,
-  Users2,
   HelpCircle,
   LogOut,
   ChevronDown,
@@ -277,20 +276,6 @@ export default function UserProfilePopover({
                 <User className="w-4 h-4 text-primary" />
                 <span>Minha Conta & Foto de Perfil</span>
               </button>
-
-              {onNavigate && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    onNavigate('equipe');
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
-                >
-                  <Users2 className="w-4 h-4 text-muted-foreground" />
-                  <span>Equipe & Sócios</span>
-                </button>
-              )}
             </div>
 
             <div className="my-1.5 border-t border-border/60" />
