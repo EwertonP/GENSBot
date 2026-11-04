@@ -1318,8 +1318,7 @@ export default function Dashboard() {
         <main aria-busy={trocandoConta} className="flex-1 p-4 sm:p-6 md:p-8 max-md:pb-[calc(7.5rem+env(safe-area-inset-bottom))] bg-background max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px] w-full mx-auto space-y-6">
           {/* Entrada só com opacidade e sem esperar a saída da tela anterior: a troca
               é imediata (interrompível) e, com "reduzir movimento", segue sendo só fade. */}
-          <p className="md:hidden -mt-1 text-sm text-muted-foreground">{TELAS[activeTab].subtitulo}</p>
-
+          
           {/* Barra de Contexto Global Ativo (Agência vs Cliente Selecionado) */}
           <WorkspaceContextBar
             workspace={workspaceAtivo}

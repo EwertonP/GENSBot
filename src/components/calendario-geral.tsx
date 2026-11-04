@@ -1,4 +1,5 @@
 'use client';
+import { FilterBar } from '@/components/ui/filter-bar';
 import { DatePicker } from '@/components/ui/date-picker';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -298,7 +299,7 @@ export default function CalendarioGeral({
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
       {/* 1. Header do Calendário (Estilo Manageko & Datewise) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+        <div className="max-md:hidden">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest font-mono">
             Visão Geral da Agência
           </span>
@@ -310,13 +311,13 @@ export default function CalendarioGeral({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto max-md:w-full max-md:flex-col max-md:items-stretch">
           {/* Alternador de Modo de Exibição (Pill Tabs Verde GENS) */}
-          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border">
+          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border max-md:grid max-md:grid-cols-3">
             <button
               type="button"
               onClick={() => setViewMode('mes')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
+              className={`px-3 py-1 max-md:h-10 max-md:text-sm rounded-lg text-xs font-bold transition-ui cursor-pointer ${
                 viewMode === 'mes'
                   ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
@@ -327,7 +328,7 @@ export default function CalendarioGeral({
             <button
               type="button"
               onClick={() => setViewMode('semana')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
+              className={`px-3 py-1 max-md:h-10 max-md:text-sm rounded-lg text-xs font-bold transition-ui cursor-pointer ${
                 viewMode === 'semana'
                   ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
@@ -338,7 +339,7 @@ export default function CalendarioGeral({
             <button
               type="button"
               onClick={() => setViewMode('dia')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
+              className={`px-3 py-1 max-md:h-10 max-md:text-sm rounded-lg text-xs font-bold transition-ui cursor-pointer ${
                 viewMode === 'dia'
                   ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
@@ -349,11 +350,11 @@ export default function CalendarioGeral({
           </div>
 
           {/* Navegação de Mês & Botão Hoje */}
-          <div className="flex items-center gap-1.5 bg-accent/60 p-1 rounded-xl border border-border shadow-2xs">
+          <div className="flex items-center gap-1.5 bg-accent/60 p-1 rounded-xl border border-border shadow-2xs max-md:w-full max-md:justify-between">
             <button
               type="button"
               onClick={() => mudarMes(-1)}
-              className="p-1.5 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-ui cursor-pointer"
+              className="p-1.5 max-md:size-11 max-md:grid max-md:place-items-center rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-ui cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -361,19 +362,19 @@ export default function CalendarioGeral({
             <button
               type="button"
               onClick={irParaHoje}
-              className="px-2.5 py-1 text-xs font-bold rounded-lg bg-card text-foreground hover:bg-accent border border-border shadow-2xs cursor-pointer"
+              className="px-2.5 py-1 max-md:h-10 max-md:text-sm text-xs font-bold rounded-lg bg-card text-foreground hover:bg-accent border border-border shadow-2xs cursor-pointer"
             >
               Hoje
             </button>
 
-            <span className="text-xs font-bold text-foreground px-2 capitalize font-display min-w-[120px] text-center">
+            <span className="text-xs font-bold text-foreground px-2 capitalize font-display min-w-[120px] max-md:min-w-0 max-md:flex-1 text-center">
               {nomeMes}
             </span>
 
             <button
               type="button"
               onClick={() => mudarMes(1)}
-              className="p-1.5 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-ui cursor-pointer"
+              className="p-1.5 max-md:size-11 max-md:grid max-md:place-items-center rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-ui cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -382,48 +383,21 @@ export default function CalendarioGeral({
       </div>
 
       {/* 2. Barra de Filtros */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative">
-          <Search aria-hidden className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input
-            type="search"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar post ou cliente…"
-            aria-label="Buscar no calendário"
-            className="h-9 w-56 rounded-xl border border-input bg-card pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
-          />
-        </div>
-        <Select
-          value={clienteFiltro}
-          onChange={(e) => setClienteFiltro(e.target.value)}
-          className="h-9 text-xs w-48 rounded-xl"
-        >
-          <option value="all">Todos os clientes</option>
-          {clientes.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nome}
-            </option>
-          ))}
-        </Select>
-
-        {membros.length > 0 && (
-          <Select
-            value={responsavelFiltro}
-            onChange={(e) => setResponsavelFiltro(e.target.value)}
-            className="h-9 text-xs w-44 rounded-xl"
-          >
-            <option value="all">Toda a equipe</option>
-            {membros.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.nome}
-              </option>
-            ))}
-          </Select>
-        )}
-
-        <span className="text-xs text-muted-foreground font-mono ml-auto">
-          {itemsFiltrados.length} {itemsFiltrados.length === 1 ? 'postagem' : 'postagens'} no mês · arraste um post para outro dia para reagendar
+      <div className="flex flex-col gap-2">
+        <FilterBar
+          busca={busca}
+          onBusca={setBusca}
+          placeholder="Buscar post ou cliente…"
+          filtros={[
+            { id: 'cliente', rotulo: 'Cliente', valor: clienteFiltro, onChange: setClienteFiltro, opcoes: [{ valor: 'all', rotulo: 'Todos os clientes' }, ...clientes.map((c) => ({ valor: c.id, rotulo: c.nome }))] },
+            ...(membros.length > 0
+              ? [{ id: 'equipe', rotulo: 'Equipe', valor: responsavelFiltro, onChange: setResponsavelFiltro, opcoes: [{ valor: 'all', rotulo: 'Toda a equipe' }, ...membros.map((m) => ({ valor: m.id, rotulo: m.nome }))] }]
+              : []),
+          ]}
+        />
+        <span className="text-xs text-muted-foreground md:ml-auto">
+          {itemsFiltrados.length} {itemsFiltrados.length === 1 ? 'postagem' : 'postagens'} no mês
+          <span className="max-md:hidden"> · arraste um post para outro dia para reagendar</span>
         </span>
       </div>
 
