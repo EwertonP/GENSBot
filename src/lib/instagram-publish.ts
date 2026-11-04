@@ -98,23 +98,65 @@ export function mensagemColaboradoresInvalidos(nomes: string[]): string {
   return `A Meta recusou ${nomes.length > 1 ? 'os colaboradores' : 'o colaborador'} ${lista}: o perfil é privado ou o @ está errado. Só perfis públicos podem ser colaboradores. Remova ${nomes.length > 1 ? 'esses @' : 'esse @'} e tente de novo.`;
 }
 
+/** Tentativas extras quando a Meta devolve erro transitório (código 2 / is_transient / 5xx). */
+const RETRIES_TRANSITORIO = 2;
+const PAUSA_RETRY_MS = 1_500;
+
+const ETAPAS: Record<string, string> = {
+  media: 'criar container',
+  media_publish: 'publicar',
+};
+
+/** Nome curto do passo da Graph API a partir da URL, para diagnóstico. */
+function etapaDaUrl(url: string): string {
+  const caminho = url.split('?')[0];
+  const ultimo = caminho.split('/').pop() || '';
+  return ETAPAS[ultimo] || (/^\d+$/.test(ultimo) ? 'consultar status' : ultimo);
+}
+
 async function graphFetch(url: string, options?: RequestInit) {
-  const res = await fetch(url, options);
-  const data = await res.json();
-  if (!res.ok) {
+  const etapa = etapaDaUrl(url);
+  let ultimoErro: unknown;
+
+  for (let tentativa = 0; tentativa <= RETRIES_TRANSITORIO; tentativa++) {
+    if (tentativa > 0) await new Promise((r) => setTimeout(r, PAUSA_RETRY_MS * tentativa));
+
+    let res: Response;
+    let data: any;
+    try {
+      res = await fetch(url, options);
+      data = await res.json().catch(() => ({}));
+    } catch (err) {
+      // falha de rede: também vale tentar de novo
+      ultimoErro = err;
+      continue;
+    }
+
+    if (res.ok) return data;
+
     const erro = data.error || {};
     const raw: string = erro.message || `Erro na Graph API (${res.status}).`;
     const invalidos =
       erro.error_subcode === SUBCODE_COLABORADOR_INVALIDO ? extrairColaboradoresInvalidos(erro.error_user_msg) : [];
     const amigavel = erro.error_subcode === SUBCODE_COLABORADOR_INVALIDO ? mensagemColaboradoresInvalidos(invalidos) : raw;
-    throw new MetaApiError(amigavel, {
-      rawMessage: raw,
-      code: erro.code,
-      subcode: erro.error_subcode,
-      colaboradoresInvalidos: invalidos,
-    });
+    const transitorio = erro.is_transient === true || erro.code === 2 || res.status >= 500;
+
+    const detalhes = [
+      `passo: ${etapa}`,
+      erro.code != null ? `código ${erro.code}` : null,
+      erro.error_subcode != null ? `subcódigo ${erro.error_subcode}` : null,
+      erro.fbtrace_id ? `trace ${erro.fbtrace_id}` : null,
+      tentativa > 0 ? `${tentativa + 1} tentativas` : null,
+    ].filter(Boolean);
+    console.error(`Meta Graph API falhou (${detalhes.join(', ')}): ${raw}`);
+
+    ultimoErro = new MetaApiError(
+      erro.error_subcode === SUBCODE_COLABORADOR_INVALIDO ? amigavel : `${amigavel} [${detalhes.join(', ')}]`,
+      { rawMessage: raw, code: erro.code, subcode: erro.error_subcode, colaboradoresInvalidos: invalidos }
+    );
+    if (!transitorio) throw ultimoErro;
   }
-  return data;
+  throw ultimoErro;
 }
 
 /**
