@@ -4,6 +4,9 @@ import { supabase as serviceSupabase } from '@/lib/supabase';
 import { normalizarAdAccountId, obterMetricasConta } from '@/lib/meta-ads/client';
 
 async function obterTokenMeta(): Promise<string | null> {
+  if (process.env.META_ADS_ACCESS_TOKEN) {
+    return process.env.META_ADS_ACCESS_TOKEN;
+  }
   const { data } = await serviceSupabase
     .from('instagram_accounts')
     .select('access_token')

@@ -16,6 +16,9 @@ export function conectarContaInstagram(clienteId?: string | null) {
     'instagram_business_manage_comments',
     'instagram_business_manage_insights',
     'instagram_business_content_publish',
+    'ads_read',
+    'ads_management',
+    'business_management',
   ].join(',');
 
   let stateParam = '';

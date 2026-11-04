@@ -9,6 +9,20 @@ export async function GET() {
   if (!ctx.ok) return ctx.response;
 
   try {
+    const contasEncontradas = new Map<string, MetaAdAccount & { tokenFonteId: string }>();
+
+    // 0. Se houver um token mestre de Sistema da agência configurado
+    if (process.env.META_ADS_ACCESS_TOKEN) {
+      try {
+        const adsList = await listarContasAnuncios(process.env.META_ADS_ACCESS_TOKEN);
+        for (const ad of adsList) {
+          contasEncontradas.set(ad.id, { ...ad, tokenFonteId: 'system_token' });
+        }
+      } catch (err: any) {
+        console.warn('[Meta Ads] Token META_ADS_ACCESS_TOKEN falhou:', err.message);
+      }
+    }
+
     // 1. Busca tokens Meta disponíveis da agência
     const { data: contasMeta, error: errContas } = await serviceSupabase
       .from('instagram_accounts')
@@ -18,7 +32,7 @@ export async function GET() {
 
     if (errContas) throw errContas;
 
-    if (!contasMeta || contasMeta.length === 0) {
+    if ((!contasMeta || contasMeta.length === 0) && contasEncontradas.size === 0) {
       return NextResponse.json({
         ok: true,
         accounts: [],
@@ -26,9 +40,7 @@ export async function GET() {
       });
     }
 
-    const contasEncontradas = new Map<string, MetaAdAccount & { tokenFonteId: string }>();
-
-    for (const c of contasMeta) {
+    for (const c of contasMeta || []) {
       if (!c.access_token) continue;
       try {
         const adsList = await listarContasAnuncios(c.access_token);
