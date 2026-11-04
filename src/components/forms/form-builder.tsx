@@ -319,7 +319,7 @@ export default function FormBuilder({ formId, onBack, clientes = [] }: FormBuild
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-68px)] bg-background overflow-hidden font-sans">
+    <div className="flex flex-col h-[calc(100dvh-68px)] bg-background overflow-hidden font-sans">
       {/* Topo do Construtor */}
       <header className="h-14 border-b border-border bg-card px-4 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-3 min-w-0">

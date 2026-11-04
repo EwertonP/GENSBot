@@ -59,6 +59,8 @@ Cada fase é um PR (ou poucos), mergeado e testado antes da próxima.
 - Saída: lista ordenada das telas piores. Ela reordena a Fase 2 e a 4 se a medição discordar das estimativas acima.
 
 ### Fase 1, Fundação do shell (o maior retorno)
+
+> **Status 04/11/2026:** implementada na branch `feat/mobile-fundacao` (altura em `dvh`, área segura, `viewport` com tema, barra inferior com Dashboard, Demandas, Calendário, Agendar e Mais, folha de baixo no `Dialog`/`Sheet`, área de toque de 44px em botão, ícone e campo com ponteiro de toque, ações de hover visíveis no toque). Conferido em 375px só numa página de teste; **falta olhar as telas logadas**. Ficou fora: botão "Criar" no topo do celular e o comportamento do botão voltar.
 Mexe em poucos lugares e melhora tudo de uma vez.
 - Altura em `dvh` no shell e nas telas com `calc(100vh-...)`.
 - `viewport-fit=cover`, `theme-color` e variáveis de área segura (`env(safe-area-inset-*)`) na barra superior, na barra inferior e nas folhas.

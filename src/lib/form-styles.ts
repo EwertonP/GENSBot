@@ -5,7 +5,7 @@
  * duplicar a string em cada componente novo.
  */
 export const fieldInputClass =
-  'w-full bg-card border border-input rounded-xl px-3.5 py-2 text-sm ' +
+  'w-full bg-card border border-input rounded-xl px-3.5 py-2 text-sm pointer-coarse:min-h-11 ' +
   'focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/25 ' +
   'text-foreground placeholder:text-muted-foreground shadow-2xs transition-[border-color,box-shadow] duration-150 ' +
   'disabled:opacity-60 disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-destructive/20';

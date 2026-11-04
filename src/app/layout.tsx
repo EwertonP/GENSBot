@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Sora, DM_Sans } from "next/font/google";
 import { MotionConfig } from "motion/react";
 import { AppProviders } from "@/components/app-providers";
@@ -15,6 +15,16 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F6F4EC" },
+    { media: "(prefers-color-scheme: dark)", color: "#00140F" },
+  ],
+};
 
 export const metadata: Metadata = {
   title: "GENSBot — Sistema Unificado Agência GENS",
