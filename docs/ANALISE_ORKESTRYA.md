@@ -95,3 +95,34 @@ Itens 3, 4, 6 e 8 se encaixam direto nas correções da auditoria (PageHeader, b
 - Telas internas não vistas (conta vazia): card de demanda aberto, ficha de cliente, proposta, contrato, plano de mídia, mapa mental, Comunicação.
 - Tema escuro do Orkestrya só lido pelos tokens, não visto em tela.
 - Largura desktop (>1024px) não analisada; tudo foi medido em ~500px.
+
+---
+
+# Parte 4: fluxos testados de ponta a ponta (cliente, demanda, aprovação, financeiro)
+
+Testado na conta de teste do Orkestrya, com o cliente "Cliente Teste GENSBot" e a demanda "Post de teste Black Friday" criados por mim.
+
+## Novo cliente (bottom sheet com Salvar/Cancelar fixos embaixo)
+Campos: **foto em modo claro e modo escuro** (com prévia dos dois temas lado a lado), **foto de capa** (1600x400) e **cor de capa**, nome, status (Ativo/Pausado/Inativo/Arquivado), cliente desde, observações, **lembretes automáticos por e-mail** (aprovação parada), contato (pessoa, telefone, e-mail), documento (CNPJ/CPF), endereço, **mensalidade** e **dia de cobrança** ("Gera a mensalidade todo mês em Financeiro, no dia de cobrança"), e o interruptor **Acesso ao Portal do Cliente**.
+- Só o nome é obrigatório. Depois de salvar, o card aparece na grade com Saúde "–" até haver dados.
+- **Efeito em cadeia:** ao salvar R$ 1.500 de mensalidade, o Financeiro passou a mostrar na hora a receita do mês, "Falta receber", resultado previsto e, em dezembro/janeiro, a **projeção** (barras riscadas). Em Lançamentos apareceu "Mensalidade: Cliente Teste GENSBot", categoria Mensalidades, dia 5, com o interruptor "Recebido?".
+
+## Nova demanda e envio para aprovação
+- Criar: título + chips; escolher **Cliente** num menu (Nenhum / clientes); legenda; Salvar. O card entra na coluna Pauta com avatar do cliente.
+- **"Enviar post para aprovação"** abre um sheet próprio: **Anexos** (mídia ou Google Drive), Cliente, **Projeto**, **Legenda** (com "Legendas padrão"), **Programação da publicação** ("Não programar" por padrão: o cliente só aprova; a publicação é agendada depois), e **"Depois da resposta do cliente"**: para cada resposta (**Aprovado / Alteração pedida / Reprovado**) escolhe-se a coluna de destino do quadro ("Não mover" por padrão) e se marca com etiquetas.
+- **Validação:** sem mídia o botão Enviar recusa com "Envie ao menos uma imagem, um vídeo ou um link do Drive". Não consegui anexar arquivo, então o envio em si não foi concluído.
+
+## Agendar post (Social)
+Página própria "Novo agendamento" ("sem passar pelo quadro de demandas"), com blocos: **Cliente e rede**, **Conteúdo** (título opcional, legenda, legendas padrão, emoji, mídia), **Quando publicar** (atalhos "Daqui a 1 hora / Hoje às 18h / Amanhã às 9h / Amanhã às 18h" + calendário). Barra fixa: Confirmar agendamento / Cancelar. Não concluí porque não há rede social conectada na conta.
+
+## Financeiro: Novo lançamento
+Alternador **Despesa | Receita**, valor grande, descrição, **conta** e **categoria**, data com atalho **"Já foi recebido/pago"**, **repetição** (não repete e recorrências), e "Mais opções": vínculo (cliente/projeto), etiquetas, status, data do recebimento, **competência**, moeda, pessoa ligada, serviço, nota fiscal, observações.
+- Lançamentos: filtro por mês, abas por tipo (Todas, Recebimentos, Despesas Fixas, Variáveis, Impostos, Pessoas, Transferências), totais (Receitas, Despesas, Saldo), lista agrupada por mês com ações por linha.
+- **Mais áreas:** A pagar e receber, Agenda, Contas, Cartões, Conciliação, Relatórios, **Cobranças**, Folha da equipe; Cadastros: Categorias, Contatos, Integrações.
+
+## Lições para o GENSBot
+1. **Ligar cliente → Financeiro**: mensalidade e dia de cobrança geram receita recorrente e projeção automaticamente. É o coração do módulo e o que torna o Financeiro útil sem digitação.
+2. **Sheet de aprovação separado** da demanda: anexos obrigatórios, programação opcional e **regras pós-resposta** (mover a demanda de coluna conforme Aprovado / Alteração / Reprovado). O GENSBot já tem aprovação pelo WhatsApp; falta a regra de movimento automático configurável.
+3. **Página de agendamento própria** com atalhos de horário.
+4. **Validação clara antes de enviar** (mídia obrigatória).
+5. Foto do cliente em **dois temas** (claro e escuro), útil porque o GENSBot tem os dois.
