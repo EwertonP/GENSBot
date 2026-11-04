@@ -58,6 +58,7 @@ import { uploadMediaFile } from '@/lib/storage-upload';
 import { MoverEtapaMenu } from '@/components/mover-etapa-menu';
 import { DuplicarMesSheet } from '@/components/esteira-duplicar-mes-sheet';
 import { AprovacaoWhatsappSheet } from '@/components/esteira-aprovacao-whatsapp-sheet';
+import { BotaoFiltros, FiltrosMobile, SeletorEtapaMobile, contarFiltros } from '@/components/esteira-mobile';
 import { DemandaSheet, ETAPAS_PIPELINE, getEtapaIndex } from '@/components/demanda-sheet';
 
 export { ETAPAS_PIPELINE, getEtapaIndex };
@@ -249,6 +250,9 @@ export default function EsteiraTab({
 
   // Notion Sync
   const [sincronizandoNotion, setSincronizandoNotion] = useState(false);
+  // Celular: filtros numa folha e uma etapa por vez (nada rola para o lado).
+  const [filtrosMobileAberto, setFiltrosMobileAberto] = useState(false);
+  const [etapaMobile, setEtapaMobile] = useState<string>('planejamento');
 
   // Carrega clientes, membros e itens
   async function carregarDados() {
@@ -619,21 +623,70 @@ export default function EsteiraTab({
     setDemanda((d) => ({ ...d, aberto: false }));
   }
 
+  async function sincronizarNotion() {
+              setSincronizandoNotion(true);
+              try {
+                const res = await fetch('/api/cron/notion-sync', { method: 'POST' });
+                const text = await res.text();
+                let data: any = {};
+                try {
+                  data = JSON.parse(text);
+                } catch {
+                  data = { error: text };
+                }
+
+                if (res.ok && data.success) {
+                  showToast(`Notion sincronizado! ${data.totalCreated || 0} criados, ${data.totalUpdated || 0} atualizados.`, 'success');
+                  carregarDados();
+                } else {
+                  throw new Error(data.error || data.message || 'Falha ao sincronizar.');
+                }
+              } catch (err: any) {
+                showToast(err.message || 'Erro ao sincronizar com o Notion.', 'error');
+              } finally {
+                setSincronizandoNotion(false);
+              }
+  }
+
   const clienteAtivo = clientes.find((c) => c.id === clienteSelecionado);
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
+      <FiltrosMobile
+        aberto={filtrosMobileAberto}
+        onFechar={() => setFiltrosMobileAberto(false)}
+        clientes={clientes.map((c) => ({ id: c.id, nome: c.nome }))}
+        clienteTravado={!!clienteFiltroId}
+        clienteSelecionado={clienteSelecionado}
+        onCliente={setClienteSelecionado}
+        membros={membros.map((m) => ({ id: m.id, nome: m.nome }))}
+        responsavel={responsavelFiltro}
+        onResponsavel={setResponsavelFiltro}
+        modo={viewMode}
+        onModo={setViewMode}
+        mostrarPublicados={!ocultarPublicados}
+        onMostrarPublicados={(v) => setOcultarPublicados(!v)}
+        totalPublicados={totalPublicados}
+        sincronizando={sincronizandoNotion}
+        onSincronizar={sincronizarNotion}
+      />
       {/* 1. Header de Ações & Filtros em Linha Única */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
           {/* Busca */}
-          <div className="relative w-48 sm:w-56">
+          <div className="relative w-48 sm:w-56 max-md:min-w-0 max-md:flex-1 max-md:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Buscar demandas..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="pl-9 h-9 text-xs"
+              className="pl-9 h-9 text-xs max-md:h-11 max-md:text-sm"
+            />
+          </div>
+          <div className="md:hidden">
+            <BotaoFiltros
+              quantidade={contarFiltros({ clienteSelecionado, clienteTravado: !!clienteFiltroId, responsavel: responsavelFiltro, modo: viewMode })}
+              onClick={() => setFiltrosMobileAberto(true)}
             />
           </div>
 
@@ -642,7 +695,7 @@ export default function EsteiraTab({
             (() => {
               const cAtivo = clientes.find((c) => c.id === clienteFiltroId);
               return (
-                <div className="flex items-center gap-2 px-2.5 py-1 bg-accent/60 rounded-xl border border-border text-xs">
+                <div className="max-md:hidden flex items-center gap-2 px-2.5 py-1 bg-accent/60 rounded-xl border border-border text-xs">
                   <ClienteAvatar
                     nome={cAtivo?.nome || 'Cliente'}
                     cor={cAtivo?.cor}
@@ -659,7 +712,7 @@ export default function EsteiraTab({
             <Select
               value={clienteSelecionado}
               onChange={(e) => setClienteSelecionado(e.target.value)}
-              className="h-9 text-xs w-40 sm:w-44"
+              className="h-9 text-xs w-40 sm:w-44 max-md:hidden"
             >
               <option value="all">Todos os clientes</option>
               {clientes.map((c) => (
@@ -675,7 +728,7 @@ export default function EsteiraTab({
             <Select
               value={responsavelFiltro}
               onChange={(e) => setResponsavelFiltro(e.target.value)}
-              className="h-9 text-xs w-36 sm:w-40"
+              className="h-9 text-xs w-36 sm:w-40 max-md:hidden"
             >
               <option value="all">Toda a equipe</option>
               {membros.map((m) => (
@@ -688,7 +741,7 @@ export default function EsteiraTab({
         </div>
 
         {/* Linha Única de Botões de Ação */}
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
+        <div className="max-md:hidden flex items-center gap-2 flex-wrap shrink-0">
           {/* Seletor de Mês (quando no modo Feed) */}
           {viewMode === 'feed' && (
             <input
@@ -740,30 +793,7 @@ export default function EsteiraTab({
 
           {/* Botão Sincronizar Notion */}
           <Button
-            onClick={async () => {
-              setSincronizandoNotion(true);
-              try {
-                const res = await fetch('/api/cron/notion-sync', { method: 'POST' });
-                const text = await res.text();
-                let data: any = {};
-                try {
-                  data = JSON.parse(text);
-                } catch {
-                  data = { error: text };
-                }
-
-                if (res.ok && data.success) {
-                  showToast(`Notion sincronizado! ${data.totalCreated || 0} criados, ${data.totalUpdated || 0} atualizados.`, 'success');
-                  carregarDados();
-                } else {
-                  throw new Error(data.error || data.message || 'Falha ao sincronizar.');
-                }
-              } catch (err: any) {
-                showToast(err.message || 'Erro ao sincronizar com o Notion.', 'error');
-              } finally {
-                setSincronizandoNotion(false);
-              }
-            }}
+            onClick={sincronizarNotion}
             disabled={sincronizandoNotion}
             variant="outline"
             size="sm"
@@ -941,22 +971,18 @@ export default function EsteiraTab({
       ) : viewMode === 'kanban' ? (
         <>
         {/* No celular, uma coluna por tela: o seletor mostra em que etapa você está e pula direto */}
-        <nav aria-label="Etapas" className="sm:hidden -mx-4 px-4 flex gap-1.5 overflow-x-auto pb-1">
-          {COLUNAS_KANBAN.filter((col) => !ocultarPublicados || col !== 'publicado').map((colStatus) => (
-            <button
-              key={colStatus}
-              type="button"
-              onClick={() => document.getElementById(`coluna-${colStatus}`)?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })}
-              className="shrink-0 h-9 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm font-medium text-foreground active:bg-accent cursor-pointer"
-            >
-              {STATUS_LABELS[colStatus].label}
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === colStatus).length}
-              </span>
-            </button>
-          ))}
-        </nav>
-        <ScrollShadow className="flex gap-4 pb-6 pt-1 select-none snap-x snap-mandatory sm:snap-none">
+        <div className="sm:hidden">
+          <SeletorEtapaMobile
+            etapas={COLUNAS_KANBAN.filter((col) => !ocultarPublicados || col !== 'publicado').map((col) => ({
+              id: col,
+              rotulo: STATUS_LABELS[col].label,
+              total: itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === col).length,
+            }))}
+            atual={etapaMobile}
+            onEscolher={setEtapaMobile}
+          />
+        </div>
+        <ScrollShadow className="flex gap-4 pb-6 pt-1 select-none">
           {COLUNAS_KANBAN.filter((col) => !ocultarPublicados || col !== 'publicado').map((colStatus) => {
             const itensDaColuna = itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === colStatus);
             const info = STATUS_LABELS[colStatus];
@@ -982,7 +1008,7 @@ export default function EsteiraTab({
                   const itemId = e.dataTransfer.getData('text/plain');
                   if (itemId) handleMudarStatus(itemId, colStatus);
                 }}
-                className={`w-[85vw] max-w-80 sm:w-80 snap-start shrink-0 flex flex-col gap-3 p-3 rounded-2xl border transition-all duration-200 min-h-60 sm:min-h-[540px] ${
+                className={`${colStatus === etapaMobile ? '' : 'max-sm:hidden'} max-sm:w-full w-80 snap-start shrink-0 flex flex-col gap-3 p-3 rounded-2xl border transition-all duration-200 min-h-60 sm:min-h-[540px] ${
                   isOver
                     ? 'bg-primary/10 border-primary ring-2 ring-primary/25 shadow-md'
                     : `${colConfig.fundoColuna} ${colConfig.bordaColuna}`

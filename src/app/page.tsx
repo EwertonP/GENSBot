@@ -1169,7 +1169,7 @@ export default function Dashboard() {
 
         {/* Mobile Top Bar */}
         <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-1.5 pt-[calc(0.375rem+env(safe-area-inset-top))] bg-card/90 backdrop-blur-xl border-b border-border">
-          <div className="flex items-center gap-2.5">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Abrir menu de navegação"
@@ -1179,7 +1179,7 @@ export default function Dashboard() {
             </button>
             <span className="text-sm font-semibold font-display text-foreground truncate">{TELAS[activeTab].titulo}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
             <NotificacoesSino onAbrir={abrirNotificacao} />
             <button
               type="button"
