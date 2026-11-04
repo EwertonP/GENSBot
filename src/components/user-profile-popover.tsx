@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ClienteAvatar } from '@/components/cliente-avatar';
+import { NotificacoesPush } from '@/components/notificacoes-push';
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -276,6 +277,7 @@ export default function UserProfilePopover({
                 <User className="w-4 h-4 text-primary" />
                 <span>Minha Conta & Foto de Perfil</span>
               </button>
+              <NotificacoesPush />
             </div>
 
             <div className="my-1.5 border-t border-border/60" />
