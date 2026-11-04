@@ -22,8 +22,9 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     <div
       ref={ref}
       className={cn(
-        'bg-card rounded-2xl border border-border shadow-2xs transition-[border-color,box-shadow,transform] duration-150',
+        'bg-card border border-border shadow-2xs transition-[border-color,box-shadow,transform] duration-150',
         interactive && 'cursor-pointer hover:border-border-strong hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0',
+        padding === 'md' || padding === 'lg' ? 'rounded-3xl' : 'rounded-2xl',
         PADDING[padding],
         className
       )}

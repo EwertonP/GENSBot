@@ -31,7 +31,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       ) : props.type === 'number' ? (
         <NumberStepper id={id} ref={ref} className={className} {...props} />
       ) : (
-        <input id={id} ref={ref} className={cn(fieldInputClass, className)} {...props} />
+        <input id={id} ref={ref} className={cn(fieldInputClass, 'rounded-full px-4', className)} {...props} />
       );
 
     if (!label) return inputEl;

@@ -49,6 +49,7 @@ import { confirmDialog } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/toast';
 import { Tip } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { useAutomationEditor } from '@/hooks/use-automation-editor';
 import { MobileBottomNav } from '@/components/mobile-bottom-nav';
 import { NotificacoesSino } from '@/components/notificacoes-sino';
@@ -998,9 +999,6 @@ export default function Dashboard() {
               ) : (
                 <>
                   <Logo className="h-6.5 w-auto" />
-                  <span className="text-xs font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded border border-border">
-                    2.0
-                  </span>
                 </>
               )}
             </div>
@@ -1177,7 +1175,7 @@ export default function Dashboard() {
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
-            <span className="text-sm font-semibold font-display text-foreground truncate">{TELAS[activeTab].titulo}</span>
+            <Logo className="h-6 w-auto" />
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <NotificacoesSino onAbrir={abrirNotificacao} />
@@ -1229,7 +1227,7 @@ export default function Dashboard() {
         <header className="hidden md:flex sticky top-0 z-30 min-h-[64px] py-3 px-6 sm:px-8 items-center justify-between flex-shrink-0 bg-background/90 backdrop-blur-md border-b border-border shadow-2xs">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold font-display text-foreground tracking-tight">{TELAS[activeTab].titulo}</h2>
+              <h2 className="text-xl font-light font-display text-foreground tracking-[-0.02em]">{TELAS[activeTab].titulo}</h2>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               {TELAS[activeTab].subtitulo}
@@ -1325,6 +1323,10 @@ export default function Dashboard() {
             onTrocarWorkspace={() => navegarPara('clientes')}
             abaAtual={activeTab}
           />
+
+          {activeTab !== 'dashboard' && (
+            <PageHeader className="md:hidden" icon={TELAS[activeTab].icon} title={TELAS[activeTab].titulo} />
+          )}
 
           <motion.div
             key={activeTab}

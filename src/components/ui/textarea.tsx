@@ -10,7 +10,7 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, label, error, id, ...props }, ref) => {
     const textareaEl = (
-      <textarea id={id} ref={ref} className={cn(fieldInputClass, className)} {...props} />
+      <textarea id={id} ref={ref} className={cn(fieldInputClass, 'rounded-2xl', className)} {...props} />
     );
 
     if (!label) return textareaEl;

@@ -49,7 +49,7 @@ const normalize = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, 
 
 const triggerClass = cn(
   'group/select flex w-full items-center justify-between gap-2 text-left',
-  'bg-card border border-input rounded-xl px-3.5 py-2 text-sm text-foreground shadow-2xs',
+  'bg-card border border-input rounded-full px-4 py-2 text-sm text-foreground shadow-2xs',
   'transition-[border-color,box-shadow,background-color] duration-150',
   'hover:border-border-strong hover:bg-muted/40',
   'focus-visible:outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25',
