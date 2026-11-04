@@ -181,7 +181,7 @@ export function AudioPickerModal({
         onClose();
       }}
       aria-label="Explorar Músicas em Alta no Instagram"
-      className="w-full max-w-2xl bg-card border-border shadow-2xl flex flex-col max-h-[85vh] rounded-3xl overflow-hidden"
+      className="w-full max-w-2xl bg-card border-border shadow-2xl flex flex-col max-h-[85dvh] rounded-3xl overflow-hidden"
     >
       {/* Header com Título & Fechar */}
       <div className="p-5 pb-3 border-b border-border flex items-start justify-between gap-3 bg-card/60 backdrop-blur-md">

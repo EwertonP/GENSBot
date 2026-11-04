@@ -127,7 +127,7 @@ export default function CrmNovoNegocioModal({
       aria-label="Nova Oportunidade no CRM"
       className="max-w-xl w-full"
     >
-      <form onSubmit={handleSubmit} className="flex flex-col max-h-[90vh]">
+      <form onSubmit={handleSubmit} className="flex flex-col max-h-[90dvh]">
         {/* Header */}
         <div className="p-5 border-b border-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">

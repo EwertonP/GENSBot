@@ -103,7 +103,7 @@ export default function FeedAprovacaoPage() {
 
   if (carregando) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
+      <div className="min-h-dvh bg-background text-foreground flex flex-col items-center justify-center p-4">
         <Spinner size="lg" className="text-foreground" />
         <p className="text-xs text-muted-foreground mt-4 font-mono">Carregando feed no Instagram...</p>
       </div>
@@ -112,7 +112,7 @@ export default function FeedAprovacaoPage() {
 
   if (erro || !cliente) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 text-center">
+      <div className="min-h-dvh bg-background text-foreground flex flex-col items-center justify-center p-4 text-center">
         <div className="w-12 h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-3">
           <X className="w-6 h-6" />
         </div>
@@ -130,7 +130,7 @@ export default function FeedAprovacaoPage() {
   const pendentesAprovacao = posts.filter((p) => p.status === 'revisao_cliente').length;
 
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased flex flex-col font-sans">
+    <div className="min-h-dvh bg-background text-foreground antialiased flex flex-col font-sans">
       {/* 1. Barra de Topo da Agência GENS */}
       <header className="sticky top-0 z-30 bg-card text-foreground px-4 py-3 border-b border-border shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -301,7 +301,7 @@ export default function FeedAprovacaoPage() {
       <Sheet open={!!postSelecionado} onClose={() => setPostSelecionado(null)} aria-label="Detalhes da publicação" className="bg-transparent border-0 shadow-none rounded-none overflow-visible max-h-none w-full max-w-3xl">
         {postSelecionado && (
           <div
-            className="bg-card text-foreground border border-border rounded-2xl overflow-hidden max-w-3xl w-full max-h-[90vh] flex flex-col md:flex-row shadow-2xl relative"
+            className="bg-card text-foreground border border-border rounded-2xl overflow-hidden max-w-3xl w-full max-h-[90dvh] flex flex-col md:flex-row shadow-2xl relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Fechar */}

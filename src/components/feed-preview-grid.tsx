@@ -352,7 +352,7 @@ export function FeedPreviewGrid({
       {/* Modal / Drawer do Post Ativo (Navegação Fiel ao Portal do Cliente) */}
       <Sheet open={!!postAtivo} onClose={() => setPostAtivo(null)} aria-label="Detalhes da publicação" className="bg-transparent border-0 shadow-none rounded-none overflow-visible max-h-none w-full max-w-4xl">
         {postAtivo && (
-          <div className="w-full max-w-4xl bg-card border border-border rounded-3xl overflow-hidden shadow-2xl grid grid-cols-1 lg:grid-cols-12 max-h-[90vh] relative animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-4xl bg-card border border-border rounded-3xl overflow-hidden shadow-2xl grid grid-cols-1 lg:grid-cols-12 max-h-[90dvh] relative animate-in zoom-in-95 duration-200">
             <button
               type="button"
               onClick={() => setPostAtivo(null)}

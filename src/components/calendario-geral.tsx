@@ -667,7 +667,7 @@ export default function CalendarioGeral({
       {/* 4. Modal 2 Colunas de Detalhes da Demanda (Trello Style) */}
       <Sheet open={!!itemModal} onClose={() => setItemModal(null)} className="max-w-4xl w-full p-0">
         {itemModal && (
-          <div className="flex flex-col max-h-[85vh]">
+          <div className="flex flex-col max-h-[85dvh]">
             {/* Modal Header */}
             <div className="p-5 border-b border-border flex items-center justify-between bg-accent/30">
               <div className="flex items-center gap-3">

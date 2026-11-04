@@ -46,7 +46,7 @@ export default async function FormPage({ params }: PageProps) {
   // Se não estiver publicado, mostra tela de formulário indisponível
   if (!form.publicado) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-background font-sans">
+      <div className="min-h-dvh flex flex-col items-center justify-center p-6 text-center bg-background font-sans">
         <div className="max-w-md w-full bg-card p-8 rounded-3xl border border-border shadow-sm space-y-4">
           <span className="text-4xl">🔒</span>
           <h1 className="text-2xl font-bold text-foreground">{form.titulo}</h1>

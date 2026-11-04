@@ -58,7 +58,7 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+      <div className="min-h-dvh bg-background flex items-center justify-center p-4 relative">
         <div className="w-full max-w-md text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/30 shadow-lg shadow-primary/20 mb-5 text-primary-foreground">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
@@ -81,7 +81,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+    <div className="min-h-dvh bg-background flex items-center justify-center p-4 relative">
       <div className="w-full max-w-md">
 
         {/* Logo & Brand */}

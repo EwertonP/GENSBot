@@ -49,7 +49,7 @@ export default async function AutorizarPage({ searchParams }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center p-4">
+    <main className="min-h-dvh bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md flex flex-col gap-6">
         <div className="flex justify-center">
           <Logo />
@@ -106,7 +106,7 @@ export default async function AutorizarPage({ searchParams }: Props) {
 
 function Mensagem({ titulo, texto }: { titulo: string; texto: string }) {
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center p-4">
+    <main className="min-h-dvh bg-background flex items-center justify-center p-4">
       <section className="w-full max-w-md rounded-2xl border border-border bg-card p-6 flex flex-col gap-2">
         <h1 className="text-lg font-bold font-display text-foreground">{titulo}</h1>
         <p className="text-sm text-muted-foreground">{texto}</p>

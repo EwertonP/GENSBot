@@ -540,7 +540,7 @@ export function DemandaSheet({
             if (!salvando) e.currentTarget.requestSubmit();
           }
         }}
-        className="flex flex-col max-h-[92vh] w-full bg-card rounded-[32px] overflow-hidden"
+        className="flex flex-col max-h-[92dvh] w-full bg-card rounded-[32px] max-sm:rounded-b-none overflow-hidden"
       >
         {/* 1. Cabeçalho: contexto + etapa + ações; título em linha própria */}
         <div className="px-4 sm:px-6 pt-4 pb-4 border-b border-border flex flex-col gap-3 bg-card shrink-0">

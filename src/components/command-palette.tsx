@@ -125,7 +125,7 @@ export function CommandPalette({
               <kbd className="hidden sm:inline rounded border border-border-strong bg-muted px-1.5 text-xs text-muted-foreground">Esc</kbd>
             </div>
 
-            <div ref={listaRef} id="command-palette-list" role="listbox" aria-label="Resultados" className="max-h-[min(60vh,420px)] overflow-y-auto p-2">
+            <div ref={listaRef} id="command-palette-list" role="listbox" aria-label="Resultados" className="max-h-[min(60dvh,420px)] overflow-y-auto p-2">
               {filtrados.length === 0 ? (
                 <p className="px-3 py-8 text-center text-sm text-muted-foreground">Nada encontrado para “{busca}”.</p>
               ) : (

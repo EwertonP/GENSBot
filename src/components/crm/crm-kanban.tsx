@@ -93,7 +93,7 @@ export default function CrmKanban({
                   onMoverNegocio(negocioId, estagio.id);
                 }
               }}
-              className={`w-80 snap-start shrink-0 flex flex-col gap-3 p-3.5 rounded-2xl border transition-all duration-200 min-h-[520px] ${
+              className={`w-[85vw] max-w-80 snap-start shrink-0 flex flex-col gap-3 p-3.5 rounded-2xl border transition-all duration-200 min-h-[520px] ${
                 isOver
                   ? 'bg-lime/10 border-primary ring-2 ring-primary/20 shadow-md'
                   : 'bg-accent/25 border-border'
