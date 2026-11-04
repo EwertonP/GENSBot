@@ -134,8 +134,18 @@ export async function GET(req: Request) {
       .eq('agencia_id', membro.agencia_id);
 
     if (mesParam !== 'todos') {
-      // mes_referencia pode ser 'YYYY-MM' ou 'YYYY-MM-01'
-      query = query.like('mes_referencia', `${mesParam}%`);
+      const parts = mesParam.split('-');
+      const ano = parseInt(parts[0], 10);
+      const mes = parseInt(parts[1], 10);
+      if (!isNaN(ano) && !isNaN(mes)) {
+        const inicioMes = `${ano}-${String(mes).padStart(2, '0')}-01`;
+        const proxAno = mes === 12 ? ano + 1 : ano;
+        const proxMes = mes === 12 ? 1 : mes + 1;
+        const inicioProxMes = `${proxAno}-${String(proxMes).padStart(2, '0')}-01`;
+        query = query.gte('mes_referencia', inicioMes).lt('mes_referencia', inicioProxMes);
+      } else {
+        query = query.eq('mes_referencia', mesParam);
+      }
     }
 
     if (clienteIdParam) {
