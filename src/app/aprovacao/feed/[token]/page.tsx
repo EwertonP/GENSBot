@@ -178,7 +178,7 @@ export default function FeedAprovacaoPage() {
                 ) : (
                   <div
                     className="w-20 h-20 sm:w-36 sm:h-36 rounded-full flex items-center justify-center font-bold text-2xl text-white"
-                    style={{ backgroundColor: cliente.cor || '#192313' }}
+                    style={{ backgroundColor: cliente.cor || '#014130' }}
                   >
                     {cliente.nome[0].toUpperCase()}
                   </div>

@@ -14,8 +14,8 @@ const GENS_QR_OPTIONS: Partial<Options> = {
   margin: 8,
   qrOptions: { errorCorrectionLevel: 'H' }, // H tolera o logo cobrindo o centro
   dotsOptions: { type: 'rounded', color: '#0F0F0F' },
-  cornersSquareOptions: { type: 'extra-rounded', color: '#304000' },
-  cornersDotOptions: { type: 'dot', color: '#4D8300' },
+  cornersSquareOptions: { type: 'extra-rounded', color: '#014130' },
+  cornersDotOptions: { type: 'dot', color: '#018B61' },
   backgroundOptions: { color: '#FFFFFF' },
   imageOptions: { margin: 4, imageSize: 0.3, hideBackgroundDots: true },
 };

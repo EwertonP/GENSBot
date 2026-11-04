@@ -398,7 +398,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                     <ClienteAvatar
                       nome={membro.nome}
                       fotoUrl={membro.foto_url}
-                      cor="#192313"
+                      cor="#014130"
                       tamanho="md"
                       className="shrink-0 ring-2 ring-brand-text"
                     />
@@ -533,7 +533,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                 <ClienteAvatar
                   nome={formNome || 'Usuário'}
                   fotoUrl={formFotoUrl}
-                  cor="#192313"
+                  cor="#014130"
                   tamanho="md"
                   className="shrink-0 ring-2 ring-primary"
                 />

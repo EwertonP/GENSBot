@@ -202,13 +202,13 @@ export default function UserProfilePopover({
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="p-[2px] rounded-full bg-gradient-to-tr from-[#d8ff3c] via-emerald-400 to-[#192313] shadow-xs shrink-0 hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+          className="p-[2px] rounded-full bg-gradient-to-tr from-[#00DC94] via-[#018B61] to-[#014130] shadow-xs shrink-0 hover:scale-105 active:scale-95 transition-transform cursor-pointer"
           aria-label="Menu do usuário master"
         >
           <ClienteAvatar
             nome={userName}
             fotoUrl={avatarUrl}
-            cor="#192313"
+            cor="#014130"
             tamanho="sm"
             className="ring-2 ring-background"
           />
@@ -221,11 +221,11 @@ export default function UserProfilePopover({
           aria-label="Menu do usuário master"
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-[2px] rounded-full bg-gradient-to-tr from-[#d8ff3c] via-emerald-400 to-[#192313] shadow-xs shrink-0">
+            <div className="p-[2px] rounded-full bg-gradient-to-tr from-[#00DC94] via-[#018B61] to-[#014130] shadow-xs shrink-0">
               <ClienteAvatar
                 nome={userName}
                 fotoUrl={avatarUrl}
-                cor="#192313"
+                cor="#014130"
                 tamanho="sm"
                 className="ring-2 ring-white dark:ring-background"
               />
@@ -334,7 +334,7 @@ export default function UserProfilePopover({
               <ClienteAvatar
                 nome={editName}
                 fotoUrl={editAvatarUrl}
-                cor="#192313"
+                cor="#014130"
                 tamanho="lg"
                 className="w-16 h-16 rounded-full ring-2 ring-primary"
               />

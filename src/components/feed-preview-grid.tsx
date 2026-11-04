@@ -129,7 +129,7 @@ export function FeedPreviewGrid({
       {/* Topo de Ações da Grade de Feed (idêntico à Imagem 3 de referência) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card/60 p-4 rounded-3xl border border-border shadow-2xs backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#d8ff3c] via-[#55703a] to-[#192313] p-0.5 shadow-2xs">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#00DC94] via-[#018B61] to-[#014130] p-0.5 shadow-2xs">
             <div className="w-full h-full rounded-2xl bg-card flex items-center justify-center text-foreground font-bold font-mono">
               <Grid3X3 className="w-5 h-5 text-primary" />
             </div>
