@@ -51,6 +51,7 @@ import { Tip } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAutomationEditor } from '@/hooks/use-automation-editor';
 import { MobileBottomNav } from '@/components/mobile-bottom-nav';
+import { NotificacoesSino } from '@/components/notificacoes-sino';
 import { TELAS, GRUPOS_MENU, ABAS, abasDoMembro, isAbaId, type AbaId } from '@/components/nav-config';
 import { CommandPalette, type ComandoItem } from '@/components/command-palette';
 
@@ -611,6 +612,16 @@ export default function Dashboard() {
     window.history.replaceState(null, '', url.toString());
   }, [membroPerfil, activeTab, abasVisiveis]);
 
+  const abrirNotificacao = (destino: string) => {
+    try {
+      const u = new URL(destino, window.location.origin);
+      const tab = u.searchParams.get('tab');
+      if (isAbaId(tab)) void navegarPara(tab, { item: u.searchParams.get('item') });
+    } catch {
+      /* caminho inválido: ignora */
+    }
+  };
+
   /**
    * Única porta de navegação entre telas: confere edição não salva, fecha o
    * menu do celular, atualiza a URL (histórico do navegador) e o foco.
@@ -1169,6 +1180,7 @@ export default function Dashboard() {
             <span className="text-sm font-semibold font-display text-foreground truncate">{TELAS[activeTab].titulo}</span>
           </div>
           <div className="flex items-center gap-2">
+            <NotificacoesSino onAbrir={abrirNotificacao} />
             <button
               type="button"
               onClick={() => setPaletteAberta(true)}
@@ -1244,6 +1256,8 @@ export default function Dashboard() {
                 <Search className="w-4 h-4" />
               </button>
             </Tip>
+
+            <NotificacoesSino onAbrir={abrirNotificacao} />
 
             {/* Alternador Simples de Tema (Dark / Light) */}
             <Tip label={theme === 'dark' ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'} side="bottom">

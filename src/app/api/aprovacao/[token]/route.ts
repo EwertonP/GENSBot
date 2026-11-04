@@ -1,3 +1,4 @@
+import { notificar } from '@/lib/notificar';
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import {
@@ -181,6 +182,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
         } else if (acao === 'ajuste') {
           updateNotionPageStatus(updated.notion_page_id, ['Ajuste', 'Ajustes', 'Revisão', 'Revisão Interna', 'Em Revisão']).catch(() => {});
         }
+      });
+    }
+
+    if (acao === 'aprovar' || acao === 'ajuste') {
+      const resp = [updated.responsavel_id, ...(Array.isArray(updated.co_responsaveis_ids) ? updated.co_responsaveis_ids : [])];
+      await notificar(resp, {
+        tipo: acao === 'aprovar' ? 'cliente_aprovou' : 'cliente_pediu_ajuste',
+        titulo: acao === 'aprovar' ? 'Cliente aprovou uma peça' : 'Cliente pediu ajuste',
+        corpo: updated.titulo || 'Publicação',
+        url: `/?tab=esteira&item=${updated.id}`,
       });
     }
 

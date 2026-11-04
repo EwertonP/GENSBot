@@ -1,3 +1,4 @@
+import { notificar } from '@/lib/notificar';
 import { NextResponse } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import {
@@ -175,6 +176,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updates.publicado_em = new Date().toISOString();
     }
 
+    // Quem era o responsável antes, para avisar só quem acabou de receber a demanda.
+    let responsavelAnterior: string | null = null;
+    if ('responsavel_id' in updates) {
+      const { data: ant } = await supabase.from('conteudo_items').select('responsavel_id').eq('id', id).maybeSingle();
+      responsavelAnterior = ant?.responsavel_id ?? null;
+    }
+
     let itemAtual: any = null;
 
     // Se houve alteração de status ou envio de novo comentário, registra no histórico (audit trail)
@@ -294,6 +302,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     if (error) {
       return traduzirErroBanco(error, 'PATCH /api/conteudo/[id]');
+    }
+
+    if (updates.responsavel_id && updates.responsavel_id !== responsavelAnterior) {
+      await notificar(updates.responsavel_id as string, {
+        tipo: 'demanda_atribuida',
+        titulo: 'Demanda atribuída a você',
+        corpo: (data?.titulo as string) || 'Nova demanda',
+        url: `/?tab=esteira&item=${id}`,
+        exceto: membro?.id ?? null,
+      });
     }
 
     // Disparo automático ou reenvio para Aprovação (revisao_cliente)
