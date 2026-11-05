@@ -1,7 +1,7 @@
 'use client';
 
 import { Tip } from '@/components/ui/tooltip';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { Menu } from '@base-ui/react/menu';
 import {
@@ -17,6 +17,11 @@ import {
   Hash,
   Image as ImageIcon,
   ListTodo,
+  Archive,
+  ArrowRightLeft,
+  BookmarkPlus,
+  BookOpen,
+  ExternalLink,
   Maximize2,
   MessageSquare,
   MoreHorizontal,
@@ -277,6 +282,135 @@ export function DemandaSheet({
   const [excluindo, setExcluindo] = useState(false);
   const [novoComentario, setNovoComentario] = useState('');
   const [enviandoComentario, setEnviandoComentario] = useState(false);
+
+  // Modelos de legenda por cliente
+  const [modelosLegenda, setModelosLegenda] = useState<{ id: string; nome: string; texto: string }[]>([]);
+  const [carregandoModelos, setCarregandoModelos] = useState(false);
+
+  const carregarModelosLegenda = useCallback(async () => {
+    if (!clienteId) {
+      setModelosLegenda([]);
+      return;
+    }
+    setCarregandoModelos(true);
+    try {
+      const res = await fetch(`/api/legendas-padrao?cliente_id=${encodeURIComponent(clienteId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setModelosLegenda(data.legendas || []);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar modelos de legenda:', err);
+    } finally {
+      setCarregandoModelos(false);
+    }
+  }, [clienteId]);
+
+  useEffect(() => {
+    carregarModelosLegenda();
+  }, [carregarModelosLegenda]);
+
+  async function handleSalvarLegendaComoPadrao() {
+    if (!legenda.trim()) {
+      showToast('Escreva algo na legenda antes de salvar como padrão.', 'error');
+      return;
+    }
+    if (!clienteId) {
+      showToast('Selecione um cliente para vincular este modelo.', 'error');
+      return;
+    }
+    const nomeModelo = window.prompt('Nome do modelo de legenda (ex: Assinatura Padrão, Hashtags Fixas):');
+    if (!nomeModelo?.trim()) return;
+
+    try {
+      const res = await fetch('/api/legendas-padrao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cliente_id: clienteId,
+          nome: nomeModelo.trim(),
+          texto: legenda.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao salvar modelo');
+      setModelosLegenda((prev) => [data.legenda, ...prev]);
+      showToast('Modelo de legenda salvo para este cliente!', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erro ao salvar modelo.', 'error');
+    }
+  }
+
+  function handleInserirModeloLegenda(textoModelo: string) {
+    if (!textoModelo) return;
+    if (legenda.trim()) {
+      setLegenda((prev) => `${prev.trim()}\n\n${textoModelo}`);
+    } else {
+      setLegenda(textoModelo);
+    }
+    showToast('Modelo inserido na legenda!', 'success');
+  }
+
+  async function handleDuplicar() {
+    if (!item) return;
+    try {
+      const res = await fetch('/api/conteudo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cliente_id: item.cliente_id,
+          tipo: item.tipo,
+          status: 'planejamento',
+          prioridade: item.prioridade,
+          titulo: `(Cópia) ${item.titulo || ''}`.trim(),
+          briefing: item.briefing,
+          briefing_html: item.briefing_html,
+          legenda: item.legenda,
+          responsavel_id: item.responsavel_id,
+          co_responsaveis_ids: item.co_responsaveis_ids,
+          editor_id: item.editor_id,
+          etiquetas_ids: item.etiquetas_ids,
+          arquivos: item.arquivos,
+          cover_url: item.cover_url,
+          checklist: (item.checklist || []).map((c) => ({ ...c, id: crypto.randomUUID(), concluido: false })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao duplicar demanda');
+      onSalvo(data.item, true);
+      showToast('Demanda duplicada com sucesso!', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erro ao duplicar.', 'error');
+    }
+  }
+
+  async function handleArquivar() {
+    if (!item) return;
+    const ok = await confirmDialog({
+      title: 'Arquivar esta demanda?',
+      description: 'A demanda sairá da esteira ativa, mas o histórico e arquivos serão mantidos.',
+      confirmLabel: 'Arquivar demanda',
+    });
+    if (!ok) return;
+    try {
+      const res = await fetch(`/api/conteudo/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ arquivada_em: new Date().toISOString() }),
+      });
+      if (!res.ok) throw new Error('Erro ao arquivar demanda');
+      onExcluido(item.id);
+      showToast('Demanda arquivada da esteira.', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erro ao arquivar.', 'error');
+    }
+  }
+
+  function handleCopiarLinkDemanda() {
+    if (!item) return;
+    const url = `${window.location.origin}/?tab=esteira&item=${item.id}`;
+    copiarTexto(url, 'Link da demanda copiado!', 'Não foi possível copiar o link.');
+  }
 
   // Sincronização do checklist
   async function sincronizarChecklist(novos: ChecklistItem[]) {
@@ -646,6 +780,49 @@ export function DemandaSheet({
           {emoji}
         </button>
       ))}
+      {/* Modelos de legenda do cliente */}
+      {modelosLegenda.length > 0 && (
+        <Menu.Root>
+          <Menu.Trigger
+            type="button"
+            className="px-2 py-0.5 rounded hover:bg-card text-foreground cursor-pointer text-xs font-semibold flex items-center gap-1 transition-colors border border-border/60"
+            aria-label="Modelos de Legenda"
+          >
+            <BookOpen className="w-3 h-3 text-brand-text" />
+            <span>Modelos ({modelosLegenda.length})</span>
+          </Menu.Trigger>
+          <Menu.Portal>
+            <Menu.Positioner side="bottom" align="start" sideOffset={4} className="z-[85]">
+              <Menu.Popup className="min-w-64 max-w-xs rounded-2xl border border-border-strong bg-popover p-1.5 text-popover-foreground shadow-xl outline-none">
+                <p className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Modelos do Cliente</p>
+                {modelosLegenda.map((mod) => (
+                  <Menu.Item
+                    key={mod.id}
+                    onClick={() => handleInserirModeloLegenda(mod.texto)}
+                    className="flex flex-col gap-0.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer outline-none data-highlighted:bg-accent text-left"
+                  >
+                    <span className="font-semibold text-foreground">{mod.nome}</span>
+                    <span className="text-[11px] text-muted-foreground truncate">{mod.texto}</span>
+                  </Menu.Item>
+                ))}
+              </Menu.Popup>
+            </Menu.Positioner>
+          </Menu.Portal>
+        </Menu.Root>
+      )}
+
+      {/* Salvar como modelo padrão */}
+      <button
+        type="button"
+        onClick={handleSalvarLegendaComoPadrao}
+        disabled={!legenda.trim() || !clienteId}
+        className="px-2 py-0.5 rounded hover:bg-card text-foreground cursor-pointer text-xs font-medium flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+        title="Salvar esta legenda como modelo para este cliente"
+      >
+        <BookmarkPlus className="w-3 h-3 text-brand-text" />
+        <span className="hidden sm:inline">Salvar como padrão</span>
+      </button>
+
       <button
         type="button"
         onClick={() => copiarTexto(legenda, 'Legenda copiada.', 'Não foi possível copiar a legenda.')}
@@ -736,22 +913,56 @@ export function DemandaSheet({
                   </Menu.Trigger>
                   <Menu.Portal>
                     <Menu.Positioner side="bottom" align="end" sideOffset={6} className="z-[80]">
-                      <Menu.Popup className="min-w-48 rounded-2xl border border-border-strong bg-popover p-1.5 text-popover-foreground shadow-xl outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0">
+                      <Menu.Popup className="min-w-56 rounded-2xl border border-border-strong bg-popover p-1.5 text-popover-foreground shadow-xl outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0">
+                        <Menu.Item
+                          onClick={handleCopiarLinkDemanda}
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
+                        >
+                          <ExternalLink className="size-3.5 text-muted-foreground" />
+                          <span className="flex-1">Copiar link da demanda</span>
+                        </Menu.Item>
                         <Menu.Item
                           onClick={() => copiarTexto(item.id, 'ID da demanda copiado.', 'Não foi possível copiar o ID.')}
-                          className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
                         >
                           <Copy className="size-3.5 text-muted-foreground" />
                           <span className="flex-1">Copiar ID</span>
                           <span className="font-mono text-xs text-muted-foreground">#{item.id.slice(0, 8)}</span>
                         </Menu.Item>
                         <Menu.Item
+                          onClick={handleDuplicar}
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
+                        >
+                          <Copy className="size-3.5 text-brand-text" />
+                          <span className="flex-1">Duplicar demanda</span>
+                        </Menu.Item>
+                        <Menu.Item
+                          onClick={() => setTrocarClienteAberto(true)}
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
+                        >
+                          <ArrowRightLeft className="size-3.5 text-muted-foreground" />
+                          <span className="flex-1">Mover para outro cliente</span>
+                        </Menu.Item>
+                        <Menu.Item
+                          onClick={handleArquivar}
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
+                        >
+                          <Archive className="size-3.5 text-muted-foreground" />
+                          <span className="flex-1">Arquivar demanda</span>
+                        </Menu.Item>
+                        <Menu.Separator className="my-1 h-px bg-border" />
+                        <Menu.Item
                           onClick={handleExcluir}
-                          className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer outline-none text-destructive data-highlighted:bg-destructive-soft"
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none text-destructive data-highlighted:bg-destructive-soft"
                         >
                           <Trash2 className="size-3.5" />
                           <span>Excluir demanda</span>
                         </Menu.Item>
+                        {item.criado_em && (
+                          <div className="px-2.5 py-1.5 text-[10px] font-mono text-muted-foreground border-t border-border mt-1">
+                            Criada em {new Date(item.criado_em).toLocaleDateString('pt-BR')} às {new Date(item.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
                       </Menu.Popup>
                     </Menu.Positioner>
                   </Menu.Portal>
@@ -1031,9 +1242,11 @@ export function DemandaSheet({
                   </div>
             </section>
 
-            <section aria-label="Checklist" className="flex flex-col gap-2.5">
-            {/* Bloco de Checklist com barra de progresso (Imagem 3) */}
-            <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 shrink-0">
+            {editando && (
+              <>
+                <section aria-label="Checklist" className="flex flex-col gap-2.5">
+                {/* Bloco de Checklist com barra de progresso (Imagem 3) */}
+                <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display">
@@ -1144,7 +1357,6 @@ export function DemandaSheet({
 
             <section aria-label="Comentários" className="flex flex-col gap-2.5">
             {/* Comentários & Alinhamento em balões acolhedores */}
-            {editando ? (
               <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 flex-1 min-h-[180px]">
                 <div className="flex items-center justify-between border-b border-border pb-2">
                   <span className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display">
@@ -1340,13 +1552,10 @@ export function DemandaSheet({
                   </>
                 )}
               </div>
-            ) : (
-              <p className="px-1 text-xs text-muted-foreground">
-                Comentários e histórico ficam disponíveis depois que a demanda é criada.
-              </p>
-            )}
             </section>
-          </div>
+          </>
+        )}
+      </div>
 
           <aside className="lg:col-span-4 flex flex-col gap-4 lg:sticky lg:top-0 lg:self-start">
             {/* Cartão escuro de ação e propriedades */}
