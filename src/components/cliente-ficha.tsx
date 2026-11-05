@@ -959,6 +959,12 @@ export default function ClienteFicha({
       {/* Aba 2: Integrações & Conexões */}
       {abaAtiva === 'integracoes' && (
         <div className="flex flex-col gap-6 animate-in fade-in duration-150">
+          <OnboardingClienteRedesCard
+            clienteId={clienteId}
+            clienteNome={cliente?.nome || nomeInicial}
+            showToast={showToast}
+          />
+
           <ConexaoInstagram
             clienteId={clienteId}
             clienteNome={cliente?.nome || nomeInicial}
@@ -2649,6 +2655,249 @@ function SecaoGoogleCalendar({
         </div>
       )}
     </Secao>
+  );
+}
+
+// ---------------------------------------------------------------- onboarding de redes sociais ---
+
+function OnboardingClienteRedesCard({
+  clienteId,
+  clienteNome,
+  showToast,
+}: {
+  clienteId: string;
+  clienteNome: string;
+  showToast: (message: string, type: 'success' | 'error') => void;
+}) {
+  const [carregando, setCarregando] = useState(true);
+  const [dados, setDados] = useState<any>(null);
+  const [copiado, setCopiado] = useState(false);
+  const [salvandoConvite, setSalvandoConvite] = useState(false);
+
+  async function carregar() {
+    try {
+      setCarregando(true);
+      const res = await fetch(`/api/clientes/${clienteId}/onboarding-link`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao buscar link de onboarding');
+      setDados(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  useEffect(() => {
+    carregar();
+  }, [clienteId]);
+
+  async function toggleConvite(campo: 'convite_instagram_enviado' | 'convite_threads_enviado', valorAtual: boolean) {
+    if (!dados) return;
+    try {
+      setSalvandoConvite(true);
+      const res = await fetch(`/api/clientes/${clienteId}/onboarding-link`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [campo]: !valorAtual }),
+      });
+      if (!res.ok) throw new Error('Falha ao atualizar status de convite');
+      setDados((prev: any) => ({ ...prev, [campo]: !valorAtual }));
+      showToast('Status do convite atualizado!', 'success');
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setSalvandoConvite(false);
+    }
+  }
+
+  function handleCopiar() {
+    if (!dados?.link) return;
+    const url = `${window.location.origin}${dados.link}`;
+    navigator.clipboard.writeText(url);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2500);
+    showToast('Link de conexão copiado para a área de transferência!', 'success');
+  }
+
+  function handleWhatsApp() {
+    if (!dados?.link) return;
+    const url = `${window.location.origin}${dados.link}`;
+    const msg = `Olá, ${clienteNome}! Para sincronizarmos suas publicações e relatórios com segurança, acesse este link oficial para conectar suas redes sociais: ${url}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  return (
+    <Card className="p-6 flex flex-col gap-5 border border-primary/20 bg-card/60 relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-foreground">
+              Link de Onboarding do Cliente (/conectar/[token])
+            </h3>
+            <Badge variant="brand" className="text-[10px] bg-primary/10 border-primary/30 text-foreground font-bold">
+              Autônomo & Seguro
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Envie este link para <strong>{clienteNome}</strong> conectar as próprias contas oficiais de Instagram, Threads e TikTok sem precisar passar login e senha à agência.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={carregar}
+            disabled={carregando}
+            className="h-8 text-xs gap-1"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${carregando ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
+      </div>
+
+      {carregando ? (
+        <div className="p-8 text-center text-xs text-muted-foreground">
+          Carregando informações do link de conexão...
+        </div>
+      ) : dados?.link ? (
+        <div className="space-y-4">
+          {/* Link URL + Ações */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="flex-1 px-3 py-2 rounded-lg bg-background border text-xs font-mono select-all truncate text-foreground">
+              {typeof window !== 'undefined' ? `${window.location.origin}${dados.link}` : dados.link}
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCopiar}
+              className="gap-1.5 shrink-0 h-9"
+            >
+              {copiado ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiado ? 'Copiado' : 'Copiar Link'}
+            </Button>
+
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleWhatsApp}
+              className="gap-1.5 shrink-0 h-9 bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              Enviar no WhatsApp
+            </Button>
+          </div>
+
+          {/* Grid de Informações dos Perfis & Convites */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+            {/* Perfis Informados */}
+            <div className="p-3.5 rounded-xl border bg-background/50 space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Perfis Informados pelo Cliente
+              </span>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Instagram:</span>
+                  <span className="font-semibold">{dados.instagram_username_informado ? `@${dados.instagram_username_informado}` : 'Pendente'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Threads:</span>
+                  <span className="font-semibold">{dados.threads_username_informado ? `@${dados.threads_username_informado}` : 'Pendente'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">TikTok:</span>
+                  <span className="font-semibold">{dados.tiktok_username_informado ? `@${dados.tiktok_username_informado}` : 'Pendente'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Convites de Testador Meta */}
+            <div className="p-3.5 rounded-xl border bg-background/50 space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Convites no Meta Developers
+              </span>
+              <div className="space-y-2 text-xs">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <Checkbox
+                    checked={!!dados.convite_instagram_enviado}
+                    onCheckedChange={() => toggleConvite('convite_instagram_enviado', !!dados.convite_instagram_enviado)}
+                    disabled={salvandoConvite}
+                  />
+                  <span>Instagram Tester enviado</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <Checkbox
+                    checked={!!dados.convite_threads_enviado}
+                    onCheckedChange={() => toggleConvite('convite_threads_enviado', !!dados.convite_threads_enviado)}
+                    disabled={salvandoConvite}
+                  />
+                  <span>Threads Tester enviado</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Status das Conexões */}
+            <div className="p-3.5 rounded-xl border bg-background/50 space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Status das Conexões
+              </span>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Instagram:</span>
+                  {dados.instagram_conectado_em ? (
+                    <span className="text-emerald-600 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Conectado
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Não conectado</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Threads:</span>
+                  {dados.threads_conectado_em ? (
+                    <span className="text-emerald-600 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Conectado
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Não conectado</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">TikTok:</span>
+                  {dados.tiktok_conectado_em ? (
+                    <span className="text-emerald-600 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Conectado
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Não conectado</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {dados.concluido_em && (
+            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                Onboarding finalizado pelo cliente em{' '}
+                <strong>{new Date(dados.concluido_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>.
+              </span>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="p-4 text-xs text-muted-foreground">
+          Não foi possível gerar ou carregar o link de onboarding deste cliente.
+        </div>
+      )}
+    </Card>
   );
 }
 

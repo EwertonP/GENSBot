@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { cacheProfilePicture } from '@/lib/profile-picture';
+import { verificarStateOnboarding } from '@/lib/onboarding-state';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -10,38 +11,75 @@ export async function GET(req: Request) {
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
 
+  // Obter o usuário autenticado via Supabase SSR ou validar onboarding público
+  const stateRaw = searchParams.get('state');
+  const onboardingState = verificarStateOnboarding(stateRaw);
+
+  const redirectError = (msg: string) => {
+    if (onboardingState.valido && onboardingState.onboardingToken) {
+      return NextResponse.redirect(
+        new URL(`/conectar/${encodeURIComponent(onboardingState.onboardingToken)}?error=${encodeURIComponent(msg)}`, req.url)
+      );
+    }
+    return NextResponse.redirect(
+      new URL('/?error=' + encodeURIComponent(msg), req.url)
+    );
+  };
+
   if (error || !code) {
     console.error('Erro no Instagram OAuth:', error, errorDescription);
-    return NextResponse.redirect(
-      new URL('/?error=' + encodeURIComponent(errorDescription || 'Erro ao fazer login'), req.url)
-    );
+    return redirectError(errorDescription || 'Erro ao fazer login no Instagram');
   }
 
-  // Obter o usuário autenticado via Supabase SSR
-  const cookieStore = await cookies();
-  const supabaseAuth = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch { /* Server component */ }
-        },
-      },
+  let userId: string;
+
+  if (onboardingState.valido && onboardingState.onboardingToken) {
+    const { data: linkOnb } = await supabase
+      .from('cliente_onboarding_links')
+      .select('id, agencia_id, cliente_id')
+      .eq('token', onboardingState.onboardingToken)
+      .maybeSingle();
+
+    if (!linkOnb) {
+      return NextResponse.redirect(
+        new URL('/?error=' + encodeURIComponent('Link de onboarding inválido ou expirado.'), req.url)
+      );
     }
-  );
 
-  const { data: { user: authUser } } = await supabaseAuth.auth.getUser();
-  if (!authUser) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    const { data: membroMaster } = await supabase
+      .from('membros')
+      .select('id')
+      .eq('agencia_id', linkOnb.agencia_id)
+      .order('criado_em', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    userId = membroMaster?.id || '00000000-0000-0000-0000-000000000000';
+  } else {
+    const cookieStore = await cookies();
+    const supabaseAuth = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+          setAll: (cookiesToSet) => {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch { /* Server component */ }
+          },
+        },
+      }
+    );
+
+    const { data: { user: authUser } } = await supabaseAuth.auth.getUser();
+    if (!authUser) {
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
+    userId = authUser.id;
   }
-
-  const userId = authUser.id;
 
   const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
   const clientSecret = process.env.INSTAGRAM_APP_SECRET;
@@ -133,13 +171,8 @@ export async function GET(req: Request) {
       .maybeSingle();
 
     if (existingOwner) {
-      return NextResponse.redirect(
-        new URL(
-          '/?error=' + encodeURIComponent(
-            `A conta @${igUsername} do Instagram já está conectada a outro usuário do GENSBot. Desconecte-a lá antes de vincular por aqui.`
-          ),
-          req.url
-        )
+      return redirectError(
+        `A conta @${igUsername} do Instagram já está conectada a outro usuário do GENSBot. Desconecte-a lá antes de vincular por aqui.`
       );
     }
 
@@ -179,8 +212,30 @@ export async function GET(req: Request) {
       console.error('Erro ao assinar webhooks:', subscribeData);
     }
 
-    // 6. Se o OAuth foi disparado a partir da ficha de um cliente, vincula a conta diretamente a ele
-    const stateRaw = searchParams.get('state');
+    // 6. Se o OAuth foi disparado pelo Onboarding Público do Cliente
+    if (onboardingState.valido && onboardingState.onboardingToken && onboardingState.clienteId && savedAccount?.id) {
+      await supabase
+        .from('clientes')
+        .update({ instagram_account_id: savedAccount.id })
+        .eq('id', onboardingState.clienteId);
+
+      await supabase
+        .from('cliente_onboarding_links')
+        .update({
+          instagram_conectado_em: new Date().toISOString(),
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq('token', onboardingState.onboardingToken);
+
+      return NextResponse.redirect(
+        new URL(
+          `/conectar/${encodeURIComponent(onboardingState.onboardingToken)}?sucesso=instagram&account=${encodeURIComponent(igUsername || '')}`,
+          req.url
+        )
+      );
+    }
+
+    // 6.1 Se o OAuth foi disparado a partir da ficha de um cliente interno
     let clienteId: string | null = null;
     if (stateRaw) {
       try {
@@ -211,8 +266,6 @@ export async function GET(req: Request) {
     );
   } catch (err: any) {
     console.error('Erro geral no callback OAuth:', err);
-    return NextResponse.redirect(
-      new URL('/?error=' + encodeURIComponent(err.message || 'Erro de autenticação'), req.url)
-    );
+    return redirectError(err.message || 'Erro de autenticação');
   }
 }

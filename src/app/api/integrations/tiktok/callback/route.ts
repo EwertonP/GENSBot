@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { verificarStateOnboarding } from '@/lib/onboarding-state';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -9,49 +10,64 @@ export async function GET(req: Request) {
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
 
+  const stateRaw = searchParams.get('state');
+  const onboardingState = verificarStateOnboarding(stateRaw);
+
+  const redirectError = (msg: string) => {
+    if (onboardingState.valido && onboardingState.onboardingToken) {
+      return NextResponse.redirect(
+        new URL(
+          `/conectar/${encodeURIComponent(onboardingState.onboardingToken)}?error=${encodeURIComponent(msg)}`,
+          req.url
+        )
+      );
+    }
+    return NextResponse.redirect(
+      new URL('/?error=' + encodeURIComponent(msg), req.url)
+    );
+  };
+
   if (error || !code) {
     console.error('Erro no TikTok OAuth:', error, errorDescription);
-    return NextResponse.redirect(
-      new URL('/?error=' + encodeURIComponent(errorDescription || 'Erro ao conectar conta do TikTok'), req.url)
-    );
+    return redirectError(errorDescription || 'Erro ao conectar conta do TikTok');
   }
 
-  // Verifica usuário autenticado via Supabase SSR
-  const cookieStore = await cookies();
-  const supabaseAuth = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            /* Server component */
-          }
+  // Se não for onboarding público assinado, exige usuário logado via Supabase SSR
+  if (!onboardingState.valido) {
+    const cookieStore = await cookies();
+    const supabaseAuth = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+          setAll: (cookiesToSet) => {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              /* Server component */
+            }
+          },
         },
-      },
+      }
+    );
+
+    const {
+      data: { user: authUser },
+    } = await supabaseAuth.auth.getUser();
+
+    if (!authUser) {
+      return NextResponse.redirect(new URL('/login', req.url));
     }
-  );
-
-  const {
-    data: { user: authUser },
-  } = await supabaseAuth.auth.getUser();
-
-  if (!authUser) {
-    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   const clientKey = process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY;
   const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
 
   if (!clientKey || !clientSecret) {
-    return NextResponse.redirect(
-      new URL('/?error=' + encodeURIComponent('Variáveis NEXT_PUBLIC_TIKTOK_CLIENT_KEY ou TIKTOK_CLIENT_SECRET não configuradas na Vercel.'), req.url)
-    );
+    return redirectError('Variáveis NEXT_PUBLIC_TIKTOK_CLIENT_KEY ou TIKTOK_CLIENT_SECRET não configuradas na Vercel.');
   }
 
   const host = req.headers.get('host');
@@ -113,8 +129,47 @@ export async function GET(req: Request) {
       // Falha não impeditiva na busca de avatar
     }
 
-    // 3. Extrai clienteId do state se presente
-    const stateRaw = searchParams.get('state');
+    // 3. Se for Onboarding Público
+    if (onboardingState.valido && onboardingState.onboardingToken && onboardingState.clienteId) {
+      const { error: saveError } = await supabase.from('social_accounts').upsert(
+        {
+          cliente_id: onboardingState.clienteId,
+          platform: 'tiktok',
+          account_id: open_id,
+          username: username || open_id,
+          display_name: displayName,
+          profile_picture_url: avatarUrl,
+          access_token,
+          refresh_token,
+          token_expires_at: tokenExpiresAt.toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'cliente_id,platform,account_id',
+        }
+      );
+
+      if (saveError) {
+        console.error('Erro ao salvar social_accounts (TikTok):', saveError);
+      }
+
+      await supabase
+        .from('cliente_onboarding_links')
+        .update({
+          tiktok_conectado_em: new Date().toISOString(),
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq('token', onboardingState.onboardingToken);
+
+      return NextResponse.redirect(
+        new URL(
+          `/conectar/${encodeURIComponent(onboardingState.onboardingToken)}?sucesso=tiktok&username=${encodeURIComponent(username || open_id)}`,
+          req.url
+        )
+      );
+    }
+
+    // 3.1 Se state tiver clienteId (dashboard interno)
     let clienteId: string | null = null;
     if (stateRaw) {
       try {
@@ -173,8 +228,6 @@ export async function GET(req: Request) {
     );
   } catch (err: any) {
     console.error('Erro no callback do TikTok:', err);
-    return NextResponse.redirect(
-      new URL('/?error=' + encodeURIComponent(err.message || 'Erro de autenticação no TikTok'), req.url)
-    );
+    return redirectError(err.message || 'Erro de autenticação no TikTok');
   }
 }
