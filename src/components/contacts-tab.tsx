@@ -195,19 +195,6 @@ export default function ContactsTab({ withAccount, showToast, accountKey, readOn
 
   return (
     <Card padding="lg" className="rounded-2xl shadow-sm flex flex-col gap-4 text-foreground">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-title font-bold text-foreground">Audiência</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">Quem entrou nas suas automações. Clique numa pessoa pra ver a ficha completa.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {readOnly && <Badge variant="muted">Somente leitura</Badge>}
-          <Badge variant="muted" className="tabular-nums">
-            {total} contato{total !== 1 ? 's' : ''}
-          </Badge>
-        </div>
-      </div>
-
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-xl">
           <div className="relative flex-1">
@@ -237,6 +224,10 @@ export default function ContactsTab({ withAccount, showToast, accountKey, readOn
           )}
         </div>
         <div className="flex items-center gap-2 justify-end flex-wrap">
+          {readOnly && <Badge variant="muted">Somente leitura</Badge>}
+          <Badge variant="muted" className="tabular-nums">
+            {total} contato{total !== 1 ? 's' : ''}
+          </Badge>
           {selectedContacts.length > 0 && (
             <>
               <Button variant="secondary" size="sm" onClick={() => exportToCsv('contatos_selecionados.csv', selectedContacts, showToast)} className="h-11 sm:h-9">

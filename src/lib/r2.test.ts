@@ -44,7 +44,11 @@ describe('Cloudflare R2 Storage Helper', () => {
       Object.assign(process.env, env);
     }
 
-    const { getPresignedUploadUrl } = await import('./r2');
+    const { getPresignedUploadUrl, isR2Configured } = await import('./r2');
+    if (!isR2Configured() || !process.env.R2_BUCKET_NAME) {
+      console.log('R2 não configurado no ambiente local. Pulando teste de upload real.');
+      return;
+    }
     const testKey = `test-verify-${Date.now()}.txt`;
     const { uploadUrl, publicUrl } = await getPresignedUploadUrl(testKey, 'text/plain');
 

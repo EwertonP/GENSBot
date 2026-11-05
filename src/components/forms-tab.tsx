@@ -267,48 +267,33 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in max-w-6xl mx-auto pb-12 font-sans">
-      {/* Cabeçalho da Tela (Padrão GENSBot DESIGN.md) */}
-      <div className="flex flex-col gap-1">
-        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">
-          Captação & Leads · FORMULÁRIOS
-        </span>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight flex items-center gap-2.5">
-              <span>Formulários Conversacionais</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-foreground font-mono font-bold">
-                {formsFiltrados.length}
-              </span>
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Formulários interativos focados em 1 pergunta por vez para qualificar contatos e salvar direto no CRM.
-            </p>
-          </div>
-
-          <Button
-            type="button"
-            variant="primary"
-            onClick={abrirNovoModal}
-            className="self-start sm:self-auto shrink-0 shadow-xs"
-          >
-            <Plus className="w-4 h-4 mr-1.5" />
-            <span>Novo Formulário</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Barra de Filtro & Busca */}
+      {/* Barra de Filtro, Contagem & Ação */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Buscar por título, cliente ou link..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            className="pl-9 h-10 text-xs rounded-xl"
-          />
+        <div className="flex items-center gap-3 flex-1 max-w-md">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Buscar por título, cliente ou link..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="pl-9 h-10 text-xs rounded-xl"
+            />
+          </div>
+          <span className="text-xs px-2.5 py-1 rounded-full bg-accent border border-border text-foreground font-mono font-bold shrink-0">
+            {formsFiltrados.length} {formsFiltrados.length === 1 ? 'formulário' : 'formulários'}
+          </span>
         </div>
+
+        <Button
+          type="button"
+          variant="primary"
+          onClick={abrirNovoModal}
+          className="self-start sm:self-auto shrink-0 shadow-xs"
+        >
+          <Plus className="w-4 h-4 mr-1.5" />
+          <span>Novo Formulário</span>
+        </Button>
       </div>
 
       {/* Grid de Formulários */}

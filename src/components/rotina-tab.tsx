@@ -419,14 +419,12 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in pb-12">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">Rotina & afazeres</span>
-          <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight">{titulo}</h2>
-          <p className="text-xs text-muted-foreground">
-            Demandas da esteira e tarefas num quadro só. Arrastar uma demanda move a etapa dela na esteira.
-          </p>
+      {/* Toolbar & Contadores de Rotina */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 rounded-full bg-accent border border-border text-xs font-bold font-display text-foreground">
+            {titulo}
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">

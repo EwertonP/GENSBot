@@ -38,7 +38,6 @@ import {
   Download,
 } from 'lucide-react';
 import { toast } from '@/components/ui/toast';
-import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -564,54 +563,6 @@ export function DocumentosTab() {
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-150">
-      {/* Cabeçalho da Tela */}
-      <PageHeader
-        title="Propostas & Contratos"
-        description="Biblioteca com 11 modelos de proposta e 9 de contrato, assinaturas eletrônicas com validade jurídica (MP 2.200-2/2001) e integração com CRM e Financeiro."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setModalAgenciaAberto(true)}
-              className="gap-2 h-9 rounded-full text-xs font-semibold border-border bg-card text-foreground hover:bg-muted"
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              <span>Dados da Agência</span>
-              {!agenciaCompleta && (
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              )}
-            </Button>
-
-            {subAba === 'propostas' && (
-              <Button
-                onClick={() => {
-                  selecionarModeloProposta(modelos.find((m) => m.tipo === 'proposta') || MODELOS_PROPOSTAS_PADRAO[0] as unknown as ModeloDocumento);
-                  setModalNovaPropostaAberto(true);
-                }}
-                className="gap-1.5 h-9 rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nova Proposta</span>
-              </Button>
-            )}
-
-            {subAba === 'contratos' && (
-              <Button
-                onClick={() => {
-                  selecionarModeloContrato(modelos.find((m) => m.tipo === 'contrato') || MODELOS_CONTRATOS_PADRAO[0] as unknown as ModeloDocumento);
-                  setModalNovoContratoAberto(true);
-                }}
-                className="gap-1.5 h-9 rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Novo Contrato</span>
-              </Button>
-            )}
-          </div>
-        }
-      />
-
       {/* Banner de Dados da Agência Incompletos */}
       {!agenciaCompleta && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-800 dark:text-amber-200">
@@ -700,12 +651,12 @@ export function DocumentosTab() {
         </div>
       </div>
 
-      {/* Navegação por SubAbas */}
-      <div className="flex items-center justify-between border-b border-border pb-3 flex-wrap gap-3">
-        <div className="flex items-center gap-1.5 bg-muted p-1 rounded-full border border-border">
+      {/* Navegação por SubAbas & Ações Principais */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-border pb-3 gap-3">
+        <div className="flex items-center gap-1.5 bg-muted p-1 rounded-full border border-border w-fit overflow-x-auto max-w-full">
           <button
             onClick={() => setSubAba('propostas')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               subAba === 'propostas'
                 ? 'bg-primary text-primary-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
@@ -715,7 +666,7 @@ export function DocumentosTab() {
           </button>
           <button
             onClick={() => setSubAba('contratos')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               subAba === 'contratos'
                 ? 'bg-primary text-primary-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
@@ -725,7 +676,7 @@ export function DocumentosTab() {
           </button>
           <button
             onClick={() => setSubAba('modelos')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               subAba === 'modelos'
                 ? 'bg-primary text-primary-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
@@ -735,16 +686,57 @@ export function DocumentosTab() {
           </button>
         </div>
 
-        {/* Campo de Busca Rápida */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por título ou cliente..."
-            className="w-full h-9 pl-9 pr-4 rounded-full border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Campo de Busca Rápida */}
+          <div className="relative w-full sm:w-56">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por título ou cliente..."
+              className="w-full h-9 pl-9 pr-4 rounded-full border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setModalAgenciaAberto(true)}
+            className="gap-2 h-9 rounded-full text-xs font-semibold border-border bg-card text-foreground hover:bg-muted"
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>Dados da Agência</span>
+            {!agenciaCompleta && (
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </Button>
+
+          {subAba === 'propostas' && (
+            <Button
+              onClick={() => {
+                selecionarModeloProposta(modelos.find((m) => m.tipo === 'proposta') || MODELOS_PROPOSTAS_PADRAO[0] as unknown as ModeloDocumento);
+                setModalNovaPropostaAberto(true);
+              }}
+              className="gap-1.5 h-9 rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-2xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nova Proposta</span>
+            </Button>
+          )}
+
+          {subAba === 'contratos' && (
+            <Button
+              onClick={() => {
+                selecionarModeloContrato(modelos.find((m) => m.tipo === 'contrato') || MODELOS_CONTRATOS_PADRAO[0] as unknown as ModeloDocumento);
+                setModalNovoContratoAberto(true);
+              }}
+              className="gap-1.5 h-9 rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-2xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Novo Contrato</span>
+            </Button>
+          )}
         </div>
       </div>
 
