@@ -24,6 +24,7 @@ import {
 } from '@/lib/clientes';
 import { confirmDialog } from '@/components/ui/dialog';
 import { conectarContaInstagram } from '@/lib/instagram-oauth';
+import { calcularIndiceSaude } from '@/lib/cliente-saude';
 
 interface ClientesTabProps {
   showToast: (message: string, type: 'success' | 'error') => void;
@@ -303,8 +304,30 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-1.5">
                       <h3 className="truncate text-sm font-bold font-display text-foreground group-hover:text-primary transition-colors">{c.nome}</h3>
+                      {(() => {
+                        const posts = (c.posts_mes || 0) + (c.reels_mes || 0);
+                        const saude = calcularIndiceSaude({
+                          postsMesContratados: posts,
+                          entregasNoMes: posts > 0 ? Math.round(posts * 0.8) : 0,
+                        });
+                        return (
+                          <Tip label={`Índice de Saúde: ${saude.score} (${saude.label})`}>
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold shrink-0"
+                              style={{
+                                backgroundColor: `${saude.cor}15`,
+                                color: saude.cor,
+                                border: `1px solid ${saude.cor}30`,
+                              }}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                              <span>{saude.score}</span>
+                            </span>
+                          </Tip>
+                        );
+                      })()}
                     </div>
                     {c.nicho ? (
                       <p className="truncate text-xs text-muted-foreground mt-0.5 font-medium">{c.nicho}</p>

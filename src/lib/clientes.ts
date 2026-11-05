@@ -60,6 +60,20 @@ export interface Cliente {
   whatsapp_notificar_agendamento?: boolean | null;
   token_aprovacao_mes?: string | null;
   onboarding_etapas?: EtapaOnboarding[];
+  persona?: string | null;
+  raio_x?: string | null;
+  posicionamento?: string | null;
+  tom_de_voz?: string | null;
+  paleta_cores?: string[] | null;
+  foto_url_dark?: string | null;
+  cor_capa?: string | null;
+  token_estrategia?: string | null;
+  token_portal?: string | null;
+  regras_aprovacao?: {
+    aprovado_coluna?: string;
+    alteracao_coluna?: string;
+    reprovado_coluna?: string;
+  } | null;
   ativo: boolean;
   criado_em: string;
   atualizado_em: string;
@@ -140,6 +154,16 @@ const CLIENTE_FIELDS: Record<string, Rule> = {
   whatsapp_notificar_agendamento: { kind: 'bool' },
   token_aprovacao_mes: { kind: 'uuid' },
   onboarding_etapas: { kind: 'json' },
+  persona: text(10000),
+  raio_x: text(10000),
+  posicionamento: text(10000),
+  tom_de_voz: text(10000),
+  paleta_cores: { kind: 'json' },
+  foto_url_dark: text(2000),
+  cor_capa: text(100),
+  token_estrategia: text(64),
+  token_portal: text(64),
+  regras_aprovacao: { kind: 'json' },
   notion_database_id: text(200),
   notion_page_id: text(200),
   ativo: { kind: 'bool' },

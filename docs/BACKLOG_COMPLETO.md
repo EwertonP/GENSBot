@@ -99,14 +99,16 @@ O ciclo comercial e jurídico completo foi entregue com fidelidade ao design sys
 
 ---
 
-## 6. Cliente e portal
+## 6. Cliente e portal — [Entregue em 05/11/2026]
 
-- **Ficha do cliente por abas:** Visão geral, Conteúdo, Métricas, Financeiro, Arquivos, Anotações, Acessos. A visão geral resume conteúdo (aguardando aprovação, aprovados, agendados), métricas, demandas, projetos e valores e contrato.
-- **Índice de Saúde (0 a 100):** calculado a partir de atrasos, aprovações paradas, pagamento em dia e frequência de entrega; aparece no card do cliente. Definir a fórmula e documentá-la.
-- **Central Estratégica:** persona, raio-x do perfil, concorrentes, posicionamento de marca, identidade visual; pode ser **compartilhada** por link. Hoje existe dossiê; falta estruturar e compartilhar.
-- **Foto do cliente em dois temas** (claro e escuro) e capa colorida.
-- **Regras de aprovação:** no envio para aprovação, definir para cada resposta do cliente (Aprovado, Alteração pedida, Reprovado) a coluna de destino da demanda e as etiquetas aplicadas. Hoje a aprovação existe pelo WhatsApp; falta o movimento automático configurável e o sheet de aprovação próprio (anexos obrigatórios, programação opcional).
-- **Painel do cliente (portal):** área logada ou por link em que o cliente vê o resumo das demandas visíveis, aprova posts, responde pedidos de informação e acompanha o contrato. É o destino do fim do onboarding.
+A experiência completa de acompanhamento e relacionamento com o cliente foi entregue:
+
+- **Índice de Saúde Operacional (0 a 100):** Fórmula documentada e testada baseada em 100 pontos, penalizando atrasos de demandas (-15 pts cada), aprovações paradas há mais de 48h (-10 pts cada), mensalidades em atraso no Financeiro (-25 pts) e estagnação de postagens (-15 pts), com bonificação por meta mensal atingida (+5 pts). Exibição em badges coloridos no card do cliente e diagnóstico detalhado na ficha.
+- **Ficha do cliente enriquecida por abas:** Visão Geral com widget de saúde e diagnóstico, Central Estratégica, Portal do Cliente & Regras, Integrações & Conexões, Contatos & Acessos, e Meta Ads.
+- **Central Estratégica & Dossiê de Marca:** Campos estruturados para Persona, Raio-X do perfil, Posicionamento, Tom de voz, Concorrentes e cor de capa, com **link público compartilhável** (`/estrategia/[token]`) estilizado no design system GENSBot e pronto para impressão ou leitura externa.
+- **Fotos em dois temas e capa colorida:** Suporte a foto para tema claro e tema escuro (`foto_url_dark`), além de cor de capa personalizada (`cor_capa`).
+- **Regras de aprovação configuráveis:** Seletor de colunas de destino automático para Aprovado (ex: Agendar), Alteração solicitada (ex: Ajustes) e Reprovado (ex: Ideias).
+- **Portal do Cliente (`/portal/[token]`):** Link público sem senha para o cliente final aprovar posts em 1 clique, solicitar ajustes detalhados, responder pedidos de informação enviados pela agência e visualizar o contrato ativo.
 
 ---
 
