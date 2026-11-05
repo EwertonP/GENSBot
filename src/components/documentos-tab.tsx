@@ -35,6 +35,7 @@ import {
   Loader2,
   Ban,
   History,
+  Download,
 } from 'lucide-react';
 import { toast } from '@/components/ui/toast';
 import { PageHeader } from '@/components/ui/page-header';
@@ -1106,6 +1107,16 @@ export function DocumentosTab() {
                           title="Abrir Visualização do Cliente"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+
+                        <a
+                          href={`/api/contratos/${c.id}/pdf`}
+                          download={`contrato-${c.numero || c.id.slice(0, 8)}.pdf`}
+                          className="inline-flex items-center justify-center h-8 px-2.5 rounded-full border border-border text-[11px] font-medium hover:bg-muted text-foreground transition-colors"
+                          title="Baixar PDF Oficial com Evidências"
+                        >
+                          <Download className="w-3.5 h-3.5 mr-1" />
+                          <span>PDF</span>
                         </a>
                       </div>
 

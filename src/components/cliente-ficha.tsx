@@ -40,6 +40,7 @@ import {
   HeartPulse,
   FileSignature,
   FileText,
+  Download,
 } from 'lucide-react';
 import { calcularIndiceSaude, type DiagnosticoSaude } from '@/lib/cliente-saude';
 import { PainelAnuncios } from '@/components/meta-ads/painel-anuncios';
@@ -3059,7 +3060,7 @@ function ClienteDocumentosTab({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2 border-t border-border">
+                  <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
                     <a
                       href={`/contrato/${c.token_publico}`}
                       target="_blank"
@@ -3078,6 +3079,17 @@ function ClienteDocumentosTab({
                       <Copy className="w-3.5 h-3.5" />
                       <span>Link</span>
                     </button>
+                    {assinado && (
+                      <a
+                        href={`/api/contratos/${c.id}/pdf`}
+                        download={`contrato-${c.id.slice(0, 8)}.pdf`}
+                        className="h-8 px-3 rounded-lg border border-border bg-card text-foreground hover:bg-muted text-xs font-semibold flex items-center gap-1 transition-colors"
+                        title="Baixar PDF Oficial com Evidências"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>PDF</span>
+                      </a>
+                    )}
                   </div>
                 </Card>
               );
