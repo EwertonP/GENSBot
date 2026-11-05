@@ -529,6 +529,8 @@ export default function EsteiraTab({
         );
       } else if (data.whatsapp?.jaEnviadoRecentemente) {
         showToast('Demanda em Aprovação (mensagem já disparada recentemente ao WhatsApp).', 'success');
+      } else if (data.whatsapp?.aviso) {
+        showToast('Demanda movida para Aprovação! Você pode copiar o link ou enviar manualmente pelo WhatsApp.', 'success');
       } else if (data.whatsapp?.erro) {
         showToast(
           `Demanda movida para Aprovação, mas houve um aviso no WhatsApp: ${data.whatsapp.erro}`,

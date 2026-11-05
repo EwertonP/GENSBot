@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const followupsPendentes = vi.fn();
 const atualizar = vi.fn();
 const inserirMensagem = vi.fn();
+const obterAgencia = vi.fn();
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
@@ -11,6 +12,11 @@ vi.mock('@/lib/supabase', () => ({
         return {
           select: () => ({ eq: () => ({ lte: () => ({ limit: followupsPendentes }) }) }),
           update: (dados: unknown) => ({ eq: (_c: string, id: string) => atualizar(dados, id) }),
+        };
+      }
+      if (tabela === 'agencias') {
+        return {
+          select: () => ({ eq: () => ({ maybeSingle: obterAgencia }) }),
         };
       }
       return { insert: inserirMensagem };
@@ -47,6 +53,7 @@ describe('GET /api/cron/whatsapp-followup', () => {
     vi.clearAllMocks();
     atualizar.mockResolvedValue({ error: null });
     inserirMensagem.mockResolvedValue({ error: null });
+    obterAgencia.mockResolvedValue({ data: { whatsapp_envio_automatico: true }, error: null });
     vi.mocked(carregarSessoesConectadas).mockResolvedValue([]);
   });
   afterEach(() => vi.unstubAllEnvs());
@@ -89,6 +96,17 @@ describe('GET /api/cron/whatsapp-followup', () => {
     vi.mocked(carregarSessoesConectadas).mockResolvedValue([
       { session_name: 'membro-ana', membro_id: 'ana', cliente_id: null },
     ]);
+
+    await chamar();
+
+    expect(enviarMensagemOpenWA).not.toHaveBeenCalled();
+    expect(atualizar).toHaveBeenCalledWith({ status: 'cancelado' }, 'f1');
+  });
+
+  it('se a agência desativou envio automático, cancela o follow-up sem enviar', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    followupsPendentes.mockResolvedValue({ data: [item({ session_name: 'membro-ana' })], error: null });
+    obterAgencia.mockResolvedValue({ data: { whatsapp_envio_automatico: false }, error: null });
 
     await chamar();
 

@@ -160,4 +160,5 @@ export interface DadosAgenciaContratada {
   chave_pix?: string | null;
   telefone_contato?: string | null;
   email_contato?: string | null;
+  whatsapp_envio_automatico?: boolean;
 }

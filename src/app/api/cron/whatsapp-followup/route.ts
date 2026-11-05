@@ -35,6 +35,18 @@ export async function GET(req: Request) {
     const sessoesPorAgencia = new Map<string, Awaited<ReturnType<typeof carregarSessoesConectadas>>>();
 
     for (const item of followups) {
+      // Verifica se a agência autorizou envio automático
+      const { data: agencia } = await serviceSupabase
+        .from('agencias')
+        .select('whatsapp_envio_automatico')
+        .eq('id', item.agencia_id)
+        .maybeSingle();
+
+      if (!agencia?.whatsapp_envio_automatico) {
+        await serviceSupabase.from('whatsapp_followups').update({ status: 'cancelado' }).eq('id', item.id);
+        continue;
+      }
+
       // Follow-ups novos guardam a sessão que atendeu o lead. Os antigos não têm: usa só a
       // sessão do cliente ou a geral da agência, nunca a pessoal de um membro.
       let sessionName: string | null = item.session_name || null;

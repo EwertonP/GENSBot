@@ -39,7 +39,22 @@ export async function notificarGrupoAprovacaoConteudo({
   jaEnviadoRecentemente?: boolean;
 }> {
   try {
-    // 0. Trava contra disparo duplicado (concorrência / cliques rápidos)
+    // 0. Verifica se o envio automático está ativo nas configurações da agência
+    const { data: agencia } = await serviceSupabase
+      .from('agencias')
+      .select('id, whatsapp_envio_automatico')
+      .eq('id', agenciaId)
+      .maybeSingle();
+
+    if (!agencia?.whatsapp_envio_automatico) {
+      return {
+        ok: true,
+        enviado: false,
+        aviso: 'Envio automático pelo WhatsApp está desativado nas configurações da agência.',
+      };
+    }
+
+    // 0.1 Trava contra disparo duplicado (concorrência / cliques rápidos)
     const chaveDisparo = conteudoId || (tokenAprovacao ? `token:${tokenAprovacao}` : `cli:${clienteId}`);
     const agora = Date.now();
     const ultimoDisparo = ultimosDisparosAprovacao.get(chaveDisparo);
