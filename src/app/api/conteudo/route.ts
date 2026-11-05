@@ -206,6 +206,7 @@ export async function POST(req: Request) {
       prazo,
       responsavel_id,
       co_responsaveis_ids,
+      etiquetas_ids,
       editor_id,
       arquivos = [],
       cover_url,
@@ -238,6 +239,7 @@ export async function POST(req: Request) {
       prazo: prazo || null,
       responsavel_id: responsavel_id || user.id,
       // Só envia a coluna quando veio no pedido (compatível com banco sem a migração).
+      ...(Array.isArray(etiquetas_ids) && etiquetas_ids.length > 0 && { etiquetas_ids: etiquetas_ids.filter((x: unknown) => typeof x === 'string') }),
       ...(co_responsaveis_ids !== undefined && {
         co_responsaveis_ids: normalizarCoResponsaveis(co_responsaveis_ids, responsavel_id || user.id),
       }),

@@ -27,6 +27,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Menu } from '@base-ui/react/menu';
+import { corDaEtiqueta, type Etiqueta } from '@/lib/etiquetas';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -256,6 +257,19 @@ export default function EsteiraTab({
   const [etapaMobile, setEtapaMobile] = useState<string>('planejamento');
 
   // Carrega clientes, membros e itens
+  const [etiquetasLista, setEtiquetasLista] = useState<Etiqueta[]>([]);
+  const etiquetasPorId = useMemo(() => new Map(etiquetasLista.map((e) => [e.id, e])), [etiquetasLista]);
+  useEffect(() => {
+    let vivo = true;
+    fetch('/api/etiquetas')
+      .then((r) => (r.ok ? r.json() : { etiquetas: [] }))
+      .then((c) => vivo && setEtiquetasLista(c.etiquetas ?? []))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [demanda.aberto]);
+
   async function carregarDados() {
     setCarregando(true);
     try {
@@ -1257,6 +1271,19 @@ export default function EsteiraTab({
                           <h4 className="text-sm font-medium italic text-muted-foreground">
                             Demanda sem título
                           </h4>
+                        )}
+
+                        {(item.etiquetas_ids ?? []).length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {(item.etiquetas_ids ?? []).map((eid) => {
+                              const et = etiquetasPorId.get(eid);
+                              return et ? (
+                                <span key={eid} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${corDaEtiqueta(et.cor).chip}`}>
+                                  {et.nome}
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
                         )}
 
                         {/* Preview de Briefing / Nota (Inspiração NovaBoard Img 4) */}

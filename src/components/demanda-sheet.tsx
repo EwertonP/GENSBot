@@ -1,7 +1,7 @@
 'use client';
 
 import { Tip } from '@/components/ui/tooltip';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Menu } from '@base-ui/react/menu';
 import {
@@ -36,6 +36,8 @@ import {
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { EditorRico } from '@/components/ui/editor-rico';
+import { EtiquetasSeletor } from '@/components/etiquetas-seletor';
+import type { CorEtiqueta, Etiqueta } from '@/lib/etiquetas';
 import { conteudoInicial, LIMITE_BRIEFING } from '@/lib/editor-rico';
 import {
   contarHashtags,
@@ -246,6 +248,9 @@ export function DemandaSheet({
   const [prioridade, setPrioridade] = useState<PrioridadeConteudo>(() => item?.prioridade || 'media');
   const [titulo, setTitulo] = useState(() => item?.titulo || '');
   const [briefing, setBriefing] = useState(() => item?.briefing || '');
+  const [abaComent, setAbaComent] = useState<'comentarios' | 'historico' | 'aprovacao'>('comentarios');
+  const [etiquetasIds, setEtiquetasIds] = useState<string[]>(() => item?.etiquetas_ids ?? []);
+  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
   const [briefingHtml, setBriefingHtml] = useState(() => item?.briefing_html || '');
   const [briefingEditado, setBriefingEditado] = useState(false);
   const [legenda, setLegenda] = useState(() => item?.legenda || '');
@@ -347,6 +352,7 @@ export function DemandaSheet({
       dataProgramada !== paraInputData(item.data_programada) ||
       prazoInterno !== paraInputData(item.prazo) ||
       clienteId !== item.cliente_id ||
+      [...etiquetasIds].sort().join() !== [...(item.etiquetas_ids ?? [])].sort().join() ||
       urls.trim() !== '' ||
       (capaUrl || null) !== (item.cover_url || null) ||
       arquivos.map((a) => a.url).join('|') !== (item.arquivos || []).map((a) => a.url).join('|') ||
@@ -355,6 +361,7 @@ export function DemandaSheet({
       briefing.trim() !== '' ||
       legenda.trim() !== '' ||
       checklist.length > 0 ||
+      etiquetasIds.length > 0 ||
       urls.trim() !== '' ||
       arquivos.length > 0 ||
       !!capaUrl ||
@@ -421,6 +428,35 @@ export function DemandaSheet({
     });
   }
 
+  useEffect(() => {
+    let vivo = true;
+    fetch('/api/etiquetas')
+      .then((r) => (r.ok ? r.json() : { etiquetas: [] }))
+      .then((c) => vivo && setEtiquetas(c.etiquetas ?? []))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  async function criarEtiqueta(nome: string, cor: CorEtiqueta): Promise<Etiqueta | null> {
+    const res = await fetch('/api/etiquetas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, cor }) });
+    const corpo = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(corpo.error || 'Não foi possível criar a etiqueta.', 'error');
+      return null;
+    }
+    setEtiquetas((prev) => [...prev, corpo.etiqueta].sort((a, b) => a.nome.localeCompare(b.nome)));
+    return corpo.etiqueta as Etiqueta;
+  }
+
+  async function apagarEtiqueta(id: string) {
+    const res = await fetch(`/api/etiquetas/${id}`, { method: 'DELETE' });
+    if (!res.ok) return showToast('Não foi possível apagar a etiqueta.', 'error');
+    setEtiquetas((prev) => prev.filter((e) => e.id !== id));
+    setEtiquetasIds((prev) => prev.filter((x) => x !== id));
+  }
+
   async function copiarTexto(texto: string, sucesso: string, falha: string) {
     try {
       await navigator.clipboard.writeText(texto);
@@ -481,6 +517,7 @@ export function DemandaSheet({
         legenda: legenda.trim() || null,
         responsavel_id: responsavelId || null,
         co_responsaveis_ids: coResponsaveis.filter((id) => id !== responsavelId),
+        etiquetas_ids: etiquetasIds,
         editor_id: editorId || null,
         // Dia inalterado devolve o valor original: salvar não apaga o horário agendado.
         data_programada: deInputData(dataProgramada, item?.data_programada),
@@ -799,7 +836,9 @@ export function DemandaSheet({
               {PRIORIDADE_CONFIG[prioridade].label}
             </span>
 
-            {/* Só no celular: prazo e responsáveis moram na mesma linha de chips. */}
+            <EtiquetasSeletor etiquetas={etiquetas} selecionadas={etiquetasIds} onChange={setEtiquetasIds} onCriar={criarEtiqueta} onApagar={apagarEtiqueta} />
+
+            {/* Prazo e responsáveis moram na mesma linha de chips. */}
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/60 text-foreground border border-border">
               <Calendar className="w-3 h-3 text-muted-foreground" />
               {prazoInterno
@@ -1119,6 +1158,25 @@ export function DemandaSheet({
                   )}
                 </div>
 
+                <div role="tablist" aria-label="Comentários, histórico e aprovação" className="flex items-center gap-1 rounded-full bg-muted/60 p-1 self-start">
+                  {([['comentarios', 'Comentários'], ['historico', 'Histórico'], ['aprovacao', 'Aprovação']] as const).map(([id, rotulo]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={abaComent === id}
+                      onClick={() => setAbaComent(id)}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors ${
+                        abaComent === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {rotulo}
+                    </button>
+                  ))}
+                </div>
+
+                {abaComent === 'aprovacao' && (
+                  <div className="flex flex-col gap-2">
                 {/* Ajustes do cliente ou Confirmação de Aprovação */}
                 {(() => {
                   const ajustesPendentes = (item.comentarios_revisao || []).filter(
@@ -1190,7 +1248,37 @@ export function DemandaSheet({
 
                   return null;
                 })()}
+                    <p className="text-xs text-muted-foreground">Aqui aparecem os ajustes pedidos pelo cliente e a confirmação de aprovação.</p>
+                  </div>
+                )}
 
+                {abaComent === 'historico' && (
+                  <ol className="flex flex-col gap-2.5" aria-label="Histórico da demanda">
+                    {[
+                      ...(item.historico_atividades ?? []).map((ev) => ({ id: ev.id, autor: ev.autor_nome || 'Equipe', texto: ev.texto, quando: ev.criado_em })),
+                      ...(item.comentarios_revisao ?? []).map((c) => ({ id: c.id, autor: c.autor || 'Cliente', texto: c.texto, quando: (c as { criado_em?: string }).criado_em ?? '' })),
+                    ]
+                      .sort((x, y) => (x.quando < y.quando ? 1 : -1))
+                      .map((ev) => (
+                        <li key={ev.id} className="flex items-start gap-2.5 text-xs">
+                          <ClienteAvatar nome={ev.autor} tamanho="xs" className="mt-0.5 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-muted-foreground">
+                              <span className="font-semibold text-foreground">{ev.autor}</span>
+                              {ev.quando && ` · ${new Date(ev.quando).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`}
+                            </p>
+                            <p className="whitespace-pre-wrap text-foreground">{ev.texto}</p>
+                          </div>
+                        </li>
+                      ))}
+                    {(item.historico_atividades?.length ?? 0) + (item.comentarios_revisao?.length ?? 0) === 0 && (
+                      <p className="py-2 text-center text-xs text-muted-foreground">Nada registrado ainda.</p>
+                    )}
+                  </ol>
+                )}
+
+                {abaComent === 'comentarios' && (
+                  <>
                 {/* Thread de balões com avatar e destaque de menções */}
                 <div className="space-y-2.5 max-h-56 sm:max-h-64 overflow-y-auto pr-1 flex-1">
                   {!item.historico_atividades || item.historico_atividades.length === 0 ? (
@@ -1249,6 +1337,8 @@ export function DemandaSheet({
                     <Send className="w-3.5 h-3.5" />
                   </Button>
                 </div>
+                  </>
+                )}
               </div>
             ) : (
               <p className="px-1 text-xs text-muted-foreground">
