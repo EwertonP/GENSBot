@@ -179,17 +179,17 @@ export default function FinanceiroTab({ showToast }: FinanceiroTabProps) {
       ) : (
         <>
           {/* Resultado do mês */}
-          <Card padding="lg" className="flex flex-col gap-4 bg-panel text-panel-foreground border-transparent">
+          <Card padding="lg" className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <span className="grid size-10 place-items-center rounded-full bg-lime text-lime-foreground">
                 <Wallet className="size-5" strokeWidth={1.75} />
               </span>
-              <span className="text-sm text-panel-foreground/70">Resultado previsto de {rotuloMes(mes)}</span>
+              <span className="text-sm text-muted-foreground">Resultado previsto de {rotuloMes(mes)}</span>
             </div>
             <p className={`font-display text-4xl sm:text-5xl font-light tracking-tight tabular-nums ${resultadoNegativo ? 'text-destructive' : ''}`}>
               {formatarReais(resumo.resultado)}
             </p>
-            <p className="text-sm text-panel-foreground/70">
+            <p className="text-sm text-muted-foreground">
               Receitas {formatarReais(resumo.receitas)} e despesas {formatarReais(resumo.despesas)}
               {resumo.atrasados > 0 && <span className="text-destructive"> · {resumo.atrasados} em atraso</span>}
             </p>

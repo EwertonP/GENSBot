@@ -187,28 +187,28 @@
 }
 
 .dark, :root[class~="dark"], [data-theme="dark"] {
-  /* Floresta: verde-floresta quase preto (#00140F). Elevação por degrau de tom + hairline;
+  /* Preto neutro (#0A0A0A, o mesmo do Orkestrya). Elevação por degrau de cinza + hairline;
      menta (#00DC94) é a cor de ação; sol, coral, céu e lilás só em status, categorias e gráficos. */
-  --background: #00140F; /* verde-floresta quase preto */
-  --foreground: #EAF6F0; /* 17.1:1 */
-  --card: #04221A;
-  --card-foreground: #EAF6F0;
-  --popover: #083026;
-  --popover-foreground: #EAF6F0;
+  --background: #0A0A0A; /* preto neutro */
+  --foreground: #F5F5F5; /* 18.3:1 */
+  --card: #141414;
+  --card-foreground: #F5F5F5;
+  --popover: #1C1C1C;
+  --popover-foreground: #F5F5F5;
   --primary: #00DC94; /* menta: ação */
   --primary-foreground: #00281E; /* 8.8:1 */
-  --secondary: #062A20;
-  --secondary-foreground: #EAF6F0;
-  --muted: #062A20;
-  --muted-foreground: #9DBEB1; /* 9.4:1 no fundo, 8.4:1 no card, 6.3:1 no hover */
-  --accent: #0B3A2E;
-  --accent-foreground: #EAF6F0;
+  --secondary: #1C1C1C;
+  --secondary-foreground: #F5F5F5;
+  --muted: #1C1C1C;
+  --muted-foreground: #A3A3A3; /* 7.9:1 no fundo, 7.1:1 no card */
+  --accent: #232323;
+  --accent-foreground: #F5F5F5;
   --lime: #00DC94; /* menta da marca (nome antigo mantido) */
   --lime-foreground: #00281E;
   --brand-text: #00DC94; /* 10.5:1 no fundo */
 
   --success: #4ADE80;
-  --success-foreground: #00140F;
+  --success-foreground: #0A0A0A;
   --warning: #FFD84D;
   --warning-foreground: #2E2500;
   --destructive: #FF8A70; /* coral */
@@ -216,9 +216,9 @@
   --info: #6CC9FF;
   --info-foreground: #04283F;
 
-  --border: #12392E;
-  --border-strong: #21574A;
-  --input: #4F8F7C; /* 4.5:1 no card */
+  --border: #2A2A2A;
+  --border-strong: #3A3A3A;
+  --input: #737373; /* 3.6:1 no card */
   --ring: #00DC94;
 
   --chart-1: #00DC94;
@@ -226,13 +226,13 @@
   --chart-3: #FFD84D;
   --chart-4: #B9A5FF;
   --chart-5: #FF8A70;
-  --sidebar: #000E0A;
-  --sidebar-foreground: #EAF6F0;
+  --sidebar: #0D0D0D;
+  --sidebar-foreground: #F5F5F5;
   --sidebar-primary: #00DC94;
   --sidebar-primary-foreground: #00281E;
-  --sidebar-accent: #0B3A2E;
-  --sidebar-accent-foreground: #EAF6F0;
-  --sidebar-border: #12392E;
+  --sidebar-accent: #232323;
+  --sidebar-accent-foreground: #F5F5F5;
+  --sidebar-border: #2A2A2A;
   --sidebar-ring: #00DC94;
   --shadow-color: #000000;
   /* No escuro a sombra quase não aparece: a elevação vem do tom da superfície
