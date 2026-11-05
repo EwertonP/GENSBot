@@ -1,7 +1,7 @@
 'use client';
 
 import { Tip } from '@/components/ui/tooltip';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Menu } from '@base-ui/react/menu';
 import {
@@ -10,8 +10,11 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  AlignLeft,
   Copy,
-  FileText,
+  Flag,
+  Layers,
+  Hash,
   Image as ImageIcon,
   ListTodo,
   Maximize2,
@@ -33,13 +36,21 @@ import {
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { EditorRico } from '@/components/ui/editor-rico';
+import { EtiquetasSeletor } from '@/components/etiquetas-seletor';
+import type { CorEtiqueta, Etiqueta } from '@/lib/etiquetas';
 import { conteudoInicial, LIMITE_BRIEFING } from '@/lib/editor-rico';
+import {
+  contarHashtags,
+  paraCapitalizado,
+  paraItalico,
+  paraMaiusculas,
+  paraMinusculas,
+  paraNegrito,
+} from '@/lib/legenda-texto';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { AutoTextarea } from '@/components/ui/auto-textarea';
-import { SegmentedItem } from '@/components/ui/segmented';
 import { MemberChipSelect } from '@/components/ui/member-chip-select';
 import { ResponsaveisSelect } from '@/components/ui/responsaveis-select';
 import { confirmDialog, MediaLightbox } from '@/components/ui/dialog';
@@ -138,7 +149,6 @@ function renderComentarioTexto(texto: string) {
   });
 }
 
-type Aba = 'legenda' | 'briefing' | 'capa' | 'anexos';
 
 export interface DemandaSheetProps {
   aberto: boolean;
@@ -147,6 +157,8 @@ export interface DemandaSheetProps {
   item: ConteudoItem | null;
   /** Pré-seleção no modo "novo". */
   clienteInicialId?: string;
+  /** Etapa em que a demanda nova começa (ex.: a coluna onde o botão foi clicado). */
+  statusInicial?: StatusConteudo;
   responsavelInicialId?: string;
   clientes: Cliente[];
   membros: MembroEquipe[];
@@ -162,11 +174,61 @@ export interface DemandaSheetProps {
   onLevarParaAgendamento?: (item: ConteudoItem) => void;
 }
 
+const CAMPO_PAINEL =
+  'max-w-full cursor-pointer rounded-md bg-transparent py-0.5 text-right text-sm font-semibold text-panel-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring [&>option]:bg-card [&>option]:text-foreground';
+
+function SecaoTitulo({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+  return (
+    <h3 className="flex items-center gap-2.5 font-display text-sm font-semibold text-foreground">
+      <span className="grid size-8 place-items-center rounded-full bg-muted text-muted-foreground">
+        <Icon aria-hidden className="size-4" />
+      </span>
+      {children}
+    </h3>
+  );
+}
+
+function LinhaPropriedade({
+  icon: Icon,
+  rotulo,
+  detalhe,
+  children,
+}: {
+  icon: React.ElementType;
+  rotulo: string;
+  detalhe?: { texto: string; atrasado: boolean } | null;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col px-2 py-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-2.5 text-sm text-panel-muted">
+          <Icon aria-hidden className="size-4 shrink-0" />
+          {rotulo}
+        </span>
+        {children}
+      </div>
+      {detalhe && (
+        <span className={`mt-0.5 text-right text-xs ${detalhe.atrasado ? 'font-medium text-destructive' : 'text-panel-muted'}`}>{detalhe.texto}</span>
+      )}
+    </div>
+  );
+}
+
+/** "em 3 dias" / "venceu há 2 dias" para uma data AAAA-MM-DD; nulo sem data. */
+function detalhePrazo(valor: string, atrasoConta: boolean): { texto: string; atrasado: boolean } | null {
+  const d = distanciaEmDias(valor);
+  if (!d) return null;
+  const atrasado = d.dias < 0 && atrasoConta;
+  return { texto: atrasado ? `Atrasado, venceu ${d.texto}` : d.texto, atrasado };
+}
+
 export function DemandaSheet({
   aberto,
   modo,
   item,
   clienteInicialId,
+  statusInicial,
   responsavelInicialId,
   clientes,
   membros,
@@ -181,11 +243,14 @@ export function DemandaSheet({
   const editando = modo === 'editar' && !!item;
 
   // Estado inicial vem das props: o pai troca a `key` a cada abertura.
-  const [status, setStatus] = useState<StatusConteudo>(() => item?.status ?? 'planejamento');
+  const [status, setStatus] = useState<StatusConteudo>(() => item?.status ?? statusInicial ?? 'planejamento');
   const [tipo, setTipo] = useState<TipoConteudo>(() => item?.tipo ?? 'post');
   const [prioridade, setPrioridade] = useState<PrioridadeConteudo>(() => item?.prioridade || 'media');
   const [titulo, setTitulo] = useState(() => item?.titulo || '');
   const [briefing, setBriefing] = useState(() => item?.briefing || '');
+  const [abaComent, setAbaComent] = useState<'comentarios' | 'historico' | 'aprovacao'>('comentarios');
+  const [etiquetasIds, setEtiquetasIds] = useState<string[]>(() => item?.etiquetas_ids ?? []);
+  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
   const [briefingHtml, setBriefingHtml] = useState(() => item?.briefing_html || '');
   const [briefingEditado, setBriefingEditado] = useState(false);
   const [legenda, setLegenda] = useState(() => item?.legenda || '');
@@ -201,8 +266,6 @@ export function DemandaSheet({
   const [arquivos, setArquivos] = useState<ArquivoConteudo[]>(() => item?.arquivos || []);
   const [capaUrl, setCapaUrl] = useState<string | null>(() => item?.cover_url || null);
 
-  const [aba, setAba] = useState<Aba>('legenda');
-  const [modoVisualizacao, setModoVisualizacao] = useState<'abas' | 'split'>('abas');
   // Roteiro abre em modo leitura (formatado); "Editar" troca pelo campo de texto.
   const [mostrarUrlsManuais, setMostrarUrlsManuais] = useState(false);
   const [trocarClienteAberto, setTrocarClienteAberto] = useState(false);
@@ -260,6 +323,8 @@ export function DemandaSheet({
 
   // Campo da legenda (abas ou dividido): os botões da barra inserem onde está o cursor.
   const legendaRef = useRef<HTMLTextAreaElement>(null);
+  // Trecho selecionado na legenda: habilita as ferramentas de caixa e de negrito/itálico.
+  const [selecaoLegenda, setSelecaoLegenda] = useState({ ini: 0, fim: 0 });
   const formRef = useRef<HTMLFormElement>(null);
 
   const clienteObj =
@@ -287,6 +352,7 @@ export function DemandaSheet({
       dataProgramada !== paraInputData(item.data_programada) ||
       prazoInterno !== paraInputData(item.prazo) ||
       clienteId !== item.cliente_id ||
+      [...etiquetasIds].sort().join() !== [...(item.etiquetas_ids ?? [])].sort().join() ||
       urls.trim() !== '' ||
       (capaUrl || null) !== (item.cover_url || null) ||
       arquivos.map((a) => a.url).join('|') !== (item.arquivos || []).map((a) => a.url).join('|') ||
@@ -295,6 +361,7 @@ export function DemandaSheet({
       briefing.trim() !== '' ||
       legenda.trim() !== '' ||
       checklist.length > 0 ||
+      etiquetasIds.length > 0 ||
       urls.trim() !== '' ||
       arquivos.length > 0 ||
       !!capaUrl ||
@@ -346,6 +413,48 @@ export function DemandaSheet({
       el.focus();
       el.setSelectionRange(posicao, posicao);
     });
+  }
+
+  function transformarSelecao(fn: (trecho: string) => string) {
+    const { ini, fim } = selecaoLegenda;
+    if (fim <= ini) return;
+    const novo = fn(legenda.slice(ini, fim));
+    setLegenda(legenda.slice(0, ini) + novo + legenda.slice(fim));
+    const el = legendaRef.current;
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(ini, ini + novo.length);
+      setSelecaoLegenda({ ini, fim: ini + novo.length });
+    });
+  }
+
+  useEffect(() => {
+    let vivo = true;
+    fetch('/api/etiquetas')
+      .then((r) => (r.ok ? r.json() : { etiquetas: [] }))
+      .then((c) => vivo && setEtiquetas(c.etiquetas ?? []))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  async function criarEtiqueta(nome: string, cor: CorEtiqueta): Promise<Etiqueta | null> {
+    const res = await fetch('/api/etiquetas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, cor }) });
+    const corpo = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(corpo.error || 'Não foi possível criar a etiqueta.', 'error');
+      return null;
+    }
+    setEtiquetas((prev) => [...prev, corpo.etiqueta].sort((a, b) => a.nome.localeCompare(b.nome)));
+    return corpo.etiqueta as Etiqueta;
+  }
+
+  async function apagarEtiqueta(id: string) {
+    const res = await fetch(`/api/etiquetas/${id}`, { method: 'DELETE' });
+    if (!res.ok) return showToast('Não foi possível apagar a etiqueta.', 'error');
+    setEtiquetas((prev) => prev.filter((e) => e.id !== id));
+    setEtiquetasIds((prev) => prev.filter((x) => x !== id));
   }
 
   async function copiarTexto(texto: string, sucesso: string, falha: string) {
@@ -408,6 +517,7 @@ export function DemandaSheet({
         legenda: legenda.trim() || null,
         responsavel_id: responsavelId || null,
         co_responsaveis_ids: coResponsaveis.filter((id) => id !== responsavelId),
+        etiquetas_ids: etiquetasIds,
         editor_id: editorId || null,
         // Dia inalterado devolve o valor original: salvar não apaga o horário agendado.
         data_programada: deInputData(dataProgramada, item?.data_programada),
@@ -494,6 +604,36 @@ export function DemandaSheet({
       >
         • Lista
       </button>
+      <button
+        type="button"
+        onClick={() => inserirNaLegenda(' #')}
+        className="grid size-7 place-items-center rounded hover:bg-card text-foreground cursor-pointer"
+        aria-label="Inserir hashtag"
+        title="Inserir hashtag"
+      >
+        <Hash className="size-3.5" />
+      </button>
+      <span aria-hidden className="w-px h-3 bg-border mx-1" />
+      {([
+        ['A', 'MAIÚSCULAS', paraMaiusculas, 'font-semibold'],
+        ['a', 'minúsculas', paraMinusculas, ''],
+        ['Aa', 'Primeira Letra Maiúscula', paraCapitalizado, ''],
+        ['B', 'Negrito', paraNegrito, 'font-black'],
+        ['I', 'Itálico', paraItalico, 'italic'],
+      ] as const).map(([rotulo, titulo, fn, estilo]) => (
+        <button
+          key={titulo}
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => transformarSelecao(fn)}
+          disabled={selecaoLegenda.fim <= selecaoLegenda.ini}
+          className={`grid size-7 place-items-center rounded hover:bg-card text-foreground cursor-pointer text-xs disabled:opacity-35 disabled:pointer-events-none ${estilo}`}
+          aria-label={titulo}
+          title={`${titulo} (selecione um trecho)`}
+        >
+          {rotulo}
+        </button>
+      ))}
       <span aria-hidden className="w-px h-3 bg-border mx-1" />
       {(compacta ? EMOJIS_LEGENDA.slice(0, 5) : EMOJIS_LEGENDA).map((emoji) => (
         <button
@@ -524,8 +664,6 @@ export function DemandaSheet({
     </p>
   );
 
-  const classeAba =
-    'flex-1 shrink-0 whitespace-nowrap py-1.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 sm:gap-2 text-xs font-semibold';
 
   return (
     <Sheet
@@ -550,32 +688,9 @@ export function DemandaSheet({
         {/* 1. Cabeçalho: contexto + etapa + ações; título em linha própria */}
         <div className="px-4 sm:px-6 pt-4 pb-4 border-b border-border flex flex-col gap-3 bg-card shrink-0">
           <div className="flex items-center justify-between gap-3 max-md:flex-wrap">
-            {/* Breadcrumb contextual no estilo Imagem 3: • [Cliente] > • [Etapa] */}
-            <div className="flex items-center gap-1.5 flex-1 min-w-0 text-xs">
-              {!editando && (
-                <Badge variant="brand" className="rounded-full px-2.5 py-0.5 text-xs font-semibold mr-0.5 shrink-0">
-                  Nova
-                </Badge>
-              )}
-              {clienteObj ? (
-                <span className="inline-flex items-center gap-1.5 font-medium text-foreground truncate max-w-[200px]">
-                  <span className="size-1.5 rounded-full bg-primary shrink-0" />
-                  <span className="truncate">{clienteObj.nome}</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
-                  <span className="size-1.5 rounded-full bg-muted-foreground shrink-0" />
-                  <span>Sem cliente</span>
-                </span>
-              )}
-
-              <span aria-hidden className="text-muted-foreground/60 shrink-0 font-normal">›</span>
-
-              <span className="inline-flex items-center gap-1.5 font-semibold text-foreground truncate">
-                <span className="size-1.5 rounded-full bg-brand-text shrink-0" />
-                <span>{ETAPAS_PIPELINE.find((e) => e.status === status)?.label || 'Planejamento'}</span>
-              </span>
-            </div>
+            <p className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {editando ? 'Demanda' : 'Nova demanda'} · {ETAPAS_PIPELINE.find((e) => e.status === status)?.label ?? 'Ajuste pedido'}
+            </p>
 
             <button
               type="button"
@@ -587,59 +702,6 @@ export function DemandaSheet({
             </button>
 
             <div className="flex items-center gap-2 shrink-0 max-md:order-last max-md:w-full">
-              <div
-                role="group"
-                aria-label={editando ? 'Etapa da demanda' : 'Etapa inicial'}
-                className="hidden md:flex items-center bg-accent/30 rounded-xl p-0.5 border border-border"
-              >
-                {ETAPAS_PIPELINE.map((etapa) => {
-                  const atual = getEtapaIndex(status);
-                  const ehAtual = etapa.step === atual;
-                  const feita = etapa.step < atual;
-                  return (
-                    <Tip key={etapa.status} label={etapa.label}><button
-                      type="button"
-                      onClick={() => setStatus(etapa.status)}
-                      aria-pressed={ehAtual}
-                      aria-label={etapa.label}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-ui cursor-pointer ${
-                        ehAtual
-                          ? 'bg-primary text-primary-foreground shadow-2xs'
-                          : feita
-                          ? 'text-brand-text hover:bg-accent/60'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
-                      }`}
-                    >
-                      <span
-                        aria-hidden
-                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-xs shrink-0 font-mono ${
-                          ehAtual ? 'bg-primary-foreground text-primary' : feita ? 'bg-brand-soft text-brand-text' : 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {feita ? <Check className="w-2.5 h-2.5" /> : etapa.step}
-                      </span>
-                      <span className="hidden xl:inline">{etapa.short}</span>
-                    </button></Tip>
-                  );
-                })}
-              </div>
-
-              <div className="md:hidden flex-1">
-                <Select
-                  value={status === 'travado' ? 'travado' : ETAPAS_PIPELINE[getEtapaIndex(status) - 1]?.status ?? status}
-                  onChange={(e) => setStatus(e.target.value as StatusConteudo)}
-                  aria-label={editando ? 'Etapa da demanda' : 'Etapa inicial'}
-                  className="h-11 w-full text-sm font-semibold"
-                >
-                  {status === 'travado' && <option value="travado">Ajuste pedido</option>}
-                  {ETAPAS_PIPELINE.map((etapa) => (
-                    <option key={etapa.status} value={etapa.status}>
-                      {etapa.step}. {etapa.label}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-
               {editando && (
                 <button
                   type="button"
@@ -709,7 +771,7 @@ export function DemandaSheet({
 
           {/* Barra de comandos no celular: Excluir / Cancelar / Salvar sempre à vista,
               sem depender do rodapé (que o teclado empurra). */}
-          <div className="flex items-center gap-2">
+          <div className="md:hidden flex items-center gap-2">
             {editando && (
               <Tip label="Excluir demanda">
                 <button
@@ -774,7 +836,9 @@ export function DemandaSheet({
               {PRIORIDADE_CONFIG[prioridade].label}
             </span>
 
-            {/* Só no celular: prazo e responsáveis moram na mesma linha de chips. */}
+            <EtiquetasSeletor etiquetas={etiquetas} selecionadas={etiquetasIds} onChange={setEtiquetasIds} onCriar={criarEtiqueta} onApagar={apagarEtiqueta} />
+
+            {/* Prazo e responsáveis moram na mesma linha de chips. */}
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/60 text-foreground border border-border">
               <Calendar className="w-3 h-3 text-muted-foreground" />
               {prazoInterno
@@ -811,118 +875,66 @@ export function DemandaSheet({
           </div>
         </div>
 
-        {/* 2. Corpo rolável em 2 colunas */}
-        <div className="p-3.5 sm:p-5 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Coluna da esquerda: conteúdo (legenda, roteiro, capa, mídias) */}
-          <div className="lg:col-span-7 flex flex-col gap-3">
-            <div className="hidden sm:flex items-center justify-end shrink-0">
-              <div className="flex items-center bg-accent/30 rounded-lg p-0.5 border border-border text-xs">
-                <SegmentedItem
-                  type="button"
-                  onClick={() => setModoVisualizacao('abas')}
-                  group="demanda-modo"
-                  active={modoVisualizacao === 'abas'}
-                  className="px-2 py-0.5 rounded-md font-semibold text-xs"
-                  title="Uma aba por vez, com espaço máximo para escrever"
-                >
-                  Abas
-                </SegmentedItem>
-                <SegmentedItem
-                  type="button"
-                  onClick={() => setModoVisualizacao('split')}
-                  group="demanda-modo"
-                  active={modoVisualizacao === 'split'}
-                  className="px-2 py-0.5 rounded-md font-semibold text-xs"
-                  title="Roteiro e legenda visíveis juntos"
-                >
-                  Dividido
-                </SegmentedItem>
+        {/* 2. Corpo rolável: conteúdo à esquerda, cartão de ação e propriedades à direita (como no Orkestrya) */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 flex flex-col gap-7 min-w-0">
+            <section aria-label="Descrição" className="flex flex-col gap-2.5">
+              <SecaoTitulo icon={AlignLeft}>Descrição</SecaoTitulo>
+              <div className="flex flex-col gap-2">
+                <EditorRico
+                  valorInicial={conteudoInicial(item?.briefing_html, item?.briefing)}
+                  placeholder="Escreva o briefing da demanda. Dica: -- cria uma linha divisória."
+                  aria-label="Briefing e roteiro"
+                  minHeight="140px"
+                  onChange={(html, texto) => {
+                    setBriefingHtml(html);
+                    setBriefing(texto);
+                    setBriefingEditado(true);
+                  }}
+                />
+                <p className={`text-right text-xs font-mono tabular-nums ${briefing.length > LIMITE_BRIEFING ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {briefing.length.toLocaleString('pt-BR')}/{LIMITE_BRIEFING.toLocaleString('pt-BR')}
+                </p>
               </div>
-            </div>
+            </section>
 
-            {modoVisualizacao === 'abas' && (
-              <div className="flex flex-col gap-2.5 flex-1 min-h-0">
-                <div className="flex items-center gap-0.5 sm:gap-1 p-1 bg-accent/30 rounded-xl border border-border shrink-0 overflow-x-auto scrollbar-none">
-                  <SegmentedItem type="button" onClick={() => setAba('legenda')} group="demanda-aba" active={aba === 'legenda'} className={classeAba}>
-                    <FileText className="w-3.5 h-3.5 text-brand-text" />
-                    <span>Legenda</span>
-                    <span className={`hidden sm:inline text-xs font-mono tabular-nums ${classeContadorLegenda(legenda.length)}`}>
-                      {legenda.length.toLocaleString('pt-BR')}/2.200
-                    </span>
-                  </SegmentedItem>
-
-                  <SegmentedItem type="button" onClick={() => setAba('briefing')} group="demanda-aba" active={aba === 'briefing'} className={classeAba}>
-                    <Sparkles className="w-3.5 h-3.5 text-brand-text" />
-                    <span className="sm:hidden">Roteiro</span>
-                    <span className="hidden sm:inline">Briefing & Roteiro</span>
-                    {briefing.trim() && <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                  </SegmentedItem>
-
-                  {tipo === 'reel' && (
-                    <SegmentedItem type="button" onClick={() => setAba('capa')} group="demanda-aba" active={aba === 'capa'} className={classeAba}>
-                      <ImageIcon className="w-3.5 h-3.5 text-brand-text" />
-                      <span>Capa</span>
-                      {capaUrl && <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                    </SegmentedItem>
-                  )}
-
-                  <SegmentedItem type="button" onClick={() => setAba('anexos')} group="demanda-aba" active={aba === 'anexos'} className={classeAba}>
-                    <Paperclip className="w-3.5 h-3.5 text-brand-text" />
-                    {tipo === 'reel' ? (
-                      <span>Vídeo</span>
-                    ) : (
-                      <>
-                        <span className="sm:hidden">Mídias</span>
-                        <span className="hidden sm:inline">Mídias & Anexos</span>
-                      </>
-                    )}
-                    <span className="hidden sm:inline text-xs font-mono tabular-nums text-muted-foreground">{arquivos.length}</span>
-                  </SegmentedItem>
+            <section aria-label="Legenda" className="flex flex-col gap-2.5">
+              <SecaoTitulo icon={MessageSquare}>Legenda</SecaoTitulo>
+              <div className="flex flex-col gap-1.5">
+                {barraLegenda(false)}
+                <AutoTextarea
+                  ref={legendaRef}
+                  value={legenda}
+                  onChange={(e) => setLegenda(e.target.value)}
+                  onSelect={(e) => setSelecaoLegenda({ ini: e.currentTarget.selectionStart, fim: e.currentTarget.selectionEnd })}
+                  placeholder="Escreva a legenda do post, com as hashtags."
+                  aria-label="Legenda da postagem"
+                  aria-invalid={legenda.length > LIMITE_LEGENDA || undefined}
+                  className="rounded-t-none rounded-b-2xl text-sm font-sans leading-relaxed bg-card min-h-[160px]"
+                />
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <ImageIcon className="size-3.5 shrink-0" aria-hidden />
+                  Foto e vídeo enviados por aqui entram nos Anexos do post, não no texto da legenda.
+                </p>
+                <div className="flex items-center justify-between gap-2 text-xs tabular-nums text-muted-foreground">
+                  <span className={contarHashtags(legenda) > 30 ? 'text-destructive' : ''}>{contarHashtags(legenda)}/30 hashtags</span>
+                  <span className={classeContadorLegenda(legenda.length)}>
+                    Instagram {legenda.length.toLocaleString('pt-BR')}/{LIMITE_LEGENDA.toLocaleString('pt-BR')}
+                  </span>
                 </div>
+                {avisoLimiteLegenda}
+              </div>
+            </section>
 
-                {aba === 'legenda' && (
-                  <div className="flex flex-col gap-1.5 flex-1 min-h-0">
-                    {barraLegenda(false)}
-                    <AutoTextarea
-                      ref={legendaRef}
-                      value={legenda}
-                      onChange={(e) => setLegenda(e.target.value)}
-                      placeholder="Escreva a legenda oficial da postagem com hashtags, quebras de linha e chamada para ação (CTA)..."
-                      aria-label="Legenda da postagem"
-                      aria-invalid={legenda.length > LIMITE_LEGENDA || undefined}
-                      className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card min-h-[260px]"
-                    />
-                    {avisoLimiteLegenda}
-                  </div>
-                )}
-
-                {aba === 'briefing' && (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                      <span>Roteiro cena a cena e instruções para quem grava, edita ou cria a arte. Dica: -- cria uma linha divisória.</span>
-                      <span className={`shrink-0 font-mono tabular-nums ${briefing.length > LIMITE_BRIEFING ? 'text-destructive' : ''}`}>
-                        {briefing.length.toLocaleString('pt-BR')}/{LIMITE_BRIEFING.toLocaleString('pt-BR')}
-                      </span>
-                    </div>
-                    <EditorRico
-                      valorInicial={conteudoInicial(item?.briefing_html, item?.briefing)}
-                      placeholder="Escreva o briefing da demanda. Dica: -- cria uma linha divisória."
-                      aria-label="Briefing e roteiro"
-                      minHeight="280px"
-                      onChange={(html, texto) => {
-                        setBriefingHtml(html);
-                        setBriefing(texto);
-                        setBriefingEditado(true);
-                      }}
-                    />
-                  </div>
-                )}
-
-                {aba === 'capa' && tipo === 'reel' && (
+                {tipo === 'reel' && (
                   <CapaReelsField url={capaUrl} onChange={setCapaUrl} onPreview={setPreviewLightbox} onErro={(msg) => showToast(msg, 'error')} />
                 )}
 
-                {aba === 'anexos' && (
+            <section aria-label="Anexos" className="flex flex-col gap-2.5">
+              <SecaoTitulo icon={Paperclip}>
+                {tipo === 'reel' ? 'Vídeo' : 'Anexos'}
+                <span className="font-mono text-xs font-normal tabular-nums text-muted-foreground">{arquivos.length}</span>
+              </SecaoTitulo>
                   <div className="flex flex-col gap-3 flex-1 min-h-0">
                     <div className="relative border-2 border-dashed border-border hover:border-border-strong rounded-2xl p-4 text-center bg-accent/20 hover:bg-accent/40 cursor-pointer flex flex-col items-center justify-center gap-1.5 transition-colors">
                       <input
@@ -1017,268 +1029,9 @@ export function DemandaSheet({
                       )}
                     </div>
                   </div>
-                )}
-              </div>
-            )}
+            </section>
 
-            {modoVisualizacao === 'split' && (
-              <div className="flex flex-col gap-3 flex-1 min-h-0">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="demanda-briefing-split" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-brand-text" />
-                      <span>Briefing & Roteiro</span>
-                    </label>
-                    <span className="text-xs text-muted-foreground font-mono tabular-nums">{briefing.length} caracteres</span>
-                  </div>
-                  <AutoTextarea
-                    id="demanda-briefing-split"
-                    value={briefing}
-                    onChange={(e) => setBriefing(e.target.value)}
-                    placeholder="Instruções para a equipe, ganchos, cenas ou tópicos do post..."
-                    className="rounded-xl text-sm bg-card min-h-[120px]"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="demanda-legenda-split" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5 text-brand-text" />
-                      <span>Legenda da postagem</span>
-                    </label>
-                    <span className={`text-xs font-mono tabular-nums ${classeContadorLegenda(legenda.length)}`}>
-                      {legenda.length.toLocaleString('pt-BR')}/2.200
-                    </span>
-                  </div>
-                  {barraLegenda(true)}
-                  <AutoTextarea
-                    id="demanda-legenda-split"
-                    ref={legendaRef}
-                    value={legenda}
-                    onChange={(e) => setLegenda(e.target.value)}
-                    placeholder="Escreva a legenda..."
-                    aria-invalid={legenda.length > LIMITE_LEGENDA || undefined}
-                    className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card min-h-[160px]"
-                  />
-                  {avisoLimiteLegenda}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Coluna da direita: propriedades + comentários */}
-          <div className="lg:col-span-5 flex flex-col gap-3">
-            {editando && getEtapaIndex(status) < 4 && status !== 'travado' && (
-              <Button
-                type="button"
-                variant="primary"
-                size="lg"
-                block
-                loading={salvando}
-                onClick={() => {
-                  // Salvar já em "Aprovação do cliente" é o que dispara o envio ao cliente.
-                  flushSync(() => setStatus('revisao_cliente'));
-                  formRef.current?.requestSubmit();
-                }}
-              >
-                <Send className="size-4" />
-                Enviar para aprovação
-              </Button>
-            )}
-            <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 shrink-0">
-              {/* Cliente */}
-              <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
-                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 shrink-0">
-                  <Users className="w-3.5 h-3.5 text-brand-text" />
-                  Cliente
-                  {!editando && <span aria-hidden className="text-destructive">*</span>}
-                </span>
-                <div className="flex items-center gap-2 min-w-0">
-                  {clienteObj && !trocarClienteAberto ? (
-                    <div className="flex items-center gap-2 min-w-0">
-                      <ClienteAvatar nome={clienteObj.nome} cor={clienteObj.cor} fotoUrl={clienteObj.foto_url} tamanho="sm" />
-                      <span className="text-xs font-semibold text-foreground truncate max-w-[130px]">{clienteObj.nome}</span>
-                      <button
-                        type="button"
-                        onClick={() => setTrocarClienteAberto(true)}
-                        className="text-xs font-semibold text-brand-text hover:underline cursor-pointer ml-0.5"
-                      >
-                        Trocar
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setTrocarClienteAberto((v) => !v)}
-                      aria-expanded={trocarClienteAberto}
-                      className="text-xs font-semibold text-brand-text hover:underline cursor-pointer"
-                    >
-                      {trocarClienteAberto ? 'Fechar' : 'Selecionar'}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {trocarClienteAberto && (
-                <div className="flex flex-col gap-1.5 pb-2 border-b border-border">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar cliente..."
-                      aria-label="Buscar cliente"
-                      value={buscaCliente}
-                      onChange={(e) => setBuscaCliente(e.target.value)}
-                      className="pl-8 h-8 text-xs bg-card"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="max-h-32 overflow-y-auto flex flex-col gap-0.5 p-1 border border-border rounded-xl bg-card">
-                    {clientesFiltrados.length === 0 ? (
-                      <p className="text-xs text-muted-foreground p-1 text-center">Nenhum cliente encontrado.</p>
-                    ) : (
-                      clientesFiltrados.map((c) => {
-                        const selecionado = clienteId === c.id;
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            aria-pressed={selecionado}
-                            onClick={() => {
-                              setClienteId(c.id);
-                              setTrocarClienteAberto(false);
-                            }}
-                            className={`flex items-center gap-2 p-1.5 rounded-lg text-left transition-ui cursor-pointer ${
-                              selecionado ? 'bg-accent font-semibold text-foreground' : 'hover:bg-accent/40 text-muted-foreground'
-                            }`}
-                          >
-                            <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
-                            <span className="text-xs truncate flex-1">{c.nome}</span>
-                            {selecionado && <CheckCircle2 className="w-3.5 h-3.5 text-brand-text shrink-0" />}
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Formato */}
-              <div className="flex flex-col gap-1 pb-2 border-b border-border">
-                <span className="text-xs font-semibold text-muted-foreground">Formato</span>
-                <div className="grid grid-cols-4 gap-1 p-0.5 bg-accent/40 rounded-lg border border-border">
-                  {FORMATOS.map((fmt) => (
-                    <Tip key={fmt.id} label={fmt.descricao}><button
-                      type="button"
-                      aria-label={fmt.descricao}
-                      aria-pressed={tipo === fmt.id}
-                      onClick={() => setTipo(fmt.id)}
-                      className={`h-7 px-2 rounded-md flex items-center justify-center gap-1.5 text-xs font-semibold transition-ui cursor-pointer ${
-                        tipo === fmt.id
-                          ? 'bg-primary text-primary-foreground shadow-2xs'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
-                      }`}
-                    >
-                      <fmt.icon className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{fmt.label}</span>
-                    </button></Tip>
-                  ))}
-                </div>
-              </div>
-
-              {/* Prioridade */}
-              <div className="flex flex-col gap-1 pb-2 border-b border-border">
-                <span className="text-xs font-semibold text-muted-foreground">Prioridade</span>
-                <div className="grid grid-cols-4 gap-1">
-                  {(['urgente', 'alta', 'media', 'baixa'] as const).map((id) => {
-                    const selecionado = prioridade === id;
-                    const conf = PRIORIDADE_CONFIG[id];
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        aria-pressed={selecionado}
-                        onClick={() => setPrioridade(id)}
-                        className={`h-7 px-1.5 rounded-lg border flex items-center justify-center gap-1.5 cursor-pointer transition-ui text-xs font-semibold ${
-                          selecionado
-                            ? `${conf.bg} ${conf.border} ${conf.text}`
-                            : 'bg-card hover:bg-accent/50 border-border text-foreground hover:border-border-strong'
-                        }`}
-                      >
-                        <span aria-hidden className={`size-1.5 rounded-full shrink-0 ${conf.dot}`} />
-                        <span>{conf.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Equipe */}
-              <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border">
-                <ResponsaveisSelect
-                  label="Responsáveis"
-                  value={[responsavelId, ...coResponsaveis].filter((id, i, ids) => !!id && ids.indexOf(id) === i)}
-                  onChange={(ids) => {
-                    setResponsavelId(ids[0] || '');
-                    setCoResponsaveis(ids.slice(1));
-                  }}
-                  membros={membros}
-                />
-                <MemberChipSelect
-                  label="Designer / Editor"
-                  value={editorId}
-                  onChange={setEditorId}
-                  membros={membros}
-                  placeholder="Atribuir..."
-                />
-              </div>
-
-              {/* Prazos, com a distância até a data */}
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  {
-                    id: 'demanda-prazo-interno',
-                    rotulo: 'Prazo interno',
-                    icon: Clock,
-                    valor: prazoInterno,
-                    set: setPrazoInterno,
-                    // Prazo vencido só é problema enquanto a demanda não foi publicada.
-                    atrasoConta: status !== 'publicado',
-                  },
-                  {
-                    id: 'demanda-data-programada',
-                    rotulo: 'Data programada',
-                    icon: Calendar,
-                    valor: dataProgramada,
-                    set: setDataProgramada,
-                    atrasoConta: false,
-                  },
-                ].map((campo) => {
-                  const distancia = distanciaEmDias(campo.valor);
-                  const atrasado = !!distancia && distancia.dias < 0 && campo.atrasoConta;
-                  return (
-                    <div key={campo.id} className="flex flex-col gap-0.5">
-                      <label htmlFor={campo.id} className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                        <campo.icon className="w-3 h-3 text-muted-foreground" />
-                        <span>{campo.rotulo}</span>
-                      </label>
-                      <Input
-                        id={campo.id}
-                        type="date"
-                        value={campo.valor}
-                        onChange={(e) => campo.set(e.target.value)}
-                        className="h-7.5 text-xs tabular-nums"
-                      />
-                      {distancia && (
-                        <span className={`text-xs ${atrasado ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                          {atrasado ? `Atrasado, venceu ${distancia.texto}` : distancia.texto}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
+            <section aria-label="Checklist" className="flex flex-col gap-2.5">
             {/* Bloco de Checklist com barra de progresso (Imagem 3) */}
             <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 shrink-0">
               <div className="flex items-center justify-between">
@@ -1387,6 +1140,9 @@ export function DemandaSheet({
               </div>
             </div>
 
+            </section>
+
+            <section aria-label="Comentários" className="flex flex-col gap-2.5">
             {/* Comentários & Alinhamento em balões acolhedores */}
             {editando ? (
               <div className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5 flex-1 min-h-[180px]">
@@ -1402,6 +1158,25 @@ export function DemandaSheet({
                   )}
                 </div>
 
+                <div role="tablist" aria-label="Comentários, histórico e aprovação" className="flex items-center gap-1 rounded-full bg-muted/60 p-1 self-start">
+                  {([['comentarios', 'Comentários'], ['historico', 'Histórico'], ['aprovacao', 'Aprovação']] as const).map(([id, rotulo]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={abaComent === id}
+                      onClick={() => setAbaComent(id)}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors ${
+                        abaComent === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {rotulo}
+                    </button>
+                  ))}
+                </div>
+
+                {abaComent === 'aprovacao' && (
+                  <div className="flex flex-col gap-2">
                 {/* Ajustes do cliente ou Confirmação de Aprovação */}
                 {(() => {
                   const ajustesPendentes = (item.comentarios_revisao || []).filter(
@@ -1473,7 +1248,37 @@ export function DemandaSheet({
 
                   return null;
                 })()}
+                    <p className="text-xs text-muted-foreground">Aqui aparecem os ajustes pedidos pelo cliente e a confirmação de aprovação.</p>
+                  </div>
+                )}
 
+                {abaComent === 'historico' && (
+                  <ol className="flex flex-col gap-2.5" aria-label="Histórico da demanda">
+                    {[
+                      ...(item.historico_atividades ?? []).map((ev) => ({ id: ev.id, autor: ev.autor_nome || 'Equipe', texto: ev.texto, quando: ev.criado_em })),
+                      ...(item.comentarios_revisao ?? []).map((c) => ({ id: c.id, autor: c.autor || 'Cliente', texto: c.texto, quando: (c as { criado_em?: string }).criado_em ?? '' })),
+                    ]
+                      .sort((x, y) => (x.quando < y.quando ? 1 : -1))
+                      .map((ev) => (
+                        <li key={ev.id} className="flex items-start gap-2.5 text-xs">
+                          <ClienteAvatar nome={ev.autor} tamanho="xs" className="mt-0.5 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-muted-foreground">
+                              <span className="font-semibold text-foreground">{ev.autor}</span>
+                              {ev.quando && ` · ${new Date(ev.quando).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`}
+                            </p>
+                            <p className="whitespace-pre-wrap text-foreground">{ev.texto}</p>
+                          </div>
+                        </li>
+                      ))}
+                    {(item.historico_atividades?.length ?? 0) + (item.comentarios_revisao?.length ?? 0) === 0 && (
+                      <p className="py-2 text-center text-xs text-muted-foreground">Nada registrado ainda.</p>
+                    )}
+                  </ol>
+                )}
+
+                {abaComent === 'comentarios' && (
+                  <>
                 {/* Thread de balões com avatar e destaque de menções */}
                 <div className="space-y-2.5 max-h-56 sm:max-h-64 overflow-y-auto pr-1 flex-1">
                   {!item.historico_atividades || item.historico_atividades.length === 0 ? (
@@ -1532,12 +1337,208 @@ export function DemandaSheet({
                     <Send className="w-3.5 h-3.5" />
                   </Button>
                 </div>
+                  </>
+                )}
               </div>
             ) : (
               <p className="px-1 text-xs text-muted-foreground">
                 Comentários e histórico ficam disponíveis depois que a demanda é criada.
               </p>
             )}
+            </section>
+          </div>
+
+          <aside className="lg:col-span-4 flex flex-col gap-4 lg:sticky lg:top-0 lg:self-start">
+            {/* Cartão escuro de ação e propriedades */}
+            <div className="flex flex-col gap-2 rounded-3xl bg-panel p-3 text-panel-foreground">
+              {editando && getEtapaIndex(status) < 4 && status !== 'travado' && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="lg"
+                  block
+                  loading={salvando}
+                  onClick={() => {
+                    // Salvar já em "Aprovação do cliente" é o que dispara o envio ao cliente.
+                    flushSync(() => setStatus('revisao_cliente'));
+                    formRef.current?.requestSubmit();
+                  }}
+                >
+                  <Send className="size-4" />
+                  Enviar post para aprovação
+                </Button>
+              )}
+              <div className="flex flex-col">
+                <LinhaPropriedade icon={Layers} rotulo="Etapa">
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as StatusConteudo)}
+                    aria-label={editando ? 'Etapa da demanda' : 'Etapa inicial'}
+                    className={CAMPO_PAINEL}
+                  >
+                    {status === 'travado' && <option value="travado">Ajuste pedido</option>}
+                    {ETAPAS_PIPELINE.map((etapa) => (
+                      <option key={etapa.status} value={etapa.status}>
+                        {etapa.step}. {etapa.label}
+                      </option>
+                    ))}
+                  </select>
+                </LinhaPropriedade>
+                <LinhaPropriedade icon={Flag} rotulo="Prioridade">
+                  <select value={prioridade} onChange={(e) => setPrioridade(e.target.value as PrioridadeConteudo)} aria-label="Prioridade" className={CAMPO_PAINEL}>
+                    {(['urgente', 'alta', 'media', 'baixa'] as const).map((id) => (
+                      <option key={id} value={id}>
+                        {PRIORIDADE_CONFIG[id].label}
+                      </option>
+                    ))}
+                  </select>
+                </LinhaPropriedade>
+                <LinhaPropriedade icon={ImageIcon} rotulo="Formato">
+                  <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoConteudo)} aria-label="Formato" className={CAMPO_PAINEL}>
+                    {FORMATOS.map((fmt) => (
+                      <option key={fmt.id} value={fmt.id}>
+                        {fmt.label}
+                      </option>
+                    ))}
+                  </select>
+                </LinhaPropriedade>
+                <LinhaPropriedade icon={Clock} rotulo="Prazo interno" detalhe={detalhePrazo(prazoInterno, status !== 'publicado')}>
+                  <input type="date" value={prazoInterno} onChange={(e) => setPrazoInterno(e.target.value)} aria-label="Prazo interno" className={`${CAMPO_PAINEL} [color-scheme:dark]`} />
+                </LinhaPropriedade>
+                <LinhaPropriedade icon={Calendar} rotulo="Postagem" detalhe={detalhePrazo(dataProgramada, false)}>
+                  <input type="date" value={dataProgramada} onChange={(e) => setDataProgramada(e.target.value)} aria-label="Data programada" className={`${CAMPO_PAINEL} [color-scheme:dark]`} />
+                </LinhaPropriedade>
+              </div>
+            </div>
+
+            {/* Cliente e equipe */}
+            <div className="flex flex-col gap-2.5 rounded-3xl border border-border bg-card p-4 shadow-2xs">
+              {/* Cliente */}
+              <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 shrink-0">
+                  <Users className="w-3.5 h-3.5 text-brand-text" />
+                  Cliente
+                  {!editando && <span aria-hidden className="text-destructive">*</span>}
+                </span>
+                <div className="flex items-center gap-2 min-w-0">
+                  {clienteObj && !trocarClienteAberto ? (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ClienteAvatar nome={clienteObj.nome} cor={clienteObj.cor} fotoUrl={clienteObj.foto_url} tamanho="sm" />
+                      <span className="text-xs font-semibold text-foreground truncate max-w-[130px]">{clienteObj.nome}</span>
+                      <button
+                        type="button"
+                        onClick={() => setTrocarClienteAberto(true)}
+                        className="text-xs font-semibold text-brand-text hover:underline cursor-pointer ml-0.5"
+                      >
+                        Trocar
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setTrocarClienteAberto((v) => !v)}
+                      aria-expanded={trocarClienteAberto}
+                      className="text-xs font-semibold text-brand-text hover:underline cursor-pointer"
+                    >
+                      {trocarClienteAberto ? 'Fechar' : 'Selecionar'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {trocarClienteAberto && (
+                <div className="flex flex-col gap-1.5 pb-2 border-b border-border">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar cliente..."
+                      aria-label="Buscar cliente"
+                      value={buscaCliente}
+                      onChange={(e) => setBuscaCliente(e.target.value)}
+                      className="pl-8 h-8 text-xs bg-card"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="max-h-32 overflow-y-auto flex flex-col gap-0.5 p-1 border border-border rounded-xl bg-card">
+                    {clientesFiltrados.length === 0 ? (
+                      <p className="text-xs text-muted-foreground p-1 text-center">Nenhum cliente encontrado.</p>
+                    ) : (
+                      clientesFiltrados.map((c) => {
+                        const selecionado = clienteId === c.id;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            aria-pressed={selecionado}
+                            onClick={() => {
+                              setClienteId(c.id);
+                              setTrocarClienteAberto(false);
+                            }}
+                            className={`flex items-center gap-2 p-1.5 rounded-lg text-left transition-ui cursor-pointer ${
+                              selecionado ? 'bg-accent font-semibold text-foreground' : 'hover:bg-accent/40 text-muted-foreground'
+                            }`}
+                          >
+                            <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={c.foto_url} tamanho="sm" />
+                            <span className="text-xs truncate flex-1">{c.nome}</span>
+                            {selecionado && <CheckCircle2 className="w-3.5 h-3.5 text-brand-text shrink-0" />}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Equipe */}
+              <div className="grid grid-cols-2 gap-2 pb-2 border-b border-border">
+                <ResponsaveisSelect
+                  label="Responsáveis"
+                  value={[responsavelId, ...coResponsaveis].filter((id, i, ids) => !!id && ids.indexOf(id) === i)}
+                  onChange={(ids) => {
+                    setResponsavelId(ids[0] || '');
+                    setCoResponsaveis(ids.slice(1));
+                  }}
+                  membros={membros}
+                />
+                <MemberChipSelect
+                  label="Designer / Editor"
+                  value={editorId}
+                  onChange={setEditorId}
+                  membros={membros}
+                  placeholder="Atribuir..."
+                />
+              </div>
+
+            </div>
+          </aside>
+        </div>
+
+        {/* 3. Rodapé fixo (desktop): Excluir à esquerda, Cancelar e Salvar à direita */}
+        <div className="max-md:hidden flex shrink-0 items-center justify-between gap-3 border-t border-border bg-card px-6 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            {editando && (
+              <Button type="button" variant="outline" onClick={handleExcluir} disabled={excluindo || salvando} className="border-destructive/50 text-destructive hover:bg-destructive-soft">
+                Excluir
+              </Button>
+            )}
+            <span aria-live="polite" className="truncate text-xs">
+              {excluindo ? (
+                <span className="text-muted-foreground">Excluindo…</span>
+              ) : sujo ? (
+                <span className="inline-flex items-center gap-1.5 font-medium text-warning">
+                  <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warning" />
+                  {editando ? 'Alterações não salvas' : 'Ainda não criada'}
+                </span>
+              ) : null}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" onClick={fechar}>
+              Cancelar
+            </Button>
+            <Button type="submit" loading={salvando} title={editando ? 'Salvar (Ctrl+S)' : 'Criar demanda (Ctrl+S)'}>
+              {editando ? 'Salvar' : 'Criar demanda'}
+            </Button>
           </div>
         </div>
       </form>

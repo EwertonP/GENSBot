@@ -129,6 +129,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       'publicado_em',
       'responsavel_id',
       'co_responsaveis_ids',
+      'etiquetas_ids',
       'editor_id',
       'arquivos',
       'cover_url',

@@ -27,6 +27,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Menu } from '@base-ui/react/menu';
+import { corDaEtiqueta, type Etiqueta } from '@/lib/etiquetas';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -214,6 +215,7 @@ export default function EsteiraTab({
     item: ConteudoItem | null;
     chave: number;
     clienteInicialId?: string;
+    statusInicial?: StatusConteudo;
   }>({ aberto: false, modo: 'novo', item: null, chave: 0 });
 
   // Modal Duplicar Mês
@@ -255,6 +257,19 @@ export default function EsteiraTab({
   const [etapaMobile, setEtapaMobile] = useState<string>('planejamento');
 
   // Carrega clientes, membros e itens
+  const [etiquetasLista, setEtiquetasLista] = useState<Etiqueta[]>([]);
+  const etiquetasPorId = useMemo(() => new Map(etiquetasLista.map((e) => [e.id, e])), [etiquetasLista]);
+  useEffect(() => {
+    let vivo = true;
+    fetch('/api/etiquetas')
+      .then((r) => (r.ok ? r.json() : { etiquetas: [] }))
+      .then((c) => vivo && setEtiquetasLista(c.etiquetas ?? []))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [demanda.aberto]);
+
   async function carregarDados() {
     setCarregando(true);
     try {
@@ -560,9 +575,9 @@ export default function EsteiraTab({
   }
 
   // Abre o modal no modo "novo" (cliente do filtro atual, ou o primeiro)
-  function handleAbrirModalNovo() {
+  function handleAbrirModalNovo(statusInicial?: StatusConteudo) {
     const clienteInicialId = clienteSelecionado !== 'all' ? clienteSelecionado : clientes[0]?.id || '';
-    setDemanda((d) => ({ aberto: true, modo: 'novo', item: null, chave: d.chave + 1, clienteInicialId }));
+    setDemanda((d) => ({ aberto: true, modo: 'novo', item: null, chave: d.chave + 1, clienteInicialId, statusInicial }));
   }
 
   // Pedido externo de "Nova demanda": abre assim que os dados (clientes,
@@ -825,7 +840,7 @@ export default function EsteiraTab({
 
           {/* Botão Nova Demanda */}
           <Button
-            onClick={handleAbrirModalNovo}
+            onClick={() => handleAbrirModalNovo()}
             variant="primary"
             size="sm"
             className="rounded-xl shadow-xs h-9 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shrink-0"
@@ -1008,7 +1023,7 @@ export default function EsteiraTab({
                   const itemId = e.dataTransfer.getData('text/plain');
                   if (itemId) handleMudarStatus(itemId, colStatus);
                 }}
-                className={`${colStatus === etapaMobile ? '' : 'max-sm:hidden'} max-sm:w-full w-80 snap-start shrink-0 flex flex-col gap-3 p-3 rounded-2xl border transition-all duration-200 min-h-60 sm:min-h-[540px] ${
+                className={`${colStatus === etapaMobile ? '' : 'max-sm:hidden'} max-sm:w-full sm:flex-1 sm:basis-72 sm:min-w-72 snap-start shrink-0 flex flex-col gap-3 p-3 rounded-3xl border transition-all duration-200 min-h-60 sm:min-h-[540px] ${
                   isOver
                     ? 'bg-primary/10 border-primary ring-2 ring-primary/25 shadow-md'
                     : `${colConfig.fundoColuna} ${colConfig.bordaColuna}`
@@ -1032,8 +1047,22 @@ export default function EsteiraTab({
                   </span>
                 </div>
 
+                {/* Nova demanda direto nesta etapa, na cor da coluna (como no Orkestrya) */}
+                <button
+                  type="button"
+                  onClick={() => handleAbrirModalNovo(colStatus)}
+                  className={`flex h-10 w-full items-center justify-center gap-1.5 rounded-full text-sm font-semibold text-background cursor-pointer transition-opacity hover:opacity-90 active:scale-[0.99] ${colConfig.dot}`}
+                >
+                  <Plus className="size-4" aria-hidden /> Nova demanda
+                </button>
+
                 {/* Lista de Cards da Coluna */}
                 <div className="flex flex-col gap-3">
+                  {itensDaColuna.length === 0 && (
+                    <div className="grid min-h-24 place-items-center rounded-2xl border border-dashed border-border-strong/60 text-xs text-muted-foreground [background-image:repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_oklab,var(--border)_55%,transparent)_6px_7px)]">
+                      Nenhuma demanda
+                    </div>
+                  )}
                   {itensDaColuna.map((item) => {
                     const ajustesPendentes = (item.comentarios_revisao || []).filter(
                       (c) => !c.resolvido && c.texto && !c.texto.toLowerCase().includes('aprovad')
@@ -1242,6 +1271,19 @@ export default function EsteiraTab({
                           <h4 className="text-sm font-medium italic text-muted-foreground">
                             Demanda sem título
                           </h4>
+                        )}
+
+                        {(item.etiquetas_ids ?? []).length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {(item.etiquetas_ids ?? []).map((eid) => {
+                              const et = etiquetasPorId.get(eid);
+                              return et ? (
+                                <span key={eid} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${corDaEtiqueta(et.cor).chip}`}>
+                                  {et.nome}
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
                         )}
 
                         {/* Preview de Briefing / Nota (Inspiração NovaBoard Img 4) */}
@@ -1457,6 +1499,16 @@ export default function EsteiraTab({
                     );
                   })}
                 </div>
+
+                {itensDaColuna.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleAbrirModalNovo(colStatus)}
+                    className="flex h-10 w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-border-strong/70 text-sm font-medium text-muted-foreground cursor-pointer transition-colors hover:bg-card/60 hover:text-foreground"
+                  >
+                    <Plus className="size-4" aria-hidden /> Nova demanda
+                  </button>
+                )}
               </div>
             );
           })}
@@ -1554,6 +1606,7 @@ export default function EsteiraTab({
         modo={demanda.modo}
         item={demanda.item}
         clienteInicialId={demanda.clienteInicialId}
+        statusInicial={demanda.statusInicial}
         responsavelInicialId={membros[0]?.id}
         clientes={clientes}
         membros={membros}

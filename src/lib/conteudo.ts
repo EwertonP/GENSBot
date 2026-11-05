@@ -217,6 +217,8 @@ export interface ConteudoItem {
   responsavel_id: string | null;
   /** Demais responsáveis além do principal (`responsavel_id`). */
   co_responsaveis_ids?: string[] | null;
+  /** Etiquetas aplicadas (ids de `etiquetas`). */
+  etiquetas_ids?: string[] | null;
   editor_id: string | null;
   scheduled_post_id: string | null;
   arquivos: ArquivoConteudo[];
