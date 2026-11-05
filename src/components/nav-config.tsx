@@ -185,9 +185,21 @@ export const ABAS_MEMBRO_ESCOPADO: AbaId[] = [
 /** Portal do cliente (papel 'cliente'): mesmas telas que page.tsx já liberava. */
 const ABAS_PORTAL_CLIENTE: AbaId[] = ['crm', 'inbox', 'contacts'];
 
-/** Telas visíveis para o papel do usuário logado. Sem papel conhecido, fica no mínimo. */
-export function abasDoMembro(papel: string | null | undefined): AbaId[] {
+/** Telas visíveis para o papel e permissões personalizadas do usuário logado. */
+export function abasDoMembro(
+  papel: string | null | undefined,
+  modulosPermitidos?: string[] | null
+): AbaId[] {
   if (papel === 'master') return ABAS;
   if (papel === 'cliente') return ABAS_PORTAL_CLIENTE;
+
+  if (Array.isArray(modulosPermitidos) && modulosPermitidos.length > 0) {
+    const permitidas = modulosPermitidos.filter(isAbaId);
+    if (!permitidas.includes('meu_dia')) {
+      permitidas.unshift('meu_dia');
+    }
+    return permitidas;
+  }
+
   return ABAS_MEMBRO_ESCOPADO;
 }

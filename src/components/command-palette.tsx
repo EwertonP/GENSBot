@@ -145,7 +145,7 @@ export function CommandPalette({
                           onMouseMove={() => setAtivo(index)}
                           onClick={() => executar(item)}
                           className={cn(
-                            'flex items-center gap-3 px-3 py-2 rounded-xl text-sm cursor-pointer select-none',
+                            'flex items-center gap-3 px-3 py-2.5 min-h-[44px] sm:min-h-[40px] rounded-xl text-sm cursor-pointer select-none',
                             selecionado ? 'bg-accent text-foreground' : 'text-foreground/90'
                           )}
                         >

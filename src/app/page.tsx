@@ -77,9 +77,18 @@ export default function Dashboard() {
 
   // Auth state
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [membroPerfil, setMembroPerfil] = useState<{ id?: string; nome?: string; cargo?: string | null; foto_url?: string | null; papel: string; cliente_id: string | null } | null>(null);
-  // Telas que este usuário pode abrir. Membro comum fica restrito à esteira e aos clientes liberados.
-  const abasVisiveis = abasDoMembro(membroPerfil?.papel);
+  const [membroPerfil, setMembroPerfil] = useState<{
+    id?: string;
+    nome?: string;
+    cargo?: string | null;
+    setor?: string | null;
+    modulos_permitidos?: string[] | null;
+    foto_url?: string | null;
+    papel: string;
+    cliente_id: string | null;
+  } | null>(null);
+  // Telas que este usuário pode abrir. Membro comum fica restrito aos módulos liberados para sua função.
+  const abasVisiveis = abasDoMembro(membroPerfil?.papel, membroPerfil?.modulos_permitidos);
 
   // Configurações de estado do app
   const [loading, setLoading] = useState(true);

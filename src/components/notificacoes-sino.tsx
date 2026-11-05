@@ -128,10 +128,10 @@ export function NotificacoesSino({ onAbrir, className = '' }: { onAbrir: (url: s
         <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
           <h3 className="font-display text-base font-semibold text-foreground">Notificações</h3>
           <div className="flex items-center gap-1">
-            <button type="button" onClick={marcarTodas} disabled={naoLidas === 0} className="inline-flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50 cursor-pointer">
+            <button type="button" onClick={marcarTodas} disabled={naoLidas === 0} className="inline-flex h-10 sm:h-9 items-center gap-1.5 rounded-xl px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50 cursor-pointer">
               <CheckCheck className="size-4" /> Marcar todas
             </button>
-            <button type="button" onClick={alternarPrefs} aria-label="Preferências" aria-pressed={mostrarPrefs} className={`inline-flex size-9 items-center justify-center rounded-xl hover:bg-accent cursor-pointer ${mostrarPrefs ? 'bg-accent text-foreground' : 'text-muted-foreground'}`}>
+            <button type="button" onClick={alternarPrefs} aria-label="Preferências" aria-pressed={mostrarPrefs} className={`inline-flex size-10 sm:size-9 items-center justify-center rounded-xl hover:bg-accent cursor-pointer ${mostrarPrefs ? 'bg-accent text-foreground' : 'text-muted-foreground'}`}>
               <Settings2 className="size-4" />
             </button>
           </div>

@@ -18,6 +18,10 @@ import {
   BarChart3,
   Edit2,
   Power,
+  Calendar,
+  Cake,
+  Lock,
+  Shield,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,10 +47,57 @@ export interface MembroEquipe {
   papel: 'master' | 'membro';
   ativo: boolean;
   cargo: string | null;
+  setor?: string | null;
+  modulos_permitidos?: string[];
+  data_nascimento?: string | null;
+  data_inicio?: string | null;
   foto_url: string | null;
   criado_em: string;
   total_demandas?: number;
   clientes_ids?: string[];
+}
+
+export const SETORES_SQUADS = [
+  'Criação & Design',
+  'Audiovisual & Edição',
+  'Tráfego & Performance',
+  'Comercial & Vendas',
+  'Financeiro & Adm',
+  'Atendimento & CS',
+  'Estratégia & Conteúdo',
+];
+
+export const MODULOS_DISPONIVEIS: { id: string; rotulo: string; descricao: string }[] = [
+  { id: 'meu_dia', rotulo: 'Meu Dia', descricao: 'Cockpit operacional e tarefas do dia' },
+  { id: 'esteira', rotulo: 'Esteira & Kanban', descricao: 'Gestão de demandas e produção' },
+  { id: 'clientes', rotulo: 'Clientes', descricao: 'Fichas estratégicas e acessos' },
+  { id: 'publish', rotulo: 'Publicar & Agendar', descricao: 'Agendamento de posts e mídias' },
+  { id: 'automations', rotulo: 'Automações', descricao: 'Fluxos de mensagens do Instagram' },
+  { id: 'contacts', rotulo: 'Contatos & Leads', descricao: 'Base de contatos da agência' },
+  { id: 'crm', rotulo: 'CRM de Vendas', descricao: 'Funil e negociações comerciais' },
+  { id: 'financeiro', rotulo: 'Financeiro', descricao: 'Contas, receitas, despesas e fluxo' },
+  { id: 'documentos', rotulo: 'Propostas & Contratos', descricao: 'Documentos e assinaturas' },
+];
+
+export function calcularTempoDeCasa(dataInicio?: string | null): string | null {
+  if (!dataInicio) return null;
+  const inicio = new Date(dataInicio);
+  if (isNaN(inicio.getTime())) return null;
+  const agora = new Date();
+  const meses = (agora.getFullYear() - inicio.getFullYear()) * 12 + (agora.getMonth() - inicio.getMonth());
+  if (meses < 1) return 'Recente (< 1 mês)';
+  const anos = Math.floor(meses / 12);
+  const mesesRestantes = meses % 12;
+  if (anos === 0) return `${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+  if (mesesRestantes === 0) return `${anos} ${anos === 1 ? 'ano' : 'anos'}`;
+  return `${anos}a ${mesesRestantes}m`;
+}
+
+export function formatarAniversario(dataNasc?: string | null): string | null {
+  if (!dataNasc) return null;
+  const partes = dataNasc.split('-');
+  if (partes.length < 3) return null;
+  return `${partes[2]}/${partes[1]}`;
 }
 
 interface ClienteOpcao {
@@ -74,6 +125,17 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
   const [formNome, setFormNome] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formCargo, setFormCargo] = useState('');
+  const [formSetor, setFormSetor] = useState('');
+  const [formModulosPermitidos, setFormModulosPermitidos] = useState<string[]>([
+    'meu_dia',
+    'esteira',
+    'clientes',
+    'publish',
+    'automations',
+    'contacts',
+  ]);
+  const [formDataNascimento, setFormDataNascimento] = useState('');
+  const [formDataInicio, setFormDataInicio] = useState('');
   const [formFotoUrl, setFormFotoUrl] = useState('');
   const [formPapel, setFormPapel] = useState<'master' | 'membro'>('master');
   const [formPassword, setFormPassword] = useState('');
@@ -111,7 +173,11 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
     setMembroEditando(null);
     setFormNome('');
     setFormEmail('');
-    setFormCargo('Sócio / Designer');
+    setFormCargo('Designer / Criativo');
+    setFormSetor('Criação & Design');
+    setFormModulosPermitidos(['meu_dia', 'esteira', 'clientes', 'publish', 'automations', 'contacts']);
+    setFormDataNascimento('');
+    setFormDataInicio(new Date().toISOString().slice(0, 10));
     setFormFotoUrl('');
     setFormPapel('master');
     setFormPassword('');
@@ -125,6 +191,10 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
     setFormNome(m.nome);
     setFormEmail(m.email);
     setFormCargo(m.cargo || '');
+    setFormSetor(m.setor || '');
+    setFormModulosPermitidos(m.modulos_permitidos || ['meu_dia', 'esteira', 'clientes', 'publish', 'automations', 'contacts']);
+    setFormDataNascimento(m.data_nascimento ? m.data_nascimento.slice(0, 10) : '');
+    setFormDataInicio(m.data_inicio ? m.data_inicio.slice(0, 10) : '');
     setFormFotoUrl(m.foto_url || '');
     setFormPapel(m.papel);
     setFormPassword('');
@@ -167,6 +237,10 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
           body: JSON.stringify({
             nome: formNome.trim(),
             cargo: formCargo.trim() || null,
+            setor: formSetor.trim() || null,
+            modulos_permitidos: formPapel === 'membro' ? formModulosPermitidos : null,
+            data_nascimento: formDataNascimento || null,
+            data_inicio: formDataInicio || null,
             papel: formPapel,
             foto_url: formFotoUrl.trim() || null,
             // Master não precisa de lista: enxerga todos os clientes.
@@ -190,6 +264,10 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             nome: formNome.trim(),
             email: formEmail.trim(),
             cargo: formCargo.trim() || null,
+            setor: formSetor.trim() || null,
+            modulos_permitidos: formPapel === 'membro' ? formModulosPermitidos : null,
+            data_nascimento: formDataNascimento || null,
+            data_inicio: formDataInicio || null,
             papel: formPapel,
             password: formPassword.trim() || undefined,
             foto_url: formFotoUrl.trim() || null,
@@ -437,6 +515,47 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                       <span>{membro.total_demandas || 0} demandas</span>
                     </span>
                   </div>
+
+                  {/* Setor / Squad e Permissões */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                    {membro.setor ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary px-2 py-0.5 rounded-md bg-primary/10">
+                        {membro.setor}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground italic">Sem setor definido</span>
+                    )}
+
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      {isMaster ? (
+                        <span className="text-primary font-medium flex items-center gap-1">
+                          <Shield className="w-3 h-3" /> Acesso total
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> {membro.modulos_permitidos?.length || 6} módulos
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Informações de Tempo de Casa e Aniversário */}
+                  {(membro.data_inicio || membro.data_nascimento) && (
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/50">
+                      {membro.data_inicio && (
+                        <span className="flex items-center gap-1" title="Tempo de casa">
+                          <Clock className="w-3 h-3 text-muted-foreground" />
+                          <span>Casa: <strong>{calcularTempoDeCasa(membro.data_inicio)}</strong></span>
+                        </span>
+                      )}
+                      {membro.data_nascimento && (
+                        <span className="flex items-center gap-1" title="Data de aniversário">
+                          <Cake className="w-3 h-3 text-primary" />
+                          <span>Niver: <strong>{formatarAniversario(membro.data_nascimento)}</strong></span>
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
@@ -583,6 +702,108 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                   onChange={(e) => setFormCargo(e.target.value)}
                 />
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-foreground">Setor / Squad</label>
+                <Select
+                  value={formSetor}
+                  onChange={(e) => setFormSetor(e.target.value)}
+                >
+                  <option value="">Selecione um setor...</option>
+                  {SETORES_SQUADS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground">Data de Início (Tempo de casa)</label>
+                  <Input
+                    type="date"
+                    value={formDataInicio}
+                    onChange={(e) => setFormDataInicio(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground">Data de Aniversário</label>
+                  <Input
+                    type="date"
+                    value={formDataNascimento}
+                    onChange={(e) => setFormDataNascimento(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {formPapel === 'membro' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                    <span>Módulos de Acesso Permitidos</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormModulosPermitidos(
+                          formModulosPermitidos.length === MODULOS_DISPONIVEIS.length
+                            ? ['meu_dia']
+                            : MODULOS_DISPONIVEIS.map((m) => m.id)
+                        )
+                      }
+                      className="text-[11px] text-primary hover:underline font-normal cursor-pointer"
+                    >
+                      {formModulosPermitidos.length === MODULOS_DISPONIVEIS.length
+                        ? 'Desmarcar todos'
+                        : 'Selecionar todos'}
+                    </button>
+                  </label>
+                  <p className="text-[11px] text-muted-foreground -mt-0.5">
+                    Defina quais abas e ferramentas este colaborador pode visualizar na barra de navegação.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-xl border border-border p-3 max-h-56 overflow-y-auto">
+                    {MODULOS_DISPONIVEIS.map((mod) => {
+                      const ativo = formModulosPermitidos.includes(mod.id);
+                      return (
+                        <div
+                          key={mod.id}
+                          className={`flex items-start gap-2 p-2 rounded-lg border transition-colors cursor-pointer ${
+                            ativo
+                              ? 'bg-primary/5 border-primary/30'
+                              : 'bg-card border-border/60 hover:bg-muted/40'
+                          }`}
+                          onClick={() => {
+                            if (mod.id === 'meu_dia') return;
+                            setFormModulosPermitidos((prev) =>
+                              prev.includes(mod.id)
+                                ? prev.filter((id) => id !== mod.id)
+                                : [...prev, mod.id]
+                            );
+                          }}
+                        >
+                          <Checkbox
+                            checked={ativo}
+                            disabled={mod.id === 'meu_dia'}
+                            onCheckedChange={(marcado) => {
+                              if (mod.id === 'meu_dia') return;
+                              setFormModulosPermitidos((prev) =>
+                                marcado ? [...prev, mod.id] : prev.filter((id) => id !== mod.id)
+                              );
+                            }}
+                          />
+                          <div className="text-xs min-w-0">
+                            <span className="font-semibold text-foreground block truncate">
+                              {mod.rotulo}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground block truncate">
+                              {mod.descricao}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {formPapel === 'membro' && (
                 <div className="flex flex-col gap-1.5">

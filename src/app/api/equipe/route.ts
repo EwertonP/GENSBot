@@ -11,6 +11,10 @@ export interface MembroEquipe {
   papel: 'master' | 'membro';
   ativo: boolean;
   cargo: string | null;
+  setor?: string | null;
+  modulos_permitidos?: string[];
+  data_nascimento?: string | null;
+  data_inicio?: string | null;
   foto_url: string | null;
   criado_em: string;
   total_demandas?: number;
@@ -79,7 +83,18 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { nome, email, papel = 'membro', cargo, password, clientes_ids } = body;
+    const {
+      nome,
+      email,
+      papel = 'membro',
+      cargo,
+      setor,
+      modulos_permitidos,
+      data_nascimento,
+      data_inicio,
+      password,
+      clientes_ids,
+    } = body;
 
     if (!nome?.trim() || !email?.trim()) {
       return respostaErro('Nome e e-mail são obrigatórios.', 400);
@@ -123,6 +138,10 @@ export async function POST(req: Request) {
         email: emailLimpo,
         papel: papel === 'master' ? 'master' : 'membro',
         cargo: cargo?.trim() || null,
+        setor: setor?.trim() || null,
+        modulos_permitidos: Array.isArray(modulos_permitidos) ? modulos_permitidos : null,
+        data_nascimento: data_nascimento || null,
+        data_inicio: data_inicio || null,
         ativo: true,
       })
       .select('*')

@@ -81,6 +81,39 @@ export default function CrmTab({
   const [aiAtivo, setAiAtivo] = useState(false);
   const [alternandoAi, setAlternandoAi] = useState(false);
 
+  // Metas Comerciais do Mês
+  const [metaNovosClientes, setMetaNovosClientes] = useState(5);
+  const [metaReceita, setMetaReceita] = useState(15000);
+  const [modalMetaAberto, setModalMetaAberto] = useState(false);
+  const [formMetaClientes, setFormMetaClientes] = useState(5);
+  const [formMetaReceita, setFormMetaReceita] = useState(15000);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const salvo = localStorage.getItem('gensbot_crm_metas');
+      if (salvo) {
+        try {
+          const parsed = JSON.parse(salvo);
+          if (parsed.clientes) setMetaNovosClientes(parsed.clientes);
+          if (parsed.receita) setMetaReceita(parsed.receita);
+        } catch {}
+      }
+    }
+  }, []);
+
+  const salvarMetas = (novosClientes: number, novaReceita: number) => {
+    setMetaNovosClientes(novosClientes);
+    setMetaReceita(novaReceita);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(
+        'gensbot_crm_metas',
+        JSON.stringify({ clientes: novosClientes, receita: novaReceita })
+      );
+    }
+    setModalMetaAberto(false);
+    showToast('Metas comerciais atualizadas com sucesso!', 'success');
+  };
+
   // Sincroniza cliente inicial se passado externamente
   useEffect(() => {
     if (clienteInicialId !== undefined) {
@@ -359,6 +392,32 @@ export default function CrmTab({
     return negocios.filter((n) => n.status === 'aberto' && calcularDiasSemContato(n.ultimo_contato_em) >= 7).length;
   }, [negocios]);
 
+  const dadosMetas = useMemo(() => {
+    const agora = new Date();
+    const anoAtual = agora.getFullYear();
+    const mesAtual = agora.getMonth();
+
+    const negociosGanhosNoMes = negocios.filter((n) => {
+      if (n.status !== 'ganho') return false;
+      const dataConc = n.data_conclusao ? new Date(n.data_conclusao) : new Date(n.atualizado_em);
+      return dataConc.getFullYear() === anoAtual && dataConc.getMonth() === mesAtual;
+    });
+
+    const totalGanhosMes = negociosGanhosNoMes.length;
+    const valorGanhosMes = negociosGanhosNoMes.reduce((acc, n) => acc + (Number(n.valor) || 0), 0);
+
+    const pctClientes = Math.min(100, Math.round((totalGanhosMes / (metaNovosClientes || 1)) * 100));
+    const pctReceita = Math.min(100, Math.round((valorGanhosMes / (metaReceita || 1)) * 100));
+
+    return {
+      totalGanhosMes,
+      valorGanhosMes,
+      pctClientes,
+      pctReceita,
+      metaBatida: totalGanhosMes >= metaNovosClientes && valorGanhosMes >= metaReceita,
+    };
+  }, [negocios, metaNovosClientes, metaReceita]);
+
   const filtrosCrm: FiltroSelect[] = useMemo(() => [
     {
       id: 'status',
@@ -586,6 +645,84 @@ export default function CrmTab({
         </div>
       </div>
 
+      {/* ──────────────── Banner de Meta Comercial do Mês com Barra de Progresso ──────────────── */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Target className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-foreground">Metas Comerciais do Mês</h3>
+                {dadosMetas.metaBatida && (
+                  <Badge variant="success" className="text-[10px] py-0 px-2">
+                    🎉 Meta Batida!
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Acompanhe o ritmo de conversão de novos clientes e receita ganha no mês atual.
+              </p>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setFormMetaClientes(metaNovosClientes);
+              setFormMetaReceita(metaReceita);
+              setModalMetaAberto(true);
+            }}
+            className="h-8 rounded-full text-xs font-semibold border-border hover:bg-muted"
+          >
+            <Settings className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+            Ajustar Metas
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          {/* Progresso: Novos Clientes */}
+          <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border/60">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-primary" />
+                Novos Clientes Ganhos
+              </span>
+              <span className="font-mono text-xs font-bold text-foreground">
+                {dadosMetas.totalGanhosMes} de {metaNovosClientes} ({dadosMetas.pctClientes}%)
+              </span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-border overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-500"
+                style={{ width: `${dadosMetas.pctClientes}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Progresso: Nova Receita Mensal */}
+          <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border/60">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+                Nova Receita Ganha no Mês
+              </span>
+              <span className="font-mono text-xs font-bold text-foreground">
+                {formatarMoeda(dadosMetas.valorGanhosMes)} de {formatarMoeda(metaReceita)} ({dadosMetas.pctReceita}%)
+              </span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-border overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: `${dadosMetas.pctReceita}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ──────────────── Métricas Resumo do Funil ──────────────── */}
       {metricas && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
@@ -765,6 +902,79 @@ export default function CrmTab({
         pipelines={pipelines}
         showToast={showToast}
       />
+
+      {/* ──────────────── Modal Ajustar Metas Comerciais ──────────────── */}
+      {modalMetaAberto && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-card text-card-foreground border border-border rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-primary" />
+                <h3 className="text-sm font-bold text-foreground">Definir Metas do Mês</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalMetaAberto(false)}
+                className="text-muted-foreground hover:text-foreground text-xs p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Defina os objetivos da equipe comercial para o mês corrente. A barra de progresso acompanhará os negócios marcados como "Ganhos".
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Meta de Novos Clientes (quantidade)
+                </label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={formMetaClientes}
+                  onChange={(e) => setFormMetaClientes(Number(e.target.value) || 1)}
+                  className="h-10 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Meta de Nova Receita Comercial (R$)
+                </label>
+                <Input
+                  type="number"
+                  min={100}
+                  step={500}
+                  value={formMetaReceita}
+                  onChange={(e) => setFormMetaReceita(Number(e.target.value) || 0)}
+                  className="h-10 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setModalMetaAberto(false)}
+                className="flex-1 h-10 rounded-full text-xs font-semibold border-border hover:bg-muted"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={() => salvarMetas(formMetaClientes, formMetaReceita)}
+                className="flex-1 h-10 rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90"
+              >
+                Salvar Metas
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
