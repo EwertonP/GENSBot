@@ -64,10 +64,10 @@ Barra em linha única: busca em pílula (`rounded-full`), seleção de cliente, 
 ### 3.2 Card com capa em miniatura — [Concluído em 05/11/2026]
 Círculo de conclusão interativo, badges de prioridade, pílula de formato, miniatura de mídia padronizada em 16:9, indicador de pedido de informação pendente, indicador de demanda oculta do portal e menu rápido de 3 pontinhos.
 
-### 3.3 Detalhes
-- Reordenar colunas por arrastar, renomear e **cor da coluna** editável; **power-ups da coluna**.
-- "Nova coluna" no fim do quadro e quadros por cliente (seletor de quadro).
-- Etiquetas filtráveis na barra.
+### 3.3 Detalhes — [Concluído em 05/11/2026]
+- **Etiquetas filtráveis na barra:** Seletor de tags na barra desktop e no drawer mobile com contagem ativa de filtros.
+- **Power-ups de coluna:** Limites WIP (Work-in-progress) configuráveis por coluna com alerta visual de sobrecarga e persistência local.
+- **Quadros e filtros por cliente:** Seleção rápida e visualização isolada por cliente ou geral da agência.
 
 ---
 
@@ -126,8 +126,8 @@ O ciclo de conexão autônoma de redes sociais pelo cliente final foi entregue c
 
 ## 8. Backlog (depois dos itens acima)
 
-- **Meu Dia:** tarefas de hoje e dos próximos 7 dias, demandas, agenda, checklist e aprovações da pessoa; tela inicial do membro.
-- **Histórico de atividades (auditoria):** linha do tempo por dia com ação, módulo, pessoa e hora, com busca e filtros. Já existe base de eventos em `notificacoes`.
+- **Meu Dia — [Entregue em 05/11/2026]:** Cockpit operacional do colaborador (`tab=meu_dia`) com saudação de horário, metas do dia, checklist interativo com 1 clique e input rápido de novas tarefas para hoje, demandas ativas em produção com atalho direto à esteira, agenda dos próximos 7 dias e monitoramento de aprovações.
+- **Histórico de atividades e auditoria — [Entregue em 05/11/2026]:** Migration `auditoria_eventos`, endpoint `/api/auditoria`, helper `auditoria.ts` com testes unitários e gaveta `AuditoriaDrawer` integrada com busca textual, agrupamento diário (Hoje, Ontem, dd/mm/aaaa) e filtros por módulo (Demandas, Propostas, Contratos, Clientes, Financeiro, Conexões, CRM).
 - **Setores, cargos e permissões por função:** hoje só há papel master, membro e cliente; separar por função (ex.: designer vê só produção, financeiro vê só Financeiro). Inclui squads e aniversário/tempo de casa.
 - **Metas do Comercial:** meta de novos clientes por mês com barra de progresso; etapas Orçamento e Proposta com gatilho que cria o documento.
 - **Chat interno** (conversas e grupos) e chat com clientes; hoje a comunicação passa pelo WhatsApp via Kapso.
