@@ -51,6 +51,9 @@
   --color-destructive-ring: var(--destructive-ring);
   --color-success-foreground: var(--success-foreground);
   --color-success: var(--success);
+  --color-panel: var(--panel);
+  --color-panel-foreground: var(--panel-foreground);
+  --color-panel-muted: var(--panel-muted);
   --color-success-soft: var(--success-soft);
   --color-success-ring: var(--success-ring);
   --color-warning-foreground: var(--warning-foreground);
@@ -170,6 +173,9 @@
   --font-display: var(--font-sora), system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --panel: #17181D; /* cartão escuro de ação (igual nos dois temas) */
+  --panel-foreground: #F5F5F5;
+  --panel-muted: #9AA0AB;
   --shadow-color: #0D231C;
   --letter-spacing: -0.01em;
   --spacing: 0.25rem;
@@ -234,6 +240,9 @@
   --sidebar-accent-foreground: #F5F5F5;
   --sidebar-border: #2A2A2A;
   --sidebar-ring: #00DC94;
+  --panel: #17181D;
+  --panel-foreground: #F5F5F5;
+  --panel-muted: #9AA0AB;
   --shadow-color: #000000;
   /* No escuro a sombra quase não aparece: a elevação vem do tom da superfície
      + um filete de luz no topo (inset), como material físico. */
