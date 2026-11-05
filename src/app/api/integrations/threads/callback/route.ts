@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { verificarStateOnboarding } from '@/lib/onboarding-state';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -9,49 +10,64 @@ export async function GET(req: Request) {
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
 
+  const stateRaw = searchParams.get('state');
+  const onboardingState = verificarStateOnboarding(stateRaw);
+
+  const redirectError = (msg: string) => {
+    if (onboardingState.valido && onboardingState.onboardingToken) {
+      return NextResponse.redirect(
+        new URL(
+          `/conectar/${encodeURIComponent(onboardingState.onboardingToken)}?error=${encodeURIComponent(msg)}`,
+          req.url
+        )
+      );
+    }
+    return NextResponse.redirect(
+      new URL('/?error=' + encodeURIComponent(msg), req.url)
+    );
+  };
+
   if (error || !code) {
     console.error('Erro no Threads OAuth:', error, errorDescription);
-    return NextResponse.redirect(
-      new URL('/?error=' + encodeURIComponent(errorDescription || 'Erro ao conectar conta do Threads'), req.url)
-    );
+    return redirectError(errorDescription || 'Erro ao conectar conta do Threads');
   }
 
-  // Verifica usuário autenticado via Supabase SSR
-  const cookieStore = await cookies();
-  const supabaseAuth = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            /* Server component */
-          }
+  // Se não for onboarding público assinado, exige usuário logado via Supabase SSR
+  if (!onboardingState.valido) {
+    const cookieStore = await cookies();
+    const supabaseAuth = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+          setAll: (cookiesToSet) => {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              /* Server component */
+            }
+          },
         },
-      },
+      }
+    );
+
+    const {
+      data: { user: authUser },
+    } = await supabaseAuth.auth.getUser();
+
+    if (!authUser) {
+      return NextResponse.redirect(new URL('/login', req.url));
     }
-  );
-
-  const {
-    data: { user: authUser },
-  } = await supabaseAuth.auth.getUser();
-
-  if (!authUser) {
-    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   const clientId = process.env.NEXT_PUBLIC_THREADS_CLIENT_ID || '2437920840075028';
   const clientSecret = process.env.THREADS_CLIENT_SECRET;
 
   if (!clientSecret) {
-    return NextResponse.redirect(
-      new URL('/?error=' + encodeURIComponent('Variável THREADS_CLIENT_SECRET não configurada na Vercel/servidor.'), req.url)
-    );
+    return redirectError('Variável THREADS_CLIENT_SECRET não configurada na Vercel/servidor.');
   }
 
   const host = req.headers.get('host');
@@ -101,8 +117,46 @@ export async function GET(req: Request) {
     const threadsName = profileData?.name || null;
     const profilePictureUrl = profileData?.threads_profile_picture_url || null;
 
-    // 4. Se state tiver clienteId, vincula a esse cliente específico
-    const stateRaw = searchParams.get('state');
+    // 4. Se for Onboarding Público
+    if (onboardingState.valido && onboardingState.onboardingToken && onboardingState.clienteId) {
+      const { error: saveError } = await supabase.from('social_accounts').upsert(
+        {
+          cliente_id: onboardingState.clienteId,
+          platform: 'threads',
+          account_id: String(threadsUserId),
+          username: threadsUsername,
+          display_name: threadsName,
+          profile_picture_url: profilePictureUrl,
+          access_token: longToken,
+          token_expires_at: tokenExpiresAt.toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'cliente_id,platform,account_id',
+        }
+      );
+
+      if (saveError) {
+        console.error('Erro ao salvar social_accounts (Threads):', saveError);
+      }
+
+      await supabase
+        .from('cliente_onboarding_links')
+        .update({
+          threads_conectado_em: new Date().toISOString(),
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq('token', onboardingState.onboardingToken);
+
+      return NextResponse.redirect(
+        new URL(
+          `/conectar/${encodeURIComponent(onboardingState.onboardingToken)}?sucesso=threads&username=${encodeURIComponent(threadsUsername || '')}`,
+          req.url
+        )
+      );
+    }
+
+    // 4.1 Se state tiver clienteId (dashboard interno)
     let clienteId: string | null = null;
     if (stateRaw) {
       try {
@@ -162,8 +216,6 @@ export async function GET(req: Request) {
     );
   } catch (err: any) {
     console.error('Erro no callback do Threads:', err);
-    return NextResponse.redirect(
-      new URL('/?error=' + encodeURIComponent(err.message || 'Erro de autenticação no Threads'), req.url)
-    );
+    return redirectError(err.message || 'Erro de autenticação no Threads');
   }
 }
