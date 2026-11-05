@@ -65,7 +65,7 @@ export default function CrmKanban({
   const [draggingOverNegocioId, setDraggingOverNegocioId] = useState<string | null>(null);
 
   return (
-    <ScrollShadow className="w-full pb-4">
+    <ScrollShadow className="w-full min-w-0 max-w-full pb-4">
       <div className="flex gap-4 p-1 min-w-full">
         {estagios.map((estagio, estagioIdx) => {
           const cardsDaColuna = negocios.filter((n) => n.estagio_id === estagio.id);

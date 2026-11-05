@@ -208,30 +208,43 @@ export default function ContactsTab({ withAccount, showToast, accountKey, readOn
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[220px] max-w-sm">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <Input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Buscar por nome, @, e-mail ou telefone" aria-label="Buscar contatos" className="pl-9" />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-xl">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Buscar por nome, @, e-mail ou telefone"
+              aria-label="Buscar contatos"
+              className="pl-9 h-11 sm:h-9"
+            />
+          </div>
+          {allTags.length > 0 && (
+            <Select
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+              aria-label="Filtrar por tag"
+              className="h-11 sm:h-9 w-full sm:w-48 text-xs font-semibold"
+            >
+              <option value="">Todas as tags</option>
+              {allTags.map((tag) => (
+                <option key={tag} value={tag}>
+                  {tag}
+                </option>
+              ))}
+            </Select>
+          )}
         </div>
-        {allTags.length > 0 && (
-          <Select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} aria-label="Filtrar por tag" className="max-w-[220px]">
-            <option value="">Todas as tags</option>
-            {allTags.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </Select>
-        )}
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 justify-end flex-wrap">
           {selectedContacts.length > 0 && (
             <>
-              <Button variant="secondary" size="sm" onClick={() => exportToCsv('contatos_selecionados.csv', selectedContacts, showToast)}>
+              <Button variant="secondary" size="sm" onClick={() => exportToCsv('contatos_selecionados.csv', selectedContacts, showToast)} className="h-11 sm:h-9">
                 <FileText className="w-3.5 h-3.5" />
                 Exportar {selectedContacts.length}
               </Button>
               {!readOnly && (
-                <Button variant="secondary" size="sm" onClick={handleDeleteSelected} className="text-destructive">
+                <Button variant="secondary" size="sm" onClick={handleDeleteSelected} className="text-destructive h-11 sm:h-9">
                   <Trash2 className="w-3.5 h-3.5" />
                   Excluir {selectedContacts.length}
                 </Button>
@@ -239,7 +252,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey, readOn
             </>
           )}
           <Tip label={filtrando ? 'Exporta todos os contatos deste filtro, com as respostas das perguntas' : 'Exporta toda a audiência, com as respostas das perguntas'}>
-            <Button variant="secondary" size="sm" onClick={exportAll} loading={exporting} disabled={total === 0}>
+            <Button variant="secondary" size="sm" onClick={exportAll} loading={exporting} disabled={total === 0} className="h-11 sm:h-9">
               <FileText className="w-3.5 h-3.5" />
               Exportar CSV
             </Button>
@@ -295,9 +308,9 @@ export default function ContactsTab({ withAccount, showToast, accountKey, readOn
               );
             },
           },
-          { id: 'email', header: 'E-mail', className: 'text-foreground max-w-[220px] truncate', cell: (c) => c.email || <Vazio /> },
-          { id: 'telefone', header: 'Telefone', className: 'text-foreground tabular-nums whitespace-nowrap', cell: (c) => (c.phone ? formatPhone(c.phone) : <Vazio />) },
-          { id: 'origem', header: 'Origem', className: 'text-muted-foreground max-w-[200px] truncate', cell: (c) => c.origem?.name || <Vazio /> },
+          { id: 'email', header: 'E-mail', className: 'text-foreground max-w-[220px] truncate', cell: (c) => c.email || <Vazio />, isEmpty: (c) => !c.email },
+          { id: 'telefone', header: 'Telefone', className: 'text-foreground tabular-nums whitespace-nowrap', cell: (c) => (c.phone ? formatPhone(c.phone) : <Vazio />), isEmpty: (c) => !c.phone },
+          { id: 'origem', header: 'Origem', className: 'text-muted-foreground max-w-[200px] truncate', cell: (c) => c.origem?.name || <Vazio />, isEmpty: (c) => !c.origem?.name },
           {
             id: 'tags',
             header: 'Tags',

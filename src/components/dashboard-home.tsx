@@ -321,7 +321,7 @@ export default function DashboardHome({
   const [verComo, setVerComo] = useState<string>('all');
   const [demandas, setDemandas] = useState<ConteudoItem[]>([]);
   const [tarefasRotina, setTarefasRotina] = useState<TarefaRotina[]>([]);
-  const [carregandoOperacional, setCarregandoOperacional] = useState(false);
+  const [carregandoOperacional, setCarregandoOperacional] = useState(true);
 
   useEffect(() => {
     let ativo = true;
@@ -484,7 +484,7 @@ export default function DashboardHome({
             onClick={() => setHomeMode('demandas')}
             group="dashboard-home-473"
             active={homeMode === 'demandas'}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold"
+            className="flex items-center gap-2 px-3.5 h-10 sm:h-9 rounded-lg text-xs font-bold"
           >
             <CheckCircle2 className={`w-3.5 h-3.5 ${homeMode === 'demandas' ? 'text-primary' : ''}`} />
             <span>Minhas Demandas & Semana</span>
@@ -498,26 +498,22 @@ export default function DashboardHome({
           <SegmentedItem
             type="button"
             onClick={() => setHomeMode('metricas')}
-
             group="dashboard-home-473"
-
             active={homeMode === 'metricas'}
-
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold"
-
+            className="flex items-center gap-2 px-3.5 h-10 sm:h-9 rounded-lg text-xs font-bold"
           >
             <TrendingUp className={`w-3.5 h-3.5 ${homeMode === 'metricas' ? 'text-primary' : ''}`} />
-            <span>Painel Profissional do Instagram</span>
+            <span>Painel Profissional</span>
           </SegmentedItem>
         </div>
 
         {homeMode === 'demandas' && (
-          <div className="flex items-center gap-2 px-2">
+          <div className="flex items-center gap-2 px-1">
             <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Ver como:</span>
             <Select
               value={verComo}
               onChange={(e) => setVerComo(e.target.value)}
-              className="h-8 text-xs font-semibold bg-accent/50 border border-input rounded-xl px-2.5 py-1 text-foreground focus:outline-none cursor-pointer"
+              className="h-10 sm:h-9 text-xs font-semibold bg-accent/50 border border-input rounded-xl px-2.5 text-foreground focus:outline-none cursor-pointer"
             >
               <option value="all">Toda a equipe ({demandas.length} demandas)</option>
               {membros.map((m) => (
@@ -587,10 +583,30 @@ export default function DashboardHome({
 
           {/* KPIs operacionais (Stat Cards) */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Demandas ativas" icon={Layers} value={demandasAtivas.length} sentence="em produção ou esperando aprovação" />
-            <StatCard label="Entregas da semana" icon={Calendar} value={entregasSemana.length} sentence="posts programados de segunda a domingo" />
-            <StatCard label="Rotina pendente" icon={CheckSquare} value={tarefasFiltradas.length} sentence="tarefas internas ainda abertas" />
-            <StatCard label="Publicadas no mês" icon={CheckCircle2} value={demandasConcluidasMes.length} sentence="conteúdos entregues e publicados" />
+            <StatCard
+              label="Demandas ativas"
+              icon={Layers}
+              value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : demandasAtivas.length}
+              sentence="em produção ou esperando aprovação"
+            />
+            <StatCard
+              label="Entregas da semana"
+              icon={Calendar}
+              value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : entregasSemana.length}
+              sentence="posts programados de segunda a domingo"
+            />
+            <StatCard
+              label="Rotina pendente"
+              icon={CheckSquare}
+              value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : tarefasFiltradas.length}
+              sentence="tarefas internas ainda abertas"
+            />
+            <StatCard
+              label="Publicadas no mês"
+              icon={CheckCircle2}
+              value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : demandasConcluidasMes.length}
+              sentence="conteúdos entregues e publicados"
+            />
           </section>
 
           {/* Seção Minha Semana (Grade 7 Dias Seg a Dom) */}
@@ -612,21 +628,26 @@ export default function DashboardHome({
 
             {/* 7 Colunas de Dias */}
             <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
-              {diasSemana.map((dia) => {
-                const itensDoDia = demandasFiltradas.filter((d) => {
-                  const dIso = (d.data_programada || d.prazo || '').slice(0, 10);
-                  return dIso === dia.dataIso;
-                });
+              {carregandoOperacional ? (
+                [0, 1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="h-32 rounded-2xl bg-accent/40 border border-border animate-pulse" />
+                ))
+              ) : (
+                diasSemana.map((dia) => {
+                  const itensDoDia = demandasFiltradas.filter((d) => {
+                    const dIso = (d.data_programada || d.prazo || '').slice(0, 10);
+                    return dIso === dia.dataIso;
+                  });
 
-                return (
-                  <div
-                    key={dia.dataIso}
-                    className={`flex flex-col gap-2 p-3 rounded-2xl border transition-ui ${
-                      dia.eHoje
-                        ? 'bg-accent/40 border-primary/40 shadow-xs ring-1 ring-primary/20'
-                        : 'bg-background/60 border-border'
-                    }`}
-                  >
+                  return (
+                    <div
+                      key={dia.dataIso}
+                      className={`flex flex-col gap-2 p-3 rounded-2xl border transition-ui ${
+                        dia.eHoje
+                          ? 'bg-accent/40 border-primary/40 shadow-xs ring-1 ring-primary/20'
+                          : 'bg-background/60 border-border'
+                      }`}
+                    >
                     <div className="flex items-center justify-between pb-1.5 border-b border-border">
                       <div>
                         <p className={`text-xs font-bold ${dia.eHoje ? 'text-primary' : 'text-foreground'}`}>
@@ -687,7 +708,7 @@ export default function DashboardHome({
                     )}
                   </div>
                 );
-              })}
+              }))}
             </div>
           </div>
 

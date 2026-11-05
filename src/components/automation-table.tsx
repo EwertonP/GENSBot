@@ -105,7 +105,7 @@ export default function AutomationTable({
                       e.stopPropagation();
                       onEdit(auto);
                     }}
-                    className="font-semibold text-foreground truncate max-w-[260px] text-left hover:underline cursor-pointer"
+                    className="font-semibold text-foreground truncate flex-1 min-w-0 max-w-full sm:max-w-[260px] text-left hover:underline cursor-pointer"
                   >
                     {auto.name}
                   </button>

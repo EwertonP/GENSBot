@@ -1351,7 +1351,7 @@ export default function Dashboard() {
             <div className="h-full w-1/3 bg-primary animate-[progresso_1.1s_ease-in-out_infinite]" />
           </div>
         )}
-        <main aria-busy={trocandoConta} className={`flex-1 p-4 sm:p-6 md:p-8 max-md:pb-[calc(7.5rem+env(safe-area-inset-bottom))] bg-background w-full mx-auto space-y-6 ${activeTab === 'esteira' ? 'max-w-none' : 'max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px]'}`}>
+        <main aria-busy={trocandoConta} className={`flex-1 min-w-0 max-w-full p-4 sm:p-6 md:p-8 max-md:pb-[calc(7.5rem+env(safe-area-inset-bottom))] bg-background w-full mx-auto space-y-6 ${activeTab === 'esteira' ? 'max-w-none' : 'max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px]'}`}>
           {/* Entrada só com opacidade e sem esperar a saída da tela anterior: a troca
               é imediata (interrompível) e, com "reduzir movimento", segue sendo só fade. */}
           
@@ -1402,6 +1402,7 @@ export default function Dashboard() {
           {/* TAB 2: AUTOMATIONS */}
           {activeTab === 'automations' && (
             <AutomationsTab
+              loading={loading || trocandoConta}
               isAggregateView={isAggregateView}
               automations={automations}
               setAutomations={setAutomations}
