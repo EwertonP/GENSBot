@@ -49,6 +49,9 @@ describe('notificarGrupoAprovacaoConteudo', () => {
         not: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockImplementation(async () => {
+          if (table === 'agencias') {
+            return { data: { id: 'ag-1', whatsapp_envio_automatico: true }, error: null };
+          }
           if (table === 'clientes') {
             return { data: fakeCliente, error: null };
           }
@@ -123,5 +126,37 @@ describe('notificarGrupoAprovacaoConteudo', () => {
     expect(r3.ok).toBe(true);
     expect(r3.enviado).toBe(true);
     expect(enviarMensagemOpenWA).toHaveBeenCalledTimes(2);
+  });
+
+  it('não envia mensagem se whatsapp_envio_automatico estiver inativo na agência (padrão)', async () => {
+    const { supabase } = await import('@/lib/supabase');
+    const { enviarMensagemOpenWA } = await import('@/lib/openwa-client');
+
+    (supabase.from as any).mockImplementation((table: string) => {
+      const builder: any = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockImplementation(async () => {
+          if (table === 'agencias') {
+            return { data: { id: 'ag-1', whatsapp_envio_automatico: false }, error: null };
+          }
+          return { data: null, error: null };
+        }),
+      };
+      return builder;
+    });
+
+    const resultado = await notificarGrupoAprovacaoConteudo({
+      agenciaId: 'ag-1',
+      clienteId: 'cli-123',
+      conteudoId: 'post-sem-envio-auto',
+      tituloPost: 'Post Manual',
+      tokenAprovacao: 'token-manual',
+    });
+
+    expect(resultado.ok).toBe(true);
+    expect(resultado.enviado).toBe(false);
+    expect(resultado.aviso).toContain('desativado nas configurações da agência');
+    expect(enviarMensagemOpenWA).not.toHaveBeenCalled();
   });
 });

@@ -11,7 +11,7 @@ export async function GET() {
   try {
     const { data: agencia, error } = await db
       .from('agencias')
-      .select('id, nome, slug, cnpj_cpf, razao_social, endereco, cidade_estado, chave_pix, telefone_contato, email_contato')
+      .select('id, nome, slug, cnpj_cpf, razao_social, endereco, cidade_estado, chave_pix, telefone_contato, email_contato, whatsapp_envio_automatico')
       .eq('id', membro.agencia_id)
       .maybeSingle();
 
@@ -21,7 +21,10 @@ export async function GET() {
 
     const { completo, faltantes } = verificarPerfilAgencia(agencia);
     return NextResponse.json({
-      agencia: agencia || { id: membro.agencia_id, nome: 'Minha Agência' },
+      agencia: {
+        ...(agencia || { id: membro.agencia_id, nome: 'Minha Agência' }),
+        whatsapp_envio_automatico: Boolean(agencia?.whatsapp_envio_automatico),
+      },
       completo,
       faltantes,
     });
@@ -38,7 +41,7 @@ export async function PATCH(req: Request) {
 
   try {
     const body = await req.json();
-    const dados = {
+    const dados: Record<string, any> = {
       nome: body.nome?.trim() || undefined,
       razao_social: body.razao_social?.trim() || null,
       cnpj_cpf: body.cnpj_cpf?.trim() || null,
@@ -49,11 +52,15 @@ export async function PATCH(req: Request) {
       email_contato: body.email_contato?.trim() || null,
     };
 
+    if (body.whatsapp_envio_automatico !== undefined) {
+      dados.whatsapp_envio_automatico = Boolean(body.whatsapp_envio_automatico);
+    }
+
     const { data, error } = await db
       .from('agencias')
       .update(dados)
       .eq('id', membro.agencia_id)
-      .select('id, nome, slug, cnpj_cpf, razao_social, endereco, cidade_estado, chave_pix, telefone_contato, email_contato')
+      .select('id, nome, slug, cnpj_cpf, razao_social, endereco, cidade_estado, chave_pix, telefone_contato, email_contato, whatsapp_envio_automatico')
       .single();
 
     if (error) {

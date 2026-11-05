@@ -140,6 +140,7 @@ export function DocumentosTab() {
     chave_pix: '',
     telefone_contato: '',
     email_contato: '',
+    whatsapp_envio_automatico: false,
   });
 
   // Carregar dados iniciais
@@ -1377,6 +1378,27 @@ export function DocumentosTab() {
                   placeholder="financeiro@suaagencia.com.br"
                   className="w-full h-10 px-3 rounded-xl border border-input text-xs bg-background text-foreground focus:ring-1 focus:ring-primary"
                 />
+              </div>
+
+              <div className="pt-2 border-t border-border">
+                <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-muted/60 border border-border cursor-pointer hover:bg-muted transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formAgencia.whatsapp_envio_automatico)}
+                    onChange={(e) =>
+                      setFormAgencia({ ...formAgencia, whatsapp_envio_automatico: e.target.checked })
+                    }
+                    className="mt-1 rounded border-input text-primary focus:ring-primary h-4 w-4"
+                  />
+                  <div className="text-xs">
+                    <span className="font-bold text-foreground block">
+                      Envio automático pelo WhatsApp
+                    </span>
+                    <span className="text-muted-foreground block text-[11px] leading-relaxed">
+                      Quando desativado (padrão), o sistema não dispara mensagens de aprovação ou lembretes automaticamente via WhatsApp. O time copia o link ou abre o WhatsApp manualmente para enviar.
+                    </span>
+                  </div>
+                </label>
               </div>
 
               <div className="pt-3 flex gap-2.5">
