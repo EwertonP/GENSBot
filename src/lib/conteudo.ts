@@ -223,6 +223,7 @@ export interface ConteudoItem {
   scheduled_post_id: string | null;
   arquivos: ArquivoConteudo[];
   cover_url?: string | null;
+  arquivada_em?: string | null;
   location_id?: string | null;
   location_name?: string | null;
   audio_name?: string | null;

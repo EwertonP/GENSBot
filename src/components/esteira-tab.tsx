@@ -25,6 +25,7 @@ import {
   Paperclip,
   MoreHorizontal,
   AlertCircle,
+  Archive,
 } from 'lucide-react';
 import { Menu } from '@base-ui/react/menu';
 import { corDaEtiqueta, type Etiqueta } from '@/lib/etiquetas';
@@ -201,6 +202,7 @@ export default function EsteiraTab({
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'feed'>('kanban');
   const [mesSelecionado, setMesSelecionado] = useState<string>(() => new Date().toISOString().slice(0, 7));
   const [ocultarPublicados, setOcultarPublicados] = useState(true);
+  const [mostrarArquivados, setMostrarArquivados] = useState(false);
 
   // Drag and Drop state
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
@@ -318,11 +320,19 @@ export default function EsteiraTab({
     return items.filter((it) => it.status === 'publicado').length;
   }, [items]);
 
+  const totalArquivados = useMemo(() => {
+    return items.filter((it) => !!it.arquivada_em).length;
+  }, [items]);
+
   const itemsFiltrados = useMemo(() => {
     const agora = Date.now();
     const SETE_DIAS_MS = 7 * 24 * 60 * 60 * 1000;
 
     return items.filter((item) => {
+      // Demandas arquivadas não aparecem na esteira ativa por padrão
+      if (!mostrarArquivados && item.arquivada_em) return false;
+      if (mostrarArquivados && !item.arquivada_em) return false;
+
       if (clienteSelecionado !== 'all' && item.cliente_id !== clienteSelecionado) return false;
       if (responsavelFiltro !== 'all' && !ehResponsavel(item, responsavelFiltro)) return false;
       if (ocultarPublicados && item.status === 'publicado') return false;
@@ -349,7 +359,7 @@ export default function EsteiraTab({
       }
       return true;
     }).sort(compararPorData);
-  }, [items, clienteSelecionado, responsavelFiltro, busca, ocultarPublicados]);
+  }, [items, clienteSelecionado, responsavelFiltro, busca, ocultarPublicados, mostrarArquivados]);
 
   async function handleMudarStatus(
     itemId: string,
@@ -836,6 +846,25 @@ export default function EsteiraTab({
             >
               <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
               <span>{ocultarPublicados ? `Publicados Ocultos (${totalPublicados})` : `Exibindo Publicados (${totalPublicados})`}</span>
+            </Button>
+          )}
+
+          {/* Toggle Ocultar/Exibir Arquivados */}
+          {totalArquivados > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setMostrarArquivados((prev) => !prev)}
+              className={`rounded-xl shadow-2xs h-9 text-xs font-bold transition-ui cursor-pointer ${
+                mostrarArquivados
+                  ? 'bg-warning-soft text-warning border-warning-ring'
+                  : 'bg-accent/40 text-muted-foreground border-border hover:text-foreground'
+              }`}
+              title={mostrarArquivados ? 'Voltar para as demandas ativas da esteira' : 'Ver demandas arquivadas'}
+            >
+              <Archive className="w-3.5 h-3.5 mr-1.5" />
+              <span>{mostrarArquivados ? 'Ver Ativas' : `Arquivadas (${totalArquivados})`}</span>
             </Button>
           )}
 

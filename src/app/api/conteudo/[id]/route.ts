@@ -137,6 +137,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       'historico_atividades',
       'automacao_config',
       'checklist',
+      'arquivada_em',
     ];
 
     const updates: Record<string, any> = {};

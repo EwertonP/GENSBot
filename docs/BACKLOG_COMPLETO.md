@@ -36,14 +36,14 @@ Logo e ícone novos (fundo branco e versão escura), forma em pílula e `PageHea
 
 ## 2. Resto da tela de demanda
 
-### 2.1 Criar enxuto e editar completo
-Ao **criar**, mostrar só o essencial: título, chips (formato, cliente, responsável, etiqueta), descrição, legenda e anexos. Checklist, comentários, propriedades avançadas e ajustes do cliente aparecem só **depois de salvar** (como no Orkestrya). Reduz a tela inicial e acelera a criação. **Pronto quando:** o formulário de criação cabe sem rolar muito no celular e todos os blocos completos aparecem ao reabrir a demanda.
+### 2.1 Criar enxuto e editar completo — [Concluído em 05/11/2026]
+Ao **criar**, mostra só o essencial: título, chips (formato, cliente, responsável, etiqueta), descrição, legenda e anexos. Checklist, comentários, propriedades avançadas e ajustes do cliente ficam ocultos na criação e aparecem no modo de edição (após salvar), acelerando o cadastro.
 
-### 2.2 Menu "⋯" completo
-Hoje só há "Copiar ID" e "Excluir". Entregar: **Duplicar**, **Mover para outro quadro/cliente**, **Repetir demanda** (recorrência), **Tempo estimado**, **Copiar link da demanda**, **Arquivar**, **Excluir**, e o rodapé "Criada em dd/mm/aaaa às hh:mm". Duplicar, mover e arquivar são só lógica sobre dados que já existem (arquivar pede coluna `arquivada_em` ou status). Repetir reaproveita `rotina-recorrencia`. **Pronto quando:** cada ação funciona, pede confirmação quando destrói algo, e a demanda arquivada some do kanban mas pode ser restaurada.
+### 2.2 Menu "⋯" completo — [Concluído em 05/11/2026]
+Menu expandido com: **Copiar link da demanda**, **Copiar ID**, **Duplicar demanda**, **Mover para outro cliente**, **Arquivar demanda** (coluna `arquivada_em`, com filtro e restauração na esteira), **Excluir**, e o rodapé "Criada em dd/mm/aaaa às hh:mm".
 
-### 2.3 "Salvar como padrão" e "Legendas padrão"
-Botão que guarda a legenda atual como modelo **do cliente** e uma lista "Legendas padrão" para inserir com um clique (assinatura, hashtags fixas, chamada final). Pede tabela nova `legendas_padrao (id, agencia_id, cliente_id, nome, texto)`, API e um seletor no sheet. **Pronto quando:** salvar, listar, inserir e apagar modelos por cliente.
+### 2.3 "Salvar como padrão" e "Legendas padrão" — [Concluído em 05/11/2026]
+Tabela `legendas_padrao` criada, rotas de API `/api/legendas-padrao` implementadas e seletor "Modelos (N)" integrado diretamente na barra de formatação da legenda com inserção em um clique, exclusão e botão "Salvar como padrão".
 
 ### 2.4 Cronômetro e tempo estimado
 "Tempo na demanda" com play/pausa no cartão escuro; soma por demanda; **tempo estimado** no menu. Pede tabela `tempos_demanda (demanda_id, membro_id, inicio, fim)` e totais. Alimenta o custo por cliente (item 4) e o desempenho da equipe. **Pronto quando:** iniciar, pausar, ver o total e corrigir um apontamento.
