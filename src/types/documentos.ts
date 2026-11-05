@@ -13,7 +13,12 @@ export type CategoriaDocumento =
 
 export type StatusProposta = 'rascunho' | 'enviada' | 'aceita' | 'recusada' | 'vencida';
 
-export type StatusContrato = 'rascunho' | 'aguardando_assinatura' | 'assinado' | 'cancelado';
+export type StatusContrato =
+  | 'rascunho'
+  | 'aguardando_assinatura'
+  | 'assinado_cliente'
+  | 'assinado'
+  | 'cancelado';
 
 export interface VariavelDocumento {
   chave: string;
@@ -55,6 +60,10 @@ export interface Proposta {
   valor_setup: number;
   validade?: string | null;
   conteudo_html: string;
+  conteudo_final_html?: string | null;
+  hash_documento?: string | null;
+  enviado_em?: string | null;
+  expira_em?: string | null;
   token_publico: string;
   itens?: ItemDocumento[];
   visualizada_em?: string | null;
@@ -99,6 +108,12 @@ export interface Contrato {
   data_termino?: string | null;
   renovacao_automatica: boolean;
   conteudo_html: string;
+  conteudo_final_html?: string | null;
+  hash_documento?: string | null;
+  enviado_em?: string | null;
+  visualizado_em?: string | null;
+  expira_em?: string | null;
+  revogado_em?: string | null;
   token_publico: string;
   itens?: ItemDocumento[];
   assinatura_cliente_nome?: string | null;
@@ -109,6 +124,10 @@ export interface Contrato {
   assinatura_cliente_imagem?: string | null;
   assinatura_agencia_nome?: string | null;
   assinatura_agencia_data?: string | null;
+  assinatura_agencia_membro_id?: string | null;
+  assinatura_agencia_ip?: string | null;
+  pdf_url?: string | null;
+  pdf_hash?: string | null;
   criado_por?: string | null;
   criado_em: string;
   atualizado_em: string;

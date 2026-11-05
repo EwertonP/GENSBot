@@ -85,17 +85,19 @@ O Financeiro foi expandido para uma gestão de tesouraria profissional e complet
 
 ---
 
-## 5. Propostas e Contratos — [Entregue em 05/11/2026]
+## 5. Propostas e Contratos — [Entregue e Aprimorado em 05/11/2026]
 
 O ciclo comercial e jurídico completo foi entregue com fidelidade ao design system GENSBot e integração nativa com o CRM e Financeiro:
 
-- **Biblioteca completa de modelos:** 11 modelos de proposta e 9 de contrato padrão cobrindo Social Media, Tráfego Pago, Combo, Marketing 360, Conteúdo, Audiovisual, Branding, Sites/Landing Pages e Consultoria, com interpolação dinâmica de variáveis (`{{agencia_nome}}`, `{{cliente_doc}}`, etc.) e editor rico.
-- **Dados da agência como CONTRATADA:** Cadastro completo da agência com validação de dados obrigatórios (CNPJ, Razão Social, Endereço, Cidade/Foro, Chave PIX, Telefone e E-mail), com banner de alerta em caso de pendências e botão "Completar agora".
-- **Propostas comerciais:** Criação de proposta vinculada a clientes ou leads do CRM, definição de honorários mensais e setup, prazo de validade e link público (`/proposta/[token]`).
-- **Página pública da proposta:** Visualização responsiva (mobile e desktop) com ações interativas de aprovação pelo cliente em 1 clique ou solicitação de ajustes com feedback, além de geração automática do contrato.
-- **Contratos e Assinatura Digital:** Contratos jurídicos completos com link público de assinatura (`/contrato/[token]`), opção de digitação estilizada ou desenho de rubrica em canvas, captura do endereço IP, data/hora UTC e certificado de validade jurídica conforme MP 2.200-2/2001.
-- **Integração CRM & Financeiro:** Negócios no CRM possuem botão de geração rápida de proposta; a assinatura digital do contrato marca a oportunidade como "ganho", atualiza os dados contratuais do cliente e registra automaticamente o lançamento de receita recorrente no Financeiro.
-- **Gestão no painel:** Aba dedicada "Propostas & Contratos" no grupo Comercial com KPIs em tempo real, filtros de status, busca rápida, cópia de links e disparo amigável via WhatsApp.
+- **Auditoria de Tema (Dark Mode e Modo Claro 100% aderentes):** Eliminação de todas as classes com cores fixas claras na aba Documentos e páginas públicas (`bg-white`, `text-[#192313]`, `border-black/*`). Uso estrito dos tokens de design do sistema (`bg-card`, `bg-background`, `text-card-foreground`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-primary`, `text-primary-foreground`, `bg-muted`).
+- **Texto Congelado e Hash SHA-256 (`PLANO_ASSINATURA_E_ENVIO.md`):** Na ação de envio ao cliente, o conteúdo HTML é congelado em `conteudo_final_html` e gera um hash SHA-256 criptográfico imutável (`hash_documento`), garantindo segurança jurídica contra alterações posteriores.
+- **Ciclo Completo de Estados:** `rascunho` → `aguardando_assinatura` (enviado com validade de 15 dias) → `assinado_cliente` (cliente assina e agência é alertada) → `assinado` (contra-assinatura da agência) · `cancelado`/revogado a qualquer momento.
+- **Validação Atômica do Signatário:** Validação de nome completo (mínimo 2 palavras), dígitos verificadores de CPF/CNPJ e e-mail. Rota de assinatura atômica com trava condicional contra submissões simultâneas.
+- **Contra-assinatura da Agência:** Botão em destaque "Contra-assinar" na lista e ficha do cliente. Ao contra-assinar, grava o membro responsável e IP, marca o negócio do CRM como "ganho", atualiza a ficha do cliente e lança a receita mensal no Financeiro.
+- **Trilha de Auditoria e Eventos (`contrato_eventos`):** Histórico completo de eventos ordenados cronologicamente (criado, enviado, visualizado pelo cliente com IP/User Agent, assinado pelo cliente, contra-assinado pela agência e revogado/cancelado), acessível em modal direto na UI.
+- **Ficha do Cliente:** Seção e aba dedicada "Contratos & Propostas" no perfil de cada cliente (`ClienteDocumentosTab` em `cliente-ficha.tsx`), exibindo lista de contratos, status, valores, links públicos e atalho rápido de visualização.
+- **Envio com WhatsApp e Link Seguro:** Modal de envio com texto pré-formatado e botão de compartilhamento direto via WhatsApp ou cópia do link seguro de assinatura.
+- **Biblioteca completa de modelos:** 11 modelos de proposta e 9 de contrato padrão com editor rico e dados da agência como CONTRATADA.
 
 ---
 
