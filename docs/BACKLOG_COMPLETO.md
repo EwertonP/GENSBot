@@ -97,6 +97,7 @@ O ciclo comercial e jurídico completo foi entregue com fidelidade ao design sys
 - **Trilha de Auditoria e Eventos (`contrato_eventos`):** Histórico completo de eventos ordenados cronologicamente (criado, enviado, visualizado pelo cliente com IP/User Agent, assinado pelo cliente, contra-assinado pela agência e revogado/cancelado), acessível em modal direto na UI.
 - **Ficha do Cliente:** Seção e aba dedicada "Contratos & Propostas" no perfil de cada cliente (`ClienteDocumentosTab` em `cliente-ficha.tsx`), exibindo lista de contratos, status, valores, links públicos e atalho rápido de visualização.
 - **Envio com WhatsApp e Link Seguro:** Modal de envio com texto pré-formatado e botão de compartilhamento direto via WhatsApp ou cópia do link seguro de assinatura.
+- **Geração de PDF Oficial com Certificado de Evidências (`PLANO_ASSINATURA_E_ENVIO.md`):** Biblioteca `pdf-lib` integrada gerando arquivo PDF profissional com paginação A4, texto formatado, cabeçalho da agência e folha de rosto oficial com certificado de assinatura eletrônica (Hash SHA-256, dados do signatário contratante, contratada, IPs e carimbos de data/hora nos termos da MP 2.200-2/2001). Download instantâneo na tela de contratos, ficha do cliente e página pública `/contrato/[token]`.
 - **Biblioteca completa de modelos:** 11 modelos de proposta e 9 de contrato padrão com editor rico e dados da agência como CONTRATADA.
 
 ---
@@ -126,14 +127,16 @@ O ciclo de conexão autônoma de redes sociais pelo cliente final foi entregue c
 
 ---
 
-## 8. Backlog (depois dos itens acima)
+## 8. Backlog e Itens Entregues da Última Fase
 
 - **Meu Dia — [Entregue em 05/11/2026]:** Cockpit operacional do colaborador (`tab=meu_dia`) com saudação de horário, metas do dia, checklist interativo com 1 clique e input rápido de novas tarefas para hoje, demandas ativas em produção com atalho direto à esteira, agenda dos próximos 7 dias e monitoramento de aprovações.
 - **Histórico de atividades e auditoria — [Entregue em 05/11/2026]:** Migration `auditoria_eventos`, endpoint `/api/auditoria`, helper `auditoria.ts` com testes unitários e gaveta `AuditoriaDrawer` integrada com busca textual, agrupamento diário (Hoje, Ontem, dd/mm/aaaa) e filtros por módulo (Demandas, Propostas, Contratos, Clientes, Financeiro, Conexões, CRM).
-- **Setores, cargos e permissões por função:** hoje só há papel master, membro e cliente; separar por função (ex.: designer vê só produção, financeiro vê só Financeiro). Inclui squads e aniversário/tempo de casa.
-- **Metas do Comercial:** meta de novos clientes por mês com barra de progresso; etapas Orçamento e Proposta com gatilho que cria o documento.
-- **Chat interno** (conversas e grupos) e chat com clientes; hoje a comunicação passa pelo WhatsApp via Kapso.
-- **Plano de Mídia** (pedidos de inserção, comissão), **Mapa Mental** e **Funil** (planejamento): só se fizerem sentido para a operação.
+- **Setores, cargos e permissões por função — [Entregue em 05/11/2026]:** Migration `20261114_membros_setor_permissoes.sql` com colunas `setor`, `modulos_permitidos`, `data_nascimento` e `data_inicio`. Na aba Equipe, formulário completo para vincular setor/squad, checklist com 9 módulos granulares (ex: designer vê apenas produção; financeiro vê apenas tesouraria; comercial vê apenas CRM), cálculo de tempo de casa e data de aniversário. Barra de navegação filtra automaticamente os módulos visíveis para cada membro.
+- **Metas do Comercial e Gatilhos no CRM — [Entregue em 05/11/2026]:** Card de Metas Comerciais do Mês no topo do CRM com barras de progresso animadas para Novos Clientes e Nova Receita Ganha, cálculo automático em tempo real e modal para personalizar os objetivos. Gatilhos rápidos no drawer de negócios e kanban para gerar Proposta Comercial e Contrato Digital em 1 clique com pré-preenchimento dos dados do lead.
+- **Desativação do envio automático do WhatsApp — [Entregue em 05/11/2026]:** Envio automático inativo por padrão no sistema, mantendo conexões ativas e adicionando toggle nas Configurações da Agência.
+- **Plano de Mídia, Mapa Mental e Funil de Planejamento:** Dispensados por decisão do usuário (fora do escopo).
+- **Notificações:** migration `20261104_notificacoes.sql` do sino ainda não foi aplicada; aplicar e testar push em uso real.
+- **Limpeza técnica:** ~186 hex e ~190 cores Tailwind cruas espalhados no código (trocar por tokens); renomear o token `--lime` (hoje é a menta da marca) para um nome neutro; regra de lint para componentes de tela; os 13 erros de lint de `page.tsx` e os de `esteira-tab.tsx` (`setState` em effect, `any`).
 - **Central de Ajuda** com "Como fazer" ligado a cada passo do onboarding.
 - **Notificações:** migration `20261104_notificacoes.sql` do sino ainda não foi aplicada; aplicar e testar push em uso real.
 - **Limpeza técnica:** ~186 hex e ~190 cores Tailwind cruas espalhados no código (trocar por tokens); renomear o token `--lime` (hoje é a menta da marca) para um nome neutro; regra de lint para componentes de tela; os 13 erros de lint de `page.tsx` e os de `esteira-tab.tsx` (`setState` em effect, `any`).
