@@ -5,8 +5,10 @@ import {
   DIAS_CONCLUIDO_VISIVEL,
   STATUS_TAREFA_VALIDOS,
   TIPOS_TAREFA_VALIDOS,
+  type StatusTarefa,
   type StatusTarefaBanco,
   type TipoTarefa,
+  normalizarStatusTarefa,
 } from '@/lib/rotina';
 
 export type { TarefaRotina } from '@/lib/rotina';
@@ -123,7 +125,7 @@ export async function POST(req: Request) {
   if (!titulo) return respostaErro('O título da tarefa é obrigatório.', 400);
 
   const prioridade = PRIORIDADES.includes(String(body.prioridade)) ? String(body.prioridade) : 'normal';
-  const status: StatusTarefaBanco = STATUS_TAREFA_VALIDOS.includes(body.status as StatusTarefaBanco) ? (body.status as StatusTarefaBanco) : 'a_fazer';
+  const status: StatusTarefa = normalizarStatusTarefa(body.status as string);
   let tipo: TipoTarefa = TIPOS_TAREFA_VALIDOS.includes(body.tipo as TipoTarefa) ? (body.tipo as TipoTarefa) : 'interno';
   let clienteId = (body.cliente_id as string | undefined) || null;
   const demandaId = (body.demanda_id as string | undefined) || null;

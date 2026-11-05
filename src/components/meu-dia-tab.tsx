@@ -33,7 +33,7 @@ interface Tarefa {
   id: string;
   titulo: string;
   descricao?: string | null;
-  status: 'a_fazer' | 'em_andamento' | 'aguardando' | 'concluida' | 'cancelada';
+  status: string;
   prioridade: string;
   prazo?: string | null;
   cliente?: { id: string; nome: string; cor?: string; foto_url?: string } | null;
@@ -71,6 +71,12 @@ interface MeuDiaTabProps {
   } | null;
   onNavegarDemanda: (demandaId: string) => void;
   onNavegarTab: (tabId: string) => void;
+}
+
+function isTarefaConcluida(status?: string | null): boolean {
+  if (!status) return false;
+  const s = status.toLowerCase().trim();
+  return s === 'concluido' || s === 'concluida' || s === 'concluído' || s === 'concluída' || s === 'finalizado' || s === 'finalizada';
 }
 
 export function MeuDiaTab({
@@ -137,14 +143,14 @@ export function MeuDiaTab({
   // Minhas tarefas de hoje
   const tarefasHoje = useMemo(() => {
     return tarefas.filter((t) => {
-      if (t.status === 'concluida' || t.status === 'cancelada') return false;
+      if (isTarefaConcluida(t.status) || t.status === 'cancelada') return false;
       if (!t.prazo) return true; // sem prazo definido entra na lista de pendências
       return t.prazo.slice(0, 10) <= hojeIso;
     });
   }, [tarefas, hojeIso]);
 
   const tarefasConcluidasHoje = useMemo(() => {
-    return tarefas.filter((t) => t.status === 'concluida');
+    return tarefas.filter((t) => isTarefaConcluida(t.status));
   }, [tarefas]);
 
   // Minhas demandas em andamento
@@ -197,7 +203,8 @@ export function MeuDiaTab({
 
   // Concluir ou reabrir tarefa em 1 clique
   async function handleToggleTarefa(tarefa: Tarefa) {
-    const novoStatus = tarefa.status === 'concluida' ? 'a_fazer' : 'concluida';
+    const concluida = isTarefaConcluida(tarefa.status);
+    const novoStatus: 'concluido' | 'a_fazer' = concluida ? 'a_fazer' : 'concluido';
     setAlternandoId(tarefa.id);
 
     try {
@@ -207,17 +214,23 @@ export function MeuDiaTab({
         body: JSON.stringify({ status: novoStatus }),
       });
 
-      if (!res.ok) throw new Error('Erro ao atualizar tarefa');
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || 'Erro ao atualizar tarefa');
+      }
 
       setTarefas((prev) =>
         prev.map((t) => (t.id === tarefa.id ? { ...t, status: novoStatus } : t))
       );
       showToast(
-        novoStatus === 'concluida' ? 'Tarefa concluída! 🎉' : 'Tarefa reaberta.',
+        novoStatus === 'concluido' ? 'Tarefa concluída! 🎉' : 'Tarefa reaberta.',
         'success'
       );
-    } catch {
-      showToast('Falha ao atualizar status da tarefa.', 'error');
+    } catch (err: unknown) {
+      showToast(
+        err instanceof Error ? err.message : 'Falha ao atualizar status da tarefa.',
+        'error'
+      );
     } finally {
       setAlternandoId(null);
     }
@@ -450,18 +463,33 @@ export function MeuDiaTab({
                   <p className="text-[11px] font-semibold text-muted-foreground mb-2">
                     Concluídas recentemente ({tarefasConcluidasHoje.length})
                   </p>
-                  <div className="space-y-1.5 opacity-60">
-                    {tarefasConcluidasHoje.slice(0, 3).map((tarefa) => (
-                      <div
-                        key={tarefa.id}
-                        className="flex items-center justify-between text-xs py-1 px-2 rounded-lg"
-                      >
-                        <span className="line-through text-muted-foreground truncate">
-                          {tarefa.titulo}
-                        </span>
-                        <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
-                      </div>
-                    ))}
+                  <div className="space-y-1.5 opacity-75">
+                    {tarefasConcluidasHoje.slice(0, 5).map((tarefa) => {
+                      const alternando = alternandoId === tarefa.id;
+                      return (
+                        <div
+                          key={tarefa.id}
+                          className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-muted/40 transition-colors"
+                        >
+                          <span className="line-through text-muted-foreground truncate">
+                            {tarefa.titulo}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleTarefa(tarefa)}
+                            disabled={alternando}
+                            title="Clique para reabrir tarefa"
+                            className="p-1 rounded text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors shrink-0"
+                          >
+                            {alternando ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="size-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
