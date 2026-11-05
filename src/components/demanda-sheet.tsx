@@ -22,16 +22,22 @@ import {
   BookmarkPlus,
   BookOpen,
   ExternalLink,
+  Eye,
+  EyeOff,
+  HelpCircle,
   Maximize2,
   MessageSquare,
   MoreHorizontal,
   Paperclip,
+  Pause,
+  Play,
   Plus,
   Search,
   Send,
   Share2,
   Smartphone,
   Sparkles,
+  Timer,
   Trash2,
   UploadCloud,
   Users,
@@ -283,6 +289,23 @@ export function DemandaSheet({
   const [novoComentario, setNovoComentario] = useState('');
   const [enviandoComentario, setEnviandoComentario] = useState(false);
 
+  // Propriedades avançadas da demanda e controle de tempo
+  const [tempoEstimadoMinutos, setTempoEstimadoMinutos] = useState<number | null>(() => item?.tempo_estimado_minutos ?? null);
+  const [visivelCliente, setVisivelCliente] = useState<boolean>(() => item?.visivel_cliente ?? true);
+  const [pedidoInformacao, setPedidoInformacao] = useState<string | null>(() => item?.pedido_informacao ?? null);
+  const [respostaInformacao, setRespostaInformacao] = useState<string | null>(() => item?.resposta_informacao ?? null);
+  const [concluida, setConcluida] = useState<boolean>(() => item?.concluida ?? false);
+
+  const [totalSegundos, setTotalSegundos] = useState(0);
+  const [cronometroAtivo, setCronometroAtivo] = useState<{ id: string; inicio: string } | null>(null);
+  const [modalManualAberto, setModalManualAberto] = useState(false);
+  const [minutosManual, setMinutosManual] = useState('');
+  const [descManual, setDescManual] = useState('');
+  const [modalEstimadoAberto, setModalEstimadoAberto] = useState(false);
+  const [inputEstimado, setInputEstimado] = useState(() => (item?.tempo_estimado_minutos ? String(item.tempo_estimado_minutos) : ''));
+  const [modalPedidoInfoAberto, setModalPedidoInfoAberto] = useState(false);
+  const [textoPedidoInfo, setTextoPedidoInfo] = useState('');
+
   // Modelos de legenda por cliente
   const [modelosLegenda, setModelosLegenda] = useState<{ id: string; nome: string; texto: string }[]>([]);
   const [carregandoModelos, setCarregandoModelos] = useState(false);
@@ -410,6 +433,178 @@ export function DemandaSheet({
     if (!item) return;
     const url = `${window.location.origin}/?tab=esteira&item=${item.id}`;
     copiarTexto(url, 'Link da demanda copiado!', 'Não foi possível copiar o link.');
+  }
+
+  const carregarTempos = useCallback(async () => {
+    if (!editando || !item?.id) return;
+    try {
+      const res = await fetch(`/api/conteudo/${item.id}/tempo`);
+      if (res.ok) {
+        const data = await res.json();
+        setTotalSegundos(data.totalSegundos || 0);
+        setCronometroAtivo(data.ativo || null);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar tempos:', err);
+    }
+  }, [editando, item?.id]);
+
+  useEffect(() => {
+    carregarTempos();
+  }, [carregarTempos]);
+
+  useEffect(() => {
+    if (!cronometroAtivo) return;
+    const interval = setInterval(() => {
+      setTotalSegundos((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cronometroAtivo]);
+
+  function formatarTempoExtenso(seg: number) {
+    const h = Math.floor(seg / 3600);
+    const m = Math.floor((seg % 3600) / 60);
+    const s = seg % 60;
+    if (h > 0) {
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  async function handleToggleCronometro() {
+    if (!item?.id) return;
+    const acao = cronometroAtivo ? 'pausar' : 'iniciar';
+    try {
+      const res = await fetch(`/api/conteudo/${item.id}/tempo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acao }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (acao === 'iniciar') {
+          setCronometroAtivo(data.ativo || { id: 'temp', inicio: new Date().toISOString() });
+          showToast('Cronômetro iniciado!', 'success');
+        } else {
+          setCronometroAtivo(null);
+          showToast('Cronômetro pausado.', 'success');
+          carregarTempos();
+        }
+      }
+    } catch {
+      showToast('Erro ao atualizar cronômetro.', 'error');
+    }
+  }
+
+  async function handleSalvarManual() {
+    const min = parseInt(minutosManual, 10);
+    if (!item?.id || isNaN(min) || min <= 0) {
+      showToast('Informe um número de minutos válido.', 'error');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/conteudo/${item.id}/tempo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acao: 'manual', minutos: min, descricao: descManual }),
+      });
+      if (res.ok) {
+        showToast(`${min} min adicionados ao apontamento!`, 'success');
+        setModalManualAberto(false);
+        setMinutosManual('');
+        setDescManual('');
+        carregarTempos();
+      }
+    } catch {
+      showToast('Erro ao registrar tempo.', 'error');
+    }
+  }
+
+  async function handleSalvarTempoEstimado(min: number | null) {
+    setTempoEstimadoMinutos(min);
+    if (editando && item?.id) {
+      try {
+        await fetch(`/api/conteudo/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tempo_estimado_minutos: min }),
+        });
+        showToast(min ? `Tempo estimado: ${min} min.` : 'Tempo estimado removido.', 'success');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setModalEstimadoAberto(false);
+  }
+
+  async function handleToggleVisivelCliente() {
+    const novoValor = !visivelCliente;
+    setVisivelCliente(novoValor);
+    if (editando && item?.id) {
+      try {
+        await fetch(`/api/conteudo/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visivel_cliente: novoValor }),
+        });
+        showToast(novoValor ? 'Demanda visível para o cliente no portal.' : 'Demanda oculta para o cliente.', 'success');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+
+  async function handleToggleConcluida() {
+    const novo = !concluida;
+    setConcluida(novo);
+    if (editando && item?.id) {
+      try {
+        await fetch(`/api/conteudo/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ concluida: novo }),
+        });
+        showToast(novo ? 'Demanda marcada como concluída! 🎉' : 'Demanda reaberta.', 'success');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+
+  async function handleSalvarPedidoInformacao() {
+    if (!textoPedidoInfo.trim() || !item?.id) return;
+    try {
+      const res = await fetch(`/api/conteudo/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pedido_informacao: textoPedidoInfo.trim(), resposta_informacao: null }),
+      });
+      if (res.ok) {
+        setPedidoInformacao(textoPedidoInfo.trim());
+        setRespostaInformacao(null);
+        setModalPedidoInfoAberto(false);
+        setTextoPedidoInfo('');
+        showToast('Pedido de informação registrado para o cliente!', 'success');
+      }
+    } catch {
+      showToast('Erro ao registrar pedido.', 'error');
+    }
+  }
+
+  async function handleLimparPedidoInformacao() {
+    if (!item?.id) return;
+    try {
+      await fetch(`/api/conteudo/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pedido_informacao: null, resposta_informacao: null }),
+      });
+      setPedidoInformacao(null);
+      setRespostaInformacao(null);
+      showToast('Pedido de informação concluído/removido.', 'success');
+    } catch {
+      showToast('Erro ao remover pedido.', 'error');
+    }
   }
 
   // Sincronização do checklist
@@ -659,6 +854,11 @@ export function DemandaSheet({
         arquivos: [...arquivos, ...urlsManuais],
         cover_url: tipo === 'reel' ? capaUrl : null,
         checklist,
+        tempo_estimado_minutos: tempoEstimadoMinutos,
+        visivel_cliente: visivelCliente,
+        pedido_informacao: pedidoInformacao,
+        resposta_informacao: respostaInformacao,
+        concluida,
       };
 
       const res = await fetch(editando ? `/api/conteudo/${item.id}` : '/api/conteudo', {
@@ -942,6 +1142,30 @@ export function DemandaSheet({
                         >
                           <ArrowRightLeft className="size-3.5 text-muted-foreground" />
                           <span className="flex-1">Mover para outro cliente</span>
+                        </Menu.Item>
+                        <Menu.Item
+                          onClick={() => {
+                            setInputEstimado(tempoEstimadoMinutos ? String(tempoEstimadoMinutos) : '');
+                            setModalEstimadoAberto(true);
+                          }}
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
+                        >
+                          <Clock className="size-3.5 text-muted-foreground" />
+                          <span className="flex-1">Tempo estimado</span>
+                          <span className="text-[11px] font-mono text-muted-foreground">
+                            {tempoEstimadoMinutos ? `${tempoEstimadoMinutos} min` : 'Não definido'}
+                          </span>
+                        </Menu.Item>
+                        <Menu.Item
+                          onClick={() => {
+                            setTextoPedidoInfo(pedidoInformacao || '');
+                            setModalPedidoInfoAberto(true);
+                          }}
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
+                        >
+                          <HelpCircle className="size-3.5 text-warning" />
+                          <span className="flex-1">Pedir informação ao cliente</span>
+                          {pedidoInformacao && <span className="size-1.5 rounded-full bg-warning" />}
                         </Menu.Item>
                         <Menu.Item
                           onClick={handleArquivar}
@@ -1577,6 +1801,89 @@ export function DemandaSheet({
                   Enviar post para aprovação
                 </Button>
               )}
+
+              {/* Botão de Concluir demanda */}
+              {editando && (
+                <button
+                  type="button"
+                  onClick={handleToggleConcluida}
+                  className={`w-full h-10 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors border ${
+                    concluida
+                      ? 'bg-success text-success-foreground border-success hover:bg-success/90'
+                      : 'bg-white/10 hover:bg-white/15 text-panel-foreground border-white/20'
+                  }`}
+                >
+                  <CheckCircle2 className="size-4" />
+                  <span>{concluida ? 'Demanda Concluída ✓' : 'Marcar como concluída'}</span>
+                </button>
+              )}
+
+              {/* Cronômetro e Tempo na demanda */}
+              {editando && (
+                <div className="flex flex-col gap-2 p-2.5 rounded-2xl bg-white/5 border border-white/10 mt-1">
+                  <div className="flex items-center justify-between text-xs text-panel-muted font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <Timer className="size-3.5 text-panel-foreground" />
+                      Tempo na demanda
+                    </span>
+                    <span className="font-mono text-panel-foreground font-bold tabular-nums">
+                      {formatarTempoExtenso(totalSegundos)}
+                    </span>
+                  </div>
+
+                  {tempoEstimadoMinutos && tempoEstimadoMinutos > 0 && (
+                    <div className="flex flex-col gap-1">
+                      <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            totalSegundos / 60 > tempoEstimadoMinutos ? 'bg-destructive' : 'bg-primary'
+                          }`}
+                          style={{
+                            width: `${Math.min(100, Math.round((totalSegundos / (tempoEstimadoMinutos * 60)) * 100))}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-panel-muted font-mono">
+                        <span>Gasto: {Math.round(totalSegundos / 60)}m</span>
+                        <span>Estimado: {tempoEstimadoMinutos}m</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleToggleCronometro}
+                      className={`flex-1 h-8 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                        cronometroAtivo
+                          ? 'bg-warning-soft text-warning border-warning-ring hover:bg-warning-soft/80'
+                          : 'bg-white/10 text-white hover:bg-white/20 border-white/20'
+                      }`}
+                    >
+                      {cronometroAtivo ? (
+                        <>
+                          <Pause className="size-3.5 mr-1" /> Pausar
+                        </>
+                      ) : (
+                        <>
+                          <Play className="size-3.5 mr-1" /> Iniciar
+                        </>
+                      )}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => setModalManualAberto(true)}
+                      className="h-8 px-2.5 rounded-lg text-xs font-semibold text-white/80 hover:text-white bg-white/5 border border-white/10 hover:bg-white/15 cursor-pointer"
+                      title="Adicionar tempo manualmente"
+                    >
+                      + Minutos
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col">
                 <LinhaPropriedade icon={Layers} rotulo="Etapa">
                   <select
@@ -1617,8 +1924,47 @@ export function DemandaSheet({
                 <LinhaPropriedade icon={Calendar} rotulo="Postagem" detalhe={detalhePrazo(dataProgramada, false)}>
                   <input type="date" value={dataProgramada} onChange={(e) => setDataProgramada(e.target.value)} aria-label="Data programada" className={`${CAMPO_PAINEL} [color-scheme:dark]`} />
                 </LinhaPropriedade>
+                <LinhaPropriedade icon={visivelCliente ? Eye : EyeOff} rotulo="Portal do cliente">
+                  <button
+                    type="button"
+                    onClick={handleToggleVisivelCliente}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border transition-colors ${
+                      visivelCliente
+                        ? 'bg-success-soft text-success border-success-ring'
+                        : 'bg-white/10 text-panel-muted border-white/15'
+                    }`}
+                  >
+                    {visivelCliente ? 'Visível' : 'Oculto'}
+                  </button>
+                </LinhaPropriedade>
               </div>
             </div>
+
+            {/* Alerta de Pedido de Informação ao Cliente */}
+            {pedidoInformacao && (
+              <div className="p-3 rounded-2xl bg-warning-soft border border-warning-ring flex flex-col gap-1.5 text-xs">
+                <div className="flex items-center justify-between text-warning font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <HelpCircle className="size-3.5" />
+                    Aguardando cliente
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleLimparPedidoInformacao}
+                    className="text-[11px] underline hover:no-underline font-normal text-muted-foreground cursor-pointer"
+                  >
+                    Concluir pedido
+                  </button>
+                </div>
+                <p className="text-warning font-medium">{pedidoInformacao}</p>
+                {respostaInformacao && (
+                  <div className="mt-1 p-2 rounded-xl bg-card border border-border text-foreground">
+                    <span className="text-[10px] text-muted-foreground font-semibold block">Resposta recebida:</span>
+                    <p className="text-xs">{respostaInformacao}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Cliente e equipe */}
             <div className="flex flex-col gap-2.5 rounded-3xl border border-border bg-card p-4 shadow-2xs">
@@ -1751,6 +2097,176 @@ export function DemandaSheet({
           </div>
         </div>
       </form>
+
+      {/* Modal Apontamento Manual de Tempo */}
+      {modalManualAberto && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-sm rounded-2xl bg-card border border-border p-4 shadow-xl flex flex-col gap-3 text-foreground">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <span className="text-sm font-bold flex items-center gap-2">
+                <Timer className="size-4 text-primary" />
+                Apontar tempo gasto
+              </span>
+              <button
+                type="button"
+                onClick={() => setModalManualAberto(false)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Minutos trabalhados</label>
+              <Input
+                type="number"
+                placeholder="Ex: 45"
+                value={minutosManual}
+                onChange={(e) => setMinutosManual(e.target.value)}
+                className="h-10 text-sm font-mono"
+                autoFocus
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Descrição (opcional)</label>
+              <Input
+                placeholder="Ex: Criação da arte no Canva"
+                value={descManual}
+                onChange={(e) => setDescManual(e.target.value)}
+                className="h-10 text-sm"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setModalManualAberto(false)}>
+                Cancelar
+              </Button>
+              <Button type="button" variant="primary" size="sm" onClick={handleSalvarManual}>
+                Adicionar tempo
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tempo Estimado */}
+      {modalEstimadoAberto && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-sm rounded-2xl bg-card border border-border p-4 shadow-xl flex flex-col gap-3 text-foreground">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <span className="text-sm font-bold flex items-center gap-2">
+                <Clock className="size-4 text-primary" />
+                Definir tempo estimado
+              </span>
+              <button
+                type="button"
+                onClick={() => setModalEstimadoAberto(false)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Tempo previsto (em minutos)</label>
+              <Input
+                type="number"
+                placeholder="Ex: 60"
+                value={inputEstimado}
+                onChange={(e) => setInputEstimado(e.target.value)}
+                className="h-10 text-sm font-mono"
+                autoFocus
+              />
+              <span className="text-[11px] text-muted-foreground">Ex: 60 = 1 hora, 120 = 2 horas</span>
+            </div>
+            <div className="flex items-center justify-between gap-2 pt-2">
+              {tempoEstimadoMinutos ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSalvarTempoEstimado(null)}
+                  className="text-destructive hover:bg-destructive-soft"
+                >
+                  Remover
+                </Button>
+              ) : <div />}
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setModalEstimadoAberto(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    const n = parseInt(inputEstimado, 10);
+                    handleSalvarTempoEstimado(!isNaN(n) && n > 0 ? n : null);
+                  }}
+                >
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Pedir Informação ao Cliente */}
+      {modalPedidoInfoAberto && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-4 shadow-xl flex flex-col gap-3 text-foreground">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <span className="text-sm font-bold flex items-center gap-2">
+                <HelpCircle className="size-4 text-warning" />
+                Pedir informação ao cliente
+              </span>
+              <button
+                type="button"
+                onClick={() => setModalPedidoInfoAberto(false)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Esta solicitação aparecerá no portal do cliente para que ele responda antes ou durante a revisão.
+            </p>
+            <Textarea
+              rows={3}
+              placeholder="Ex: Por favor confirme se o preço da promoção deste post é R$ 49,90 ou R$ 59,90..."
+              value={textoPedidoInfo}
+              onChange={(e) => setTextoPedidoInfo(e.target.value)}
+              className="text-xs"
+              autoFocus
+            />
+            <div className="flex items-center justify-between gap-2 pt-2">
+              {pedidoInformacao ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLimparPedidoInformacao}
+                  className="text-destructive hover:bg-destructive-soft"
+                >
+                  Apagar pedido
+                </Button>
+              ) : <div />}
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setModalPedidoInfoAberto(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  disabled={!textoPedidoInfo.trim()}
+                  onClick={handleSalvarPedidoInformacao}
+                >
+                  Enviar pedido
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox aninhado: Esc fecha só o zoom, não o formulário */}
       <MediaLightbox src={previewLightbox} onClose={() => setPreviewLightbox(null)} alt="Mídia da demanda" />

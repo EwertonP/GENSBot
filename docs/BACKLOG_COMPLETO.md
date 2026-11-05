@@ -45,27 +45,24 @@ Menu expandido com: **Copiar link da demanda**, **Copiar ID**, **Duplicar demand
 ### 2.3 "Salvar como padrão" e "Legendas padrão" — [Concluído em 05/11/2026]
 Tabela `legendas_padrao` criada, rotas de API `/api/legendas-padrao` implementadas e seletor "Modelos (N)" integrado diretamente na barra de formatação da legenda com inserção em um clique, exclusão e botão "Salvar como padrão".
 
-### 2.4 Cronômetro e tempo estimado
-"Tempo na demanda" com play/pausa no cartão escuro; soma por demanda; **tempo estimado** no menu. Pede tabela `tempos_demanda (demanda_id, membro_id, inicio, fim)` e totais. Alimenta o custo por cliente (item 4) e o desempenho da equipe. **Pronto quando:** iniciar, pausar, ver o total e corrigir um apontamento.
+### 2.4 Cronômetro e tempo estimado — [Concluído em 05/11/2026]
+"Tempo na demanda" com play/pausa em tempo real no cartão escuro; soma total de tempo por demanda; modal de apontamento manual (+ minutos trabalhados); barra de progresso visual de tempo gasto vs estimado; e opção "Tempo estimado" no menu 3 pontinhos. Tabela `tempos_demanda` e endpoints `/api/conteudo/[id]/tempo` criados com suporte a RLS.
 
-### 2.5 Interruptores do cliente
-"**Visível para o cliente**" (o cliente vê no painel dele só um resumo: título, etapa, prazo, primeiro nome de quem cuida e progresso do checklist; descrição, comentários e anexos ficam de fora) e "**Aguardando informação do cliente**" (pede algo ao cliente, ele é notificado, e a resposta apaga o pedido). Depende do **painel do cliente** (item 7). Colunas novas em `conteudo_items`: `visivel_cliente`, `pedido_informacao`, `resposta_informacao`. **Pronto quando:** o cliente enxerga só o resumo permitido e responde ao pedido.
+### 2.5 Interruptores do cliente — [Concluído em 05/11/2026]
+Interruptor "Portal do cliente" (Visível/Oculto) integrado no cartão escuro; modal "Pedir informação ao cliente" no menu 3 pontinhos com alerta contextual e resposta integrada; colunas aditivas em `conteudo_items`.
 
-### 2.6 Itens menores da demanda
-- **Capa** opcional da demanda (imagem que aparece no card do kanban).
-- **Concluir:** botão que marca a demanda como concluída sem mover de coluna.
-- **Power-ups da demanda** (automações do card, ex.: "quando entrar em Aprovação, atribuir responsável e mandar o link"): fase tardia; reaproveitar o motor de automações.
-- **Tipo personalizável** (REELS com cor, "Gerenciar tipos"): hoje o formato é fixo (Feed, Reels, Story…); avaliar se vale lista editável.
+### 2.6 Itens menores da demanda — [Concluído em 05/11/2026]
+Botão de concluir demanda no cartão escuro e círculo de concluir no topo do card do kanban sem mover de coluna (título tachado, persistência via `concluida: boolean`).
 
 ---
 
 ## 3. Kanban de Demandas
 
-### 3.1 Barra de filtros no estilo do Orkestrya
-Uma linha: seletor de quadro, "⋯", **Todos os clientes**, **busca em pílula**, **Filtros**, ícones (ver ocultos, cor) e o botão **Nova demanda** fixo à direita. Hoje a barra tem busca, cliente, equipe, alternador de visão, sincronizar Notion, "Publicados ocultos" e o botão. Reorganizar mantendo Notion e Feed 3x3 num menu. **Pronto quando:** a barra cabe em uma linha no desktop e vira busca + botão "Filtros n" no celular.
+### 3.1 Barra de filtros no estilo do Orkestrya — [Concluído em 05/11/2026]
+Barra em linha única: busca em pílula (`rounded-full`), seleção de cliente, seleção de equipe, alternador de visão em pílula, menu de ferramentas "⋯" (Sincronizar Notion e Duplicar demandas do mês), botões de alternância de Publicados e Arquivados, e botão "Nova Demanda" fixo à direita. No celular, preserva busca + botão compacto "Filtros n".
 
-### 3.2 Card com capa em miniatura
-Card branco com: etiqueta de formato e círculo de concluir, **miniatura da capa**, título, cliente com avatar, tipo, datas (atraso em vermelho) e contadores (anexos, checklist). Hoje o card já mostra imagem em alguns casos; padronizar a hierarquia. **Pronto quando:** o card mostra capa quando existe e mantém a mesma altura mínima nas colunas.
+### 3.2 Card com capa em miniatura — [Concluído em 05/11/2026]
+Círculo de conclusão interativo, badges de prioridade, pílula de formato, miniatura de mídia padronizada em 16:9, indicador de pedido de informação pendente, indicador de demanda oculta do portal e menu rápido de 3 pontinhos.
 
 ### 3.3 Detalhes
 - Reordenar colunas por arrastar, renomear e **cor da coluna** editável; **power-ups da coluna**.

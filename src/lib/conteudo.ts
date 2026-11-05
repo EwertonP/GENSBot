@@ -224,6 +224,11 @@ export interface ConteudoItem {
   arquivos: ArquivoConteudo[];
   cover_url?: string | null;
   arquivada_em?: string | null;
+  tempo_estimado_minutos?: number | null;
+  visivel_cliente?: boolean;
+  pedido_informacao?: string | null;
+  resposta_informacao?: string | null;
+  concluida?: boolean;
   location_id?: string | null;
   location_name?: string | null;
   audio_name?: string | null;
