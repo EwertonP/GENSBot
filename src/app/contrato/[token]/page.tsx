@@ -14,18 +14,25 @@ import {
   Building2,
   Hash,
   AlertCircle,
+  Clock,
+  ExternalLink,
 } from 'lucide-react';
 
 interface ContratoPublico {
   id: string;
   titulo: string;
-  status: 'rascunho' | 'aguardando_assinatura' | 'assinado' | 'cancelado';
+  status: 'rascunho' | 'aguardando_assinatura' | 'assinado_cliente' | 'assinado' | 'cancelado';
   valor_mensal: number;
   dia_vencimento?: number | null;
   data_inicio?: string | null;
   data_termino?: string | null;
   renovacao_automatica: boolean;
   conteudo_html: string;
+  conteudo_final_html?: string | null;
+  hash_documento?: string | null;
+  enviado_em?: string | null;
+  expira_em?: string | null;
+  revogado_em?: string | null;
   token_publico: string;
   assinatura_cliente_nome?: string | null;
   assinatura_cliente_doc?: string | null;
@@ -33,6 +40,8 @@ interface ContratoPublico {
   assinatura_cliente_ip?: string | null;
   assinatura_cliente_data?: string | null;
   assinatura_cliente_imagem?: string | null;
+  assinatura_agencia_nome?: string | null;
+  assinatura_agencia_data?: string | null;
   criado_em: string;
   agencia?: {
     nome: string;
@@ -81,10 +90,12 @@ export default function PaginaContratoPublico() {
       try {
         setCarregando(true);
         const res = await fetch(`/api/contratos/public/${token}`);
-        if (!res.ok) {
-          throw new Error('Contrato não encontrado ou link expirado.');
-        }
         const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Contrato não encontrado ou link expirado.');
+        }
+
         setContrato(data.contrato);
 
         // Preenche com dados sugeridos se disponíveis
@@ -136,7 +147,7 @@ export default function PaginaContratoPublico() {
 
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = '#192313';
+    ctx.strokeStyle = '#0D231C';
     ctx.lineTo(clientX - rect.left, clientY - rect.top);
     ctx.stroke();
   };
@@ -157,12 +168,13 @@ export default function PaginaContratoPublico() {
     e.preventDefault();
     if (!token) return;
 
-    if (!nomeSignatario.trim()) {
-      alert('Por favor, informe seu nome completo.');
+    if (!nomeSignatario.trim() || nomeSignatario.trim().split(/\s+/).length < 2) {
+      alert('Por favor, informe seu nome completo (nome e sobrenome).');
       return;
     }
-    if (!docSignatario.trim()) {
-      alert('Por favor, informe seu CPF ou CNPJ.');
+    const docLimpo = docSignatario.replace(/\D/g, '');
+    if (docLimpo.length !== 11 && docLimpo.length !== 14) {
+      alert('Por favor, informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.');
       return;
     }
     if (!concordouTermos) {
@@ -197,7 +209,8 @@ export default function PaginaContratoPublico() {
         prev
           ? {
               ...prev,
-              status: 'assinado',
+              status: 'assinado_cliente',
+              hash_documento: data.certificado?.hash_documento || prev.hash_documento,
               assinatura_cliente_nome: nomeSignatario.trim(),
               assinatura_cliente_doc: docSignatario.trim(),
               assinatura_cliente_email: emailSignatario.trim() || null,
@@ -216,23 +229,27 @@ export default function PaginaContratoPublico() {
 
   if (carregando) {
     return (
-      <div className="min-h-screen bg-[#f7f8f2] flex flex-col items-center justify-center p-6 text-[#192313]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#192313]/60 mb-3" />
-        <p className="text-sm font-medium text-[#192313]/70">Carregando instrumento contratual...</p>
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mb-3" />
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Carregando instrumento jurídico...
+        </p>
       </div>
     );
   }
 
   if (erro || !contrato) {
     return (
-      <div className="min-h-screen bg-[#f7f8f2] flex flex-col items-center justify-center p-6 text-[#192313]">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-sm border border-black/5 text-center">
-          <FileText className="w-12 h-12 text-[#192313]/30 mx-auto mb-4" />
-          <h2 className="text-lg font-bold text-[#192313] mb-2">Contrato indisponível</h2>
-          <p className="text-sm text-[#192313]/60 mb-6">{erro || 'Este contrato não foi localizado ou já foi arquivado.'}</p>
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6">
+        <div className="bg-card text-card-foreground border border-border rounded-3xl p-8 max-w-md w-full text-center shadow-lg">
+          <FileText className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+          <h2 className="text-lg font-bold text-foreground mb-2">Contrato indisponível</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            {erro || 'Este contrato não foi localizado, foi revogado ou teve o prazo expirado.'}
+          </p>
           <a
             href="/"
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-[#192313] text-white text-xs font-semibold hover:bg-[#2a3820] transition-colors"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
           >
             Ir para página inicial
           </a>
@@ -241,43 +258,50 @@ export default function PaginaContratoPublico() {
     );
   }
 
-  const jaAssinado = contrato.status === 'assinado';
+  const jaAssinadoCliente = contrato.status === 'assinado_cliente' || contrato.status === 'assinado';
+  const concluido = contrato.status === 'assinado';
+  const expirado = contrato.expira_em ? Date.now() > new Date(contrato.expira_em).getTime() : false;
 
   return (
-    <div className="min-h-screen bg-[#f7f8f2] text-[#192313] pb-24 print:bg-white print:pb-0">
+    <div className="min-h-screen bg-background text-foreground pb-24 print:bg-white print:text-black print:pb-0">
       {/* Topo do Contrato */}
-      <header className="border-b border-black/5 bg-white/80 backdrop-blur sticky top-0 z-20 print:static print:border-none">
+      <header className="border-b border-border bg-card/85 backdrop-blur-md sticky top-0 z-20 print:static print:border-none">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-[#192313] text-[#bada55] flex items-center justify-center font-bold text-sm shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shrink-0">
               G
             </div>
             <div className="min-w-0">
-              <span className="text-xs uppercase tracking-wider font-semibold text-[#192313]/50 block truncate">
+              <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground block truncate">
                 Contrato Digital
               </span>
-              <span className="text-sm font-bold text-[#192313] block truncate">
+              <span className="text-sm font-bold text-foreground block truncate">
                 {contrato.agencia?.nome || 'Agência'}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {jaAssinado ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-800 border border-emerald-500/20">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                Assinado Digitalmente
+            {concluido ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                Assinado por Ambas as Partes
+              </span>
+            ) : jaAssinadoCliente ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                Assinado pelo Cliente (Aguardando Agência)
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-800 border border-amber-500/20">
-                <Lock className="w-3.5 h-3.5 text-amber-600" />
-                Aguardando Assinatura
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                Aguardando Sua Assinatura
               </span>
             )}
 
             <button
               onClick={() => window.print()}
-              className="p-2 rounded-full hover:bg-black/5 text-[#192313]/60 hover:text-[#192313] transition-colors print:hidden"
+              className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors print:hidden"
               title="Imprimir ou Salvar PDF"
             >
               <Printer className="w-4 h-4" />
@@ -288,125 +312,174 @@ export default function PaginaContratoPublico() {
 
       {/* Hero do Contrato */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 pb-4">
-        <div className="bg-[#192313] text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-sm">
-          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/10 text-[#bada55] text-xs font-semibold uppercase tracking-wider mb-3">
-            Instrumento Jurídico
-          </span>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-3">
+        <div className="bg-card text-card-foreground border border-border rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-xs">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider">
+              Instrumento Jurídico Imutável
+            </span>
+            {contrato.hash_documento && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-muted px-2.5 py-1 rounded-full" title={contrato.hash_documento}>
+                <Hash className="w-3 h-3" />
+                SHA-256: {contrato.hash_documento.slice(0, 10)}...{contrato.hash_documento.slice(-8)}
+              </span>
+            )}
+          </div>
+
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-3 text-foreground">
             {contrato.titulo}
           </h1>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-white/10 text-xs sm:text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-border text-xs sm:text-sm">
             <div>
-              <span className="text-white/50 block text-[11px]">Contratada</span>
-              <span className="font-semibold text-white/90 truncate block">{contrato.agencia?.nome}</span>
+              <span className="text-muted-foreground block text-[11px]">Contratada</span>
+              <span className="font-semibold text-foreground truncate block">{contrato.agencia?.nome}</span>
             </div>
             {contrato.valor_mensal > 0 && (
               <div>
-                <span className="text-white/50 block text-[11px]">Valor Mensal</span>
-                <span className="font-semibold text-[#bada55] truncate block">
+                <span className="text-muted-foreground block text-[11px]">Valor Mensal</span>
+                <span className="font-semibold text-primary truncate block">
                   R$ {Number(contrato.valor_mensal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             )}
             {contrato.dia_vencimento && (
               <div>
-                <span className="text-white/50 block text-[11px]">Vencimento</span>
-                <span className="font-semibold text-white/90 truncate block">Dia {contrato.dia_vencimento}</span>
+                <span className="text-muted-foreground block text-[11px]">Vencimento</span>
+                <span className="font-semibold text-foreground truncate block">Dia {contrato.dia_vencimento}</span>
               </div>
             )}
             {contrato.data_inicio && (
               <div>
-                <span className="text-white/50 block text-[11px]">Início</span>
-                <span className="font-semibold text-white/90 truncate block">
+                <span className="text-muted-foreground block text-[11px]">Início</span>
+                <span className="font-semibold text-foreground truncate block">
                   {new Date(contrato.data_inicio).toLocaleDateString('pt-BR')}
                 </span>
               </div>
             )}
           </div>
+
+          {contrato.expira_em && !jaAssinadoCliente && (
+            <div className="mt-4 pt-3 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
+              <span>
+                Link válido até <strong>{new Date(contrato.expira_em).toLocaleDateString('pt-BR')}</strong>
+                {expirado && <span className="text-destructive font-bold ml-1">(Prazo expirado)</span>}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Conteúdo Jurídico */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-        <div className="bg-white rounded-3xl p-6 sm:p-12 shadow-sm border border-black/5">
+        <div className="bg-card text-card-foreground rounded-3xl p-6 sm:p-12 shadow-xs border border-border">
           <div
-            className="prose prose-olive max-w-none text-[#192313] leading-relaxed text-xs sm:text-sm
-              [&_h1]:text-xl [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:mb-6 [&_h1]:text-[#192313]
-              [&_h3]:text-sm [&_h3]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[#192313]
-              [&_p]:mb-3 [&_p]:text-[#192313]/85 [&_p]:text-justify
+            className="prose dark:prose-invert max-w-none text-foreground leading-relaxed text-xs sm:text-sm
+              [&_h1]:text-xl [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:mb-6 [&_h1]:text-foreground
+              [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:text-foreground
+              [&_h3]:text-sm [&_h3]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-foreground
+              [&_p]:mb-3 [&_p]:text-foreground/90 [&_p]:text-justify
               [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3
               [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3
-              [&_hr]:my-6 [&_hr]:border-black/5"
+              [&_hr]:my-6 [&_hr]:border-border"
             dangerouslySetInnerHTML={{ __html: contrato.conteudo_html }}
           />
 
           {/* Seção de Assinatura */}
-          <div className="mt-12 pt-8 border-t border-black/10">
-            {jaAssinado ? (
-              <div className="bg-emerald-50/70 border border-emerald-200 rounded-3xl p-6 sm:p-8">
+          <div className="mt-12 pt-8 border-t border-border">
+            {jaAssinadoCliente ? (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 sm:p-8">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-emerald-900">
+                    <h3 className="text-base font-bold text-foreground">
                       Certificado de Assinatura Eletrônica
                     </h3>
-                    <p className="text-xs text-emerald-700">
-                      Válido juridicamente nos termos da MP 2.200-2/2001 e Lei 14.063/2020.
+                    <p className="text-xs text-muted-foreground">
+                      Válido juridicamente nos termos do art. 10, § 2º da MP 2.200-2/2001 e Lei 14.063/2020.
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-[#192313]/80 bg-white p-5 rounded-2xl border border-emerald-100 shadow-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-foreground bg-card p-5 rounded-2xl border border-border shadow-xs">
                   <div>
-                    <span className="text-[11px] text-[#192313]/50 block">Signatário CONTRATANTE</span>
-                    <span className="font-bold text-sm text-[#192313]">{contrato.assinatura_cliente_nome}</span>
+                    <span className="text-[11px] text-muted-foreground block">Signatário CONTRATANTE</span>
+                    <span className="font-bold text-sm text-foreground">{contrato.assinatura_cliente_nome}</span>
                   </div>
                   <div>
-                    <span className="text-[11px] text-[#192313]/50 block">CPF / CNPJ</span>
-                    <span className="font-semibold text-sm text-[#192313]">{contrato.assinatura_cliente_doc}</span>
+                    <span className="text-[11px] text-muted-foreground block">CPF / CNPJ</span>
+                    <span className="font-semibold text-sm text-foreground">{contrato.assinatura_cliente_doc}</span>
                   </div>
                   <div>
-                    <span className="text-[11px] text-[#192313]/50 block">Data e Hora (UTC)</span>
-                    <span className="font-semibold text-[#192313]">
+                    <span className="text-[11px] text-muted-foreground block">Data e Hora (UTC)</span>
+                    <span className="font-semibold text-foreground">
                       {contrato.assinatura_cliente_data ? new Date(contrato.assinatura_cliente_data).toLocaleString('pt-BR') : 'Data registrada'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[11px] text-[#192313]/50 block">Endereço IP Registrado</span>
-                    <span className="font-semibold font-mono text-[#192313]">{contrato.assinatura_cliente_ip || '127.0.0.1'}</span>
+                    <span className="text-[11px] text-muted-foreground block">Endereço IP Registrado</span>
+                    <span className="font-semibold font-mono text-foreground">{contrato.assinatura_cliente_ip || '127.0.0.1'}</span>
                   </div>
+                  {contrato.hash_documento && (
+                    <div className="sm:col-span-2 pt-2 border-t border-border">
+                      <span className="text-[10px] text-muted-foreground block">Hash SHA-256 de Integridade do Documento:</span>
+                      <span className="font-mono text-[11px] text-foreground break-all">{contrato.hash_documento}</span>
+                    </div>
+                  )}
                 </div>
 
+                {contrato.assinatura_agencia_data && (
+                  <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-card p-4 rounded-2xl border border-border">
+                    <div>
+                      <span className="text-[11px] text-muted-foreground block">Contra-assinatura CONTRATADA (Agência)</span>
+                      <span className="font-bold text-foreground">{contrato.assinatura_agencia_nome || contrato.agencia?.nome}</span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-muted-foreground block">Data da Contra-assinatura</span>
+                      <span className="font-semibold text-foreground">
+                        {new Date(contrato.assinatura_agencia_data).toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {contrato.assinatura_cliente_imagem && (
-                  <div className="mt-4 pt-4 border-t border-emerald-100 flex items-center gap-4">
-                    <span className="text-xs text-[#192313]/60 font-medium">Assinatura Gráfica:</span>
+                  <div className="mt-4 pt-4 border-t border-emerald-500/20 flex items-center gap-4">
+                    <span className="text-xs text-muted-foreground font-medium">Assinatura Gráfica:</span>
                     <img
                       src={contrato.assinatura_cliente_imagem}
                       alt="Assinatura"
-                      className="h-12 border border-black/10 rounded-lg p-1 bg-white"
+                      className="h-12 border border-border rounded-lg p-1 bg-white"
                     />
                   </div>
                 )}
               </div>
+            ) : expirado ? (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-3xl p-6 text-center text-destructive">
+                <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+                <h3 className="text-base font-bold mb-1">Prazo de assinatura expirado</h3>
+                <p className="text-xs text-muted-foreground">
+                  O link de assinatura deste contrato expirou em {new Date(contrato.expira_em!).toLocaleDateString('pt-BR')}. Entre em contato com a agência para emitir um novo link seguro.
+                </p>
+              </div>
             ) : (
-              <div className="bg-[#f7f8f2] rounded-3xl p-6 sm:p-8 border border-black/10 print:hidden">
+              <div className="bg-card rounded-3xl p-6 sm:p-8 border border-border print:hidden">
                 <div className="flex items-center gap-2 mb-2">
-                  <PenTool className="w-5 h-5 text-[#192313]" />
-                  <h3 className="text-base font-bold text-[#192313]">
+                  <PenTool className="w-5 h-5 text-primary" />
+                  <h3 className="text-base font-bold text-foreground">
                     Assinatura Digital do Contrato
                   </h3>
                 </div>
-                <p className="text-xs text-[#192313]/70 mb-6">
+                <p className="text-xs text-muted-foreground mb-6">
                   Preencha seus dados para formalizar e assinar eletronicamente este contrato com plena validade legal.
                 </p>
 
                 <form onSubmit={handleAssinar} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-[#192313] mb-1">
+                      <label className="block text-xs font-semibold text-foreground mb-1">
                         Nome completo do signatário *
                       </label>
                       <input
@@ -415,11 +488,11 @@ export default function PaginaContratoPublico() {
                         value={nomeSignatario}
                         onChange={(e) => setNomeSignatario(e.target.value)}
                         placeholder="Ex: Carlos Eduardo Silveira"
-                        className="w-full h-11 px-3 rounded-2xl border border-black/15 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#192313]"
+                        className="w-full h-11 px-3 rounded-2xl border border-input text-xs bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#192313] mb-1">
+                      <label className="block text-xs font-semibold text-foreground mb-1">
                         CPF ou CNPJ do signatário *
                       </label>
                       <input
@@ -428,13 +501,13 @@ export default function PaginaContratoPublico() {
                         value={docSignatario}
                         onChange={(e) => setDocSignatario(e.target.value)}
                         placeholder="Ex: 000.000.000-00"
-                        className="w-full h-11 px-3 rounded-2xl border border-black/15 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#192313]"
+                        className="w-full h-11 px-3 rounded-2xl border border-input text-xs bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#192313] mb-1">
+                    <label className="block text-xs font-semibold text-foreground mb-1">
                       E-mail para envio de cópia autenticada
                     </label>
                     <input
@@ -442,13 +515,13 @@ export default function PaginaContratoPublico() {
                       value={emailSignatario}
                       onChange={(e) => setEmailSignatario(e.target.value)}
                       placeholder="seuemail@empresa.com.br"
-                      className="w-full h-11 px-3 rounded-2xl border border-black/15 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#192313]"
+                      className="w-full h-11 px-3 rounded-2xl border border-input text-xs bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
 
                   {/* Modo de Assinatura */}
                   <div>
-                    <label className="block text-xs font-semibold text-[#192313] mb-2">
+                    <label className="block text-xs font-semibold text-foreground mb-2">
                       Como deseja assinar:
                     </label>
                     <div className="flex gap-2 mb-3">
@@ -457,8 +530,8 @@ export default function PaginaContratoPublico() {
                         onClick={() => setTipoAssinatura('digitar')}
                         className={`flex-1 h-9 rounded-xl text-xs font-semibold transition-colors ${
                           tipoAssinatura === 'digitar'
-                            ? 'bg-[#192313] text-white'
-                            : 'bg-white border border-black/15 text-[#192313]/70 hover:bg-black/5'
+                            ? 'bg-primary text-primary-foreground shadow-xs'
+                            : 'bg-card border border-border text-muted-foreground hover:bg-muted'
                         }`}
                       >
                         Digitar Nome (Certificado Digital)
@@ -468,8 +541,8 @@ export default function PaginaContratoPublico() {
                         onClick={() => setTipoAssinatura('desenhar')}
                         className={`flex-1 h-9 rounded-xl text-xs font-semibold transition-colors ${
                           tipoAssinatura === 'desenhar'
-                            ? 'bg-[#192313] text-white'
-                            : 'bg-white border border-black/15 text-[#192313]/70 hover:bg-black/5'
+                            ? 'bg-primary text-primary-foreground shadow-xs'
+                            : 'bg-card border border-border text-muted-foreground hover:bg-muted'
                         }`}
                       >
                         Desenhar Assinatura na Tela
@@ -477,13 +550,13 @@ export default function PaginaContratoPublico() {
                     </div>
 
                     {tipoAssinatura === 'desenhar' ? (
-                      <div className="bg-white p-3 rounded-2xl border border-black/15">
+                      <div className="bg-card p-3 rounded-2xl border border-border">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] text-[#192313]/60">Desenhe sua rubrica no quadro abaixo:</span>
+                          <span className="text-[11px] text-muted-foreground">Desenhe sua rubrica no quadro abaixo:</span>
                           <button
                             type="button"
                             onClick={limparCanvas}
-                            className="text-[11px] font-semibold text-rose-600 hover:underline"
+                            className="text-[11px] font-semibold text-destructive hover:underline"
                           >
                             Limpar
                           </button>
@@ -499,12 +572,12 @@ export default function PaginaContratoPublico() {
                           onTouchStart={startDrawing}
                           onTouchMove={draw}
                           onTouchEnd={stopDrawing}
-                          className="w-full h-[120px] bg-[#fdfdfc] border border-dashed border-black/20 rounded-xl cursor-crosshair touch-none"
+                          className="w-full h-[120px] bg-white border border-dashed border-input rounded-xl cursor-crosshair touch-none"
                         />
                       </div>
                     ) : (
-                      <div className="bg-white p-4 rounded-2xl border border-black/15 flex items-center justify-center">
-                        <span className="font-serif italic text-lg sm:text-2xl text-[#192313] tracking-wide">
+                      <div className="bg-card p-4 rounded-2xl border border-border flex items-center justify-center">
+                        <span className="font-serif italic text-lg sm:text-2xl text-foreground tracking-wide">
                           {nomeSignatario || 'Seu Nome Estilizado'}
                         </span>
                       </div>
@@ -517,10 +590,10 @@ export default function PaginaContratoPublico() {
                       type="checkbox"
                       checked={concordouTermos}
                       onChange={(e) => setConcordouTermos(e.target.checked)}
-                      className="mt-0.5 rounded border-black/20 text-[#192313] focus:ring-[#192313]"
+                      className="mt-0.5 rounded border-input text-primary focus:ring-primary"
                     />
-                    <span className="text-xs text-[#192313]/80 leading-relaxed">
-                      Declaro que li e concordo integralmente com as cláusulas deste contrato e confirmo a autenticidade da assinatura digital, com registro do meu endereço IP e carimbo de data/hora.
+                    <span className="text-xs text-muted-foreground leading-relaxed">
+                      Declaro que li e concordo integralmente com as cláusulas deste contrato e confirmo a autenticidade da assinatura digital, com registro do meu endereço IP, hash do documento e carimbo de data/hora (MP 2.200-2/2001).
                     </span>
                   </label>
 
@@ -528,7 +601,7 @@ export default function PaginaContratoPublico() {
                     <button
                       type="submit"
                       disabled={assinando}
-                      className="w-full h-12 rounded-full bg-[#192313] text-[#bada55] font-semibold text-xs hover:bg-[#2a3820] flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50"
+                      className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold text-xs hover:opacity-90 flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {assinando ? (
                         <>

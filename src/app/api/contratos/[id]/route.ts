@@ -3,6 +3,19 @@ import { supabase as db } from '@/lib/supabase';
 import { contextoDocumentos } from '@/lib/documentos-server';
 import { respostaErro } from '@/lib/clientes-server';
 
+const CONTRATOS_SELECT = `
+  id, agencia_id, proposta_id, modelo_id, cliente_id, lead_id, titulo, status,
+  valor_mensal, dia_vencimento, data_inicio, data_termino, renovacao_automatica,
+  conteudo_html, conteudo_final_html, hash_documento, enviado_em, visualizado_em, expira_em, revogado_em,
+  token_publico, itens,
+  assinatura_cliente_nome, assinatura_cliente_doc, assinatura_cliente_email,
+  assinatura_cliente_ip, assinatura_cliente_data, assinatura_cliente_imagem,
+  assinatura_agencia_nome, assinatura_agencia_data, assinatura_agencia_membro_id, assinatura_agencia_ip,
+  pdf_url, pdf_hash, criado_por, criado_em, atualizado_em,
+  cliente:clientes(id, nome, cnpj_cpf, responsavel_legal, endereco, cor),
+  lead:crm_negocios(id, titulo, nome_contato, empresa, telefone, email)
+`;
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -15,16 +28,7 @@ export async function GET(
   try {
     const { data, error } = await db
       .from('contratos')
-      .select(`
-        id, agencia_id, proposta_id, modelo_id, cliente_id, lead_id, titulo, status,
-        valor_mensal, dia_vencimento, data_inicio, data_termino, renovacao_automatica,
-        conteudo_html, token_publico, itens,
-        assinatura_cliente_nome, assinatura_cliente_doc, assinatura_cliente_email,
-        assinatura_cliente_ip, assinatura_cliente_data, assinatura_cliente_imagem,
-        assinatura_agencia_nome, assinatura_agencia_data, criado_por, criado_em, atualizado_em,
-        cliente:clientes(id, nome, cnpj_cpf, responsavel_legal, endereco, cor),
-        lead:crm_negocios(id, titulo, nome_contato, empresa, telefone, email)
-      `)
+      .select(CONTRATOS_SELECT)
       .eq('id', id)
       .eq('agencia_id', membro.agencia_id)
       .maybeSingle();
@@ -73,16 +77,7 @@ export async function PUT(
       .update(dadosAtualizar)
       .eq('id', id)
       .eq('agencia_id', membro.agencia_id)
-      .select(`
-        id, agencia_id, proposta_id, modelo_id, cliente_id, lead_id, titulo, status,
-        valor_mensal, dia_vencimento, data_inicio, data_termino, renovacao_automatica,
-        conteudo_html, token_publico, itens,
-        assinatura_cliente_nome, assinatura_cliente_doc, assinatura_cliente_email,
-        assinatura_cliente_ip, assinatura_cliente_data, assinatura_cliente_imagem,
-        assinatura_agencia_nome, assinatura_agencia_data, criado_por, criado_em, atualizado_em,
-        cliente:clientes(id, nome, cnpj_cpf, responsavel_legal, endereco, cor),
-        lead:crm_negocios(id, titulo, nome_contato, empresa, telefone, email)
-      `)
+      .select(CONTRATOS_SELECT)
       .single();
 
     if (error) {

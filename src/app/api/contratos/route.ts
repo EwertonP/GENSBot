@@ -1,8 +1,22 @@
 import { NextResponse } from 'next/server';
 import { supabase as db } from '@/lib/supabase';
-import { contextoDocumentos } from '@/lib/documentos-server';
+import { contextoDocumentos, obterIpRequisicao } from '@/lib/documentos-server';
 import { gerarTokenPublico } from '@/lib/documentos-modelos';
 import { respostaErro } from '@/lib/clientes-server';
+import { registrarEventoContrato } from '@/lib/contrato-assinatura';
+
+const CONTRATOS_SELECT = `
+  id, agencia_id, proposta_id, modelo_id, cliente_id, lead_id, titulo, status,
+  valor_mensal, dia_vencimento, data_inicio, data_termino, renovacao_automatica,
+  conteudo_html, conteudo_final_html, hash_documento, enviado_em, visualizado_em, expira_em, revogado_em,
+  token_publico, itens,
+  assinatura_cliente_nome, assinatura_cliente_doc, assinatura_cliente_email,
+  assinatura_cliente_ip, assinatura_cliente_data, assinatura_cliente_imagem,
+  assinatura_agencia_nome, assinatura_agencia_data, assinatura_agencia_membro_id, assinatura_agencia_ip,
+  pdf_url, pdf_hash, criado_por, criado_em, atualizado_em,
+  cliente:clientes(id, nome, cnpj_cpf, responsavel_legal, endereco, cor),
+  lead:crm_negocios(id, titulo, nome_contato, empresa, telefone, email)
+`;
 
 export async function GET(req: Request) {
   const auth = await contextoDocumentos();
@@ -18,16 +32,7 @@ export async function GET(req: Request) {
   try {
     let query = db
       .from('contratos')
-      .select(`
-        id, agencia_id, proposta_id, modelo_id, cliente_id, lead_id, titulo, status,
-        valor_mensal, dia_vencimento, data_inicio, data_termino, renovacao_automatica,
-        conteudo_html, token_publico, itens,
-        assinatura_cliente_nome, assinatura_cliente_doc, assinatura_cliente_email,
-        assinatura_cliente_ip, assinatura_cliente_data, assinatura_cliente_imagem,
-        assinatura_agencia_nome, assinatura_agencia_data, criado_por, criado_em, atualizado_em,
-        cliente:clientes(id, nome, cnpj_cpf, responsavel_legal, endereco, cor),
-        lead:crm_negocios(id, titulo, nome_contato, empresa, telefone, email)
-      `)
+      .select(CONTRATOS_SELECT)
       .eq('agencia_id', membro.agencia_id)
       .order('criado_em', { ascending: false });
 
@@ -84,7 +89,7 @@ export async function POST(req: Request) {
       cliente_id: body.cliente_id || null,
       lead_id: body.lead_id || null,
       titulo: body.titulo.trim(),
-      status: body.status || 'aguardando_assinatura',
+      status: body.status || 'rascunho',
       valor_mensal: Number(body.valor_mensal) || 0,
       dia_vencimento: body.dia_vencimento ? Number(body.dia_vencimento) : 10,
       data_inicio: body.data_inicio || null,
@@ -99,22 +104,17 @@ export async function POST(req: Request) {
     const { data, error } = await db
       .from('contratos')
       .insert(payload)
-      .select(`
-        id, agencia_id, proposta_id, modelo_id, cliente_id, lead_id, titulo, status,
-        valor_mensal, dia_vencimento, data_inicio, data_termino, renovacao_automatica,
-        conteudo_html, token_publico, itens,
-        assinatura_cliente_nome, assinatura_cliente_doc, assinatura_cliente_email,
-        assinatura_cliente_ip, assinatura_cliente_data, assinatura_cliente_imagem,
-        assinatura_agencia_nome, assinatura_agencia_data, criado_por, criado_em, atualizado_em,
-        cliente:clientes(id, nome, cnpj_cpf, responsavel_legal, endereco, cor),
-        lead:crm_negocios(id, titulo, nome_contato, empresa, telefone, email)
-      `)
+      .select(CONTRATOS_SELECT)
       .single();
 
     if (error) {
       console.error('Erro ao criar contrato:', error);
       return respostaErro('Não foi possível salvar o contrato.', 500);
     }
+
+    // Registra evento de criação
+    const ip = obterIpRequisicao(req);
+    await registrarEventoContrato(data.id, membro.agencia_id, 'criado', { titulo: data.titulo }, membro.id, ip);
 
     return NextResponse.json({ contrato: data }, { status: 201 });
   } catch (err) {
