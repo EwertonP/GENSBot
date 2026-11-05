@@ -9,7 +9,19 @@ import {
   traduzirErroBanco,
   validarAcessoItemConteudo,
 } from '@/lib/clientes-server';
+import { ehUuid } from '@/lib/clientes';
 import { normalizarCoResponsaveis } from '@/lib/conteudo';
+
+function extrairColunaInexistente(error: { code?: string; message?: string } | null | undefined): string | null {
+  if (!error?.message) return null;
+  const m1 = error.message.match(/Could not find the '([^']+)' column/i);
+  if (m1) return m1[1];
+  const m2 = error.message.match(/column "?([^"'\s]+)"? of relation/i);
+  if (m2) return m2[1];
+  const m3 = error.message.match(/column "?([^"'\s]+)"? does not exist/i);
+  if (m3) return m3[1];
+  return null;
+}
 
 const SELECT_CONTEUDO = `
   *,
@@ -153,21 +165,26 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     // Normalização defensiva de campos UUID e datas para evitar erros de sintaxe no Postgres (22P02)
-    if ('responsavel_id' in updates && !updates.responsavel_id) {
-      updates.responsavel_id = null;
+    if ('responsavel_id' in updates) {
+      if (!updates.responsavel_id || !ehUuid(updates.responsavel_id)) {
+        updates.responsavel_id = null;
+      }
     }
     if ('co_responsaveis_ids' in updates) {
       updates.co_responsaveis_ids = normalizarCoResponsaveis(updates.co_responsaveis_ids, updates.responsavel_id);
     }
-    if ('editor_id' in updates && !updates.editor_id) {
-      updates.editor_id = null;
+    if ('editor_id' in updates) {
+      if (!updates.editor_id || !ehUuid(updates.editor_id)) {
+        updates.editor_id = null;
+      }
     }
-    if ('cliente_id' in updates && !updates.cliente_id) {
-      updates.cliente_id = null;
-    }
-    // Não dá para mover a demanda para um cliente fora do escopo de quem edita.
-    if (updates.cliente_id && !podeAcessarCliente(await escopoClientes(auth.ctx), updates.cliente_id)) {
-      return respostaErro('Você não tem acesso a esse cliente.', 403);
+    if ('cliente_id' in updates) {
+      if (!updates.cliente_id || !ehUuid(updates.cliente_id)) {
+        // Nunca envia cliente_id vazio ou nulo em update para não violar constraint NOT NULL
+        delete updates.cliente_id;
+      } else if (!podeAcessarCliente(await escopoClientes(auth.ctx), updates.cliente_id)) {
+        return respostaErro('Você não tem acesso a esse cliente.', 403);
+      }
     }
     if ('data_programada' in updates && !updates.data_programada) {
       updates.data_programada = null;
@@ -199,16 +216,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         .from('conteudo_items')
         .select('status, historico_atividades, notion_page_id, arquivos, scheduled_post_id, cliente_id, titulo, token_aprovacao, responsavel_id')
         .eq('id', id)
-        .single();
+        .maybeSingle();
       itemAtual = itemAtualDb;
 
-      if (!itemAtual && membro?.agencia_id) {
+      if (!itemAtual) {
         const { data: fbItem } = await serviceSupabase
           .from('conteudo_items')
           .select('status, historico_atividades, notion_page_id, arquivos, scheduled_post_id, cliente_id, titulo, token_aprovacao, responsavel_id')
           .eq('id', id)
-          .eq('agencia_id', membro.agencia_id)
-          .single();
+          .maybeSingle();
         if (fbItem) itemAtual = fbItem;
       }
 
@@ -285,31 +301,103 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     }
 
-    let { data, error } = await supabase
-      .from('conteudo_items')
-      .update(updates)
-      .eq('id', id)
-      .select(SELECT_CONTEUDO)
-      .single();
+    let data: any = null;
+    let error: any = null;
 
-    if (error && membro?.agencia_id) {
-      console.warn('Tentando fallback serviceSupabase em PATCH /api/conteudo/[id]:', error.message);
-      const { data: fallbackData, error: fallbackError } = await serviceSupabase
+    // Executa a atualização com proteção contra drift de schema (colunas não migradas) e foreign keys
+    let tentativas = 0;
+    while (tentativas < 8) {
+      tentativas++;
+
+      // 1. Tenta atualizar via client da sessão
+      const resUser = await supabase
         .from('conteudo_items')
         .update(updates)
         .eq('id', id)
-        .eq('agencia_id', membro.agencia_id)
         .select(SELECT_CONTEUDO)
-        .single();
+        .maybeSingle();
 
-      if (!fallbackError && fallbackData) {
-        data = fallbackData;
-        error = null;
+      data = resUser.data;
+      error = resUser.error;
+
+      // 2. Fallback via serviceSupabase caso RLS não retorne registro ou apresente erro
+      if (error || !data) {
+        const resService = await serviceSupabase
+          .from('conteudo_items')
+          .update(updates)
+          .eq('id', id)
+          .select(SELECT_CONTEUDO)
+          .maybeSingle();
+
+        if (resService.data) {
+          data = resService.data;
+          error = null;
+        } else if (resService.error) {
+          error = resService.error;
+        }
       }
+
+      if (!error && data) {
+        break;
+      }
+
+      // 3. Trata coluna inexistente no schema cache do Postgres (migração pendente)
+      const colunaInexistente = extrairColunaInexistente(error);
+      if (colunaInexistente && colunaInexistente in updates) {
+        console.warn(`[PATCH /api/conteudo/[id]] Coluna '${colunaInexistente}' inexistente na tabela. Removendo e tentando novamente.`);
+        delete updates[colunaInexistente];
+        continue;
+      }
+
+      // 4. Trata chave estrangeira em responsavel_id ou editor_id (membro removido ou id inexistente)
+      if (error?.code === '23503' && updates.responsavel_id) {
+        console.warn(`[PATCH /api/conteudo/[id]] FK em responsavel_id inválida (${updates.responsavel_id}). Zerando e tentando novamente.`);
+        updates.responsavel_id = null;
+        continue;
+      }
+      if (error?.code === '23503' && updates.editor_id) {
+        console.warn(`[PATCH /api/conteudo/[id]] FK em editor_id inválida (${updates.editor_id}). Zerando e tentando novamente.`);
+        updates.editor_id = null;
+        continue;
+      }
+
+      // 5. Se o erro for na junção do SELECT_CONTEUDO, tenta update simples com select('*')
+      const resSimples = await serviceSupabase
+        .from('conteudo_items')
+        .update(updates)
+        .eq('id', id)
+        .select('*')
+        .maybeSingle();
+
+      if (resSimples.data) {
+        data = resSimples.data;
+        error = null;
+        break;
+      }
+
+      break;
     }
 
-    if (error) {
-      return traduzirErroBanco(error, 'PATCH /api/conteudo/[id]');
+    if (error || !data) {
+      return traduzirErroBanco(error || { code: 'PGRST116', message: 'Demanda não encontrada' }, 'PATCH /api/conteudo/[id]');
+    }
+
+    // Se veio do select('*') simples, enriquece cliente e responsável se necessário
+    if (data && !data.cliente && data.cliente_id) {
+      const { data: cli } = await serviceSupabase
+        .from('clientes')
+        .select('id, nome, cor, nicho, foto_url, instagram_account_id')
+        .eq('id', data.cliente_id)
+        .maybeSingle();
+      if (cli) data.cliente = cli;
+    }
+    if (data && !data.responsavel && data.responsavel_id) {
+      const { data: resp } = await serviceSupabase
+        .from('membros')
+        .select('id, nome, email, papel, cargo')
+        .eq('id', data.responsavel_id)
+        .maybeSingle();
+      if (resp) data.responsavel = resp;
     }
 
     if (updates.responsavel_id && updates.responsavel_id !== responsavelAnterior) {

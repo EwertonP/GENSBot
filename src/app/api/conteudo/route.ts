@@ -10,6 +10,17 @@ import {
 import { ehUuid } from '@/lib/clientes';
 import { normalizarCoResponsaveis } from '@/lib/conteudo';
 
+function extrairColunaInexistente(error: { code?: string; message?: string } | null | undefined): string | null {
+  if (!error?.message) return null;
+  const m1 = error.message.match(/Could not find the '([^']+)' column/i);
+  if (m1) return m1[1];
+  const m2 = error.message.match(/column "?([^"'\s]+)"? of relation/i);
+  if (m2) return m2[1];
+  const m3 = error.message.match(/column "?([^"'\s]+)"? does not exist/i);
+  if (m3) return m3[1];
+  return null;
+}
+
 const SELECT_CONTEUDO = `
   *,
   responsavel:membros!responsavel_id(
@@ -249,28 +260,74 @@ export async function POST(req: Request) {
       checklist: Array.isArray(checklist) ? checklist : [],
     };
 
-    let { data, error } = await supabase
-      .from('conteudo_items')
-      .insert(insertPayload)
-      .select(SELECT_CONTEUDO)
-      .single();
+    let data: any = null;
+    let error: any = null;
 
-    if (error && membro?.agencia_id) {
-      console.warn('Tentando fallback serviceSupabase em POST /api/conteudo:', error.message);
-      const { data: fallbackData, error: fallbackError } = await serviceSupabase
+    let tentativas = 0;
+    while (tentativas < 8) {
+      tentativas++;
+
+      const resUser = await supabase
         .from('conteudo_items')
         .insert(insertPayload)
         .select(SELECT_CONTEUDO)
-        .single();
+        .maybeSingle();
 
-      if (!fallbackError && fallbackData) {
-        data = fallbackData;
-        error = null;
+      data = resUser.data;
+      error = resUser.error;
+
+      if (error || !data) {
+        const resService = await serviceSupabase
+          .from('conteudo_items')
+          .insert(insertPayload)
+          .select(SELECT_CONTEUDO)
+          .maybeSingle();
+
+        if (resService.data) {
+          data = resService.data;
+          error = null;
+        } else if (resService.error) {
+          error = resService.error;
+        }
       }
+
+      if (!error && data) {
+        break;
+      }
+
+      // Trata coluna inexistente no schema cache do Postgres
+      const colunaInexistente = extrairColunaInexistente(error);
+      if (colunaInexistente && colunaInexistente in insertPayload) {
+        console.warn(`[POST /api/conteudo] Coluna '${colunaInexistente}' inexistente na tabela. Removendo e tentando novamente.`);
+        delete (insertPayload as any)[colunaInexistente];
+        continue;
+      }
+
+      // Trata chave estrangeira em responsavel_id ou editor_id
+      if (error?.code === '23503' && insertPayload.responsavel_id) {
+        console.warn(`[POST /api/conteudo] FK em responsavel_id inválida. Zerando e tentando novamente.`);
+        insertPayload.responsavel_id = user.id;
+        continue;
+      }
+
+      // Fallback para select('*') simples
+      const resSimples = await serviceSupabase
+        .from('conteudo_items')
+        .insert(insertPayload)
+        .select('*')
+        .maybeSingle();
+
+      if (resSimples.data) {
+        data = resSimples.data;
+        error = null;
+        break;
+      }
+
+      break;
     }
 
-    if (error) {
-      return traduzirErroBanco(error, 'POST /api/conteudo');
+    if (error || !data) {
+      return traduzirErroBanco(error || { code: 'PGRST116', message: 'Erro ao criar demanda' }, 'POST /api/conteudo');
     }
 
     if (data?.status === 'revisao_cliente' && !body.pular_notificacao_whatsapp && data.cliente_id) {

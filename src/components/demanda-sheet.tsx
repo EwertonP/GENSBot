@@ -253,6 +253,23 @@ export function DemandaSheet({
 }: DemandaSheetProps) {
   const editando = modo === 'editar' && !!item;
 
+  // Garante lista de equipe sempre carregada, mesmo se o pai demorar para responder
+  const [membrosLocais, setMembrosLocais] = useState<MembroEquipe[]>(membros);
+  useEffect(() => {
+    if (membros && membros.length > 0) {
+      setMembrosLocais(membros);
+    } else {
+      fetch('/api/equipe')
+        .then((r) => r.json())
+        .then((d) => {
+          if (Array.isArray(d?.membros) && d.membros.length > 0) {
+            setMembrosLocais(d.membros);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [membros]);
+
   // Estado inicial vem das props: o pai troca a `key` a cada abertura.
   const [status, setStatus] = useState<StatusConteudo>(() => item?.status ?? statusInicial ?? 'planejamento');
   const [tipo, setTipo] = useState<TipoConteudo>(() => item?.tipo ?? 'post');
@@ -834,32 +851,48 @@ export function DemandaSheet({
           ordem: arquivos.length + idx + 1,
         }));
 
-      const corpo = {
-        cliente_id: clienteId,
+      const corpo: Record<string, any> = {
+        cliente_id: clienteId || item?.cliente_id,
         tipo,
         status,
         prioridade,
         titulo: titulo.trim() || null,
         briefing: briefing.trim() || null,
-        // Só manda o HTML se a pessoa mexeu no editor: assim salvar sem editar não depende da coluna nova.
-        ...(briefingEditado ? { briefing_html: briefingHtml || null } : {}),
         legenda: legenda.trim() || null,
         responsavel_id: responsavelId || null,
         co_responsaveis_ids: coResponsaveis.filter((id) => id !== responsavelId),
-        etiquetas_ids: etiquetasIds,
         editor_id: editorId || null,
         // Dia inalterado devolve o valor original: salvar não apaga o horário agendado.
         data_programada: deInputData(dataProgramada, item?.data_programada),
         prazo: deInputData(prazoInterno, item?.prazo),
         arquivos: [...arquivos, ...urlsManuais],
         cover_url: tipo === 'reel' ? capaUrl : null,
-        checklist,
-        tempo_estimado_minutos: tempoEstimadoMinutos,
-        visivel_cliente: visivelCliente,
-        pedido_informacao: pedidoInformacao,
-        resposta_informacao: respostaInformacao,
-        concluida,
       };
+
+      if (briefingEditado && briefingHtml) {
+        corpo.briefing_html = briefingHtml;
+      }
+      if (etiquetasIds && etiquetasIds.length > 0) {
+        corpo.etiquetas_ids = etiquetasIds;
+      }
+      if (checklist && checklist.length > 0) {
+        corpo.checklist = checklist;
+      }
+      if (tempoEstimadoMinutos !== null) {
+        corpo.tempo_estimado_minutos = tempoEstimadoMinutos;
+      }
+      if (visivelCliente !== undefined) {
+        corpo.visivel_cliente = visivelCliente;
+      }
+      if (pedidoInformacao) {
+        corpo.pedido_informacao = pedidoInformacao;
+      }
+      if (respostaInformacao) {
+        corpo.resposta_informacao = respostaInformacao;
+      }
+      if (concluida !== undefined) {
+        corpo.concluida = concluida;
+      }
 
       const res = await fetch(editando ? `/api/conteudo/${item.id}` : '/api/conteudo', {
         method: editando ? 'PATCH' : 'POST',
@@ -1286,7 +1319,7 @@ export function DemandaSheet({
                   .filter((id, i, arr) => !!id && arr.indexOf(id) === i)
                   .slice(0, 3)
                   .map((id) => {
-                    const m = membros.find((mb) => mb.id === id);
+                    const m = membrosLocais.find((mb) => mb.id === id);
                     return (
                       <ClienteAvatar
                         key={id}
@@ -2053,13 +2086,13 @@ export function DemandaSheet({
                     setResponsavelId(ids[0] || '');
                     setCoResponsaveis(ids.slice(1));
                   }}
-                  membros={membros}
+                  membros={membrosLocais}
                 />
                 <MemberChipSelect
                   label="Designer / Editor"
                   value={editorId}
                   onChange={setEditorId}
-                  membros={membros}
+                  membros={membrosLocais}
                   placeholder="Atribuir..."
                 />
               </div>
