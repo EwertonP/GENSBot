@@ -33,7 +33,13 @@ import {
   Link2,
   Info,
   Megaphone,
+  Compass,
+  Palette,
+  Globe,
+  Sliders,
+  HeartPulse,
 } from 'lucide-react';
+import { calcularIndiceSaude, type DiagnosticoSaude } from '@/lib/cliente-saude';
 import { PainelAnuncios } from '@/components/meta-ads/painel-anuncios';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,11 +66,13 @@ import { confirmDialog } from '@/components/ui/dialog';
 // Campos editáveis pelo formulário. Todos viram string no input; o servidor
 // converte (a validação de verdade mora em parseClienteInput).
 const CAMPOS = [
-  'nome', 'nicho', 'cor', 'etapa', 'instagram_account_id',
+  'nome', 'nicho', 'cor', 'cor_capa', 'etapa', 'instagram_account_id',
+  'foto_url_dark',
   'cnpj_cpf', 'responsavel_legal', 'cpf_responsavel', 'endereco',
   'valor_mensal', 'dia_vencimento', 'contrato_inicio', 'contrato_duracao_meses',
   'posts_mes', 'reels_mes', 'dia_revisao',
   'briefing', 'concorrentes', 'observacoes',
+  'persona', 'raio_x', 'posicionamento', 'tom_de_voz',
 ] as const;
 type Campo = (typeof CAMPOS)[number];
 type Form = Record<Campo, string>;
@@ -267,7 +275,20 @@ export default function ClienteFicha({
     }
   }
 
-  const [abaAtiva, setAbaAtiva] = useState<'geral' | 'integracoes' | 'equipe' | 'anuncios'>('geral');
+  const [abaAtiva, setAbaAtiva] = useState<
+    'geral' | 'estrategia' | 'portal' | 'integracoes' | 'equipe' | 'anuncios'
+  >('geral');
+  const [saudeDiagnostico, setSaudeDiagnostico] = useState<DiagnosticoSaude | null>(null);
+
+  useEffect(() => {
+    if (!clienteId) return;
+    fetch(`/api/clientes/${clienteId}/saude`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.saude) setSaudeDiagnostico(d.saude);
+      })
+      .catch(() => {});
+  }, [clienteId]);
 
   // --------------------------------------------------------------- estados ---
   if (carregando) {
@@ -317,6 +338,20 @@ export default function ClienteFicha({
             <div className="flex flex-wrap items-center gap-2.5">
               <h2 className="text-2xl font-bold font-display tracking-tight text-foreground truncate">{cliente.nome}</h2>
               {!cliente.ativo && <Badge variant="muted">Arquivado</Badge>}
+              {saudeDiagnostico && (
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border transition-transform hover:scale-105"
+                  style={{
+                    backgroundColor: `${saudeDiagnostico.cor}15`,
+                    borderColor: `${saudeDiagnostico.cor}40`,
+                    color: saudeDiagnostico.cor,
+                  }}
+                  title={saudeDiagnostico.motivos.map((m) => `${m.texto} (${m.impacto > 0 ? '+' : ''}${m.impacto} pts)`).join('\n')}
+                >
+                  <HeartPulse className="w-3.5 h-3.5" />
+                  <span>Saúde: {saudeDiagnostico.score} ({saudeDiagnostico.label})</span>
+                </div>
+              )}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {[cliente.nicho, contaAtual ? `@${contaAtual.instagram_username ?? contaAtual.instagram_user_id}` : null]
@@ -373,6 +408,32 @@ export default function ClienteFicha({
 
         <button
           type="button"
+          onClick={() => setAbaAtiva('estrategia')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-ui cursor-pointer shrink-0 ${
+            abaAtiva === 'estrategia'
+              ? 'bg-primary text-primary-foreground shadow-2xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+        >
+          <Compass className="w-4 h-4" />
+          Central Estratégica
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAbaAtiva('portal')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-ui cursor-pointer shrink-0 ${
+            abaAtiva === 'portal'
+              ? 'bg-primary text-primary-foreground shadow-2xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+        >
+          <Globe className="w-4 h-4" />
+          Portal do Cliente & Regras
+        </button>
+
+        <button
+          type="button"
           onClick={() => setAbaAtiva('integracoes')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-ui cursor-pointer shrink-0 ${
             abaAtiva === 'integracoes'
@@ -414,6 +475,53 @@ export default function ClienteFicha({
       {/* Aba 1: Geral & Contrato */}
       {abaAtiva === 'geral' && (
         <form onSubmit={salvar} className="flex flex-col gap-6 animate-in fade-in duration-150">
+          {/* Diagnóstico de Saúde Operacional */}
+          {saudeDiagnostico && (
+            <Card padding="lg" className="flex flex-col gap-4 rounded-2xl border border-border shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg font-display shrink-0"
+                    style={{
+                      backgroundColor: `${saudeDiagnostico.cor}20`,
+                      color: saudeDiagnostico.cor,
+                    }}
+                  >
+                    {saudeDiagnostico.score}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-foreground">Índice de Saúde Operacional</span>
+                      <span
+                        className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: `${saudeDiagnostico.cor}20`,
+                          color: saudeDiagnostico.cor,
+                        }}
+                      >
+                        {saudeDiagnostico.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{saudeDiagnostico.resumo}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-dashed border-border">
+                {saudeDiagnostico.motivos.map((m, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        m.tipo === 'positivo' ? 'bg-emerald-500' : m.tipo === 'negativo' ? 'bg-rose-500' : 'bg-muted-foreground'
+                      }`}
+                    />
+                    <span className="truncate">{m.texto}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           <Secao titulo="Identificação">
             <div className="grid gap-4 sm:grid-cols-2">
               <Input label="Nome" maxLength={120} required {...campo('nome')} />
@@ -424,9 +532,14 @@ export default function ClienteFicha({
                 placeholder="Ex.: Onboarding, Produção dos conteúdos…"
                 {...campo('etapa')}
               />
+              <Input
+                label="Foto para Tema Escuro (URL opcional)"
+                placeholder="https://..."
+                {...campo('foto_url_dark')}
+              />
             </div>
             <fieldset>
-              <legend className="text-xs font-bold text-muted-foreground mb-2">Cor</legend>
+              <legend className="text-xs font-bold text-muted-foreground mb-2">Cor da Marca</legend>
               <div className="flex flex-wrap gap-2.5">
                 {CORES_CLIENTE.map((c) => (
                   <button
@@ -597,6 +710,250 @@ export default function ClienteFicha({
             </Button>
           </div>
         </form>
+      )}
+
+      {/* Aba: Central Estratégica & Dossiê */}
+      {abaAtiva === 'estrategia' && (
+        <form onSubmit={salvar} className="flex flex-col gap-6 animate-in fade-in duration-150">
+          <Card padding="lg" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-border shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Compass className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Central Estratégica & Dossiê de Marca</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Persona, raio-x, diferenciais, tom de voz e paleta. Compartilhe um link público somente-leitura com seu cliente.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const token = cliente.token_estrategia || cliente.id;
+                  const link = `${window.location.origin}/estrategia/${token}`;
+                  navigator.clipboard.writeText(link);
+                  showToast('Link do Dossiê Estratégico copiado!', 'success');
+                }}
+                className="h-9 rounded-xl text-xs font-semibold gap-1.5"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copiar Link Público</span>
+              </Button>
+
+              <a
+                href={`/estrategia/${cliente.token_estrategia || cliente.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center h-9 px-3 rounded-xl border border-border bg-card hover:bg-muted text-xs font-semibold gap-1.5 transition-colors"
+              >
+                <span>Visualizar</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </Card>
+
+          <Secao titulo="Raio-X do Perfil e Marca" descricao="Diagnóstico inicial da presença digital, essência e proposta de valor.">
+            <Textarea
+              rows={4}
+              placeholder="Descreva o momento atual da marca, objetivos e diferenciais no mercado..."
+              {...campo('raio_x')}
+            />
+          </Secao>
+
+          <Secao titulo="Persona & Público-Alvo" descricao="Mapeamento aprofundado do cliente ideal: dores, desejos e objeções.">
+            <Textarea
+              rows={4}
+              placeholder="Quem é o cliente ideal? Quais são suas maiores dores e o que ele busca transformar?"
+              {...campo('persona')}
+            />
+          </Secao>
+
+          <Secao titulo="Posicionamento de Marca" descricao="Como a marca se posiciona na mente do consumidor.">
+            <Textarea
+              rows={3}
+              placeholder="Declaração de posicionamento única da marca..."
+              {...campo('posicionamento')}
+            />
+          </Secao>
+
+          <Secao titulo="Tom de Voz & Diretrizes" descricao="Diretrizes de comunicação, vocabulário e o que evitar.">
+            <Textarea
+              rows={3}
+              placeholder="Ex: Tom consultivo, acolhedor, profissional. Evitar termos técnicos complexos..."
+              {...campo('tom_de_voz')}
+            />
+          </Secao>
+
+          <Secao titulo="Concorrentes Diretos & Inspirações" descricao="Contas de concorrentes e referências estéticas.">
+            <Textarea
+              rows={3}
+              placeholder="Ex: @concorrente1, @referencia_visual..."
+              {...campo('concorrentes')}
+            />
+          </Secao>
+
+          <Secao titulo="Aparência do Dossiê & Cor de Capa" descricao="Cor de destaque utilizada na capa do Dossiê Estratégico.">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Cor de Capa (Hexadecimal)"
+                placeholder="#192313"
+                {...campo('cor_capa')}
+              />
+            </div>
+          </Secao>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            {sujo && <span className="mr-auto text-xs font-semibold text-muted-foreground">Alterações não salvas</span>}
+            <Button type="button" variant="ghost" disabled={!sujo || salvando} onClick={descartar}>
+              Descartar
+            </Button>
+            <Button type="submit" loading={salvando} disabled={!sujo}>
+              Salvar Estratégia
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {/* Aba: Portal do Cliente & Regras de Aprovação */}
+      {abaAtiva === 'portal' && (
+        <div className="flex flex-col gap-6 animate-in fade-in duration-150">
+          <Card padding="lg" className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-border shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                <Globe className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Portal do Cliente (Acesso Sem Senha)</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  O cliente valida posts, responde dúvidas e visualiza o contrato direto por um link exclusivo.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const token = cliente.token_portal || cliente.id;
+                  const link = `${window.location.origin}/portal/${token}`;
+                  navigator.clipboard.writeText(link);
+                  showToast('Link do Portal do Cliente copiado!', 'success');
+                }}
+                className="h-9 rounded-xl text-xs font-semibold gap-1.5"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copiar Link do Portal</span>
+              </Button>
+
+              <a
+                href={`/portal/${cliente.token_portal || cliente.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center h-9 px-3 rounded-xl border border-border bg-card hover:bg-muted text-xs font-semibold gap-1.5 transition-colors"
+              >
+                <span>Abrir Portal</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </Card>
+
+          <Card padding="lg" className="flex flex-col gap-5 rounded-2xl border border-border shadow-2xs">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-bold text-foreground">Regras de Movimentação e Aprovação Automática</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 max-w-prose">
+                Defina em qual coluna da Esteira a demanda cai automaticamente quando o cliente interage no Portal ou WhatsApp:
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Quando Aprovado pelo cliente:
+                </label>
+                <select
+                  defaultValue={cliente.regras_aprovacao?.aprovado_coluna || 'agendar'}
+                  onChange={async (e) => {
+                    const novaRegra = {
+                      ...(cliente.regras_aprovacao || {}),
+                      aprovado_coluna: e.target.value,
+                    };
+                    await fetch(`/api/clientes/${cliente.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ regras_aprovacao: novaRegra }),
+                    });
+                    showToast('Regra de aprovação atualizada!', 'success');
+                  }}
+                  className="w-full h-10 px-3 rounded-xl border border-border text-xs bg-card text-foreground"
+                >
+                  <option value="agendar">Mover para &quot;Agendar / Publicar&quot;</option>
+                  <option value="aprovado">Mover para &quot;Aprovado&quot;</option>
+                  <option value="postado">Mover para &quot;Concluído / Postado&quot;</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Quando Alteração Solicitada:
+                </label>
+                <select
+                  defaultValue={cliente.regras_aprovacao?.alteracao_coluna || 'ajustes'}
+                  onChange={async (e) => {
+                    const novaRegra = {
+                      ...(cliente.regras_aprovacao || {}),
+                      alteracao_coluna: e.target.value,
+                    };
+                    await fetch(`/api/clientes/${cliente.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ regras_aprovacao: novaRegra }),
+                    });
+                    showToast('Regra de ajustes atualizada!', 'success');
+                  }}
+                  className="w-full h-10 px-3 rounded-xl border border-border text-xs bg-card text-foreground"
+                >
+                  <option value="ajustes">Mover para &quot;Ajustes Solicitados&quot;</option>
+                  <option value="producao">Mover para &quot;Em Produção&quot;</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1.5">
+                  Quando Reprovado / Ideia Descartada:
+                </label>
+                <select
+                  defaultValue={cliente.regras_aprovacao?.reprovado_coluna || 'ideias'}
+                  onChange={async (e) => {
+                    const novaRegra = {
+                      ...(cliente.regras_aprovacao || {}),
+                      reprovado_coluna: e.target.value,
+                    };
+                    await fetch(`/api/clientes/${cliente.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ regras_aprovacao: novaRegra }),
+                    });
+                    showToast('Regra de reprovação atualizada!', 'success');
+                  }}
+                  className="w-full h-10 px-3 rounded-xl border border-border text-xs bg-card text-foreground"
+                >
+                  <option value="ideias">Mover para &quot;Ideias / Banco&quot;</option>
+                  <option value="reprovado">Mover para &quot;Reprovado&quot;</option>
+                </select>
+              </div>
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* Aba 2: Integrações & Conexões */}
