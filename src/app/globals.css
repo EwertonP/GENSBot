@@ -477,3 +477,61 @@
   justify-content: center;
 }
 
+/* Orkestrya Chart & Metrics Animations */
+@keyframes bar-grow {
+  0% {
+    transform: scaleY(0);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes chart-reveal {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0.3;
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
+@keyframes progress-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-bar-grow {
+  animation: 0.8s cubic-bezier(0.22, 1, 0.36, 1) both bar-grow;
+  transform-origin: bottom;
+}
+
+.animate-chart-reveal {
+  animation: 0.9s cubic-bezier(0.16, 1, 0.3, 1) both chart-reveal;
+}
+
+.animate-progress-slide {
+  animation: 0.7s cubic-bezier(0.22, 1, 0.36, 1) both progress-slide;
+}
+
+.wt-spark-line {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: spark-draw 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes spark-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+
