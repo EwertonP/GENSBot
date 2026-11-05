@@ -67,7 +67,7 @@ Dívida técnica paralela: limpar ~186 hex e ~190 cores Tailwind cruas, renomear
 
 # Réplica da tela de demanda (Orkestrya)
 
-Fonte: demanda aberta e "Nova demanda" no Orkestrya, vistas no celular. Itens marcados com (?) ainda precisam ser conferidos abrindo cada seletor, porque a sessão do Orkestrya caiu antes de eu abrir os menus.
+Fonte: demanda aberta e "Nova demanda" no Orkestrya, vistas no celular. Os seletores foram conferidos em 05/11/2026.
 
 ## Estrutura da tela (de cima para baixo)
 
@@ -95,13 +95,23 @@ Barra de ferramentas da **legenda**: emoji, lista, `#` (inserir hashtag), A (mai
 
 Botão "mídia" e "Google Drive" no sheet de aprovação; no card, o anexo mostra miniatura com contagem. Aceita imagens (carrossel com ordem arrastável), vídeo e link do Drive. A aprovação exige ao menos uma mídia ou link. No GENSBot já existe upload para o R2; a mudança é de organização (miniaturas ordenáveis, contador, validação).
 
-## Etiquetas, prioridade, responsáveis, datas
+## Layout no desktop (visto com a janela larga)
 
-- **Etiqueta:** chip que abre lista de etiquetas coloridas do quadro, com "criar etiqueta". (?) confirmar no Orkestrya se é multi-seleção.
-- **Prioridade:** linha tocável na lista de propriedades (hoje o GENSBot tem urgente/alta/média/baixa; manter).
-- **Responsáveis:** chip com avatar, abre lista de membros com busca, aceita vários.
-- **Datas:** prazo interno e data de postagem, cada uma abre calendário, com a distância em dias.
-- **Tipo e formato:** formato (Post/Reels/Carrossel/Story) no primeiro chip; "Demanda" é o tipo do item (demanda ou tarefa).
+Modal centralizado, **duas colunas**:
+- **Coluna esquerda (rola):** descrição, legenda, **Anexos** (Arquivo, Link, Google Drive), **Checklists** ("Nova checklist" e "Trazer da aba Checklist"), e um bloco com abas **Comentários / Histórico / Aprovação** (comentário com `@` para marcar alguém, emoji, imagem, enviar).
+- **Coluna direita:** cartão escuro com "Enviar para aprovação", cronômetro e as propriedades (**Coluna, Prioridade, Tipo, Datas, Postagem**), e abaixo os dois interruptores do cliente com a explicação.
+- **Rodapé fixo:** Excluir (contorno vermelho) à esquerda; Cancelar e Salvar à direita. No topo: "Concluir" (✓ verde), capa, ⋯, automações, fechar.
+No celular as duas colunas viram uma só, na mesma ordem.
+
+## Etiquetas, prioridade, responsáveis, tipo, datas (conferido)
+
+- **Etiqueta:** abre um popover "Etiquetas: crie etiquetas para organizar as demandas do seu jeito" com **"+ Criar etiqueta"** (cor e nome).
+- **Responsável:** popover com busca simples de membros e a opção **"Ninguém"**; mostra o avatar no chip.
+- **Prioridade:** **Sem prioridade / Alta (vermelho) / Média (amarelo) / Baixa (verde)**, na linha "Prioridade" do cartão.
+- **Tipo:** lista **personalizável** (ex.: REELS, com cor) com **"Gerenciar tipos"**; é diferente do formato do primeiro chip (Post). No GENSBot corresponde às categorias/nichos do cliente.
+- **Datas:** linhas "Datas" (prazo) e "Postagem" (data de publicação), cada uma abre calendário.
+- **Power-ups (ícone de raio):** automações **do card**: "Nenhum power-up ainda. Automações que rodam sozinhas quando algo acontece neste card. Ex.: quando o card entrar em Aprovação, atribuir um responsável e mandar o link pro cliente." Botão "+ Novo power-up". Existe também o power-up **da coluna**.
+- **Concluir:** botão verde no topo marca a demanda como concluída sem mover de coluna.
 
 ## Mudanças de dados
 
@@ -119,7 +129,5 @@ Botão "mídia" e "Google Drive" no sheet de aprovação; no card, o anexo mostr
 6. Teste de ponta a ponta no celular e no desktop: criar, editar, anexar, enviar para aprovação.
 
 ## Pendente de conferir no Orkestrya
-- Menu de **Etiqueta** (criar, cor, multi-seleção).
-- Seletor de **responsáveis** e de **tipo**.
-- Comportamento do **carrossel** (ordem, miniaturas).
-- Painel **Power-ups** da demanda (automações).
+- Carrossel com várias mídias (ordem e miniaturas): precisa de arquivo para enviar.
+- Abas **Histórico** e **Aprovação** do bloco de comentários com a demanda já movimentada.
