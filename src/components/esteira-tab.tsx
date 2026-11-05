@@ -96,17 +96,18 @@ const COLUNA_CONFIG: Record<
     bordaColuna: 'border-info/20',
     fundoColuna: 'bg-info-soft/20',
   },
+  // Revisão pede atenção (vermelho); Aprovação é a espera do cliente (amarelo); aprovado segue para Agendamento (verde).
   revisao_interna: {
+    corPill: 'bg-destructive-soft text-destructive border-destructive-ring',
+    dot: 'bg-destructive',
+    bordaColuna: 'border-destructive/20',
+    fundoColuna: 'bg-destructive-soft/20',
+  },
+  revisao_cliente: {
     corPill: 'bg-warning-soft text-warning border-warning-ring',
     dot: 'bg-warning',
     bordaColuna: 'border-warning/20',
     fundoColuna: 'bg-warning-soft/20',
-  },
-  revisao_cliente: {
-    corPill: 'bg-brand-soft text-brand-text border-brand-ring',
-    dot: 'bg-brand-solid',
-    bordaColuna: 'border-brand-ring/40',
-    fundoColuna: 'bg-brand-soft/20',
   },
   agendamento: {
     corPill: 'bg-primary/15 text-primary border-primary/30',
