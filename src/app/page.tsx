@@ -45,6 +45,7 @@ import {
   Sun,
   Moon,
   Search,
+  RefreshCw,
 } from 'lucide-react';
 import { confirmDialog } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/toast';
@@ -181,6 +182,20 @@ export default function Dashboard() {
   });
   const [paletteAberta, setPaletteAberta] = useState(false);
   const [trocandoConta, setTrocandoConta] = useState(false);
+  // "Atualizar": remonta a tela aberta (ela busca os dados de novo) sem recarregar a página inteira.
+  const [atualizando, setAtualizando] = useState(false);
+  const [versaoDados, setVersaoDados] = useState(0);
+  function atualizarTudo() {
+    if (atualizando) return;
+    // Uma janela aberta (ex.: demanda em edição) seria fechada junto com a tela: avisa em vez de perder o que foi digitado.
+    if (document.querySelector('[role="dialog"]')) {
+      showToast('Feche a janela aberta antes de atualizar.', 'error');
+      return;
+    }
+    setAtualizando(true);
+    setVersaoDados((v) => v + 1);
+    window.setTimeout(() => setAtualizando(false), 900);
+  }
   const [novaDemandaSinal, setNovaDemandaSinal] = useState(0);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -1188,6 +1203,15 @@ export default function Dashboard() {
             >
               <Search className="w-4 h-4" />
             </button>
+            <button
+              type="button"
+              onClick={atualizarTudo}
+              disabled={atualizando}
+              aria-label="Atualizar dados"
+              className="size-10 inline-flex items-center justify-center rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer disabled:cursor-wait"
+            >
+              <RefreshCw className={`w-4 h-4 ${atualizando ? 'animate-spin' : ''}`} />
+            </button>
             <Tip label={theme === 'dark' ? 'Mudar para o modo claro' : 'Mudar para o modo escuro'} side="bottom">
             <button
               type="button"
@@ -1254,6 +1278,18 @@ export default function Dashboard() {
                 className="lg:hidden p-2 rounded-xl bg-card hover:bg-accent border border-border text-foreground cursor-pointer"
               >
                 <Search className="w-4 h-4" />
+              </button>
+            </Tip>
+
+            <Tip label="Atualizar dados" side="bottom">
+              <button
+                type="button"
+                onClick={atualizarTudo}
+                disabled={atualizando}
+                aria-label="Atualizar dados"
+                className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-foreground cursor-pointer disabled:cursor-wait"
+              >
+                <RefreshCw className={`w-4 h-4 ${atualizando ? 'animate-spin' : ''}`} />
               </button>
             </Tip>
 
@@ -1331,7 +1367,7 @@ export default function Dashboard() {
           )}
 
           <motion.div
-            key={activeTab}
+            key={`${activeTab}-${versaoDados}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
