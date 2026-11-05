@@ -8,7 +8,8 @@ export type TipoEventoContrato =
   | 'assinado_cliente'
   | 'contra_assinado'
   | 'cancelado'
-  | 'link_revogado';
+  | 'link_revogado'
+  | 'pdf_gerado';
 
 export interface EventoContrato {
   id?: string;

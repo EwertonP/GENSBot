@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Clock,
   ExternalLink,
+  Download,
 } from 'lucide-react';
 
 interface ContratoPublico {
@@ -283,10 +284,20 @@ export default function PaginaContratoPublico() {
 
           <div className="flex items-center gap-2">
             {concluido ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                Assinado por Ambas as Partes
-              </span>
+              <>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Assinado por Ambas as Partes
+                </span>
+                <a
+                  href={`/api/contratos/public/${contrato.token_publico}/pdf`}
+                  download={`contrato-${contrato.id.slice(0, 8)}.pdf`}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-opacity print:hidden"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Baixar PDF
+                </a>
+              </>
             ) : jaAssinadoCliente ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                 <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -453,6 +464,22 @@ export default function PaginaContratoPublico() {
                       alt="Assinatura"
                       className="h-12 border border-border rounded-lg p-1 bg-white"
                     />
+                  </div>
+                )}
+
+                {concluido && (
+                  <div className="mt-6 pt-4 border-t border-emerald-500/20 flex flex-wrap items-center justify-between gap-3 print:hidden">
+                    <span className="text-xs text-muted-foreground">
+                      Documento oficial arquivado com hash criptográfico SHA-256 e certificado de evidências.
+                    </span>
+                    <a
+                      href={`/api/contratos/public/${contrato.token_publico}/pdf`}
+                      download={`contrato-${contrato.id.slice(0, 8)}.pdf`}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Baixar PDF Oficial Assinado
+                    </a>
                   </div>
                 )}
               </div>

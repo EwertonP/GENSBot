@@ -21,7 +21,7 @@ export async function POST(
     // 1. Busca contrato
     const { data: contrato, error: erroContrato } = await db
       .from('contratos')
-      .select('id, agencia_id, cliente_id, lead_id, titulo, status, valor_mensal, dia_vencimento, data_inicio, assinatura_cliente_nome, assinatura_cliente_doc')
+      .select('id, agencia_id, cliente_id, lead_id, titulo, numero, status, valor_mensal, dia_vencimento, data_inicio, conteudo_final_html, conteudo_html, hash_documento, assinatura_cliente_nome, assinatura_cliente_doc, assinatura_cliente_email, assinatura_cliente_data, assinatura_cliente_ip')
       .eq('id', id)
       .eq('agencia_id', membro.agencia_id)
       .maybeSingle();
@@ -76,6 +76,62 @@ export async function POST(
       membro.id,
       ip
     );
+
+    // 3.1 Gera PDF oficial com certificado de evidências e arquiva no R2 se disponível
+    try {
+      const { gerarPdfContrato } = await import('@/lib/contrato-pdf');
+      const { isR2Configured, putR2Object } = await import('@/lib/r2');
+
+      const pdf = await gerarPdfContrato({
+        titulo: contrato.titulo,
+        numero: contrato.numero,
+        conteudoHtml: contrato.conteudo_final_html || contrato.conteudo_html || '',
+        hashDocumento: contrato.hash_documento || '',
+        assinaturaCliente: {
+          parte: 'contratante',
+          nome: contrato.assinatura_cliente_nome || '',
+          documento: contrato.assinatura_cliente_doc || '',
+          email: contrato.assinatura_cliente_email || '',
+          dataHora: contrato.assinatura_cliente_data || agora,
+          ip: contrato.assinatura_cliente_ip || '',
+        },
+        assinaturaAgencia: {
+          parte: 'contratada',
+          nome: nomeAgencia,
+          dataHora: agora,
+          ip,
+        },
+      });
+
+      let pdfUrl: string | null = null;
+      if (isR2Configured()) {
+        const key = `contratos/${contrato.agencia_id}/${contrato.id}/contrato.pdf`;
+        pdfUrl = await putR2Object(key, pdf.buffer, 'application/pdf');
+      }
+
+      await db
+        .from('contratos')
+        .update({
+          pdf_url: pdfUrl,
+          pdf_hash: pdf.hash,
+        })
+        .eq('id', contrato.id);
+
+      await registrarEventoContrato(
+        contrato.id,
+        membro.agencia_id,
+        'pdf_gerado',
+        {
+          pdf_hash: pdf.hash,
+          armazenado_r2: !!pdfUrl,
+          tamanho_bytes: pdf.buffer.length,
+        },
+        membro.id,
+        ip
+      );
+    } catch (errPdf) {
+      console.warn('Aviso: Falha ao gerar/salvar PDF do contrato:', errPdf);
+    }
 
     // 4. Integração CRM: Negócio vira "ganho"
     if (contrato.lead_id) {

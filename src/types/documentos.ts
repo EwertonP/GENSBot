@@ -101,6 +101,7 @@ export interface Contrato {
   cliente_id?: string | null;
   lead_id?: string | null;
   titulo: string;
+  numero?: string | null;
   status: StatusContrato;
   valor_mensal: number;
   dia_vencimento?: number | null;
