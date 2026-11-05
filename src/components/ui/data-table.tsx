@@ -24,6 +24,8 @@ export interface DataTableColumn<T> {
   mobile?: 'primary' | 'meta' | 'hidden';
   /** Rótulo no cartão quando o `header` não é texto. */
   mobileLabel?: string;
+  /** Função para indicar se o campo está vazio e deve ser omitido no cartão mobile */
+  isEmpty?: (row: T) => boolean;
 }
 
 export interface DataTableSelection<T> {
@@ -127,16 +129,20 @@ export function DataTable<T>({ rows, columns, getRowId, onRowClick, actions, sel
                     {c.cell(row)}
                   </div>
                 ))}
-                {metas.length > 0 && (
-                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-                    {metas.map((c) => (
-                      <React.Fragment key={c.id}>
-                        <dt className="text-xs text-muted-foreground pt-0.5">{c.mobileLabel ?? (typeof c.header === 'string' ? c.header : '')}</dt>
-                        <dd className="min-w-0 truncate">{c.cell(row)}</dd>
-                      </React.Fragment>
-                    ))}
-                  </dl>
-                )}
+                {metas.length > 0 && (() => {
+                  const visibleMetas = metas.filter((c) => !c.isEmpty?.(row));
+                  if (visibleMetas.length === 0) return null;
+                  return (
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                      {visibleMetas.map((c) => (
+                        <React.Fragment key={c.id}>
+                          <dt className="text-xs text-muted-foreground pt-0.5">{c.mobileLabel ?? (typeof c.header === 'string' ? c.header : '')}</dt>
+                          <dd className="min-w-0 truncate">{c.cell(row)}</dd>
+                        </React.Fragment>
+                      ))}
+                    </dl>
+                  );
+                })()}
               </div>
               {actions && (
                 <div className="flex items-start -mr-2" onClick={parar}>

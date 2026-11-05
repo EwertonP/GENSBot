@@ -83,6 +83,7 @@ interface AutomationsTabProps {
   setMediaFilter: React.Dispatch<React.SetStateAction<'all' | 'video' | 'carousel' | 'image'>>;
   showStoryModal: boolean;
   setShowStoryModal: (v: boolean) => void;
+  loading?: boolean;
 }
 
 /** Aba "Automações" — extraída de src/app/page.tsx (passo 3, o mais arriscado,
@@ -101,7 +102,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
     removeCondition, wizardCondition, setWizardCondition, activeBranchTab, setActiveBranchTab,
     legacyTail, handleLegacyTailChange, utmLinks, selectedUtmLinkId, handleSelectUtmLink,
     handleGenerateTrackedLink, generatingTrackedLink, config, showMediaModal, setShowMediaModal,
-    mediaFilter, setMediaFilter, showStoryModal, setShowStoryModal,
+    mediaFilter, setMediaFilter, showStoryModal, setShowStoryModal, loading,
   } = props;
 
   // Card da condição (Etapa 5) — recolhido por padrão, mesma linguagem visual
@@ -113,7 +114,12 @@ export default function AutomationsTab(props: AutomationsTabProps) {
 
   return (
     <>
-          {isAggregateView ? (
+          {loading ? (
+            <div className="flex flex-col gap-4 max-w-6xl mx-auto p-4" aria-busy="true">
+              <div className="h-10 w-48 bg-muted animate-pulse rounded-xl" />
+              <div className="h-64 bg-card border border-border animate-pulse rounded-2xl" />
+            </div>
+          ) : isAggregateView ? (
             <Card padding="lg" className="rounded-2xl p-10 text-center">
               <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-bold text-foreground">Selecione uma conta específica</p>
@@ -124,7 +130,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
               {!isEditing ? (
                 /* Screen 1: List of Automations (Full Width) */
                 <div className="flex flex-col gap-6 max-w-6xl mx-auto animate-fade-in">
-                  <div className="flex items-center justify-between border-b border-accent pb-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-accent pb-5">
                     <div>
                       <h3 className="text-xl font-bold text-foreground">Minhas Automações</h3>
                       <p className="text-xs text-muted-foreground mt-1">Gerencie, crie e ative seus fluxos de resposta direta e reativa.</p>
@@ -134,9 +140,9 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                         resetForm();
                         setIsEditing(true);
                       }}
-                      className="rounded-full shadow-md"
+                      className="rounded-full shadow-md w-full sm:w-auto h-11 sm:h-9"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-4 h-4 mr-1.5" />
                       Criar Novo Fluxo
                     </Button>
                   </div>
@@ -192,43 +198,45 @@ export default function AutomationsTab(props: AutomationsTabProps) {
 
                       {/* Header of Flow Editor */}
                       <div className="bg-card border border-accent rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 w-full md:w-auto">
                           <input
                             type="text"
                             required
                             value={form.name}
                             onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                             placeholder="Nome do Fluxo (ex: Capturar Leads)"
-                            className="font-bold text-foreground text-lg focus:outline-none border-b border-input focus:border-primary pb-1 w-full max-w-sm transition-all bg-transparent"
+                            className="font-bold text-foreground text-lg focus:outline-none border-b border-input focus:border-primary pb-1 w-full max-w-sm transition-all bg-transparent h-11 min-h-[44px] sm:h-auto sm:min-h-0"
                           />
                           <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-1.5">Configuração do Sequenciamento</p>
                         </div>
                         
-                        <div className="flex flex-wrap items-center gap-4 flex-shrink-0 w-full md:w-auto">
-                          {/* Active toggle */}
-                          <label className="flex items-center gap-2.5 cursor-pointer select-none p-1.5 px-3 rounded-2xl bg-accent/40 border border-border hover:border-foreground/30 transition-ui">
-                            <Switch
-                              size="sm"
-                              checked={form.active}
-                              onCheckedChange={(checked) => setForm(prev => ({ ...prev, active: checked }))}
-                            />
-                            <span className={`text-xs font-bold font-mono ${form.active ? 'text-foreground' : 'text-muted-foreground'}`}>
-                              {form.active ? '🟢 Ativa' : '⚪ Pausada'}
-                            </span>
-                          </label>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-shrink-0 w-full md:w-auto">
+                          <div className="flex items-center justify-between sm:justify-start gap-2.5">
+                            {/* Active toggle */}
+                            <label className="flex items-center gap-2.5 cursor-pointer select-none h-11 sm:h-9 px-3 rounded-2xl bg-accent/40 border border-border hover:border-foreground/30 transition-ui">
+                              <Switch
+                                size="sm"
+                                checked={form.active}
+                                onCheckedChange={(checked) => setForm(prev => ({ ...prev, active: checked }))}
+                              />
+                              <span className={`text-xs font-bold font-mono ${form.active ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                {form.active ? '🟢 Ativa' : '⚪ Pausada'}
+                              </span>
+                            </label>
 
-                          <button
-                            type="button"
-                            onClick={() => setIsEditing(false)}
-                            className="text-xs font-bold text-muted-foreground hover:text-foreground px-4 py-2.5 rounded-full hover:bg-accent border border-border transition-ui cursor-pointer animate-fade-in"
-                          >
-                            Voltar
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsEditing(false)}
+                              className="text-xs font-bold text-muted-foreground hover:text-foreground px-4 h-11 sm:h-9 rounded-full hover:bg-accent border border-border transition-ui cursor-pointer animate-fade-in flex items-center justify-center"
+                            >
+                              Voltar
+                            </button>
+                          </div>
 
                           <button
                             type="submit"
                             disabled={!!wizardIncompatibleReason}
-                            className="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-md cursor-pointer transition-ui disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full sm:w-auto px-5 h-11 sm:h-9 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-md cursor-pointer transition-ui disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                           >
                             Salvar Fluxo
                           </button>
@@ -310,7 +318,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                             <Select
                               value={form.match_type}
                               onChange={e => setForm(prev => ({ ...prev, match_type: e.target.value as any }))}
-                              className="bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground font-semibold cursor-pointer transition-ui"
+                              className="bg-accent border border-input rounded-xl px-4 h-11 sm:h-10 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground font-semibold cursor-pointer transition-ui"
                             >
                               <option value="contains">Contém a palavra-chave</option>
                               <option value="exact">Exato (Palavra-chave exata)</option>
@@ -448,18 +456,18 @@ export default function AutomationsTab(props: AutomationsTabProps) {
 
                         <div className="flex flex-col gap-1.5">
                           <label className="text-xs font-bold text-muted-foreground">Escreva uma frase de resposta e clique em Adicionar</label>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <input
                               type="text"
                               placeholder="ex: Te chamei no direct! Dá uma olhada lá."
                               value={publicReplyInput}
                               onChange={e => setPublicReplyInput(e.target.value)}
-                              className="flex-1 bg-accent border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground"
+                              className="flex-1 bg-accent border border-input rounded-xl px-4 h-11 sm:h-10 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground placeholder-muted-foreground"
                             />
                             <button
                               type="button"
                               onClick={handleAddPublicReply}
-                              className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-colors cursor-pointer"
+                              className="h-11 sm:h-10 px-5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-colors cursor-pointer shrink-0 flex items-center justify-center"
                             >
                               Adicionar
                             </button>

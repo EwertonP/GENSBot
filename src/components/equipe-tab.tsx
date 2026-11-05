@@ -16,9 +16,12 @@ import {
   UploadCloud,
   Camera,
   BarChart3,
+  Edit2,
+  Power,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -271,13 +274,13 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {subAba === 'membros' && (
             <>
               <Button
                 onClick={handleCopiarLinkCadastro}
                 variant="outline"
-                className="rounded-xl shadow-xs text-xs"
+                className="rounded-xl shadow-xs text-xs w-full sm:w-auto h-11 sm:h-9"
                 title="Copiar link para enviar a novos membros se cadastrarem"
               >
                 <Sparkles className="w-3.5 h-3.5 mr-1.5 text-primary" />
@@ -287,7 +290,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
               <Button
                 onClick={abrirModalCriar}
                 variant="primary"
-                className="rounded-xl shadow-xs text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30"
+                className="rounded-xl shadow-xs text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 w-full sm:w-auto h-11 sm:h-9"
               >
                 <UserPlus className="w-4 h-4 mr-1.5" />
                 Cadastrar Membro
@@ -449,35 +452,26 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
+                    <IconButton
+                      label="Editar membro"
                       onClick={() => abrirModalEditar(membro)}
-                      className="h-7 px-2 text-xs font-semibold rounded-lg"
                     >
-                      Editar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
+                      <Edit2 className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton
+                      label={membro.ativo ? 'Desativar acesso' : 'Ativar acesso'}
                       onClick={() => handleAlternarAtivo(membro)}
-                      className={`h-7 px-2 text-xs rounded-lg ${
-                        membro.ativo
-                          ? 'text-muted-foreground hover:text-foreground'
-                          : 'text-success border-success/30'
-                      }`}
+                      className={membro.ativo ? 'text-muted-foreground' : 'text-success'}
                     >
-                      {membro.ativo ? 'Desativar' : 'Ativar'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
+                      <Power className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton
+                      label="Excluir membro permanentemente"
+                      tone="destructive"
                       onClick={() => handleExcluirMembro(membro)}
-                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer shrink-0"
-                      title="Excluir membro permanentemente"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                      <Trash2 className="w-4 h-4" />
+                    </IconButton>
                   </div>
                 </div>
               </Card>

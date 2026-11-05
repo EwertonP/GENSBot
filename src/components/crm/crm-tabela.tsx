@@ -80,7 +80,7 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 w-full min-w-0 max-w-full">
       {/* Botão de Exportação */}
       <div className="flex items-center justify-between px-1">
         <span className="text-xs text-muted-foreground font-mono">
@@ -94,7 +94,7 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
 
       {/* Tabela de Negócios */}
       <Card className="overflow-hidden border border-border">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full min-w-0">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-border bg-accent/40 font-mono text-muted-foreground font-bold">

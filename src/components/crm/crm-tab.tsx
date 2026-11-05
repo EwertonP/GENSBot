@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { FilterBar, type FiltroSelect } from '@/components/ui/filter-bar';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Tip } from '@/components/ui/tooltip';
@@ -358,12 +359,60 @@ export default function CrmTab({
     return negocios.filter((n) => n.status === 'aberto' && calcularDiasSemContato(n.ultimo_contato_em) >= 7).length;
   }, [negocios]);
 
+  const filtrosCrm: FiltroSelect[] = useMemo(() => [
+    {
+      id: 'status',
+      rotulo: 'Status',
+      valor: filtroStatus,
+      onChange: (v) => setFiltroStatus(v as any),
+      padrao: 'aberto',
+      opcoes: [
+        { valor: 'aberto', rotulo: 'Em Aberto' },
+        { valor: 'todos', rotulo: 'Todos os Status' },
+        { valor: 'ganho', rotulo: 'Ganhos' },
+        { valor: 'perdido', rotulo: 'Perdidos' },
+      ],
+    },
+    {
+      id: 'responsavel',
+      rotulo: 'Responsável',
+      valor: filtroResponsavel,
+      onChange: (v) => setFiltroResponsavel(v),
+      padrao: 'todos',
+      opcoes: [
+        { valor: 'todos', rotulo: 'Todos os Responsáveis' },
+        { valor: 'sem_responsavel', rotulo: 'Não Atribuídos' },
+        ...membros.map((m) => ({ valor: m.id, rotulo: m.nome })),
+      ],
+    },
+    {
+      id: 'origem',
+      rotulo: 'Origem',
+      valor: filtroOrigem,
+      onChange: (v) => setFiltroOrigem(v),
+      padrao: 'todos',
+      opcoes: [
+        { valor: 'todos', rotulo: 'Todas as Origens' },
+        { valor: 'presencial', rotulo: 'Presencial' },
+        { valor: 'ligacao', rotulo: 'Ligação' },
+        { valor: 'whatsapp', rotulo: 'WhatsApp' },
+        { valor: 'instagram', rotulo: 'Instagram' },
+        { valor: 'google', rotulo: 'Google' },
+        { valor: 'site', rotulo: 'Site' },
+        { valor: 'webhook_ads', rotulo: 'Meta Ads' },
+        { valor: 'formulario', rotulo: 'Formulário' },
+        { valor: 'indicacao', rotulo: 'Indicação' },
+        { valor: 'manual', rotulo: 'Manual' },
+      ],
+    },
+  ], [filtroStatus, filtroResponsavel, filtroOrigem, membros]);
+
   return (
-    <div className="space-y-6 pb-12 animate-fade-in">
+    <div className="space-y-6 pb-12 animate-fade-in w-full min-w-0 max-w-full">
       {/* ──────────────── Topo: Seletor de Contexto (Agência vs Clientes) & Pipeline ──────────────── */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm w-full min-w-0">
         {/* Lado Esquerdo: Identificador Estrito de Escopo do CRM */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-accent/40 border border-border/80 text-xs">
             {contextoClienteId ? (
               (() => {
@@ -395,14 +444,14 @@ export default function CrmTab({
           </div>
 
           {/* Pipeline Selector & Ações de Funil */}
-          <div className="flex items-center gap-1.5 pl-2 border-l border-border/70">
+          <div className="flex flex-wrap items-center gap-1.5 sm:pl-2 sm:border-l border-border/70">
             {pipelines.length > 0 && (
               <>
                 <Layers className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <Select
                   value={pipelineAtivoId || ''}
                   onChange={(e) => setPipelineAtivoId(e.target.value)}
-                  className="text-xs h-8 font-semibold min-w-[160px]"
+                  className="text-xs h-10 md:h-9 font-semibold min-w-[160px]"
                 >
                   {pipelines.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -419,9 +468,9 @@ export default function CrmTab({
                         setPipelineParaEditar(pipelineAtivo);
                         setShowPipelineModal(true);
                       }}
-                      className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                      className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl transition-colors cursor-pointer"
                     >
-                      <Settings className="w-3.5 h-3.5" />
+                      <Settings className="w-4 h-4" />
                     </button>
                   </Tip>
                 )}
@@ -435,24 +484,24 @@ export default function CrmTab({
                   setPipelineParaEditar(null);
                   setShowPipelineModal(true);
                 }}
-                className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg bg-accent/70 hover:bg-accent text-foreground transition-colors border border-border"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-accent/70 hover:bg-accent text-foreground transition-colors border border-border cursor-pointer h-10 md:h-9"
               >
-                <Plus className="w-3 h-3 text-primary" />
-                <span className="hidden sm:inline">Novo Funil</span>
+                <Plus className="w-3.5 h-3.5 text-primary" />
+                <span className="inline">Novo Funil</span>
               </button>
             </Tip>
           </div>
         </div>
 
         {/* Lado Direito: Ações Principais */}
-        <div className="flex items-center gap-2.5 w-full lg:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-between sm:justify-end">
           {/* Alternador de Visualização (Kanban vs Tabela) */}
-          <div className="flex items-center p-0.5 rounded-lg bg-accent/40 border border-border/80">
+          <div className="flex items-center p-0.5 rounded-xl bg-accent/40 border border-border/80">
             <Tip label="Visualização em Kanban">
               <button
                 type="button"
                 onClick={() => setViewMode('kanban')}
-                className={`p-1.5 rounded-md text-xs transition-all ${
+                className={`p-2 rounded-lg text-xs transition-all cursor-pointer ${
                   viewMode === 'kanban'
                     ? 'bg-card text-foreground shadow-sm font-semibold'
                     : 'text-muted-foreground hover:text-foreground'
@@ -465,7 +514,7 @@ export default function CrmTab({
               <button
                 type="button"
                 onClick={() => setViewMode('tabela')}
-                className={`p-1.5 rounded-md text-xs transition-all ${
+                className={`p-2 rounded-lg text-xs transition-all cursor-pointer ${
                   viewMode === 'tabela'
                     ? 'bg-card text-foreground shadow-sm font-semibold'
                     : 'text-muted-foreground hover:text-foreground'
@@ -483,9 +532,9 @@ export default function CrmTab({
               size="sm"
               onClick={() => carregarNegocios(false)}
               disabled={loading || recarregando}
-              className="h-8 w-8 p-0"
+              className="h-10 w-10 md:h-9 md:w-9 p-0 rounded-xl"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${recarregando ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${recarregando ? 'animate-spin' : ''}`} />
             </Button>
           </Tip>
 
@@ -496,7 +545,7 @@ export default function CrmTab({
                 type="button"
                 onClick={handleAlternarAi}
                 disabled={alternandoAi}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all shadow-2xs ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all shadow-2xs cursor-pointer h-10 md:h-9 ${
                   aiAtivo
                     ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
                     : 'bg-muted/40 text-muted-foreground border-border/80 hover:bg-muted/60'
@@ -512,10 +561,10 @@ export default function CrmTab({
               <button
                 type="button"
                 onClick={() => setShowAiModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-all shadow-2xs"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-all shadow-2xs cursor-pointer h-10 md:h-9"
               >
                 <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-                <span className="hidden sm:inline">Agente IA SDR</span>
+                <span className="inline">Agente IA SDR</span>
               </button>
             </Tip>
           )}
@@ -529,9 +578,9 @@ export default function CrmTab({
               setShowNovoModal(true);
             }}
             disabled={!pipelineAtivoId || estagios.length === 0}
-            className="h-8 text-xs font-semibold shadow-sm"
+            className="h-10 md:h-9 text-xs font-semibold shadow-sm rounded-xl px-4"
           >
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            <Plus className="w-4 h-4 mr-1.5" />
             Nova Oportunidade
           </Button>
         </div>
@@ -599,71 +648,12 @@ export default function CrmTab({
       )}
 
       {/* ──────────────── Barra de Filtros & Busca ──────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-xl bg-muted/30 border border-border/60">
-        <div className="flex items-center gap-2 flex-1 max-w-md">
-          <div className="relative w-full">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Buscar por lead, empresa, e-mail..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="pl-9 h-9 text-xs"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Filtro Status */}
-          <div className="flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-            <Select
-              value={filtroStatus}
-              onChange={(e) => setFiltroStatus(e.target.value as any)}
-              className="h-9 text-xs min-w-[120px]"
-            >
-              <option value="aberto">Em Aberto</option>
-              <option value="todos">Todos os Status</option>
-              <option value="ganho">Ganhos</option>
-              <option value="perdido">Perdidos</option>
-            </Select>
-          </div>
-
-          {/* Filtro Responsável */}
-          <Select
-            value={filtroResponsavel}
-            onChange={(e) => setFiltroResponsavel(e.target.value)}
-            className="h-9 text-xs min-w-[140px]"
-          >
-            <option value="todos">Todos os Responsáveis</option>
-            <option value="sem_responsavel">Não Atribuídos</option>
-            {membros.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.nome}
-              </option>
-            ))}
-          </Select>
-
-          {/* Filtro Origem */}
-          <Select
-            value={filtroOrigem}
-            onChange={(e) => setFiltroOrigem(e.target.value)}
-            className="h-9 text-xs min-w-[130px]"
-          >
-            <option value="todos">Todas as Origens</option>
-            <option value="presencial">Presencial</option>
-            <option value="ligacao">Ligação</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="instagram">Instagram</option>
-            <option value="google">Google</option>
-            <option value="site">Site</option>
-            <option value="webhook_ads">Meta Ads</option>
-            <option value="formulario">Formulário</option>
-            <option value="indicacao">Indicação</option>
-            <option value="manual">Manual</option>
-          </Select>
-        </div>
-      </div>
+      <FilterBar
+        busca={busca}
+        onBusca={setBusca}
+        placeholder="Buscar por lead, empresa, e-mail..."
+        filtros={filtrosCrm}
+      />
 
       {/* ──────────────── Conteúdo Principal (Kanban ou Tabela) ──────────────── */}
       {loading ? (
