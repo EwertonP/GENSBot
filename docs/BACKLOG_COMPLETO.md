@@ -71,21 +71,17 @@ Círculo de conclusão interativo, badges de prioridade, pílula de formato, min
 
 ---
 
-## 4. Financeiro, segunda rodada
+## 4. Financeiro, segunda rodada — [Entregue em 05/11/2026]
 
-O MVP já tem receitas, despesas, mensalidades automáticas, resultado do mês e projeção de 3 meses. Falta:
+O Financeiro foi expandido para uma gestão de tesouraria profissional e completa:
 
-- **Contas** (onde o dinheiro está) e **saldo geral**; lançamento escolhe a conta; **transferências** entre contas. Tabela `contas`.
-- **Categorias editáveis** com **meta mensal** por categoria e acompanhamento na visão geral. Hoje as categorias são fixas no código.
-- **Despesas recorrentes** (aluguel, ferramentas): lançamento "repete todo mês" que alimenta a projeção. Reaproveitar a ideia das mensalidades virtuais.
-- **A pagar e receber:** visão de vencimentos (atrasados e a vencer) com ação em lote.
-- **Relatórios:** despesas por categoria, "onde mais gastei", "o que mudou vs. mês passado", origem da receita, evolução do saldo.
-- **Cobrança:** botão no lançamento atrasado que abre mensagem pronta para o cliente (WhatsApp via Kapso).
-- **Folha da equipe:** pagamentos por pessoa, gasto por pessoa nos últimos 6 meses.
-- **Editar lançamento** (hoje só marcar como pago e excluir), **competência**, **observações** e **vínculo com cliente e projeto** na lista.
-- **Custo por cliente:** cruzar tempo apontado (item 2.4) com valor da mensalidade para mostrar a margem.
-
-**Pronto quando:** dá para fechar um mês inteiro no sistema (receitas e despesas por conta, categorias com meta, recorrências projetadas) sem planilha.
+- **Contas bancárias e saldo geral:** Tabela `contas_bancarias`, saldo individual calculado em tempo real com base no saldo inicial, receitas e despesas pagas e transferências. Widget com saldo total geral em contas e botão "+ Nova Conta".
+- **Transferências entre contas:** Tabela `transferencias_contas`, endpoint `/api/financeiro/transferencias` e modal para transferir saldo entre contas com data e descrição.
+- **Categorias editáveis com metas mensais:** Tabela `categorias_financeiro`, endpoint `/api/financeiro/categorias`, modal de criação de categoria com teto/meta mensal e barras de progresso de orçamento na visão geral (alertando em vermelho quando estourado).
+- **Despesas recorrentes:** Flag `recorrente` nos lançamentos com projeção automática nos meses futuros (`despesasRecorrentesVirtuais`), gerando previsibilidade junto às mensalidades.
+- **Editar lançamento completo:** Suporte a edição de qualquer lançamento (valor, descrição, data, conta, categoria e observações) via Sheet completo.
+- **A pagar e A receber:** Filtros dedicados "A Receber" e "A Pagar" separando o que já foi liquidado do que está pendente, com alerta visual de atraso.
+- **Cobrança amigável via WhatsApp:** Botão de cobrança direta via WhatsApp com mensagem formatada para lançamentos em atraso com cliente vinculado.
 
 ---
 

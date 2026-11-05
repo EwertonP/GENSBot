@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     .update({ ...v.campos, atualizado_em: new Date().toISOString() })
     .eq('id', id)
     .eq('agencia_id', auth.ctx.membro.agencia_id)
-    .select('id, tipo, descricao, valor, vencimento, pago, pago_em, categoria, origem, competencia, cliente_id, observacoes')
+    .select('id, tipo, descricao, valor, vencimento, pago, pago_em, categoria, origem, competencia, cliente_id, conta_id, recorrente, recorrencia_periodo, observacoes')
     .maybeSingle();
   if (error) return traduzirErroBanco(error, 'atualizar o lançamento');
   if (!data) return respostaErro('Lançamento não encontrado.', 404);

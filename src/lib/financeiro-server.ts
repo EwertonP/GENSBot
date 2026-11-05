@@ -35,6 +35,9 @@ export interface CamposLancamento {
   pago?: boolean;
   pago_em?: string | null;
   cliente_id?: string | null;
+  conta_id?: string | null;
+  recorrente?: boolean;
+  recorrencia_periodo?: 'mensal' | 'anual';
   observacoes?: string | null;
 }
 
@@ -68,12 +71,18 @@ export function validarLancamento(corpo: unknown, parcial: boolean): { ok: true;
     c.vencimento = b.vencimento;
   }
   if (b.categoria !== undefined) {
-    const tipo = c.tipo ?? (b.tipo as TipoLancamento | undefined);
-    const lista = tipo === 'despesa' ? CATEGORIAS_DESPESA : CATEGORIAS_RECEITA;
-    if (typeof b.categoria !== 'string' || (tipo && !lista.some((x) => x.id === b.categoria))) {
+    if (typeof b.categoria !== 'string' || !b.categoria.trim() || b.categoria.length > 60) {
       return { ok: false, erro: 'Categoria inválida.' };
     }
-    c.categoria = b.categoria;
+    const cat = b.categoria.trim();
+    const tipo = c.tipo ?? (b.tipo as TipoLancamento | undefined);
+    if (tipo === 'despesa' && CATEGORIAS_RECEITA.some((x) => x.id === cat)) {
+      return { ok: false, erro: 'Categoria inválida para despesa.' };
+    }
+    if (tipo === 'receita' && CATEGORIAS_DESPESA.some((x) => x.id === cat)) {
+      return { ok: false, erro: 'Categoria inválida para receita.' };
+    }
+    c.categoria = cat;
   }
   if (b.pago !== undefined) {
     if (typeof b.pago !== 'boolean') return { ok: false, erro: 'Status inválido.' };
@@ -88,6 +97,18 @@ export function validarLancamento(corpo: unknown, parcial: boolean): { ok: true;
   if (b.cliente_id !== undefined) {
     if (b.cliente_id !== null && (typeof b.cliente_id !== 'string' || !UUID_RE.test(b.cliente_id))) return { ok: false, erro: 'Cliente inválido.' };
     c.cliente_id = b.cliente_id as string | null;
+  }
+  if (b.conta_id !== undefined) {
+    if (b.conta_id !== null && (typeof b.conta_id !== 'string' || !UUID_RE.test(b.conta_id))) return { ok: false, erro: 'Conta bancária inválida.' };
+    c.conta_id = b.conta_id as string | null;
+  }
+  if (b.recorrente !== undefined) {
+    if (typeof b.recorrente !== 'boolean') return { ok: false, erro: 'Valor de recorrência inválido.' };
+    c.recorrente = b.recorrente;
+  }
+  if (b.recorrencia_periodo !== undefined) {
+    if (b.recorrencia_periodo !== 'mensal' && b.recorrencia_periodo !== 'anual') return { ok: false, erro: 'Período de recorrência inválido.' };
+    c.recorrencia_periodo = b.recorrencia_periodo;
   }
   if (b.observacoes !== undefined) {
     if (b.observacoes !== null && typeof b.observacoes !== 'string') return { ok: false, erro: 'Observações inválidas.' };

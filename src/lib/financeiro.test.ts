@@ -1,6 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
-  lancamentosDoMes, lerValor, mensalidadesVirtuais, resumirMes, serieMensal, somarMeses, vencimentoMensalidade, type ClienteCobranca, type Lancamento,
+  calcularSaldosContas,
+  lancamentosDoMes,
+  lerValor,
+  mensalidadesVirtuais,
+  resumirMes,
+  serieMensal,
+  somarMeses,
+  vencimentoMensalidade,
+  type ClienteCobranca,
+  type Lancamento,
 } from './financeiro';
 
 const cliente = (o: Partial<ClienteCobranca> = {}): ClienteCobranca => ({ id: 'c1', nome: 'Aurora', valor_mensal: 1500, dia_vencimento: 5, ativo: true, ...o });
@@ -71,5 +80,46 @@ describe('somarMeses e lerValor', () => {
     expect(lerValor('R$ 80')).toBe(80);
     expect(lerValor('abc')).toBeNull();
     expect(lerValor('0')).toBeNull();
+  });
+});
+
+describe('despesasRecorrentesVirtuais e calcularSaldosContas', () => {
+  it('projeta despesa recorrente para o mês seguinte', () => {
+    const despesaReal = lanc({
+      id: 'rec-1',
+      tipo: 'despesa',
+      descricao: 'Servidor AWS',
+      valor: 350,
+      vencimento: '2026-10-15',
+      recorrente: true,
+    });
+    const virtuais = lancamentosDoMes([despesaReal], [], '2026-11');
+    const recProj = virtuais.find((l) => l.descricao === 'Servidor AWS');
+    expect(recProj).toBeDefined();
+    expect(recProj?.valor).toBe(350);
+    expect(recProj?.virtual).toBe(true);
+    expect(recProj?.vencimento).toBe('2026-11-15');
+  });
+
+  it('calcula o saldo das contas bancárias com receitas, despesas e transferências', () => {
+    const contas = [
+      { id: 'cta-1', nome: 'Itaú', tipo: 'corrente' as const, saldo_inicial: 5000, ativo: true },
+      { id: 'cta-2', nome: 'Nubank Reserva', tipo: 'investimento' as const, saldo_inicial: 10000, ativo: true },
+    ];
+    const lancs = [
+      lanc({ id: 'l1', tipo: 'receita', valor: 2000, pago: true, conta_id: 'cta-1' }),
+      lanc({ id: 'l2', tipo: 'despesa', valor: 500, pago: true, conta_id: 'cta-1' }),
+      lanc({ id: 'l3', tipo: 'despesa', valor: 300, pago: false, conta_id: 'cta-1' }), // não pago: não afeta saldo
+    ];
+    const trans = [
+      { id: 't1', conta_origem_id: 'cta-1', conta_destino_id: 'cta-2', valor: 1000, data: '2026-11-05' },
+    ];
+
+    const resultado = calcularSaldosContas(contas, lancs, trans);
+
+    // Itaú: 5000 + 2000 - 500 - 1000 = 5500
+    expect(resultado[0].saldo_calculado).toBe(5500);
+    // Nubank: 10000 + 1000 = 11000
+    expect(resultado[1].saldo_calculado).toBe(11000);
   });
 });

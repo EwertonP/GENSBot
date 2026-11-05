@@ -23,9 +23,39 @@ export interface Lancamento {
   /** AAAA-MM-01 da mensalidade que este lançamento representa. */
   competencia: string | null;
   cliente_id: string | null;
+  conta_id?: string | null;
+  recorrente?: boolean;
+  recorrencia_periodo?: 'mensal' | 'anual';
   observacoes?: string | null;
   /** Só no cliente: lançamento calculado, ainda sem linha no banco. */
   virtual?: boolean;
+}
+
+export interface ContaBancaria {
+  id: string;
+  nome: string;
+  tipo: 'corrente' | 'investimento' | 'caixa' | 'poupanca';
+  saldo_inicial: number;
+  cor?: string;
+  ativo: boolean;
+  saldo_calculado?: number;
+}
+
+export interface CategoriaFinanceiro {
+  id: string;
+  tipo: TipoLancamento;
+  nome: string;
+  cor?: string;
+  meta_mensal: number;
+}
+
+export interface TransferenciaContas {
+  id: string;
+  conta_origem_id: string;
+  conta_destino_id: string;
+  valor: number;
+  data: string;
+  descricao?: string | null;
 }
 
 export interface ClienteCobranca {
@@ -120,12 +150,79 @@ export function mensalidadesVirtuais(clientes: ClienteCobranca[], mes: string, r
     }));
 }
 
-/** Lançamentos do mês: os reais por vencimento + as mensalidades virtuais, em ordem de data. */
+/**
+ * Despesas recorrentes (aluguel, ferramentas) projetadas para os meses seguintes
+ * caso ainda não tenham sido cadastradas no mês especificado.
+ */
+export function despesasRecorrentesVirtuais(reais: Lancamento[], mes: string): Lancamento[] {
+  const recorrentes = reais.filter((l) => l.tipo === 'despesa' && l.recorrente && !l.virtual);
+  const nomesDespesasNoMes = new Set(
+    reais.filter((l) => l.tipo === 'despesa' && chaveMes(l.vencimento) === mes).map((l) => l.descricao.toLowerCase().trim())
+  );
+
+  const virtuais: Lancamento[] = [];
+  const jaAdicionado = new Set<string>();
+
+  for (const rec of recorrentes) {
+    const mesOrigem = chaveMes(rec.vencimento);
+    const chaveNome = rec.descricao.toLowerCase().trim();
+    // Só projeta para meses posteriores ao lançamento inicial e se ainda não foi lançado no mês
+    if (mes > mesOrigem && !nomesDespesasNoMes.has(chaveNome) && !jaAdicionado.has(chaveNome)) {
+      jaAdicionado.add(chaveNome);
+      const dia = rec.vencimento.slice(8, 10);
+      const diaNum = Math.min(Math.max(parseInt(dia, 10) || 5, 1), ultimoDia(mes));
+      const vencimentoProjetado = `${mes}-${String(diaNum).padStart(2, '0')}`;
+
+      virtuais.push({
+        id: `recorrente:${rec.id}:${mes}`,
+        tipo: 'despesa',
+        descricao: rec.descricao,
+        valor: rec.valor,
+        vencimento: vencimentoProjetado,
+        pago: false,
+        pago_em: null,
+        categoria: rec.categoria,
+        origem: 'manual',
+        competencia: `${mes}-01`,
+        cliente_id: rec.cliente_id,
+        conta_id: rec.conta_id,
+        recorrente: true,
+        virtual: true,
+      });
+    }
+  }
+
+  return virtuais;
+}
+
+/** Lançamentos do mês: os reais por vencimento + as mensalidades virtuais + despesas recorrentes virtuais, em ordem de data. */
 export function lancamentosDoMes(reais: Lancamento[], clientes: ClienteCobranca[], mes: string): Lancamento[] {
   const doMes = reais.filter((l) => chaveMes(l.vencimento) === mes);
-  return [...doMes, ...mensalidadesVirtuais(clientes, mes, reais)].sort((a, b) =>
+  return [...doMes, ...mensalidadesVirtuais(clientes, mes, reais), ...despesasRecorrentesVirtuais(reais, mes)].sort((a, b) =>
     a.vencimento === b.vencimento ? a.descricao.localeCompare(b.descricao) : a.vencimento < b.vencimento ? -1 : 1
   );
+}
+
+/** Calcula o saldo de cada conta com base no saldo inicial, lançamentos pagos e transferências. */
+export function calcularSaldosContas(
+  contas: ContaBancaria[],
+  lancamentos: Lancamento[],
+  transferencias: TransferenciaContas[] = []
+): ContaBancaria[] {
+  return contas.map((conta) => {
+    let saldo = Number(conta.saldo_inicial) || 0;
+    for (const l of lancamentos) {
+      if (l.conta_id === conta.id && l.pago) {
+        if (l.tipo === 'receita') saldo += l.valor;
+        else if (l.tipo === 'despesa') saldo -= l.valor;
+      }
+    }
+    for (const t of transferencias) {
+      if (t.conta_origem_id === conta.id) saldo -= Number(t.valor) || 0;
+      if (t.conta_destino_id === conta.id) saldo += Number(t.valor) || 0;
+    }
+    return { ...conta, saldo_calculado: Math.round(saldo * 100) / 100 };
+  });
 }
 
 export interface ResumoMes {
