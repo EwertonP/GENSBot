@@ -130,11 +130,10 @@ export default function AutomationsTab(props: AutomationsTabProps) {
               {!isEditing ? (
                 /* Screen 1: List of Automations (Full Width) */
                 <div className="flex flex-col gap-6 max-w-6xl mx-auto animate-fade-in">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-accent pb-5">
-                    <div>
-                      <h3 className="text-xl font-bold text-foreground">Minhas Automações</h3>
-                      <p className="text-xs text-muted-foreground mt-1">Gerencie, crie e ative seus fluxos de resposta direta e reativa.</p>
-                    </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {automations.length} {automations.length === 1 ? 'fluxo configurado' : 'fluxos configurados'}
+                    </span>
                     <Button
                       onClick={() => {
                         resetForm();

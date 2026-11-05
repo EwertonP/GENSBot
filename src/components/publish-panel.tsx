@@ -1097,23 +1097,8 @@ export default function PublishPanel({
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in pb-12">
-      {/* 1. Header do Estúdio de Agendamento */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5 max-md:border-0 max-md:pb-0">
-        <div className="max-md:hidden">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest bg-accent px-2 py-0.5 rounded-md border border-border">
-              Creator Studio
-            </span>
-            <span className="text-xs text-muted-foreground font-mono">✳</span>
-          </div>
-          <h3 className="text-2xl font-bold font-display text-foreground tracking-tight mt-1">
-            Agendamento & Publicação
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Composição com prévia nativa fiel ao Instagram, upload em lote para carrosséis e horários de pico sugeridos.
-          </p>
-        </div>
-
+      {/* 1. Barra de Conta de Publicação */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4 border-b border-border pb-4 max-md:border-0 max-md:pb-0">
         {/* Identificação da Conta Vinculada */}
         {workspace?.tipo === 'cliente' ? (
           <div className="flex items-center gap-2.5 bg-accent/60 px-3 py-1.5 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">

@@ -247,23 +247,8 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
-      {/* 1. Header & KPIs */}
+      {/* 1. KPIs Rápidos */}
       <div className="flex flex-col gap-4">
-        <div>
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest font-mono">
-            Rastreamento de Conversões · GENSBot
-          </span>
-          <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight flex items-center gap-2.5 mt-0.5">
-            <span>Links UTM & Campanhas</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-foreground font-mono font-bold">
-              {links.length} links
-            </span>
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Gere links inteligentes com rastreamento de cliques para Bio, Stories, Reels DMs e anúncios da agência.
-          </p>
-        </div>
-
         {/* Top KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Card className="p-4 rounded-2xl border border-border bg-card shadow-2xs flex items-center justify-between">
