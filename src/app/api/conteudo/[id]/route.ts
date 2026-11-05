@@ -121,6 +121,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       'titulo',
       'legenda',
       'briefing',
+      'briefing_html',
       'mes_referencia',
       'ordem',
       'data_programada',
