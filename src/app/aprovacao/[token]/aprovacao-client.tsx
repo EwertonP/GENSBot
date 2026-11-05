@@ -74,6 +74,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   const acaoAposNomeRef = useRef<null | (() => void)>(null);
 
   const [ajusteEscopo, setAjusteEscopo] = useState<'ponto' | 'geral'>('ponto');
+  const [ajusteParte, setAjusteParte] = useState<'arte' | 'legenda' | 'tema'>('arte');
   const [ajusteSlideIndex, setAjusteSlideIndex] = useState<number | null>(null);
   const [ajusteTimestamp, setAjusteTimestamp] = useState<number | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -223,9 +224,16 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
     setEnviando(true);
     try {
+      const tagParte =
+        ajusteParte === 'arte' ? '[Arte/Mídia]' :
+        ajusteParte === 'legenda' ? '[Legenda]' :
+        '[Tema/Conceito]';
+      const textoFormatado = `${tagParte} ${textoAjuste.trim()}`;
+
       const payload: any = {
         acao: 'ajuste',
-        texto: textoAjuste.trim(),
+        texto: textoFormatado,
+        parte: ajusteParte,
         autor: autorNome.trim() || 'Cliente',
       };
 
@@ -1012,10 +1020,50 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               Solicitar Ajuste
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {arquivos.length > 1
-                ? 'Selecione o slide onde você quer fazer a alteração (suporta até 10 slides):'
-                : 'Descreva a alteração que a equipe deve realizar na publicação:'}
+              Informe qual parte da publicação deve ser ajustada e detalhe a alteração para a equipe:
             </p>
+          </div>
+
+          {/* Seletor de Parte do Post (Inspirado no Orkestrya: Mídia, Legenda ou Tema) */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-foreground">
+              O que você gostaria de alterar?
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-muted border border-border">
+              <button
+                type="button"
+                onClick={() => setAjusteParte('arte')}
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  ajusteParte === 'arte'
+                    ? 'bg-card text-foreground shadow-xs ring-1 ring-border-strong font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                🖼️ Arte / Mídia
+              </button>
+              <button
+                type="button"
+                onClick={() => setAjusteParte('legenda')}
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  ajusteParte === 'legenda'
+                    ? 'bg-card text-foreground shadow-xs ring-1 ring-border-strong font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                📝 Legenda
+              </button>
+              <button
+                type="button"
+                onClick={() => setAjusteParte('tema')}
+                className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  ajusteParte === 'tema'
+                    ? 'bg-card text-foreground shadow-xs ring-1 ring-border-strong font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                💡 Tema / Ideia
+              </button>
+            </div>
           </div>
 
           {/* Seletor Visual de Miniaturas dos Slides para Carrossel (até 10 slides) */}

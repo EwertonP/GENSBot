@@ -1442,17 +1442,23 @@ export default function EsteiraTab({
                           </div>
                         )}
 
-                        {/* Identificação do Cliente */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          <ClienteAvatar
-                            nome={item.cliente?.nome || 'Cliente'}
-                            cor={item.cliente?.cor}
-                            fotoUrl={item.cliente?.foto_url}
-                            tamanho="xs"
-                          />
-                          <span className="text-xs font-semibold text-muted-foreground hover:text-foreground truncate transition-colors">
-                            {item.cliente?.nome || 'Cliente'}
-                          </span>
+                        {/* Identificação do Cliente & Serviço (Pílula Unificada Estilo Orkestrya) */}
+                        <div className="flex items-center justify-between gap-2 min-w-0">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/60 border border-border/80 text-xs text-foreground max-w-full min-w-0 shadow-2xs">
+                            <ClienteAvatar
+                              nome={item.cliente?.nome || 'Cliente'}
+                              cor={item.cliente?.cor}
+                              fotoUrl={item.cliente?.foto_url}
+                              tamanho="xs"
+                            />
+                            <span className="font-semibold text-foreground truncate">
+                              {item.cliente?.nome || 'Cliente'}
+                            </span>
+                            <span className="text-muted-foreground/60 select-none">·</span>
+                            <span className="text-muted-foreground text-[11px] font-medium truncate">
+                              {(item as any).categoria || formatoPill.label}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Título da Demanda em Sora */}
@@ -1523,25 +1529,37 @@ export default function EsteiraTab({
                           </div>
                         )}
 
-                        {/* Status Contextual: Aguardando Aprovação do Cliente */}
+                        {/* Status Contextual: Aguardando Aprovação do Cliente (Ações Diretas) */}
                         {item.status === 'revisao_cliente' && (
-                          <div className="p-2 rounded-xl bg-brand-soft border border-brand-ring flex items-center justify-between gap-2 text-xs">
+                          <div className="p-2.5 rounded-xl bg-brand-soft border border-brand-ring flex items-center justify-between gap-2 text-xs">
                             <div className="flex items-center gap-1.5 text-brand-text font-semibold min-w-0">
                               <span className="size-1.5 rounded-full bg-brand-solid animate-pulse shrink-0" />
                               <span className="truncate">Aguardando aprovação</span>
                             </div>
-                            {item.token_aprovacao && (
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  window.open(`/aprovacao/${item.token_aprovacao}`, '_blank');
+                                  handleCopiarLinkAprovacao(item.token_aprovacao);
                                 }}
-                                className="text-brand-text hover:underline shrink-0 font-medium text-[11px] cursor-pointer"
+                                className="px-2 py-0.5 rounded-md bg-card/90 border border-brand-ring/60 hover:bg-card text-brand-text font-medium text-[11px] cursor-pointer transition-colors"
                               >
-                                Ver tela
+                                Copiar link
                               </button>
-                            )}
+                              {item.token_aprovacao && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`/aprovacao/${item.token_aprovacao}`, '_blank');
+                                  }}
+                                  className="text-brand-text hover:underline font-medium text-[11px] cursor-pointer"
+                                >
+                                  Ver tela
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )}
 

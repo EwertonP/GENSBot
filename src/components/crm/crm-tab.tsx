@@ -374,6 +374,10 @@ export default function CrmTab({
         throw new Error(err.error || 'Falha ao mover negócio');
       }
 
+      if (novoStatus === 'ganho' && negocioOriginal.status !== 'ganho') {
+        showToast(`🎉 Negócio "${negocioOriginal.titulo}" ganho! Contabilizado na meta mensal da agência.`, 'success');
+      }
+
       // Recarrega silenciosamente métricas e ordem consolidada
       carregarNegocios(true);
     } catch (err: unknown) {
