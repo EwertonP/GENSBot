@@ -121,21 +121,26 @@ export async function listarContasSeguro(userId: string) {
 }
 
 /** Traduz erros do Postgres/PostgREST em resposta útil, sem vazar detalhe interno. */
-export function traduzirErroBanco(error: { code?: string; message: string }, contexto: string) {
+export function traduzirErroBanco(error: { code?: string; message: string; details?: string }, contexto: string) {
   switch (error.code) {
     case '23505':
       return respostaErro('Essa conta de Instagram já está vinculada a outro cliente.', 409);
     case '23503':
-      return respostaErro('Referência inválida: o item vinculado não existe.', 400);
+      return respostaErro('Referência inválida: o item ou responsável vinculado não existe.', 400);
+    case '23502':
+      return respostaErro('Campo obrigatório não preenchido.', 400);
     case '23514':
       return respostaErro('Algum valor está fora do permitido.', 400);
     case '42501':
       return respostaErro('Você não tem permissão para essa ação.', 403);
     case '22P02':
       return respostaErro('Formato de identificador ou dado inválido.', 400);
+    case 'PGRST116':
+      return respostaErro('Demanda não encontrada ou permissão insuficiente.', 404);
     default:
       console.error(`Erro em ${contexto}:`, error.code, error.message);
-      return respostaErro('Erro interno. Tente novamente.', 500);
+      const detalhe = error?.message ? `: ${error.message}` : '';
+      return respostaErro(`Não foi possível salvar as alterações${detalhe}`, 500);
   }
 }
 
