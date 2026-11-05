@@ -85,18 +85,17 @@ O Financeiro foi expandido para uma gestão de tesouraria profissional e complet
 
 ---
 
-## 5. Propostas e Contratos
+## 5. Propostas e Contratos — [Entregue em 05/11/2026]
 
-**Por quê:** é o que fecha a venda e hoje fica fora do sistema. Referência: 11 modelos de proposta e 9 de contrato do Orkestrya.
+O ciclo comercial e jurídico completo foi entregue com fidelidade ao design system GENSBot e integração nativa com o CRM e Financeiro:
 
-- **Biblioteca de modelos por serviço** (redes sociais, tráfego pago, Instagram, redes + tráfego, Marketing 360, conteúdo, audiovisual, identidade visual, site e landing page), cada um com "Usar modelo" e "Personalizar". Editor com o mesmo editor rico da demanda.
-- **Dados da agência como CONTRATADA** (CNPJ, endereço, e-mail, telefone, PIX) entrando automaticamente; aviso "faltam estes dados" com botão "Completar agora".
-- **Proposta:** criar a partir de um modelo, escolher cliente ou lead, itens e valores, validade, e enviar por **link público** que o cliente aceita ou recusa. Status: rascunho, enviada, aceita, recusada, vencida.
-- **Contrato:** criar a partir de proposta aceita ou modelo, link público com **assinatura** do cliente (e da agência), status (rascunho, aguardando cliente, assinado), **renovação** (renovam em 30 dias, renovação vencida).
-- **Integração com o CRM:** entrar na etapa "Proposta" cria a proposta; proposta aceita cria o contrato; contrato assinado dispara o **onboarding do cliente** (item 8) e cria a mensalidade no Financeiro.
-- **Manual do cliente:** documento de boas-vindas por cliente.
-
-**Dados:** `modelos_documento`, `propostas`, `contratos` (e itens), com token público. **Pronto quando:** do lead ao contrato assinado sem sair do sistema, com a mensalidade já aparecendo no Financeiro.
+- **Biblioteca completa de modelos:** 11 modelos de proposta e 9 de contrato padrão cobrindo Social Media, Tráfego Pago, Combo, Marketing 360, Conteúdo, Audiovisual, Branding, Sites/Landing Pages e Consultoria, com interpolação dinâmica de variáveis (`{{agencia_nome}}`, `{{cliente_doc}}`, etc.) e editor rico.
+- **Dados da agência como CONTRATADA:** Cadastro completo da agência com validação de dados obrigatórios (CNPJ, Razão Social, Endereço, Cidade/Foro, Chave PIX, Telefone e E-mail), com banner de alerta em caso de pendências e botão "Completar agora".
+- **Propostas comerciais:** Criação de proposta vinculada a clientes ou leads do CRM, definição de honorários mensais e setup, prazo de validade e link público (`/proposta/[token]`).
+- **Página pública da proposta:** Visualização responsiva (mobile e desktop) com ações interativas de aprovação pelo cliente em 1 clique ou solicitação de ajustes com feedback, além de geração automática do contrato.
+- **Contratos e Assinatura Digital:** Contratos jurídicos completos com link público de assinatura (`/contrato/[token]`), opção de digitação estilizada ou desenho de rubrica em canvas, captura do endereço IP, data/hora UTC e certificado de validade jurídica conforme MP 2.200-2/2001.
+- **Integração CRM & Financeiro:** Negócios no CRM possuem botão de geração rápida de proposta; a assinatura digital do contrato marca a oportunidade como "ganho", atualiza os dados contratuais do cliente e registra automaticamente o lançamento de receita recorrente no Financeiro.
+- **Gestão no painel:** Aba dedicada "Propostas & Contratos" no grupo Comercial com KPIs em tempo real, filtros de status, busca rápida, cópia de links e disparo amigável via WhatsApp.
 
 ---
 

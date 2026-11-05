@@ -14,6 +14,7 @@ import {
   FileQuestion,
   Target,
   Wallet,
+  FileSignature,
 } from 'lucide-react';
 
 /**
@@ -127,6 +128,13 @@ export const TELAS = {
     titulo: 'Construtor de Formulários',
     subtitulo: 'Formulários conversacionais estilo Typeform para captação e qualificação de leads.',
     icon: FileQuestion,
+    grupo: 'comercial',
+  },
+  documentos: {
+    label: 'Propostas & Contratos',
+    titulo: 'Propostas & Contratos',
+    subtitulo: 'Biblioteca de 20 modelos, envio de propostas e contratos com assinatura digital.',
+    icon: FileSignature,
     grupo: 'comercial',
   },
 } as const;
