@@ -155,6 +155,8 @@ export interface DemandaSheetProps {
   item: ConteudoItem | null;
   /** Pré-seleção no modo "novo". */
   clienteInicialId?: string;
+  /** Etapa em que a demanda nova começa (ex.: a coluna onde o botão foi clicado). */
+  statusInicial?: StatusConteudo;
   responsavelInicialId?: string;
   clientes: Cliente[];
   membros: MembroEquipe[];
@@ -224,6 +226,7 @@ export function DemandaSheet({
   modo,
   item,
   clienteInicialId,
+  statusInicial,
   responsavelInicialId,
   clientes,
   membros,
@@ -238,7 +241,7 @@ export function DemandaSheet({
   const editando = modo === 'editar' && !!item;
 
   // Estado inicial vem das props: o pai troca a `key` a cada abertura.
-  const [status, setStatus] = useState<StatusConteudo>(() => item?.status ?? 'planejamento');
+  const [status, setStatus] = useState<StatusConteudo>(() => item?.status ?? statusInicial ?? 'planejamento');
   const [tipo, setTipo] = useState<TipoConteudo>(() => item?.tipo ?? 'post');
   const [prioridade, setPrioridade] = useState<PrioridadeConteudo>(() => item?.prioridade || 'media');
   const [titulo, setTitulo] = useState(() => item?.titulo || '');
