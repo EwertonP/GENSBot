@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   Clock,
   Copy,
-  Eye,
   FileText,
   Image as ImageIcon,
   ListTodo,
@@ -19,7 +18,6 @@ import {
   MessageSquare,
   MoreHorizontal,
   Paperclip,
-  Pencil,
   Plus,
   Search,
   Send,
@@ -34,6 +32,8 @@ import {
 } from 'lucide-react';
 import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { EditorRico } from '@/components/ui/editor-rico';
+import { conteudoInicial, LIMITE_BRIEFING } from '@/lib/editor-rico';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -44,7 +44,6 @@ import { MemberChipSelect } from '@/components/ui/member-chip-select';
 import { ResponsaveisSelect } from '@/components/ui/responsaveis-select';
 import { confirmDialog, MediaLightbox } from '@/components/ui/dialog';
 import { ClienteAvatar } from '@/components/cliente-avatar';
-import { RoteiroView } from '@/components/roteiro-view';
 import { CapaReelsField } from '@/components/capa-reels-field';
 import { uploadMediaFile } from '@/lib/storage-upload';
 import {
@@ -187,6 +186,8 @@ export function DemandaSheet({
   const [prioridade, setPrioridade] = useState<PrioridadeConteudo>(() => item?.prioridade || 'media');
   const [titulo, setTitulo] = useState(() => item?.titulo || '');
   const [briefing, setBriefing] = useState(() => item?.briefing || '');
+  const [briefingHtml, setBriefingHtml] = useState(() => item?.briefing_html || '');
+  const [briefingEditado, setBriefingEditado] = useState(false);
   const [legenda, setLegenda] = useState(() => item?.legenda || '');
   const [checklist, setChecklist] = useState<ChecklistItem[]>(() => item?.checklist || []);
   const [novoItemTexto, setNovoItemTexto] = useState('');
@@ -203,7 +204,6 @@ export function DemandaSheet({
   const [aba, setAba] = useState<Aba>('legenda');
   const [modoVisualizacao, setModoVisualizacao] = useState<'abas' | 'split'>('abas');
   // Roteiro abre em modo leitura (formatado); "Editar" troca pelo campo de texto.
-  const [roteiroEditando, setRoteiroEditando] = useState(() => !(item?.briefing || '').trim());
   const [mostrarUrlsManuais, setMostrarUrlsManuais] = useState(false);
   const [trocarClienteAberto, setTrocarClienteAberto] = useState(false);
   const [buscaCliente, setBuscaCliente] = useState('');
@@ -403,6 +403,8 @@ export function DemandaSheet({
         prioridade,
         titulo: titulo.trim() || null,
         briefing: briefing.trim() || null,
+        // Só manda o HTML se a pessoa mexeu no editor: assim salvar sem editar não depende da coluna nova.
+        ...(briefingEditado ? { briefing_html: briefingHtml || null } : {}),
         legenda: legenda.trim() || null,
         responsavel_id: responsavelId || null,
         co_responsaveis_ids: coResponsaveis.filter((id) => id !== responsavelId),
@@ -897,41 +899,22 @@ export function DemandaSheet({
                 {aba === 'briefing' && (
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                      <span>Roteiro cena a cena e instruções para quem grava, edita ou cria a arte.</span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="font-mono tabular-nums">{briefing.length} caracteres</span>
-                        {briefing.trim() && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setRoteiroEditando((v) => !v)}
-                            className="h-7 rounded-lg text-xs"
-                          >
-                            {roteiroEditando ? (
-                              <>
-                                <Eye className="w-3.5 h-3.5 mr-1" /> Visualizar
-                              </>
-                            ) : (
-                              <>
-                                <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
-                              </>
-                            )}
-                          </Button>
-                        )}
-                      </div>
+                      <span>Roteiro cena a cena e instruções para quem grava, edita ou cria a arte. Dica: -- cria uma linha divisória.</span>
+                      <span className={`shrink-0 font-mono tabular-nums ${briefing.length > LIMITE_BRIEFING ? 'text-destructive' : ''}`}>
+                        {briefing.length.toLocaleString('pt-BR')}/{LIMITE_BRIEFING.toLocaleString('pt-BR')}
+                      </span>
                     </div>
-                    {roteiroEditando || !briefing.trim() ? (
-                      <AutoTextarea
-                        value={briefing}
-                        onChange={(e) => setBriefing(e.target.value)}
-                        placeholder="Exemplo de Roteiro / Briefing:&#10;&#10;Cena 1 (Gancho): Mostrar o antes e depois do procedimento com zoom...&#10;Cena 2: Explicar por que acontece em 3 tópicos...&#10;Cena 3 (CTA): Direcionar pro link na bio ou direct..."
-                        aria-label="Briefing e roteiro"
-                        className="rounded-xl text-sm font-sans leading-relaxed bg-card min-h-[280px]"
-                      />
-                    ) : (
-                      <RoteiroView texto={briefing} />
-                    )}
+                    <EditorRico
+                      valorInicial={conteudoInicial(item?.briefing_html, item?.briefing)}
+                      placeholder="Escreva o briefing da demanda. Dica: -- cria uma linha divisória."
+                      aria-label="Briefing e roteiro"
+                      minHeight="280px"
+                      onChange={(html, texto) => {
+                        setBriefingHtml(html);
+                        setBriefing(texto);
+                        setBriefingEditado(true);
+                      }}
+                    />
                   </div>
                 )}
 

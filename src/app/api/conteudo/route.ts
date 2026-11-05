@@ -200,6 +200,7 @@ export async function POST(req: Request) {
       titulo,
       legenda,
       briefing,
+      briefing_html,
       mes_referencia,
       data_programada,
       prazo,
@@ -230,6 +231,8 @@ export async function POST(req: Request) {
       titulo: titulo ? String(titulo).trim() || null : null,
       legenda: legenda ? String(legenda).trim() || null : null,
       briefing: briefing ? String(briefing).trim() || null : null,
+      // Só envia a coluna quando veio no pedido (compatível com banco sem a migração).
+      ...(briefing_html ? { briefing_html: String(briefing_html).slice(0, 60000) } : {}),
       mes_referencia: mesPadrao,
       data_programada: data_programada || null,
       prazo: prazo || null,

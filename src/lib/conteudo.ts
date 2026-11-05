@@ -207,6 +207,8 @@ export interface ConteudoItem {
   titulo: string | null;
   legenda: string | null;
   briefing?: string | null;
+  /** Descrição com formatação (HTML do editor rico); `briefing` guarda o texto puro. */
+  briefing_html?: string | null;
   mes_referencia: string; // YYYY-MM-01
   ordem: number;
   data_programada: string | null;
