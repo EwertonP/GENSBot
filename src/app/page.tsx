@@ -24,6 +24,7 @@ import FinanceiroTab from '@/components/financeiro-tab';
 import CalendarioGeral from '@/components/calendario-geral';
 import FormsTab from '@/components/forms-tab';
 import CrmTab from '@/components/crm/crm-tab';
+import { DocumentosTab } from '@/components/documentos-tab';
 import WorkspaceSwitcher from '@/components/workspace-switcher';
 import WorkspaceContextBar from '@/components/workspace-context-bar';
 import type { WorkspaceContexto } from '@/types/workspace';
@@ -1564,6 +1565,9 @@ export default function Dashboard() {
               clienteSelecionado={workspaceAtivo.tipo === 'cliente' ? workspaceAtivo.clienteId : null}
             />
           )}
+
+          {/* TAB: PROPOSTAS & CONTRATOS */}
+          {activeTab === 'documentos' && <DocumentosTab />}
 
           {/* TAB: EQUIPE & SÓCIOS */}
           {activeTab === 'equipe' && (

@@ -233,6 +233,32 @@ export default function CrmDealDrawer({
     }
   };
 
+  const handleGerarPropostaRapida = async () => {
+    if (!negocio) return;
+    try {
+      const res = await fetch('/api/propostas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: negocio.id,
+          cliente_id: negocio.cliente_id || undefined,
+          titulo: `Proposta Comercial - ${negocio.titulo}`,
+          valor_mensal: negocio.valor || 0,
+          conteudo_html: `<h2>Proposta Comercial: ${negocio.titulo}</h2><p>Apresentado para: ${negocio.nome_contato} (${negocio.empresa || ''})</p><p>Valor mensal: R$ ${negocio.valor}</p>`,
+          status: 'rascunho',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao criar proposta');
+      showToast('Proposta comercial gerada com sucesso!', 'success');
+      const link = `${window.location.origin}/proposta/${data.proposta.token_publico}`;
+      navigator.clipboard.writeText(link);
+      showToast('Link da proposta copiado para a área de transferência!', 'success');
+    } catch {
+      showToast('Erro ao gerar proposta comercial.', 'error');
+    }
+  };
+
   const handleAbrirWhatsAppComTemplate = async (templateMsg?: string, tituloTemplate?: string) => {
     if (!telefone) return;
     const mensagemFinal = templateMsg
@@ -358,6 +384,17 @@ export default function CrmDealDrawer({
             </div>
 
             <div className="flex items-center gap-2">
+              <Tip label="Gerar proposta comercial vinculada a esta oportunidade">
+                <button
+                  type="button"
+                  onClick={handleGerarPropostaRapida}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-[#192313] text-[#bada55] hover:bg-[#2a3820] transition-colors shadow-2xs cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Proposta</span>
+                </button>
+              </Tip>
+
               {telefone && (
                 <div className="relative group">
                   <Tip label="Conversar no WhatsApp com templates rápidos">
