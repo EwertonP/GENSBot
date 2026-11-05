@@ -3,19 +3,16 @@
 import React from 'react';
 
 /**
- * Símbolo do GENSBot (dois painéis, menta e verde médio, sobre floresta).
- * O ícone já vem com o fundo floresta, então funciona igual nos dois temas.
+ * Símbolo do GENSBot (dois painéis). Tema claro: painéis verde-floresta e verde médio
+ * sobre fundo branco; tema escuro: painéis menta e verde médio sobre preto.
  */
 export function LogoMark({ className = '' }: { className?: string }) {
+  const base = `object-contain select-none shrink-0 rounded-[22%] ${className}`;
   return (
-    <img
-      src="/fav-icon.png"
-      alt="GENSBot"
-      className={`object-contain select-none shrink-0 rounded-[22%] ${className}`}
-      width={128}
-      height={128}
-      loading="eager"
-    />
+    <>
+      <img src="/fav-icon.png" alt="GENSBot" className={`${base} block dark:hidden`} width={128} height={128} loading="eager" />
+      <img src="/fav-icon-dark.png" alt="" aria-hidden className={`${base} hidden dark:block`} width={128} height={128} loading="eager" />
+    </>
   );
 }
 
