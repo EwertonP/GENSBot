@@ -112,17 +112,15 @@ A experiência completa de acompanhamento e relacionamento com o cliente foi ent
 
 ---
 
-## 7. Onboarding do cliente com conexão das redes
+## 7. Onboarding do cliente com conexão das redes — [Entregue em 05/11/2026]
 
-Resumo (plano completo em `PLANO_ONBOARDING_CLIENTE.md`):
+O ciclo de conexão autônoma de redes sociais pelo cliente final foi entregue com segurança criptográfica e integração com a esteira da agência:
 
-- **Link público por cliente** (`/conectar/<token>`) com guia passo a passo; o cliente autoriza Instagram, Threads e TikTok na tela oficial de cada rede, sem senha passando por nós; ao terminar, marca a etapa "Acessos das redes coletados", avisa a agência e leva ao painel do cliente.
-- **Instagram e Threads por modo testador:** a agência adiciona o cliente como testador no painel da Meta (**não existe API para isso**, é manual) e o cliente aceita o convite pelo computador (Threads: Configurações > Permissões do site; Instagram: Editar perfil > Apps e sites > Convites de testador, a confirmar no primeiro cliente).
-- **Mudança técnica central:** os callbacks de OAuth hoje exigem a agência logada; passam a aceitar um **`state` assinado** (HMAC, nonce de uso único, validade curta) vindo do link público.
-- **TikTok, risco alto:** sem auditoria, só publica como privado e para 5 usuários por dia; com auditoria, a política diz que ferramenta de equipe para contas que você gerencia não é aceitável. Recomendação: manter manual por enquanto e tentar a auditoria depois.
-- **Em aberto:** limite de testadores por app (conferir no painel da Meta); caminho do convite do Instagram na tela real.
-
-**Fases:** (1) Instagram e Threads com link e guia, validando com um cliente real; (2) avisos e reconexão antes da expiração; (3) painel do cliente; (4) TikTok depois de decidir a estratégia.
+- **Link público por cliente (`/conectar/[token]`):** Interface responsiva no design system GENSBot com boas-vindas da agência, dica de uso no computador, progresso de redes vinculadas e formulário de perfis (`@`).
+- **Bypass seguro de login via HMAC:** Helper `onboarding-state.ts` com assinatura SHA-256 e validade temporal no parâmetro `state` do OAuth. Os callbacks de Instagram (`/api/oauth/callback`), Threads (`/api/integrations/threads/callback`) e TikTok (`/api/integrations/tiktok/callback`) autenticam o fluxo público sem exigir sessão interna da agência, vinculando a conta diretamente ao cliente e atualizando o link de onboarding.
+- **Guia de convites de testador da Meta:** Passo a passo com links diretos para as telas oficiais de aceite de convites de testador no Instagram e no Threads, com indicação visual de envio pela agência.
+- **Card de Onboarding na Ficha do Cliente:** Na aba "Integrações & Conexões", exibe a URL completa do onboarding, botões de 1 clique "Copiar Link" e "Enviar no WhatsApp", visualização dos @ perfis digitados pelo cliente, checkboxes para registrar o envio dos convites no Meta Developers e status em tempo real das conexões.
+- **Conclusão e transição ao Portal:** Botão de finalização no onboarding marca automaticamente a etapa "Acessos das redes coletados" no checklist operacional do cliente (`onboarding_etapas`) e redireciona de imediato para o Portal do Cliente (`/portal/[token]`).
 
 ---
 
