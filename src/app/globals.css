@@ -454,3 +454,26 @@
   height: 0;
   pointer-events: none;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Orkestrya Design System Tokens & Utilities
+   Cantos generosos (rounded-card = 28px), pills elegantes e squircles
+   ───────────────────────────────────────────────────────────────────────── */
+.rounded-card {
+  border-radius: 1.75rem; /* 28px */
+}
+.rounded-item {
+  border-radius: 1rem; /* 16px */
+}
+.rounded-pill {
+  border-radius: 9999px;
+}
+.squircle-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+

@@ -93,7 +93,7 @@ export default function CrmKanban({
                   onMoverNegocio(negocioId, estagio.id);
                 }
               }}
-              className={`w-[85vw] max-w-80 snap-start shrink-0 flex flex-col gap-3 p-3.5 rounded-2xl border transition-all duration-200 min-h-[520px] ${
+              className={`w-[85vw] max-w-80 snap-start shrink-0 flex flex-col gap-3 p-3.5 rounded-3xl border transition-all duration-200 min-h-[520px] ${
                 isOver
                   ? 'bg-lime/10 border-primary ring-2 ring-primary/20 shadow-md'
                   : 'bg-accent/25 border-border'
@@ -110,7 +110,7 @@ export default function CrmKanban({
                     <span className="text-xs font-bold font-display text-foreground truncate max-w-[170px]">
                       {estagio.nome}
                     </span>
-                    <span className="text-[11px] font-mono font-bold bg-accent text-muted-foreground px-1.5 py-0.5 rounded-md border border-border">
+                    <span className="text-[11px] font-mono font-bold bg-accent text-muted-foreground px-2 py-0.5 rounded-full border border-border">
                       {cardsDaColuna.length}
                     </span>
                   </div>
@@ -198,15 +198,15 @@ export default function CrmKanban({
                           onMoverNegocio(draggedId, estagio.id, negocio.id);
                         }
                       }}
-                      className={`group p-3 rounded-xl border bg-card shadow-2xs hover:shadow-xs transition-ui duration-200 flex flex-col gap-2.5 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      className={`group p-3.5 rounded-2xl border bg-card shadow-2xs hover:shadow-md hover:border-border-strong transition-all duration-200 flex flex-col gap-2.5 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         isDragging ? 'opacity-40 scale-[0.98]' : ''
-                      } ${isOverCard ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-foreground/30'}`}
+                      } ${isOverCard ? 'border-primary ring-2 ring-primary/20' : 'border-border/80 hover:border-foreground/30'}`}
                     >
                       {/* Topo do Card: Origem, Prioridade e Valor */}
                       <div className="flex items-center justify-between gap-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span
-                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${origemMeta.color}`}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${origemMeta.color}`}
                           >
                             <OrigemIcon className="w-2.5 h-2.5" />
                             <span>{origemMeta.label}</span>
