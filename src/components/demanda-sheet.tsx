@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Clock,
   Copy,
+  Hash,
   FileText,
   Image as ImageIcon,
   ListTodo,
@@ -34,6 +35,14 @@ import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { EditorRico } from '@/components/ui/editor-rico';
 import { conteudoInicial, LIMITE_BRIEFING } from '@/lib/editor-rico';
+import {
+  contarHashtags,
+  paraCapitalizado,
+  paraItalico,
+  paraMaiusculas,
+  paraMinusculas,
+  paraNegrito,
+} from '@/lib/legenda-texto';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -260,6 +269,8 @@ export function DemandaSheet({
 
   // Campo da legenda (abas ou dividido): os botões da barra inserem onde está o cursor.
   const legendaRef = useRef<HTMLTextAreaElement>(null);
+  // Trecho selecionado na legenda: habilita as ferramentas de caixa e de negrito/itálico.
+  const [selecaoLegenda, setSelecaoLegenda] = useState({ ini: 0, fim: 0 });
   const formRef = useRef<HTMLFormElement>(null);
 
   const clienteObj =
@@ -345,6 +356,19 @@ export function DemandaSheet({
     requestAnimationFrame(() => {
       el.focus();
       el.setSelectionRange(posicao, posicao);
+    });
+  }
+
+  function transformarSelecao(fn: (trecho: string) => string) {
+    const { ini, fim } = selecaoLegenda;
+    if (fim <= ini) return;
+    const novo = fn(legenda.slice(ini, fim));
+    setLegenda(legenda.slice(0, ini) + novo + legenda.slice(fim));
+    const el = legendaRef.current;
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(ini, ini + novo.length);
+      setSelecaoLegenda({ ini, fim: ini + novo.length });
     });
   }
 
@@ -494,6 +518,36 @@ export function DemandaSheet({
       >
         • Lista
       </button>
+      <button
+        type="button"
+        onClick={() => inserirNaLegenda(' #')}
+        className="grid size-7 place-items-center rounded hover:bg-card text-foreground cursor-pointer"
+        aria-label="Inserir hashtag"
+        title="Inserir hashtag"
+      >
+        <Hash className="size-3.5" />
+      </button>
+      <span aria-hidden className="w-px h-3 bg-border mx-1" />
+      {([
+        ['A', 'MAIÚSCULAS', paraMaiusculas, 'font-semibold'],
+        ['a', 'minúsculas', paraMinusculas, ''],
+        ['Aa', 'Primeira Letra Maiúscula', paraCapitalizado, ''],
+        ['B', 'Negrito', paraNegrito, 'font-black'],
+        ['I', 'Itálico', paraItalico, 'italic'],
+      ] as const).map(([rotulo, titulo, fn, estilo]) => (
+        <button
+          key={titulo}
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => transformarSelecao(fn)}
+          disabled={selecaoLegenda.fim <= selecaoLegenda.ini}
+          className={`grid size-7 place-items-center rounded hover:bg-card text-foreground cursor-pointer text-xs disabled:opacity-35 disabled:pointer-events-none ${estilo}`}
+          aria-label={titulo}
+          title={`${titulo} (selecione um trecho)`}
+        >
+          {rotulo}
+        </button>
+      ))}
       <span aria-hidden className="w-px h-3 bg-border mx-1" />
       {(compacta ? EMOJIS_LEGENDA.slice(0, 5) : EMOJIS_LEGENDA).map((emoji) => (
         <button
@@ -887,11 +941,20 @@ export function DemandaSheet({
                       ref={legendaRef}
                       value={legenda}
                       onChange={(e) => setLegenda(e.target.value)}
+                      onSelect={(e) => setSelecaoLegenda({ ini: e.currentTarget.selectionStart, fim: e.currentTarget.selectionEnd })}
                       placeholder="Escreva a legenda oficial da postagem com hashtags, quebras de linha e chamada para ação (CTA)..."
                       aria-label="Legenda da postagem"
                       aria-invalid={legenda.length > LIMITE_LEGENDA || undefined}
                       className="rounded-t-none rounded-b-xl text-sm font-sans leading-relaxed bg-card min-h-[260px]"
                     />
+                    <div className="flex items-center justify-between gap-2 text-xs tabular-nums text-muted-foreground">
+                      <span className={contarHashtags(legenda) > 30 ? 'text-destructive' : ''}>
+                        {contarHashtags(legenda)}/30 hashtags
+                      </span>
+                      <span className={classeContadorLegenda(legenda.length)}>
+                        Instagram {legenda.length.toLocaleString('pt-BR')}/{LIMITE_LEGENDA.toLocaleString('pt-BR')}
+                      </span>
+                    </div>
                     {avisoLimiteLegenda}
                   </div>
                 )}
