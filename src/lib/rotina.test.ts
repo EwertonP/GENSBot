@@ -20,6 +20,13 @@ describe('normalizarStatusTarefa', () => {
     expect(normalizarStatusTarefa('aguardando')).toBe('aguardando');
     expect(normalizarStatusTarefa('concluido')).toBe('concluido');
   });
+  it('normaliza variações femininas e alternativas', () => {
+    expect(normalizarStatusTarefa('concluida')).toBe('concluido');
+    expect(normalizarStatusTarefa('concluído')).toBe('concluido');
+    expect(normalizarStatusTarefa('concluída')).toBe('concluido');
+    expect(normalizarStatusTarefa('em_andamento')).toBe('fazendo');
+    expect(normalizarStatusTarefa('esperando')).toBe('aguardando');
+  });
 });
 
 describe('colunaDaDemanda', () => {

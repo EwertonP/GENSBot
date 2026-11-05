@@ -73,14 +73,36 @@ export const TIPO_TAREFA_LABELS: Record<TipoTarefa, string> = {
   sub_tarefa: 'Sub-tarefa',
 };
 
-export const STATUS_TAREFA_VALIDOS: StatusTarefaBanco[] = ['pendente', 'a_fazer', 'fazendo', 'aguardando', 'concluido'];
+export const STATUS_TAREFA_VALIDOS: readonly (StatusTarefaBanco | 'concluida' | 'em_andamento')[] = [
+  'pendente',
+  'a_fazer',
+  'fazendo',
+  'aguardando',
+  'concluido',
+  'concluida',
+  'em_andamento',
+];
 export const TIPOS_TAREFA_VALIDOS: TipoTarefa[] = ['interno', 'peca_avulsa', 'sub_tarefa'];
 
 /** Quantos dias um item concluído continua visível na coluna "Concluído". */
 export const DIAS_CONCLUIDO_VISIVEL = 14;
 
 export function normalizarStatusTarefa(status: string | null | undefined): StatusTarefa {
-  if (status === 'fazendo' || status === 'aguardando' || status === 'concluido') return status;
+  if (!status) return 'a_fazer';
+  const s = String(status).toLowerCase().trim();
+  if (s === 'fazendo' || s === 'em_andamento' || s === 'em_progresso' || s === 'andamento') return 'fazendo';
+  if (s === 'aguardando' || s === 'esperando') return 'aguardando';
+  if (
+    s === 'concluido' ||
+    s === 'concluida' ||
+    s === 'concluído' ||
+    s === 'concluída' ||
+    s === 'finalizado' ||
+    s === 'finalizada' ||
+    s === 'feito'
+  ) {
+    return 'concluido';
+  }
   return 'a_fazer';
 }
 
