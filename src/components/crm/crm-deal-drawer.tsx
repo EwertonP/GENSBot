@@ -32,6 +32,7 @@ import {
   Tag,
   Check,
   FileText,
+  FileSignature,
 } from 'lucide-react';
 
 interface CrmDealDrawerProps {
@@ -259,6 +260,34 @@ export default function CrmDealDrawer({
     }
   };
 
+  const handleGerarContratoRapido = async () => {
+    if (!negocio) return;
+    try {
+      const res = await fetch('/api/contratos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: negocio.id,
+          cliente_id: negocio.cliente_id || undefined,
+          titulo: `Contrato de Prestação de Serviços - ${negocio.titulo}`,
+          valor_mensal: negocio.valor || 0,
+          dia_vencimento: 10,
+          data_inicio: new Date().toISOString().slice(0, 10),
+          renovacao_automatica: true,
+          conteudo_html: `<h2>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2><p>CONTRATANTE: ${negocio.nome_contato} (${negocio.empresa || ''})</p><p>Serviços acordados no valor mensal de R$ ${negocio.valor}.</p>`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao criar contrato');
+      showToast('Contrato digital gerado com sucesso!', 'success');
+      const link = `${window.location.origin}/contrato/${data.contrato.token_publico}`;
+      navigator.clipboard.writeText(link);
+      showToast('Link do contrato copiado para a área de transferência!', 'success');
+    } catch {
+      showToast('Erro ao gerar contrato digital.', 'error');
+    }
+  };
+
   const handleAbrirWhatsAppComTemplate = async (templateMsg?: string, tituloTemplate?: string) => {
     if (!telefone) return;
     const mensagemFinal = templateMsg
@@ -361,8 +390,8 @@ export default function CrmDealDrawer({
     <Sheet open={!!negocioId} onClose={onClose}>
       <div className="flex flex-col h-full bg-background max-w-2xl w-full">
         {/* Cabeçalho do Drawer */}
-        <div className="p-5 border-b border-border flex flex-col gap-3 shrink-0">
-          <div className="flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-border flex flex-col gap-3 shrink-0">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span
                 className="w-3 h-3 rounded-full shrink-0"
@@ -383,15 +412,26 @@ export default function CrmDealDrawer({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <Tip label="Gerar proposta comercial vinculada a esta oportunidade">
                 <button
                   type="button"
                   onClick={handleGerarPropostaRapida}
-                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-[#192313] text-[#bada55] hover:bg-[#2a3820] transition-colors shadow-2xs cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 h-9 text-xs font-semibold rounded-xl bg-card border border-border text-foreground hover:bg-muted transition-colors shadow-2xs cursor-pointer"
                 >
-                  <FileText className="w-3.5 h-3.5" />
+                  <FileText className="w-3.5 h-3.5 text-primary" />
                   <span>Proposta</span>
+                </button>
+              </Tip>
+
+              <Tip label="Gerar contrato digital com validade jurídica">
+                <button
+                  type="button"
+                  onClick={handleGerarContratoRapido}
+                  className="flex items-center gap-1.5 px-3 h-9 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity shadow-2xs cursor-pointer"
+                >
+                  <FileSignature className="w-3.5 h-3.5" />
+                  <span>Contrato</span>
                 </button>
               </Tip>
 
@@ -401,7 +441,7 @@ export default function CrmDealDrawer({
                     <button
                       type="button"
                       onClick={() => handleAbrirWhatsAppComTemplate()}
-                      className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-2xs cursor-pointer"
+                      className="flex items-center gap-1.5 px-3 h-9 text-xs font-semibold rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-2xs cursor-pointer"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                       <span>WhatsApp</span>

@@ -18,7 +18,17 @@ export async function PATCH(req: Request, { params }: Params) {
 
   try {
     const body = await req.json();
-    const permitidos = ['nome', 'cargo', 'papel', 'ativo', 'foto_url'];
+    const permitidos = [
+      'nome',
+      'cargo',
+      'papel',
+      'ativo',
+      'foto_url',
+      'setor',
+      'modulos_permitidos',
+      'data_nascimento',
+      'data_inicio',
+    ];
     // Quais clientes o membro acessa: só master define.
     const clientesIds = Array.isArray(body.clientes_ids) ? body.clientes_ids : undefined;
     if (clientesIds !== undefined && membro.papel !== 'master') {

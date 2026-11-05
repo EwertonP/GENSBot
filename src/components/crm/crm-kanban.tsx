@@ -142,6 +142,7 @@ export default function CrmKanban({
                   const diasSemContato = calcularDiasSemContato(negocio.ultimo_contato_em);
                   const limiteEstagnado = estagio.dias_limite_estagnado ?? 3;
                   const estagnado = estagio.tipo_conclusao === 'aberto' && limiteEstagnado > 0 && diasSemContato >= limiteEstagnado;
+                  const isEtapaDocumentos = /proposta|orçamento|orcamento|contrato/i.test(estagio.nome);
 
                   const origemMeta = ORIGEM_CONFIG[negocio.origem] || ORIGEM_CONFIG.manual;
                   const OrigemIcon = origemMeta.icon;
@@ -264,23 +265,33 @@ export default function CrmKanban({
                           </span>
                         </div>
 
-                        {/* Botão Rápido de WhatsApp */}
-                        {negocio.telefone && (
-                          <Tip label={`Chamar ${negocio.nome_contato.split(' ')[0]} no WhatsApp`}>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const msg = `Olá, ${negocio.nome_contato.split(' ')[0]}! Tudo bem?`;
-                                const link = gerarLinkWhatsApp(negocio.telefone!, msg);
-                                if (link) window.open(link, '_blank');
-                              }}
-                              className="p-1 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors"
-                            >
-                              <MessageSquare className="w-3.5 h-3.5" />
-                            </button>
-                          </Tip>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {isEtapaDocumentos && (
+                            <Tip label="Etapa comercial com proposta / contrato vinculados">
+                              <span className="p-1 rounded-md bg-primary/10 text-primary">
+                                <FileText className="w-3.5 h-3.5" />
+                              </span>
+                            </Tip>
+                          )}
+
+                          {/* Botão Rápido de WhatsApp */}
+                          {negocio.telefone && (
+                            <Tip label={`Chamar ${negocio.nome_contato.split(' ')[0]} no WhatsApp`}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const msg = `Olá, ${negocio.nome_contato.split(' ')[0]}! Tudo bem?`;
+                                  const link = gerarLinkWhatsApp(negocio.telefone!, msg);
+                                  if (link) window.open(link, '_blank');
+                                }}
+                                className="p-1 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                              </button>
+                            </Tip>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   );

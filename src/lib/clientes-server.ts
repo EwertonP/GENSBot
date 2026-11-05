@@ -19,6 +19,10 @@ export interface Membro {
   agencia_id: string;
   nome?: string;
   cargo?: string | null;
+  setor?: string | null;
+  modulos_permitidos?: string[] | null;
+  data_nascimento?: string | null;
+  data_inicio?: string | null;
   foto_url?: string | null;
   papel: 'master' | 'membro' | 'cliente';
   ativo: boolean;
