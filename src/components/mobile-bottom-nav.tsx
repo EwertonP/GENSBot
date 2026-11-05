@@ -19,6 +19,7 @@ export function atalhosDaBarra(abasVisiveis: readonly AbaId[]): AbaId[] {
 
 /** Rótulo curto: a barra tem pouco espaço por item. */
 const ROTULO_CURTO: Partial<Record<AbaId, string>> = {
+  meu_dia: 'Meu Dia',
   dashboard: 'Início',
   esteira: 'Demandas',
   calendario_geral: 'Calendário',

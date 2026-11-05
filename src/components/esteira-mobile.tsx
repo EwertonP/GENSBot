@@ -20,6 +20,9 @@ interface FiltrosMobileProps {
   membros: { id: string; nome: string }[];
   responsavel: string;
   onResponsavel: (id: string) => void;
+  etiquetas?: { id: string; nome: string }[];
+  etiquetaSelecionada?: string;
+  onEtiqueta?: (id: string) => void;
   modo: ModoVisualizacao;
   onModo: (m: ModoVisualizacao) => void;
   mostrarPublicados: boolean;
@@ -36,8 +39,19 @@ const MODOS: { id: ModoVisualizacao; rotulo: string; icon: React.ComponentType<{
 ];
 
 /** Quantos filtros estão fora do padrão, para o contador do botão. */
-export function contarFiltros(f: { clienteSelecionado: string; clienteTravado: boolean; responsavel: string; modo: ModoVisualizacao }): number {
-  return (f.clienteTravado || f.clienteSelecionado === 'all' ? 0 : 1) + (f.responsavel === 'all' ? 0 : 1) + (f.modo === 'kanban' ? 0 : 1);
+export function contarFiltros(f: {
+  clienteSelecionado: string;
+  clienteTravado: boolean;
+  responsavel: string;
+  modo: ModoVisualizacao;
+  etiqueta?: string;
+}): number {
+  return (
+    (f.clienteTravado || f.clienteSelecionado === 'all' ? 0 : 1) +
+    (f.responsavel === 'all' ? 0 : 1) +
+    (f.modo === 'kanban' ? 0 : 1) +
+    (f.etiqueta && f.etiqueta !== 'all' ? 1 : 0)
+  );
 }
 
 export function BotaoFiltros({ quantidade, onClick }: { quantidade: number; onClick: () => void }) {
@@ -95,6 +109,24 @@ export function FiltrosMobile(p: FiltrosMobileProps) {
               {p.membros.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.nome}
+                </option>
+              ))}
+            </Select>
+          </label>
+        )}
+
+        {p.etiquetas && p.etiquetas.length > 0 && p.onEtiqueta && (
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+            Etiqueta
+            <Select
+              value={p.etiquetaSelecionada || 'all'}
+              onChange={(e) => p.onEtiqueta?.(e.target.value)}
+              className="h-11 text-sm"
+            >
+              <option value="all">Todas as etiquetas</option>
+              {p.etiquetas.map((et) => (
+                <option key={et.id} value={et.id}>
+                  {et.nome}
                 </option>
               ))}
             </Select>

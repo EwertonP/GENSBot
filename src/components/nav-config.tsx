@@ -1,4 +1,5 @@
 import {
+  Sun,
   BarChart3,
   CheckSquare,
   Briefcase,
@@ -25,6 +26,13 @@ import {
  */
 
 export const TELAS = {
+  meu_dia: {
+    label: 'Meu Dia',
+    titulo: 'Meu Dia de Trabalho',
+    subtitulo: 'Tarefas de hoje, demandas sob sua responsabilidade, agenda dos próximos 7 dias e aprovações.',
+    icon: Sun,
+    grupo: 'operacao',
+  },
   dashboard: {
     label: 'Dashboard',
     titulo: 'Dashboard',
@@ -166,6 +174,7 @@ export const GRUPOS_MENU: { id: GrupoMenuId; label: string }[] = [
  * O resto é área da agência inteira (CRM, Inbox, Calendário, Métricas, Equipe).
  */
 export const ABAS_MEMBRO_ESCOPADO: AbaId[] = [
+  'meu_dia',
   'esteira',
   'clientes',
   'publish',

@@ -25,6 +25,7 @@ import CalendarioGeral from '@/components/calendario-geral';
 import FormsTab from '@/components/forms-tab';
 import CrmTab from '@/components/crm/crm-tab';
 import { DocumentosTab } from '@/components/documentos-tab';
+import { MeuDiaTab } from '@/components/meu-dia-tab';
 import WorkspaceSwitcher from '@/components/workspace-switcher';
 import WorkspaceContextBar from '@/components/workspace-context-bar';
 import type { WorkspaceContexto } from '@/types/workspace';
@@ -1373,6 +1374,16 @@ export default function Dashboard() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
+          {/* TAB 0: MEU DIA (COCKPIT OPERACIONAL DO MEMBRO) */}
+          {activeTab === 'meu_dia' && (
+            <MeuDiaTab
+              showToast={showToast}
+              usuario={membroPerfil}
+              onNavegarDemanda={(itemId) => navegarPara('esteira', { item: itemId })}
+              onNavegarTab={(tabId) => navegarPara(tabId as AbaId)}
+            />
+          )}
+
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
             <DashboardHome
