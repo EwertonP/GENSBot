@@ -16,8 +16,10 @@ import {
   ExternalLink,
   Share2,
   Calendar,
+  Check,
   CheckCircle2,
   CheckSquare,
+  EyeOff,
   Sparkles,
   Grid3X3,
   Edit2,
@@ -537,6 +539,21 @@ export default function EsteiraTab({
     setModalAprovacaoAberto(true);
   }
 
+  async function handleToggleConcluidaCard(it: ConteudoItem) {
+    const nova = !it.concluida;
+    setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, concluida: nova } : x)));
+    try {
+      await fetch(`/api/conteudo/${it.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ concluida: nova }),
+      });
+      showToast(nova ? 'Demanda marcada como concluída!' : 'Demanda reaberta.', 'success');
+    } catch {
+      showToast('Erro ao atualizar demanda.', 'error');
+    }
+  }
+
   // Envio Direto para Tela de Agendamento (Creator Studio)
   function handleLevarParaAgendamento(item: ConteudoItem) {
     if (!onIrParaAgendamento) {
@@ -699,14 +716,14 @@ export default function EsteiraTab({
       {/* 1. Header de Ações & Filtros em Linha Única */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Busca */}
-          <div className="relative w-48 sm:w-56 max-md:min-w-0 max-md:flex-1 max-md:w-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          {/* Busca em pílula Orkestrya */}
+          <div className="relative w-48 sm:w-60 max-md:min-w-0 max-md:flex-1 max-md:w-auto">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Buscar demandas..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="pl-9 h-9 text-xs max-md:h-11 max-md:text-sm"
+              className="pl-9 h-9 text-xs rounded-full max-md:h-11 max-md:text-sm"
             />
           </div>
           <div className="md:hidden">
@@ -817,18 +834,42 @@ export default function EsteiraTab({
             </button></Tip>
           </div>
 
-          {/* Botão Sincronizar Notion */}
-          <Button
-            onClick={sincronizarNotion}
-            disabled={sincronizandoNotion}
-            variant="outline"
-            size="sm"
-            className="rounded-xl shadow-2xs h-9 text-xs font-bold bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-ui cursor-pointer"
-            title="Sincronizar demandas ativas diretamente com o Notion"
-          >
-            <Sparkles className={`w-3.5 h-3.5 mr-1.5 text-primary ${sincronizandoNotion ? 'animate-spin' : ''}`} />
-            {sincronizandoNotion ? 'Sincronizando...' : '⚡ Sincronizar Notion'}
-          </Button>
+          {/* Menu de Ferramentas da Esteira (Notion, Duplicar Mês) */}
+          <Menu.Root>
+            <Menu.Trigger
+              aria-label="Ferramentas da esteira"
+              title="Mais ferramentas e ações"
+              className="grid place-items-center size-9 rounded-xl border border-border bg-accent/30 text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors shadow-2xs"
+            >
+              <MoreHorizontal className="size-4" />
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner side="bottom" align="end" sideOffset={6} className="z-[80]">
+                <Menu.Popup className="min-w-56 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95">
+                  <Menu.Item
+                    onClick={sincronizarNotion}
+                    disabled={sincronizandoNotion}
+                    className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
+                  >
+                    <Sparkles className={`size-3.5 text-primary ${sincronizandoNotion ? 'animate-spin' : ''}`} />
+                    <span className="flex-1">{sincronizandoNotion ? 'Sincronizando...' : 'Sincronizar com Notion'}</span>
+                  </Menu.Item>
+                  <Menu.Item
+                    onClick={() => {
+                      if (clienteSelecionado !== 'all') {
+                        setDuplicarClienteId(clienteSelecionado);
+                      }
+                      setModalDuplicarAberto(true);
+                    }}
+                    className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
+                  >
+                    <Layers className="size-3.5 text-brand-text" />
+                    <span className="flex-1">Duplicar demandas do mês...</span>
+                  </Menu.Item>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
 
           {/* Toggle Ocultar/Exibir Publicados */}
           {totalPublicados > 0 && (
@@ -1185,9 +1226,26 @@ export default function EsteiraTab({
                           <div className="absolute -top-1.5 left-2 right-2 h-1 bg-primary rounded-full shadow-xs animate-pulse pointer-events-none z-10" />
                         )}
 
-                        {/* Topo do Card: Formato + Prioridade + Ações Rápidas */}
+                        {/* Topo do Card: Concluir + Formato + Prioridade + Indicadores + Ações Rápidas */}
                         <div className="flex items-center justify-between gap-1.5">
                           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            {/* Círculo de Concluir */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleConcluidaCard(item);
+                              }}
+                              className={`size-4 rounded-full border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
+                                item.concluida
+                                  ? 'bg-success border-success text-success-foreground'
+                                  : 'border-muted-foreground/40 hover:border-success hover:bg-success/10'
+                              }`}
+                              title={item.concluida ? 'Concluída (clique para reabrir)' : 'Marcar como concluída'}
+                            >
+                              {item.concluida && <Check className="size-2.5 stroke-[3]" />}
+                            </button>
+
                             {/* Pílula de Formato */}
                             <span
                               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${formatoPill.cls}`}
@@ -1209,6 +1267,23 @@ export default function EsteiraTab({
                                   <span aria-hidden className={`size-1.5 rounded-full ${PRIORIDADE_CONFIG[item.prioridade].dot}`} />
                                   <span>{PRIORIDADE_CONFIG[item.prioridade].label}</span>
                                 </span>
+                              </Tip>
+                            )}
+
+                            {/* Indicador de Pedido de Informação Pendente */}
+                            {item.pedido_informacao && (
+                              <Tip label={`Aguardando cliente: ${item.pedido_informacao}`}>
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-warning-soft text-warning border border-warning-ring">
+                                  <span className="size-1.5 rounded-full bg-warning animate-pulse" />
+                                  Info
+                                </span>
+                              </Tip>
+                            )}
+
+                            {/* Indicador de Visibilidade do Portal */}
+                            {item.visivel_cliente === false && (
+                              <Tip label="Oculta no portal do cliente">
+                                <EyeOff className="size-3 text-muted-foreground/60 shrink-0" />
                               </Tip>
                             )}
                           </div>
@@ -1294,7 +1369,7 @@ export default function EsteiraTab({
 
                         {/* Título da Demanda em Sora */}
                         {item.titulo ? (
-                          <h4 className="text-sm font-semibold font-display text-foreground leading-snug line-clamp-2">
+                          <h4 className={`text-sm font-semibold font-display leading-snug line-clamp-2 ${item.concluida ? 'line-through text-muted-foreground opacity-75' : 'text-foreground'}`}>
                             {item.titulo}
                           </h4>
                         ) : (

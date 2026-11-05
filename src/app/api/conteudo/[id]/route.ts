@@ -138,6 +138,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       'automacao_config',
       'checklist',
       'arquivada_em',
+      'tempo_estimado_minutos',
+      'visivel_cliente',
+      'pedido_informacao',
+      'resposta_informacao',
+      'concluida',
     ];
 
     const updates: Record<string, any> = {};
