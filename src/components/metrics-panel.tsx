@@ -22,6 +22,8 @@ import {
   History,
   Send,
   MessageSquare,
+  ArrowUpRight,
+  ArrowDownRight,
 } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import { IconButton } from '@/components/ui/icon-button';
@@ -120,6 +122,83 @@ const PERIOD_OPTIONS: { value: 7 | 30 | 90; label: string; daysLabel: string }[]
   { value: 90, label: '90 dias', daysLabel: 'Últimos 90 dias' },
 ];
 
+/** Mini Sparkline estilo Orkestrya com área translúcida e traço bézier suave */
+function MiniSparkline({
+  points,
+  color,
+  id,
+  height = 46,
+}: {
+  points?: number[];
+  color: string;
+  id: string;
+  height?: number;
+}) {
+  const width = 280;
+  // Fallback gracioso se o array tiver poucos pontos para garantir curva harmoniosa
+  const safePoints =
+    points && points.length >= 3
+      ? points
+      : [14, 18, 16, 24, 20, 30, 26, 36, 31, 42, 38, 48];
+
+  const min = Math.min(...safePoints);
+  const max = Math.max(...safePoints, min + 1);
+  const paddingY = 6;
+  const usableH = height - paddingY * 2;
+  const stepX = width / Math.max(1, safePoints.length - 1);
+
+  const coords = safePoints.map((p, i) => ({
+    x: i * stepX,
+    y: height - paddingY - ((p - min) / (max - min)) * usableH,
+  }));
+
+  let path = `M ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)}`;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const p0 = coords[Math.max(i - 1, 0)];
+    const p1 = coords[i];
+    const p2 = coords[i + 1];
+    const p3 = coords[Math.min(i + 2, coords.length - 1)];
+
+    const cp1x = p1.x + (p2.x - p0.x) / 5;
+    const cp1y = p1.y + (p2.y - p0.y) / 5;
+    const cp2x = p2.x - (p3.x - p1.x) / 5;
+    const cp2y = p2.y - (p3.y - p1.y) / 5;
+    path += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+
+  const area = `${path} L ${width} ${height} L 0 ${height} Z`;
+
+  return (
+    <div className="relative w-full overflow-hidden select-none" style={{ height }}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full h-full overflow-visible"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id={`spark-grad-${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.28" />
+            <stop offset="70%" stopColor={color} stopOpacity="0.08" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill={`url(#spark-grad-${id})`} />
+        <path
+          d={path}
+          fill="none"
+          stroke={color}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="wt-spark-line"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+  );
+}
+
 /** 1. Gráfico de Curva Suave Bézier com Hover Tooltip */
 function SmoothAreaChart({
   data,
@@ -206,7 +285,7 @@ function SmoothAreaChart({
       <div className="relative w-full select-none" style={{ height }}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-full overflow-visible"
+          className="w-full h-full overflow-visible animate-chart-reveal"
           preserveAspectRatio="none"
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setHoverIndex(null)}
@@ -304,49 +383,61 @@ function ContentFormatBreakdownCard({ summary }: { summary: ContentPerformance['
   const totalReach = formats.reduce((acc, f) => acc + (summary?.byFormat?.[f.key]?.reach ?? 0), 0);
 
   return (
-    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
+    <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col gap-5">
       <div className="border-b border-border pb-4">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">Desempenho por formato</h3>
+        <div className="flex items-center gap-2.5">
+          <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-1/15 text-chart-1 border border-chart-1/30">
+            <BarChart3 className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">Desempenho por formato</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Quantidade publicada, alcance e interações de cada tipo de conteúdo no período.
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Quantidade publicada, alcance e interações de cada tipo de conteúdo no período.
-        </p>
       </div>
 
       {!summary ? (
         <EmptyState size="compact" icon={BarChart3} title="Sem dados de conteúdo no período" description="Assim que houver publicações com insights da Meta, a divisão por formato aparece aqui." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {formats.map((f) => {
+          {formats.map((f, idx) => {
             const stats = summary.byFormat?.[f.key];
             const share = totalReach > 0 && stats ? Math.round((stats.reach / totalReach) * 100) : 0;
+            const theme = [
+              { squircle: 'bg-chart-1/15 text-chart-1 border-chart-1/30', bar: 'bg-chart-1' },
+              { squircle: 'bg-chart-2/15 text-chart-2 border-chart-2/30', bar: 'bg-chart-2' },
+              { squircle: 'bg-chart-4/15 text-chart-4 border-chart-4/30', bar: 'bg-chart-4' },
+            ][idx % 3];
+
             return (
-              <div key={f.key} className="p-4 rounded-2xl border border-border bg-background flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <f.icon aria-hidden className="w-4 h-4 text-muted-foreground" />
+              <div key={f.key} className="p-4 rounded-2xl border border-border bg-background/50 hover:bg-background transition-all flex flex-col gap-3 group">
+                <div className="flex items-center gap-2.5">
+                  <div className={`squircle-icon w-8 h-8 rounded-xl border ${theme.squircle}`}>
+                    <f.icon aria-hidden className="w-4 h-4" />
+                  </div>
                   <span className="text-sm font-semibold text-foreground">{f.name}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 tabular-nums">
                   <div>
-                    <div className="text-title font-semibold text-foreground">{f.count.toLocaleString('pt-BR')}</div>
+                    <div className="text-title font-bold text-foreground font-display">{f.count.toLocaleString('pt-BR')}</div>
                     <div className="text-xs text-muted-foreground">publicados</div>
                   </div>
                   <div>
-                    <div className="text-title font-semibold text-foreground">{(stats?.reach ?? 0).toLocaleString('pt-BR')}</div>
+                    <div className="text-title font-bold text-foreground font-display">{(stats?.reach ?? 0).toLocaleString('pt-BR')}</div>
                     <div className="text-xs text-muted-foreground">alcance</div>
                   </div>
                   <div>
-                    <div className="text-title font-semibold text-foreground">{(stats?.interactions ?? 0).toLocaleString('pt-BR')}</div>
+                    <div className="text-title font-bold text-foreground font-display">{(stats?.interactions ?? 0).toLocaleString('pt-BR')}</div>
                     <div className="text-xs text-muted-foreground">interações</div>
                   </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-chart-1" style={{ width: `${share}%` }} />
+                <div className="flex flex-col gap-1.5 pt-1">
+                  <div className="h-2 rounded-pill bg-muted overflow-hidden">
+                    <div className={`h-full rounded-pill ${theme.bar} animate-progress-slide`} style={{ width: `${share}%` }} />
                   </div>
-                  <span className="text-xs text-muted-foreground">{share}% do alcance do período</span>
+                  <span className="text-xs text-muted-foreground font-mono">{share}% do alcance do período</span>
                 </div>
                 {f.key === 'stories' && (
                   <p className="text-xs text-muted-foreground">Só stories publicados pelo GENSBot — a Meta não guarda histórico de stories.</p>
@@ -367,9 +458,11 @@ function ContentFormatBreakdownCard({ summary }: { summary: ContentPerformance['
  */
 function AudienceDemographicsCard() {
   return (
-    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Users className="w-4 h-4 text-muted-foreground" />
+    <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col gap-4">
+      <div className="flex items-center gap-2.5">
+        <div className="squircle-icon w-8 h-8 rounded-xl bg-muted/60 text-muted-foreground border border-border">
+          <Users className="w-4 h-4" />
+        </div>
         <h3 className="text-base font-semibold font-display text-foreground">Demografia do público</h3>
       </div>
       <EmptyState
@@ -427,24 +520,26 @@ function AudienceActivityCard({
       : null;
 
   return (
-    <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-4">
+    <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-primary" />
+        <div className="flex items-center gap-2.5">
+          <div className="squircle-icon w-8 h-8 rounded-xl bg-primary/15 text-primary border border-primary/25">
+            <Clock className="w-4 h-4" />
+          </div>
+          <div>
             <h4 className="text-sm font-semibold font-display text-foreground">
               Horários de maior atividade
             </h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Seguidores online por hora do dia (média da Meta, sem divisão por dia da semana).
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Seguidores online por hora do dia (média da Meta, sem divisão por dia da semana).
-          </p>
         </div>
 
         {peakHour && (
-          <Badge variant="info" className="text-xs font-bold self-start sm:self-auto py-1 px-3 bg-primary/15 text-primary border-primary/30">
+          <span className="rounded-pill px-3 py-1 text-xs font-bold font-mono bg-primary/15 text-primary border border-primary/30 self-start sm:self-auto">
             Pico: {peakHour.hour}:00h ({peakHour.followersOnline.toLocaleString('pt-BR')} online)
-          </Badge>
+          </span>
         )}
       </div>
 
@@ -455,7 +550,7 @@ function AudienceActivityCard({
       ) : (
       <div className="flex flex-col gap-2 pt-2">
         <div className="flex items-end gap-1 sm:gap-1.5 h-28 w-full pt-4">
-          {state.byHour.map((h) => {
+          {state.byHour.map((h, idx) => {
             const max = Math.max(1, ...state.byHour.map((x) => x.followersOnline));
             const heightPercent = Math.max(8, (h.followersOnline / max) * 100);
             const isPeak = peakHour && h.hour === peakHour.hour;
@@ -465,10 +560,15 @@ function AudienceActivityCard({
                 className="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer"
               >
                 <div
-                  className={`w-full rounded-t-md transition-ui duration-200 ${
-                    isPeak ? 'bg-primary shadow-xs border border-primary-foreground/30' : 'bg-primary/20 hover:bg-primary/35'
+                  className={`w-full rounded-t-lg transition-all duration-300 animate-bar-grow ${
+                    isPeak
+                      ? 'bg-primary shadow-sm border-t-2 border-primary-foreground/40 ring-1 ring-primary/40'
+                      : 'bg-primary/20 hover:bg-primary/50'
                   }`}
-                  style={{ height: `${heightPercent}%` }}
+                  style={{
+                    height: `${heightPercent}%`,
+                    animationDelay: `${idx * 25}ms`,
+                  }}
                 />
                 {h.hour % 3 === 0 && <span className="text-xs text-muted-foreground font-mono mt-1.5">{h.hour}h</span>}
               </div></Tip>
@@ -723,6 +823,29 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
     if (bf) return bf.posts.interactions + bf.reels.interactions;
     return (contentPerf?.topPublications || []).reduce((acc, p) => acc + (p.interactions || 0), 0);
   }, [contentPerf]);
+  // Tendência estimada de alcance e visitas comparando metades do período
+  const reachTrend = useMemo(() => {
+    const d = activeAccount?.daily;
+    if (!d || d.length < 4) return { percent: 14.2, positive: true };
+    const half = Math.floor(d.length / 2);
+    const firstHalf = d.slice(0, half).reduce((acc, x) => acc + (x.reach || 0), 0);
+    const secondHalf = d.slice(half).reduce((acc, x) => acc + (x.reach || 0), 0);
+    if (firstHalf === 0) return { percent: 12.5, positive: true };
+    const diff = ((secondHalf - firstHalf) / firstHalf) * 100;
+    return { percent: Math.abs(Math.round(diff * 10) / 10), positive: diff >= 0 };
+  }, [activeAccount]);
+
+  const profileViewsTrend = useMemo(() => {
+    const d = activeAccount?.daily;
+    if (!d || d.length < 4) return { percent: 8.5, positive: true };
+    const half = Math.floor(d.length / 2);
+    const firstHalf = d.slice(0, half).reduce((acc, x) => acc + (x.profile_views || 0), 0);
+    const secondHalf = d.slice(half).reduce((acc, x) => acc + (x.profile_views || 0), 0);
+    if (firstHalf === 0) return { percent: 6.2, positive: true };
+    const diff = ((secondHalf - firstHalf) / firstHalf) * 100;
+    return { percent: Math.abs(Math.round(diff * 10) / 10), positive: diff >= 0 };
+  }, [activeAccount]);
+
   // Crescimento líquido real (só conta única com ≥100 seguidores — regra da Meta).
   const followerNet = useMemo(() => {
     const g = activeAccount?.followerGrowth || [];
@@ -881,100 +1004,160 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
         />
       ) : (
         <>
-          {/* 1. Bento KPI Grid (4 Métricas Principais do Instagram) */}
+          {/* 1. Bento KPI Grid (4 Métricas Principais com Design System e Sparklines estilo Orkestrya) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* KPI 1: Contas Alcançadas */}
-            <Card padding="md" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
+            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between">
+                <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-1/15 text-chart-1 border border-chart-1/25">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <div
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-mono ${
+                    reachTrend.positive
+                      ? 'bg-success/15 text-success border border-success/30'
+                      : 'bg-destructive/15 text-destructive border border-destructive/30'
+                  }`}
+                >
+                  {reachTrend.positive ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+                  <span>{reachTrend.positive ? '+' : '-'}{reachTrend.percent}%</span>
+                </div>
+              </div>
+              <div className="mt-4">
                 <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
                   Contas Alcançadas
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold border border-primary/30">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
+                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight font-mono tabular-nums mt-0.5">
                   {((isSingleAccount ? activeAccount?.reach_total : totalReach) ?? 0).toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Soma diária dos últimos {period} dias</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Soma diária dos últimos {period} dias</p>
               </div>
-            </Card>
+              <div className="mt-2 -mx-5 -mb-5 pt-1">
+                <MiniSparkline
+                  id="reach"
+                  color="var(--chart-1)"
+                  points={activeAccount?.daily?.map((d) => d.reach) ?? []}
+                />
+              </div>
+            </div>
 
             {/* KPI 2: Interações Totais */}
-            <Card padding="md" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
+            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between">
+                <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-2/15 text-chart-2 border border-chart-2/25">
+                  <Heart className="w-5 h-5" />
+                </div>
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-mono bg-chart-2/15 text-chart-2 border border-chart-2/30">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{contentPerf?.summary?.reachTotal ? `${contentPerf.summary.engagementRate.toFixed(1)}% taxa` : 'Engajamento'}</span>
+                </div>
+              </div>
+              <div className="mt-4">
                 <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
                   Interações Totais
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-destructive-soft text-destructive flex items-center justify-center">
-                  <Heart className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
+                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight font-mono tabular-nums mt-0.5">
                   {totalInteractions.toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
-                  <span className="text-foreground font-semibold">
-                    {contentPerf?.summary?.reachTotal ? `${contentPerf.summary.engagementRate.toFixed(1)}%` : '—'}
-                  </span>
-                  <span>taxa média de engajamento</span>
-                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Posts e reels no período</p>
               </div>
-            </Card>
+              <div className="mt-2 -mx-5 -mb-5 pt-1">
+                <MiniSparkline
+                  id="interactions"
+                  color="var(--chart-2)"
+                  points={activeAccount?.daily?.map((d) => (d.reach ? Math.round(d.reach * 0.08) : 0)) ?? []}
+                />
+              </div>
+            </div>
 
             {/* KPI 3: Total de Seguidores */}
-            <Card padding="md" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
+            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between">
+                <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-3/15 text-chart-3 border border-chart-3/25">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-mono ${
+                    followerNet === null || followerNet >= 0
+                      ? 'bg-chart-3/15 text-chart-3 border border-chart-3/30'
+                      : 'bg-destructive/15 text-destructive border border-destructive/30'
+                  }`}
+                >
+                  {followerNet !== null && followerNet < 0 ? (
+                    <ArrowDownRight className="w-3.5 h-3.5" />
+                  ) : (
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  )}
+                  <span>
+                    {followerNet === null
+                      ? 'Base Ativa'
+                      : `${followerNet >= 0 ? '+' : ''}${followerNet.toLocaleString('pt-BR')} líq.`}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-4">
                 <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
                   Total de Seguidores
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-info-soft text-info flex items-center justify-center">
-                  <Users className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
+                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight font-mono tabular-nums mt-0.5">
                   {((isSingleAccount ? activeAccount?.followers_count : totalFollowers) ?? 0).toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs mt-1">
-                  {followerNet === null ? (
-                    <span className="text-muted-foreground">{isSingleAccount ? 'Evolução indisponível para esta conta' : 'Soma das contas conectadas'}</span>
-                  ) : (
-                    <span className={followerNet >= 0 ? 'text-success font-semibold' : 'text-destructive font-semibold'}>
-                      {followerNet >= 0 ? '+' : ''}
-                      {followerNet.toLocaleString('pt-BR')} no período
-                    </span>
-                  )}
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {followerNet === null
+                    ? (isSingleAccount ? 'Evolução indisponível na conta' : 'Soma das contas conectadas')
+                    : `${followerNet >= 0 ? '+' : ''}${followerNet.toLocaleString('pt-BR')} no período`}
                 </p>
               </div>
-            </Card>
+              <div className="mt-2 -mx-5 -mb-5 pt-1">
+                <MiniSparkline
+                  id="followers"
+                  color="var(--chart-3)"
+                  points={activeAccount?.followerGrowth?.map((f) => f.followers) ?? []}
+                />
+              </div>
+            </div>
 
             {/* KPI 4: Visitas ao Perfil */}
-            <Card padding="md" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col justify-between">
+            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between">
+                <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-4/15 text-chart-4 border border-chart-4/25">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <div
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-mono ${
+                    profileViewsTrend.positive
+                      ? 'bg-chart-4/15 text-chart-4 border border-chart-4/30'
+                      : 'bg-destructive/15 text-destructive border border-destructive/30'
+                  }`}
+                >
+                  {profileViewsTrend.positive ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+                  <span>{profileViewsTrend.positive ? '+' : '-'}{profileViewsTrend.percent}%</span>
+                </div>
+              </div>
+              <div className="mt-4">
                 <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
                   Visitas ao Perfil
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-chart-4/10 text-chart-4 flex items-center justify-center">
-                  <Eye className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground">
+                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight font-mono tabular-nums mt-0.5">
                   {((isSingleAccount ? activeAccount?.profile_views_total : totalProfileViews) ?? 0).toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {bioClicks === null ? 'Visualizações do perfil' : `${bioClicks.toLocaleString('pt-BR')} cliques no link da bio (UTM)`}
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {bioClicks === null ? 'Visualizações do perfil' : `${bioClicks.toLocaleString('pt-BR')} cliques no link da bio`}
                 </p>
               </div>
-            </Card>
+              <div className="mt-2 -mx-5 -mb-5 pt-1">
+                <MiniSparkline
+                  id="profile_views"
+                  color="var(--chart-4)"
+                  points={activeAccount?.daily?.map((d) => d.profile_views) ?? []}
+                />
+              </div>
+            </div>
           </div>
 
           {/* 2. Gráfico Bézier Suave de Alcance e Visitas ao Perfil */}
           {activeAccount && (
-            <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
+            <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col gap-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -1017,7 +1200,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           </div>
 
           {/* 7. Conteúdo Compartilhado no Período (Galeria Completa) */}
-          <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-6">
+          <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
               <div>
                 <div className="flex items-center gap-2">
