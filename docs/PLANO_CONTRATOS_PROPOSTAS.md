@@ -1,6 +1,6 @@
 # Plano: Contratos e Propostas (réplica do Orkestrya)
 
-Status: **só plano**, nada implementado. Base: inspeção do Orkestrya em 05/11/2026 (somente leitura: nenhum contrato ou proposta foi criado ou enviado lá). Este documento detalha o item 5 do `BACKLOG_COMPLETO.md`.
+Status: **referência e plano geral**. A primeira versão (modelos, propostas, contratos, páginas públicas e assinatura simples) já foi entregue no PR #223; o que falta de assinatura e envio está em `PLANO_ASSINATURA_E_ENVIO.md`, que é o plano a seguir (assinatura própria, custo zero, sem provedor externo). Base: inspeção do Orkestrya em 05/11/2026 (somente leitura: nenhum contrato ou proposta foi criado ou enviado lá). Este documento detalha o item 5 do `BACKLOG_COMPLETO.md`.
 
 ## 1. Objetivo
 
@@ -77,7 +77,10 @@ Mesma lista do Orkestrya, com chaves `{{contratante.razao_social}}` etc. renderi
 5. Ao ficar `assinado`, gerar o **PDF assinado** com carimbo e página de evidências (quem, quando, IP, hash), guardar no R2 e liberar o download para as duas partes.
 6. Proposta aceita pode gerar o contrato padrão já preenchido (equivalente à automação do Orkestrya).
 
-### 3.5 Assinatura: o repositório que você vai buscar
+### 3.5 Assinatura (decisão: própria, sem provedor externo)
+Decidido: nada de OpenSign nem outro serviço; o desenho está em `PLANO_ASSINATURA_E_ENVIO.md`. Os critérios abaixo ficam só como histórico.
+
+#### Critérios avaliados para um provedor externo (não adotado)
 Critérios para escolher a biblioteca/serviço antes de implementar:
 - Roda em Next.js sem servidor próprio dedicado (Vercel) e funciona bem no celular.
 - Gera PDF com carimbo e página de evidências; guarda hash e trilha de auditoria.

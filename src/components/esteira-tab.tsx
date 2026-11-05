@@ -28,6 +28,7 @@ import {
   MoreHorizontal,
   AlertCircle,
   Archive,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Menu } from '@base-ui/react/menu';
 import { corDaEtiqueta, type Etiqueta } from '@/lib/etiquetas';
@@ -200,11 +201,49 @@ export default function EsteiraTab({
   // Filtros
   const [clienteSelecionado, setClienteSelecionado] = useState<string>(clienteFiltroId || 'all');
   const [responsavelFiltro, setResponsavelFiltro] = useState<string>('all');
+  const [etiquetaFiltro, setEtiquetaFiltro] = useState<string>('all');
   const [busca, setBusca] = useState('');
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'feed'>('kanban');
   const [mesSelecionado, setMesSelecionado] = useState<string>(() => new Date().toISOString().slice(0, 7));
   const [ocultarPublicados, setOcultarPublicados] = useState(true);
   const [mostrarArquivados, setMostrarArquivados] = useState(false);
+
+  // Power-up: Limites WIP por coluna (persistido em localStorage)
+  const [limitesWip, setLimitesWip] = useState<Record<string, number>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const salvo = localStorage.getItem('gensbot_kanban_wip_limits');
+      return salvo ? JSON.parse(salvo) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  function handleDefinirLimiteWip(colStatus: string, label: string) {
+    const atual = limitesWip[colStatus] || 0;
+    const resposta = window.prompt(
+      `Defina o Limite WIP (máximo de demandas em paralelo) para "${label}":\n(Informe um número ou deixe em branco para desativar)`,
+      atual > 0 ? String(atual) : ''
+    );
+    if (resposta === null) return;
+    const novoNum = parseInt(resposta.trim(), 10);
+    const atualizados = { ...limitesWip };
+    if (!isNaN(novoNum) && novoNum > 0) {
+      atualizados[colStatus] = novoNum;
+    } else {
+      delete atualizados[colStatus];
+    }
+    setLimitesWip(atualizados);
+    try {
+      localStorage.setItem('gensbot_kanban_wip_limits', JSON.stringify(atualizados));
+    } catch {}
+    showToast(
+      atualizados[colStatus]
+        ? `Limite WIP de ${atualizados[colStatus]} ativado para "${label}".`
+        : `Limite WIP desativado para "${label}".`,
+      'success'
+    );
+  }
 
   // Drag and Drop state
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
@@ -337,6 +376,7 @@ export default function EsteiraTab({
 
       if (clienteSelecionado !== 'all' && item.cliente_id !== clienteSelecionado) return false;
       if (responsavelFiltro !== 'all' && !ehResponsavel(item, responsavelFiltro)) return false;
+      if (etiquetaFiltro !== 'all' && !(item.etiquetas_ids ?? []).includes(etiquetaFiltro)) return false;
       if (ocultarPublicados && item.status === 'publicado') return false;
 
       // Posts publicados há mais de 7 dias não ocupam espaço na tela de publicados da esteira
@@ -361,7 +401,7 @@ export default function EsteiraTab({
       }
       return true;
     }).sort(compararPorData);
-  }, [items, clienteSelecionado, responsavelFiltro, busca, ocultarPublicados, mostrarArquivados]);
+  }, [items, clienteSelecionado, responsavelFiltro, etiquetaFiltro, busca, ocultarPublicados, mostrarArquivados]);
 
   async function handleMudarStatus(
     itemId: string,
@@ -705,6 +745,9 @@ export default function EsteiraTab({
         membros={membros.map((m) => ({ id: m.id, nome: m.nome }))}
         responsavel={responsavelFiltro}
         onResponsavel={setResponsavelFiltro}
+        etiquetas={etiquetasLista.map((e) => ({ id: e.id, nome: e.nome }))}
+        etiquetaSelecionada={etiquetaFiltro}
+        onEtiqueta={setEtiquetaFiltro}
         modo={viewMode}
         onModo={setViewMode}
         mostrarPublicados={!ocultarPublicados}
@@ -728,7 +771,7 @@ export default function EsteiraTab({
           </div>
           <div className="md:hidden">
             <BotaoFiltros
-              quantidade={contarFiltros({ clienteSelecionado, clienteTravado: !!clienteFiltroId, responsavel: responsavelFiltro, modo: viewMode })}
+              quantidade={contarFiltros({ clienteSelecionado, clienteTravado: !!clienteFiltroId, responsavel: responsavelFiltro, modo: viewMode, etiqueta: etiquetaFiltro })}
               onClick={() => setFiltrosMobileAberto(true)}
             />
           </div>
@@ -777,6 +820,22 @@ export default function EsteiraTab({
               {membros.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.nome}
+                </option>
+              ))}
+            </Select>
+          )}
+
+          {/* Filtro Etiqueta */}
+          {etiquetasLista.length > 0 && (
+            <Select
+              value={etiquetaFiltro}
+              onChange={(e) => setEtiquetaFiltro(e.target.value)}
+              className="h-9 text-xs w-36 sm:w-40 max-md:hidden"
+            >
+              <option value="all">Todas as etiquetas</option>
+              {etiquetasLista.map((et) => (
+                <option key={et.id} value={et.id}>
+                  🏷️ {et.nome}
                 </option>
               ))}
             </Select>
@@ -1112,10 +1171,37 @@ export default function EsteiraTab({
                         {itensDaColuna.length}
                       </span>
                     </span>
+
+                    {/* Power-up Limite WIP */}
+                    {limitesWip[colStatus] ? (
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono tabular-nums font-bold ${
+                          itensDaColuna.length > limitesWip[colStatus]
+                            ? 'bg-destructive/20 text-destructive border border-destructive/40 animate-pulse'
+                            : 'bg-background/80 text-muted-foreground border border-border/40'
+                        }`}
+                        title={`Limite WIP: ${itensDaColuna.length} de máx. ${limitesWip[colStatus]}`}
+                      >
+                        WIP {itensDaColuna.length}/{limitesWip[colStatus]}
+                      </span>
+                    ) : null}
                   </div>
-                  <span className="text-[11px] text-muted-foreground/80 font-mono tracking-wider font-semibold">
-                    {info.tag}
-                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    <Tip label={limitesWip[colStatus] ? `Alterar limite WIP (${limitesWip[colStatus]})` : 'Definir limite WIP da etapa'}>
+                      <button
+                        type="button"
+                        onClick={() => handleDefinirLimiteWip(colStatus, info.label)}
+                        className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-background/60 transition-colors"
+                        aria-label="Configurar limite WIP"
+                      >
+                        <SlidersHorizontal className="size-3" />
+                      </button>
+                    </Tip>
+                    <span className="text-[11px] text-muted-foreground/80 font-mono tracking-wider font-semibold">
+                      {info.tag}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Nova demanda direto nesta etapa, na cor da coluna (como no Orkestrya) */}
