@@ -631,7 +631,7 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
                     <TrendingUp className="w-4 h-4" />
                   </div>
                   <div
-                    className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-pill text-xs font-semibold font-sans tabular-nums ${
+                    className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-pill text-xs font-semibold font-sans tabular-nums shrink-0 whitespace-nowrap ${
                       reachTrend.positive
                         ? 'bg-success/15 text-success border border-success/30'
                         : 'bg-destructive/15 text-destructive border border-destructive/30'
@@ -666,7 +666,7 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
                     <Eye className="w-4 h-4" />
                   </div>
                   <div
-                    className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-pill text-xs font-semibold font-sans tabular-nums ${
+                    className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-pill text-xs font-semibold font-sans tabular-nums shrink-0 whitespace-nowrap ${
                       viewsTrend.positive
                         ? 'bg-chart-2/15 text-chart-2 border border-chart-2/30'
                         : 'bg-destructive/15 text-destructive border border-destructive/30'
@@ -700,7 +700,7 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
                   <div className="squircle-icon w-9 h-9 rounded-2xl bg-chart-3/15 text-chart-3 border border-chart-3/25">
                     <Heart className="w-4 h-4" />
                   </div>
-                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-pill text-xs font-semibold font-sans tabular-nums bg-chart-3/15 text-chart-3 border border-chart-3/30">
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-pill text-xs font-semibold font-sans tabular-nums shrink-0 whitespace-nowrap bg-chart-3/15 text-chart-3 border border-chart-3/30">
                     <Sparkles className="w-3 h-3" />
                     <span>{dados.content.summary.reachTotal > 0 ? `${dados.content.summary.engagementRate.toFixed(1)}%` : 'Engaj.'}</span>
                   </div>
@@ -730,7 +730,7 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
                     <Users className="w-4 h-4" />
                   </div>
                   <div
-                    className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-pill text-xs font-semibold font-sans tabular-nums ${
+                    className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-pill text-xs font-semibold font-sans tabular-nums shrink-0 whitespace-nowrap ${
                       ganhoSeguidores === null || ganhoSeguidores >= 0
                         ? 'bg-chart-4/15 text-chart-4 border border-chart-4/30'
                         : 'bg-destructive/15 text-destructive border border-destructive/30'
@@ -774,7 +774,7 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
                   </div>
                   <p className="text-xs text-muted-foreground font-sans">Evolução dia a dia da presença orgânica no Instagram</p>
                 </div>
-                <span className="text-xs font-sans font-semibold text-primary tabular-nums px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 self-start sm:self-auto">
+                <span className="text-xs font-sans font-semibold text-primary tabular-nums px-3 py-1 rounded-full bg-primary/10 border border-primary/20 shrink-0 whitespace-nowrap self-start sm:self-auto">
                   {totalReach.toLocaleString('pt-BR')} alcance acumulado
                 </span>
               </div>
@@ -794,20 +794,20 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
               {/* Radar de Collabs */}
               <Card padding="lg" className="print-break-avoid rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-4">
                 <div>
-                  <div className="flex items-center justify-between border-b border-border pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-3/15 text-chart-3 border border-chart-3/30">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-3/15 text-chart-3 border border-chart-3/30 shrink-0">
                         <Users className="w-4 h-4" />
                       </div>
-                      <div>
-                        <h3 className="text-sm sm:text-base font-semibold font-display text-foreground">
+                      <div className="min-w-0">
+                        <h3 className="text-sm sm:text-base font-semibold font-display text-foreground truncate">
                           Radar de Collabs & Parcerias
                         </h3>
-                        <p className="text-xs text-muted-foreground font-sans">Impacto das postagens em colaboração</p>
+                        <p className="text-xs text-muted-foreground font-sans truncate">Impacto das postagens em colaboração</p>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-sans font-semibold tabular-nums bg-primary/10 text-primary border border-primary/20">
-                      {collabsList.length} Collabs
+                    <span className="px-2.5 py-1 rounded-full text-xs font-sans font-semibold tabular-nums bg-primary/10 text-primary border border-primary/20 shrink-0 whitespace-nowrap self-start sm:self-auto">
+                      {collabsList.length} {collabsList.length === 1 ? 'collab' : 'collabs'}
                     </span>
                   </div>
 
@@ -860,20 +860,20 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
               {/* Retenção de Vídeo Reels */}
               <Card padding="lg" className="print-break-avoid rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-4">
                 <div>
-                  <div className="flex items-center justify-between border-b border-border pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-1/15 text-chart-1 border border-chart-1/30">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-1/15 text-chart-1 border border-chart-1/30 shrink-0">
                         <Clock className="w-4 h-4" />
                       </div>
-                      <div>
-                        <h3 className="text-sm sm:text-base font-semibold font-display text-foreground">
+                      <div className="min-w-0">
+                        <h3 className="text-sm sm:text-base font-semibold font-display text-foreground truncate">
                           Retenção de Vídeo (Reels)
                         </h3>
-                        <p className="text-xs text-muted-foreground font-sans">Tempo médio de tela assistido</p>
+                        <p className="text-xs text-muted-foreground font-sans truncate">Tempo médio de tela assistido</p>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-sans font-semibold tabular-nums bg-chart-1/10 text-chart-1 border border-chart-1/20">
-                      {reelsList.length} Reels
+                    <span className="px-2.5 py-1 rounded-full text-xs font-sans font-semibold tabular-nums bg-chart-1/10 text-chart-1 border border-chart-1/20 shrink-0 whitespace-nowrap self-start sm:self-auto">
+                      {reelsList.length} {reelsList.length === 1 ? 'Reel' : 'Reels'}
                     </span>
                   </div>
 
@@ -921,19 +921,19 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
               {/* Termômetro do Algoritmo */}
               <Card padding="lg" className="print-break-avoid rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-4">
                 <div>
-                  <div className="flex items-center justify-between border-b border-border pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-2/15 text-chart-2 border border-chart-2/30">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-2/15 text-chart-2 border border-chart-2/30 shrink-0">
                         <Share2 className="w-4 h-4" />
                       </div>
-                      <div>
-                        <h3 className="text-sm sm:text-base font-semibold font-display text-foreground">
+                      <div className="min-w-0">
+                        <h3 className="text-sm sm:text-base font-semibold font-display text-foreground truncate">
                           Viralidade & Salvos
                         </h3>
-                        <p className="text-xs text-muted-foreground font-sans">Sinais com maior peso no algoritmo da Meta</p>
+                        <p className="text-xs text-muted-foreground font-sans truncate">Sinais com maior peso no algoritmo da Meta</p>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-sans font-semibold tabular-nums bg-chart-2/10 text-chart-2 border border-chart-2/20">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-sans font-semibold tabular-nums bg-chart-2/10 text-chart-2 border border-chart-2/20 shrink-0 whitespace-nowrap self-start sm:self-auto">
                       {totalAlgorithmicPower.toLocaleString('pt-BR')} ações
                     </span>
                   </div>

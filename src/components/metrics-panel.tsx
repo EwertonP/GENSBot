@@ -438,7 +438,7 @@ function ContentFormatBreakdownCard({ summary }: { summary: ContentPerformance['
       {!summary ? (
         <EmptyState size="compact" icon={BarChart3} title="Sem dados de conteúdo no período" description="Assim que houver publicações com insights da Meta, a divisão por formato aparece aqui." />
       ) : (
-        <div className={`grid grid-cols-1 ${formats.length === 4 ? 'sm:grid-cols-2 xl:grid-cols-4' : 'sm:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           {formats.map((f, idx) => {
             const stats = summary.byFormat?.[f.key];
             const share = totalReach > 0 && stats ? Math.round((stats.reach / totalReach) * 100) : 0;
@@ -452,35 +452,35 @@ function ContentFormatBreakdownCard({ summary }: { summary: ContentPerformance['
             return (
               <div key={f.key} className="p-4 sm:p-5 rounded-2xl border border-border bg-background/50 hover:bg-background transition-all flex flex-col justify-between gap-4 group">
                 <div className="flex flex-col gap-3.5">
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className={`squircle-icon w-8 h-8 rounded-xl border shrink-0 ${theme.squircle}`}>
                         <f.icon aria-hidden className="w-4 h-4" />
                       </div>
-                      <span className="text-sm sm:text-base font-semibold font-display text-foreground leading-snug">{f.name}</span>
+                      <span className="text-sm sm:text-base font-bold font-display text-foreground leading-snug truncate">{f.name}</span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold font-sans shrink-0 border ${theme.badge}`}>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold font-sans shrink-0 whitespace-nowrap border ${theme.badge}`}>
                       {share}% alcance
                     </span>
                   </div>
 
-                  {/* 3 Métricas Limpas, Proporcionais e Sem Truncamento */}
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 p-3 rounded-xl bg-card border border-border">
+                  {/* 3 Métricas com Amplo Espaço e Alinhamento Proporcional */}
+                  <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-card border border-border text-center">
                     <div className="min-w-0">
-                      <span className="text-xs text-muted-foreground font-medium font-sans block">Posts</span>
-                      <div className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5">
+                      <span className="text-xs text-muted-foreground font-medium font-sans block uppercase tracking-wider">Posts</span>
+                      <div className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5 truncate">
                         {f.count.toLocaleString('pt-BR')}
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <span className="text-xs text-muted-foreground font-medium font-sans block">Alcance</span>
-                      <div className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5">
+                      <span className="text-xs text-muted-foreground font-medium font-sans block uppercase tracking-wider">Alcance</span>
+                      <div className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5 truncate">
                         {(stats?.reach ?? 0).toLocaleString('pt-BR')}
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <span className="text-xs text-muted-foreground font-medium font-sans block">Interações</span>
-                      <div className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5">
+                      <span className="text-xs text-muted-foreground font-medium font-sans block uppercase tracking-wider">Interações</span>
+                      <div className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5 truncate">
                         {(stats?.interactions ?? 0).toLocaleString('pt-BR')}
                       </div>
                     </div>
@@ -560,22 +560,22 @@ function CollabRadarCard({
   return (
     <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-5">
       <div>
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-3/15 text-chart-3 border border-chart-3/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-3/15 text-chart-3 border border-chart-3/30 shrink-0">
               <Users className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground truncate">
                 Radar de Collabs & Parcerias
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 Impacto das colaborações no alcance orgânico da conta
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold font-sans bg-primary/10 text-primary border border-primary/20">
-            {collabs.length} no período
+          <span className="px-3 py-1 rounded-full text-xs font-semibold font-sans bg-primary/10 text-primary border border-primary/20 shrink-0 whitespace-nowrap self-start sm:self-auto">
+            {collabs.length} {collabs.length === 1 ? 'collab' : 'collabs'} no período
           </span>
         </div>
 
@@ -665,22 +665,22 @@ function ReelsRetentionCard({ publications }: { publications: PublicationItem[] 
   return (
     <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-5">
       <div>
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-1/15 text-chart-1 border border-chart-1/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-1/15 text-chart-1 border border-chart-1/30 shrink-0">
               <Clock className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground truncate">
                 Retenção & Consumo de Reels
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 Tempo médio assistido por vídeo e engajamento contínuo
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold font-sans bg-chart-1/10 text-chart-1 border border-chart-1/20">
-            {reels.length} Reels
+          <span className="px-3 py-1 rounded-full text-xs font-semibold font-sans bg-chart-1/10 text-chart-1 border border-chart-1/20 shrink-0 whitespace-nowrap self-start sm:self-auto">
+            {reels.length} {reels.length === 1 ? 'Reel' : 'Reels'}
           </span>
         </div>
 
@@ -771,21 +771,21 @@ function AlgorithmViralityCard({
   return (
     <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-5">
       <div>
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-2/15 text-chart-2 border border-chart-2/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-2/15 text-chart-2 border border-chart-2/30 shrink-0">
               <Share2 className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground truncate">
                 Termômetro do Algoritmo: Viralidade & Salvos
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 Os 2 fatores de maior pontuação no algoritmo moderno do Instagram
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold font-sans tabular-nums bg-chart-2/10 text-chart-2 border border-chart-2/20">
+          <span className="px-3 py-1 rounded-full text-xs font-semibold font-sans tabular-nums bg-chart-2/10 text-chart-2 border border-chart-2/20 shrink-0 whitespace-nowrap self-start sm:self-auto">
             {totalAlgorithmicPower.toLocaleString('pt-BR')} sinais
           </span>
         </div>
@@ -881,21 +881,21 @@ function TrafficFunnelCard({
   return (
     <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-5">
       <div>
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-4/15 text-chart-4 border border-chart-4/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-4/15 text-chart-4 border border-chart-4/30 shrink-0">
               <ArrowUpRight className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground truncate">
                 Funil de Tráfego & Conversão
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 Da visualização no perfil até o clique no link externo
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold font-sans bg-chart-4/10 text-chart-4 border border-chart-4/20">
+          <span className="px-3 py-1 rounded-full text-xs font-semibold font-sans bg-chart-4/10 text-chart-4 border border-chart-4/20 shrink-0 whitespace-nowrap self-start sm:self-auto">
             {ctr}% CTR
           </span>
         </div>
@@ -970,21 +970,21 @@ function EditorialCadenceCard({
   return (
     <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-5">
       <div>
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-1/15 text-chart-1 border border-chart-1/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-1/15 text-chart-1 border border-chart-1/30 shrink-0">
               <Calendar className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground truncate">
                 Consistência & Ritmo Editorial
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 Frequência de postagens e distribuição de formatos
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold font-sans bg-primary/10 text-primary border border-primary/20">
+          <span className="px-3 py-1 rounded-full text-xs font-semibold font-sans bg-primary/10 text-primary border border-primary/20 shrink-0 whitespace-nowrap self-start sm:self-auto">
             {cadencePerWeek} posts/sem
           </span>
         </div>
@@ -1029,9 +1029,9 @@ function EditorialCadenceCard({
         </div>
       </div>
 
-      <div className="pt-3 border-t border-border flex items-center justify-between gap-2 text-xs text-muted-foreground">
-        <span className="truncate">Regularidade recomendada: 3 a 5 posts por semana</span>
-        <span className="font-semibold text-primary font-sans shrink-0">Meta Benchmark</span>
+      <div className="pt-3 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-muted-foreground font-sans">
+        <span>Meta recomenda: 3 a 5 posts por semana</span>
+        <span className="font-semibold text-primary font-sans shrink-0 whitespace-nowrap">Benchmark Meta</span>
       </div>
     </Card>
   );
@@ -1107,23 +1107,23 @@ function AudienceActivityCard({
 
   return (
     <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col gap-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <div className="squircle-icon w-8 h-8 rounded-xl bg-primary/15 text-primary border border-primary/25">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="squircle-icon w-8 h-8 rounded-xl bg-primary/15 text-primary border border-primary/25 shrink-0">
             <Clock className="w-4 h-4" />
           </div>
-          <div>
-            <h4 className="text-sm font-semibold font-display text-foreground">
+          <div className="min-w-0">
+            <h4 className="text-sm sm:text-base font-semibold font-display text-foreground truncate">
               Horários de maior atividade
             </h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
               Seguidores online por hora do dia (média da Meta, sem divisão por dia da semana).
             </p>
           </div>
         </div>
 
         {peakHour && (
-          <span className="rounded-pill px-3 py-1 text-xs font-semibold font-sans tabular-nums bg-primary/15 text-primary border border-primary/30 self-start sm:self-auto">
+          <span className="rounded-pill px-3 py-1 text-xs font-semibold font-sans tabular-nums bg-primary/15 text-primary border border-primary/30 shrink-0 whitespace-nowrap self-start sm:self-auto">
             Pico: {peakHour.hour}:00h ({peakHour.followersOnline.toLocaleString('pt-BR')} online)
           </span>
         )}
@@ -1677,7 +1677,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <div
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums shrink-0 whitespace-nowrap ${
                     reachTrend.positive
                       ? 'bg-success/15 text-success border border-success/30'
                       : 'bg-destructive/15 text-destructive border border-destructive/30'
@@ -1712,7 +1712,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   <Eye className="w-5 h-5" />
                 </div>
                 <div
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums shrink-0 whitespace-nowrap ${
                     viewsTrend.positive
                       ? 'bg-chart-2/15 text-chart-2 border border-chart-2/30'
                       : 'bg-destructive/15 text-destructive border border-destructive/30'
@@ -1746,7 +1746,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-3/15 text-chart-3 border border-chart-3/25">
                   <Heart className="w-5 h-5" />
                 </div>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums bg-chart-3/15 text-chart-3 border border-chart-3/30">
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums shrink-0 whitespace-nowrap bg-chart-3/15 text-chart-3 border border-chart-3/30">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>{contentPerf?.summary?.reachTotal ? `${contentPerf.summary.engagementRate.toFixed(1)}% taxa` : 'Engajamento'}</span>
                 </div>
@@ -1780,7 +1780,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   <Users className="w-5 h-5" />
                 </div>
                 <div
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums shrink-0 whitespace-nowrap ${
                     followerNet === null || followerNet >= 0
                       ? 'bg-chart-4/15 text-chart-4 border border-chart-4/30'
                       : 'bg-destructive/15 text-destructive border border-destructive/30'
@@ -1845,7 +1845,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="muted" className="font-sans font-semibold text-xs tabular-nums bg-primary/15 text-primary border-primary/30">
+                  <Badge variant="muted" className="font-sans font-semibold text-xs tabular-nums bg-primary/15 text-primary border-primary/30 shrink-0 whitespace-nowrap">
                     Total: {activeAccount.reach_total.toLocaleString('pt-BR')} contas
                   </Badge>
                 </div>
