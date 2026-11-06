@@ -121,7 +121,7 @@ function Previa({ item }: { item: ItemDoMes }) {
   );
 }
 
-function CampoTexto({ rotulo, texto, copiavel }: { rotulo: string; texto: string | null; copiavel?: boolean }) {
+function CampoTexto({ rotulo, texto, copiavel, leitura }: { rotulo: string; texto: string | null; copiavel?: boolean; leitura?: boolean }) {
   if (!texto?.trim()) return null;
   async function copiar() {
     try {
@@ -141,7 +141,7 @@ function CampoTexto({ rotulo, texto, copiavel }: { rotulo: string; texto: string
           </Button>
         )}
       </div>
-      <p className="whitespace-pre-line text-[15px] leading-relaxed">{texto}</p>
+      <p className={cn('whitespace-pre-line', leitura ? 'text-xl leading-9' : 'text-[15px] leading-relaxed')}>{texto}</p>
     </section>
   );
 }
@@ -156,10 +156,11 @@ interface CampoEditavelProps {
   onNome: (v: string) => void;
   onEnviar: (campo: CampoSugestao, texto: string) => Promise<boolean>;
   grande?: boolean;
+  leitura?: boolean;
 }
 
 /** Texto de um post em planejamento: a cliente pode sugerir uma mudança (nada é sobrescrito). */
-function CampoEditavel({ rotulo, campo, texto, pendente, nome, onNome, onEnviar, grande }: CampoEditavelProps) {
+function CampoEditavel({ rotulo, campo, texto, pendente, nome, onNome, onEnviar, grande, leitura }: CampoEditavelProps) {
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -216,7 +217,7 @@ function CampoEditavel({ rotulo, campo, texto, pendente, nome, onNome, onEnviar,
       ) : (
         <>
           {texto?.trim() ? (
-            <p className={cn('whitespace-pre-line leading-relaxed', grande ? 'text-lg font-semibold' : 'text-[15px]')}>{texto}</p>
+            <p className={cn('whitespace-pre-line', !leitura && 'leading-relaxed', grande ? 'text-lg font-semibold' : leitura ? 'text-xl leading-9' : 'text-[15px]')}>{texto}</p>
           ) : (
             <p className="text-sm text-muted-foreground">Ainda não há texto aqui.</p>
           )}
@@ -245,6 +246,14 @@ export default function LinkDoMesPage() {
       return typeof window === 'undefined' ? '' : localStorage.getItem(NOME_KEY) || '';
     } catch {
       return '';
+    }
+  });
+  // Modo leitura: texto maior, para ler o roteiro no celular na hora de gravar.
+  const [leitura, setLeitura] = useState(() => {
+    try {
+      return typeof window !== 'undefined' && localStorage.getItem('gens_modo_leitura') === '1';
+    } catch {
+      return false;
     }
   });
   const [pedindoAjuste, setPedindoAjuste] = useState(false);
@@ -297,6 +306,16 @@ export default function LinkDoMesPage() {
     setPedindoAjuste(false);
     setTextoAjuste('');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+  }
+
+  function alternarLeitura() {
+    const novo = !leitura;
+    setLeitura(novo);
+    try {
+      localStorage.setItem('gens_modo_leitura', novo ? '1' : '0');
+    } catch {
+      /* ignora */
+    }
   }
 
   function guardarNome(v: string) {
@@ -455,13 +474,14 @@ export default function LinkDoMesPage() {
                 onNome={guardarNome}
                 onEnviar={(c, t) => enviarSugestao(it, c, t)}
                 grande={campo === 'titulo'}
+                leitura={leitura}
               />
             ))}
           </>
         ) : (
           <>
-            <CampoTexto rotulo={it.tipo === 'reel' ? 'Roteiro do vídeo' : 'Texto da peça'} texto={it.briefing} copiavel />
-            <CampoTexto rotulo="Legenda" texto={it.legenda} copiavel />
+            <CampoTexto rotulo={it.tipo === 'reel' ? 'Roteiro do vídeo' : 'Texto da peça'} texto={it.briefing} copiavel leitura={leitura} />
+            <CampoTexto rotulo="Legenda" texto={it.legenda} copiavel leitura={leitura} />
           </>
         )}
         {it.etapa !== 'texto' && !it.briefing?.trim() && !it.legenda?.trim() && (
@@ -591,6 +611,9 @@ export default function LinkDoMesPage() {
                       <ArrowLeft className="size-4" aria-hidden /> Voltar
                     </Button>
                     <div className="ml-auto flex items-center gap-2">
+                      <Button variant={leitura ? 'primary' : 'secondary'} size="sm" onClick={alternarLeitura} aria-pressed={leitura} aria-label="Modo leitura (texto maior)">
+                        <Type className="size-4" aria-hidden /> Leitura
+                      </Button>
                       <Button variant="secondary" size="sm" onClick={() => abrir(itensAba[indice - 1].id)} disabled={indice <= 0} aria-label="Post anterior">
                         <ChevronLeft className="size-4" aria-hidden />
                       </Button>

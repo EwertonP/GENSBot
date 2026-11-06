@@ -44,6 +44,9 @@ Descoberta na implementação: a mídia **já é apagada do armazenamento no ins
 3. **Retenção:** texto por 30 dias com prazo por cliente, limpeza no cron (mídia já é apagada na publicação).
 4. **Acabamento:** campo de prazo de retenção por cliente, revogar/renovar link, "copiar roteiro" e modo leitura, copiar o link do mês da ficha do cliente e do MCP.
 
+## 7.1 Fase 4 (entregue)
+Revogar/renovar o link já existia (ficha do feed). Entrou: prazo de retenção por cliente na ficha (Operação), botão "Link do mês" na esteira, a ferramenta MCP `link_aprovacao_mes` devolve o link do mês (e o do feed visual) e o modo Leitura (texto maior, lembrado no aparelho) na tela da cliente.
+
 ## 8. Decisões pendentes
 - Guardar o permalink do Instagram para a aba Publicados (ver seção 6).
 - Se a cliente vê o status "em planejamento" ou só "texto para revisar".
