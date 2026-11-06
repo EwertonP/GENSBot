@@ -47,15 +47,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   }
 
   const clienteItem = (item as any)?.cliente;
-  if (clienteItem && !clienteItem.foto_url && clienteItem.instagram_account_id) {
+  if (clienteItem && clienteItem.instagram_account_id) {
     const { data: conta } = await supabase
       .from('instagram_accounts')
       .select('profile_picture_url, instagram_username')
       .eq('id', clienteItem.instagram_account_id)
       .maybeSingle();
-    if (conta?.profile_picture_url) {
-      clienteItem.foto_url = conta.profile_picture_url;
-      clienteItem.instagram_username = conta.instagram_username;
+    if (conta) {
+      if (!clienteItem.foto_url && conta.profile_picture_url) {
+        clienteItem.foto_url = conta.profile_picture_url;
+      }
+      if (conta.instagram_username) {
+        clienteItem.instagram_username = conta.instagram_username;
+      }
     }
   }
 
