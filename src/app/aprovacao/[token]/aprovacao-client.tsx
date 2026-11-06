@@ -523,17 +523,17 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   const isCarrossel = (item.tipo as string) === 'carrossel' || (arquivos.length > 1 && !isStory);
 
   return (
-    <div className="min-h-dvh bg-background flex flex-col items-center justify-start py-4 px-3 sm:px-6 md:py-8 font-sans text-foreground">
+    <div className="min-h-dvh bg-background flex flex-col items-center justify-start py-4 px-3 sm:px-6 md:py-8 font-sans text-foreground w-full max-w-full overflow-x-hidden">
       
       {/* Top Header da Agência GENS */}
-      <header className="w-full max-w-md lg:max-w-5xl xl:max-w-6xl flex items-center justify-between py-2.5 mb-3 lg:mb-6 px-1">
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          <span className="text-sm sm:text-base font-bold font-display tracking-tight text-foreground">Agência GENS</span>
-          <span className="text-xs text-muted-foreground font-mono">✳</span>
-          <span className="text-xs font-semibold text-muted-foreground">Central de Aprovação</span>
+      <header className="w-full max-w-md lg:max-w-5xl xl:max-w-6xl flex items-center justify-between py-2 mb-3 lg:mb-6 px-1 gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          <span className="text-sm sm:text-base font-bold font-display tracking-tight text-foreground truncate shrink-0">Agência GENS</span>
+          <span className="text-xs text-muted-foreground font-mono shrink-0 hidden sm:inline">✳</span>
+          <span className="text-xs font-semibold text-muted-foreground truncate hidden sm:inline">Central de Aprovação</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="hidden sm:inline text-xs font-medium text-muted-foreground mr-1">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <span className="hidden md:inline text-xs font-medium text-muted-foreground mr-1">
             {isStory ? 'Story' : isReel ? 'Reels' : isCarrossel ? `Carrossel (${arquivos.length} fotos)` : 'Feed'}
           </span>
           {arquivos.length > 0 && (
@@ -541,7 +541,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               <button
                 type="button"
                 onClick={() => setModalDownloadAberto(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-card hover:bg-accent border border-border text-xs font-bold text-foreground transition-ui cursor-pointer shadow-2xs active:scale-[0.98]"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-card hover:bg-accent border border-border text-xs font-bold text-foreground transition-ui cursor-pointer shadow-2xs active:scale-[0.98] shrink-0 !min-w-0"
                 aria-label="Baixar material em alta definição"
               >
                 <Download className="w-3.5 h-3.5 text-primary" />
@@ -551,7 +551,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
           )}
           <Badge
             variant={sucessoAprovado ? 'success' : item.status === 'travado' ? 'destructive' : 'warning'}
-            className="text-xs font-bold px-2.5 py-1"
+            className="text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 shrink-0 whitespace-nowrap"
           >
             {sucessoAprovado ? 'Aprovado' : item.status === 'travado' ? 'Ajustes Solicitados' : 'Aguardando Aprovação'}
           </Badge>
@@ -559,7 +559,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             type="button"
             onClick={toggleTheme}
             aria-label={theme === 'dark' ? 'Mudar para o Modo Claro' : 'Mudar para o Dark Mode'}
-            className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-ui duration-150 cursor-pointer shadow-2xs flex items-center justify-center ml-1 active:scale-[0.98]"
+            className="p-1.5 rounded-xl bg-card hover:bg-accent border border-border text-foreground transition-ui duration-150 cursor-pointer shadow-2xs flex items-center justify-center shrink-0 active:scale-[0.98] !min-w-0"
           >
             {theme === 'dark' ? (
               <Sun className="w-4 h-4 text-primary animate-in spin-in-180 duration-200" />
@@ -571,7 +571,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       </header>
 
       {/* --- VISÃO MOBILE (< lg) --- */}
-      <main className="w-full max-w-md flex flex-col items-center gap-4 lg:hidden">
+      <main className="w-full max-w-md max-w-full flex flex-col items-center gap-4 lg:hidden">
         {isStory ? (
           <InstagramStoryPreview
             clienteNome={clienteNome}
@@ -611,7 +611,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
         {/* Card de Material em Alta Definição para o Cliente Baixar e Postar */}
         {arquivos.length > 0 && (
-          <div className="w-full max-w-[420px] bg-card rounded-2xl border border-border p-3.5 shadow-sm flex flex-col gap-2.5">
+          <div className="w-full max-w-[420px] max-w-full bg-card rounded-2xl border border-border p-3.5 shadow-sm flex flex-col gap-2.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
@@ -631,9 +631,10 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                 variant="ghost"
                 size="sm"
                 onClick={() => setModalDownloadAberto(true)}
-                className="text-xs font-semibold text-primary hover:text-primary/80 h-7 px-2 cursor-pointer"
+                className="text-xs font-semibold text-primary hover:text-primary/80 h-7 px-2 cursor-pointer shrink-0 whitespace-nowrap inline-flex items-center gap-1 !min-w-0 !min-h-0"
               >
-                Opções ↗
+                <span>Opções</span>
+                <span className="text-xs font-bold">↗</span>
               </Button>
             </div>
 
@@ -691,7 +692,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
 
         {/* Histórico de Comentários / Ajustes já pontuados */}
         {comentarios.length > 0 && (
-          <div className="w-full max-w-[420px] bg-card rounded-2xl border border-border p-3.5 flex flex-col gap-2 shadow-sm">
+          <div className="w-full max-w-[420px] max-w-full bg-card rounded-2xl border border-border p-3.5 flex flex-col gap-2 shadow-sm">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Ajustes Registrados ({comentarios.length})
             </p>
@@ -719,7 +720,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
         )}
 
         {/* Barra de Ação de Decisão do Cliente (Aprovar / Solicitar Ajustes) */}
-        <div className="w-full max-w-[420px] bg-card rounded-2xl border border-border p-3.5 shadow-md flex flex-col gap-2.5">
+        <div className="w-full max-w-[420px] max-w-full bg-card rounded-2xl border border-border p-3.5 shadow-md flex flex-col gap-2.5">
           <BarraDecisao
             aprovado={sucessoAprovado}
             enviando={enviando}

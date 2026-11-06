@@ -21,7 +21,7 @@ export function PageHeader({ icon: Icon, title, description, actions, as: Tag = 
   return (
     <div className={cn('flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4', className)}>
       <div className="min-w-0">
-        <Tag className="flex items-center gap-2.5 font-display text-[2rem] sm:text-4xl font-light leading-[1.05] tracking-[-0.025em] text-foreground">
+        <Tag className="flex items-center gap-2 sm:gap-2.5 font-display text-2xl sm:text-3xl lg:text-4xl font-light leading-tight sm:leading-[1.05] tracking-[-0.025em] text-foreground">
           {Icon && <Icon aria-hidden className="size-5 shrink-0 text-lime" strokeWidth={1.5} />}
           <span className="min-w-0 text-balance">{title}</span>
         </Tag>
