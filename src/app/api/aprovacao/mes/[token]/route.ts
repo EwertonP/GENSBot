@@ -33,9 +33,8 @@ export async function GET(req: Request, { params }: Params) {
 
   const { data: brutos, error } = await supabase
     .from('conteudo_items')
-    .select(
-      'id, tipo, status, titulo, legenda, briefing, mes_referencia, data_programada, publicado_em, ordem, arquivos, cover_url, token_aprovacao, visivel_cliente, arquivada_em'
-    )
+    // select('*'): colunas opcionais (visivel_cliente, arquivada_em) podem não existir em todos os bancos.
+    .select('*')
     .eq('cliente_id', cliente.id)
     .limit(500);
 

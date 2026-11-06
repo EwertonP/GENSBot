@@ -32,7 +32,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const { data: item } = await supabase
     .from('conteudo_items')
-    .select('id, cliente_id, agencia_id, status, titulo, briefing, legenda, responsavel_id, co_responsaveis_ids, visivel_cliente, arquivada_em')
+    .select('*')
     .eq('id', itemId)
     .maybeSingle();
 
