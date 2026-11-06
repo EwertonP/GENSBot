@@ -57,6 +57,7 @@ interface PublicationItem {
   avg_watch_time?: number | string;
   collaborators?: CollaboratorInfo[];
   is_collab?: boolean;
+  permalink?: string;
 }
 
 interface RelatorioDados {
@@ -981,24 +982,32 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
                     </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-3 gap-2 tabular-nums">
-                    <div className="p-2.5 rounded-xl bg-accent/40 border border-border text-center">
-                      <span className="text-2xs text-muted-foreground font-medium">Feed / Carrossel</span>
-                      <div className="text-base font-bold font-display text-foreground mt-0.5">{dados.content.summary.posts}</div>
+                  <div className={`mt-3 grid ${(dados.content.summary.collabsCount ?? 0) > 0 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'} gap-2 tabular-nums`}>
+                    <div className="p-2.5 rounded-xl bg-accent/40 border border-border text-center flex flex-col justify-between">
+                      <span className="text-2xs text-muted-foreground font-medium uppercase font-mono">Feed</span>
+                      <div className="text-base sm:text-lg font-bold font-mono text-foreground mt-0.5">{dados.content.summary.posts}</div>
                       <span className="text-2xs text-muted-foreground">{fmt(dados.content.summary.byFormat?.posts.reach)} alc.</span>
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-accent/40 border border-border text-center">
-                      <span className="text-2xs text-muted-foreground font-medium">Reels</span>
-                      <div className="text-base font-bold font-display text-foreground mt-0.5">{dados.content.summary.reels}</div>
+                    <div className="p-2.5 rounded-xl bg-accent/40 border border-border text-center flex flex-col justify-between">
+                      <span className="text-2xs text-muted-foreground font-medium uppercase font-mono">Reels</span>
+                      <div className="text-base sm:text-lg font-bold font-mono text-foreground mt-0.5">{dados.content.summary.reels}</div>
                       <span className="text-2xs text-muted-foreground">{fmt(dados.content.summary.byFormat?.reels.reach)} alc.</span>
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-accent/40 border border-border text-center">
-                      <span className="text-2xs text-muted-foreground font-medium">Stories</span>
-                      <div className="text-base font-bold font-display text-foreground mt-0.5">{dados.content.summary.stories}</div>
+                    <div className="p-2.5 rounded-xl bg-accent/40 border border-border text-center flex flex-col justify-between">
+                      <span className="text-2xs text-muted-foreground font-medium uppercase font-mono">Stories</span>
+                      <div className="text-base sm:text-lg font-bold font-mono text-foreground mt-0.5">{dados.content.summary.stories}</div>
                       <span className="text-2xs text-muted-foreground">{fmt(dados.content.summary.byFormat?.stories.reach)} alc.</span>
                     </div>
+
+                    {(dados.content.summary.collabsCount ?? 0) > 0 && (
+                      <div className="p-2.5 rounded-xl bg-accent/40 border border-border text-center flex flex-col justify-between">
+                        <span className="text-2xs text-emerald-400 font-medium uppercase font-mono">Collabs</span>
+                        <div className="text-base sm:text-lg font-bold font-mono text-emerald-400 mt-0.5">{dados.content.summary.collabsCount}</div>
+                        <span className="text-2xs text-muted-foreground">{fmt(dados.content.summary.byFormat?.collabs?.reach)} alc.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1055,7 +1064,7 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
                   compacto
                 />
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                   {filteredPublications.map((p) => {
                     const isVideo = p.media_type === 'VIDEO' || p.media_type === 'REELS';
                     const isCarousel = p.media_type === 'CAROUSEL' || p.media_type === 'CAROUSEL_ALBUM';
@@ -1065,45 +1074,56 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
                     return (
                       <article
                         key={p.id}
-                        className="print-break-avoid rounded-2xl border border-border overflow-hidden bg-card flex flex-col hover:border-foreground/30 hover:shadow-md transition-all duration-200"
+                        className="print-break-avoid rounded-2xl border border-border overflow-hidden bg-card flex flex-col hover:border-foreground/30 hover:shadow-lg transition-all duration-300"
                       >
-                        <div className="relative aspect-[4/5] bg-accent overflow-hidden">
+                        <div className="relative aspect-[4/5] bg-accent overflow-hidden group">
                           {p.media_url || p.thumbnail_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={p.thumbnail_url || p.media_url}
                               alt=""
                               loading="lazy"
-                              className="absolute inset-0 size-full object-cover"
+                              className="absolute inset-0 size-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />
                           ) : (
                             <div className="size-full flex items-center justify-center text-muted-foreground">
-                              <ImageIcon className="w-8 h-8 opacity-40" />
+                              <ImageIcon className="w-10 h-10 opacity-30" />
                             </div>
                           )}
 
                           {/* Tipo */}
-                          <div className="absolute top-2 left-2">
-                            <span className="px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-white text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1">
-                              {isVideo ? <Video className="w-3 h-3" /> : isCarousel ? <ImageIcon className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+                          <div className="absolute top-2.5 left-2.5">
+                            <span className="px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-white text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 shadow-sm border border-white/10">
+                              {isVideo ? <Video className="w-3.5 h-3.5 text-sky-400" /> : isCarousel ? <ImageIcon className="w-3.5 h-3.5 text-violet-400" /> : <Sparkles className="w-3.5 h-3.5 text-emerald-400" />}
                               {tipoLabel(p.media_type)}
                             </span>
                           </div>
 
-                          {/* Taxa de Engajamento */}
-                          {engRate && (
-                            <div className="absolute top-2 right-2">
-                              <span className="px-2 py-0.5 rounded-md bg-lime text-lime-foreground text-xs font-bold font-mono shadow-xs border border-black/10">
+                          {/* Topo Direito: Engajamento & Link Instagram */}
+                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                            {engRate && (
+                              <span className="px-2.5 py-1 rounded-lg bg-lime text-lime-foreground text-xs font-bold font-mono shadow-sm border border-black/10">
                                 {engRate}% engaj.
                               </span>
-                            </div>
-                          )}
+                            )}
+                            {p.permalink && (
+                              <a
+                                href={p.permalink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="no-print p-1.5 rounded-lg bg-black/75 backdrop-blur-md text-white/80 hover:text-white hover:bg-black transition-all border border-white/10 shadow-sm"
+                                title="Abrir no Instagram"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
 
                           {/* Badge de Collab */}
                           {p.collaborators && p.collaborators.length > 0 && (
-                            <div className="absolute bottom-2 left-2 max-w-[calc(100%-16px)]">
-                              <span className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-emerald-300 text-2xs font-bold font-mono border border-emerald-500/30 flex items-center gap-1 truncate shadow-xs">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                            <div className="absolute bottom-2.5 left-2.5 max-w-[calc(100%-16px)]">
+                              <span className="px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md text-emerald-300 text-xs font-bold font-mono border border-emerald-500/30 flex items-center gap-1.5 truncate shadow-sm">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
                                 🤝 @{p.collaborators[0].username}
                               </span>
                             </div>
@@ -1111,39 +1131,39 @@ export default function PaginaRelatorioClient({ token, valido, clienteNome, peri
 
                           {/* Retenção de Vídeo */}
                           {isVideo && watchSec > 0 && (
-                            <div className="absolute bottom-2 right-2">
-                              <span className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-sky-300 text-2xs font-bold font-mono border border-sky-500/30 flex items-center gap-1 shadow-xs">
-                                <Clock className="w-3 h-3 text-sky-400" />
+                            <div className="absolute bottom-2.5 right-2.5">
+                              <span className="px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md text-sky-300 text-xs font-bold font-mono border border-sky-500/30 flex items-center gap-1.5 shadow-sm">
+                                <Clock className="w-3.5 h-3.5 text-sky-400" />
                                 {watchSec}s méd.
                               </span>
                             </div>
                           )}
                         </div>
 
-                        <div className="p-3.5 flex-1 flex flex-col justify-between gap-3">
+                        <div className="p-4 flex-1 flex flex-col justify-between gap-4">
                           <div>
-                            <span className="text-2xs text-muted-foreground font-mono">{dataCurta(p.published_at)}</span>
-                            <p className="text-xs font-semibold text-foreground line-clamp-2 mt-1 leading-snug">
-                              {p.caption || 'Sem legenda'}
+                            <span className="text-2xs font-mono font-medium text-muted-foreground uppercase tracking-wide">{dataCurta(p.published_at)}</span>
+                            <p className="text-sm font-medium text-foreground line-clamp-3 mt-1.5 leading-snug">
+                              {p.caption || 'Sem legenda informada'}
                             </p>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border text-xs">
-                            <div className="flex flex-col">
-                              <span className="text-2xs text-muted-foreground font-medium uppercase">Alcance</span>
-                              <span className="font-bold text-foreground font-mono">{fmt(p.reach)}</span>
+                          <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-border tabular-nums">
+                            <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
+                              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Alcance</span>
+                              <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">{fmt(p.reach)}</span>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-2xs text-muted-foreground font-medium uppercase">Visualizações</span>
-                              <span className="font-bold text-foreground font-mono">{fmt(p.views || p.reach)}</span>
+                            <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
+                              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Visualizações</span>
+                              <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">{fmt(p.views || p.reach)}</span>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-2xs text-muted-foreground font-medium uppercase">Interações</span>
-                              <span className="font-bold text-foreground font-mono">{fmt(p.interactions)}</span>
+                            <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
+                              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Interações</span>
+                              <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">{fmt(p.interactions)}</span>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-2xs text-muted-foreground font-medium uppercase">Shares · Salvos</span>
-                              <span className="font-bold text-foreground font-mono">
+                            <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
+                              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Shares · Salvos</span>
+                              <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">
                                 {fmt((p.shares || 0) + (p.saved || 0))}
                               </span>
                             </div>

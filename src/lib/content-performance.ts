@@ -19,6 +19,7 @@ interface PublicationRow {
   published_at: string;
   ig_media_id: string;
   collaborators?: string[] | null;
+  permalink?: string;
 }
 
 export interface CollaboratorInfo {
@@ -60,6 +61,7 @@ interface OrganicMediaItem {
   timestamp: string;
   like_count?: number;
   comments_count?: number;
+  permalink?: string;
 }
 
 async function fetchMediaMetrics(
@@ -188,7 +190,7 @@ async function fetchMediaCollaborators(
 async function fetchAccountOrganicMedia(instagramUserId: string, accessToken: string, sinceIso: string): Promise<OrganicMediaItem[]> {
   try {
     const res = await fetch(
-      `https://graph.instagram.com/v25.0/${instagramUserId}/media?fields=id,media_type,media_product_type,media_url,thumbnail_url,caption,timestamp,like_count,comments_count&limit=50&access_token=${accessToken}`
+      `https://graph.instagram.com/v25.0/${instagramUserId}/media?fields=id,media_type,media_product_type,media_url,thumbnail_url,caption,timestamp,like_count,comments_count,permalink&limit=50&access_token=${accessToken}`
     );
     const data = await res.json();
     if (!res.ok) return [];
@@ -273,6 +275,7 @@ export async function computeContentPerformance(targets: ContentTarget[], period
         published_at: m.timestamp,
         ig_media_id: m.id,
         collaborators: dbCollabsMap.get(m.id) || null,
+        permalink: m.permalink,
       })),
     ];
 
@@ -386,6 +389,7 @@ export async function computeContentPerformance(targets: ContentTarget[], period
         avg_watch_time: r.avg_watch_time || 0,
         collaborators: r.collaborators_info || [],
         is_collab: r.is_collab || false,
+        permalink: r.permalink,
       }));
 
     const topStories = withMetrics

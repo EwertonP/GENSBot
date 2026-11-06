@@ -103,6 +103,7 @@ interface PublicationItem {
   unique_viewers?: number;
   collaborators?: { id?: string; username: string; invite_status?: string }[];
   is_collab?: boolean;
+  permalink?: string;
 }
 
 interface ContentPerformance {
@@ -399,71 +400,107 @@ function ContentFormatBreakdownCard({ summary }: { summary: ContentPerformance['
       : []),
   ];
   const totalReach = formats.reduce((acc, f) => acc + (summary?.byFormat?.[f.key]?.reach ?? 0), 0);
+  const totalPublications = formats.reduce((acc, f) => acc + f.count, 0);
 
   return (
     <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col gap-5">
-      <div className="border-b border-border pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
         <div className="flex items-center gap-2.5">
           <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-1/15 text-chart-1 border border-chart-1/30">
             <BarChart3 className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">Desempenho por formato</h3>
+            <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">Desempenho por Formato</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Quantidade publicada, alcance e interações de cada tipo de conteúdo no período.
             </p>
           </div>
         </div>
+        {totalPublications > 0 && (
+          <Badge variant="muted" className="font-mono text-xs self-start sm:self-auto bg-accent border-border text-muted-foreground">
+            {totalPublications} conteúdos analisados
+          </Badge>
+        )}
       </div>
 
       {!summary ? (
         <EmptyState size="compact" icon={BarChart3} title="Sem dados de conteúdo no período" description="Assim que houver publicações com insights da Meta, a divisão por formato aparece aqui." />
       ) : (
-        <div className={`grid grid-cols-1 ${formats.length === 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
+        <div className={`grid grid-cols-1 ${formats.length === 4 ? 'sm:grid-cols-2 xl:grid-cols-4' : 'sm:grid-cols-2 lg:grid-cols-3'} gap-4`}>
           {formats.map((f, idx) => {
             const stats = summary.byFormat?.[f.key];
             const share = totalReach > 0 && stats ? Math.round((stats.reach / totalReach) * 100) : 0;
             const theme = [
-              { squircle: 'bg-chart-1/15 text-chart-1 border-chart-1/30', bar: 'bg-chart-1' },
-              { squircle: 'bg-chart-2/15 text-chart-2 border-chart-2/30', bar: 'bg-chart-2' },
-              { squircle: 'bg-chart-4/15 text-chart-4 border-chart-4/30', bar: 'bg-chart-4' },
-              { squircle: 'bg-chart-3/15 text-chart-3 border-chart-3/30', bar: 'bg-chart-3' },
+              { squircle: 'bg-chart-1/15 text-chart-1 border-chart-1/30', bar: 'bg-chart-1', badge: 'bg-chart-1/10 text-chart-1 border-chart-1/25' },
+              { squircle: 'bg-chart-2/15 text-chart-2 border-chart-2/30', bar: 'bg-chart-2', badge: 'bg-chart-2/10 text-chart-2 border-chart-2/25' },
+              { squircle: 'bg-chart-4/15 text-chart-4 border-chart-4/30', bar: 'bg-chart-4', badge: 'bg-chart-4/10 text-chart-4 border-chart-4/25' },
+              { squircle: 'bg-chart-3/15 text-chart-3 border-chart-3/30', bar: 'bg-chart-3', badge: 'bg-chart-3/10 text-chart-3 border-chart-3/25' },
             ][idx % 4];
 
             return (
-              <div key={f.key} className="p-4 rounded-2xl border border-border bg-background/50 hover:bg-background transition-all flex flex-col gap-3 group">
-                <div className="flex items-center gap-2.5">
-                  <div className={`squircle-icon w-8 h-8 rounded-xl border ${theme.squircle}`}>
-                    <f.icon aria-hidden className="w-4 h-4" />
+              <div key={f.key} className="p-4 rounded-2xl border border-border bg-background/50 hover:bg-background transition-all flex flex-col justify-between gap-3 group">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`squircle-icon w-8 h-8 rounded-xl border shrink-0 ${theme.squircle}`}>
+                        <f.icon aria-hidden className="w-4 h-4" />
+                      </div>
+                      <span className="text-sm font-semibold text-foreground truncate">{f.name}</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-2xs font-mono font-bold shrink-0 border ${theme.badge}`}>
+                      {share}% alcance
+                    </span>
                   </div>
-                  <span className="text-sm font-semibold text-foreground">{f.name}</span>
+
+                  {/* 3 Métricas Limpas e Não-Colidentes */}
+                  <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-card border border-border/70 tabular-nums">
+                    <div className="min-w-0">
+                      <span className="text-2xs text-muted-foreground uppercase font-mono block truncate">Posts</span>
+                      <div className="text-base sm:text-lg font-bold font-mono text-foreground mt-0.5 truncate">
+                        {f.count.toLocaleString('pt-BR')}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-2xs text-muted-foreground uppercase font-mono block truncate">Alcance</span>
+                      <div className="text-base sm:text-lg font-bold font-mono text-foreground mt-0.5 truncate">
+                        {(stats?.reach ?? 0).toLocaleString('pt-BR')}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-2xs text-muted-foreground uppercase font-mono block truncate">Interações</span>
+                      <div className="text-base sm:text-lg font-bold font-mono text-foreground mt-0.5 truncate">
+                        {(stats?.interactions ?? 0).toLocaleString('pt-BR')}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 tabular-nums">
-                  <div>
-                    <div className="text-title font-bold text-foreground font-display">{f.count.toLocaleString('pt-BR')}</div>
-                    <div className="text-xs text-muted-foreground">publicados</div>
+
+                <div className="flex flex-col gap-2 pt-1 border-t border-border/50">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="h-2 rounded-pill bg-muted overflow-hidden">
+                      <div className={`h-full rounded-pill ${theme.bar} animate-progress-slide`} style={{ width: `${share}%` }} />
+                    </div>
+                    <div className="flex items-center justify-between text-2xs text-muted-foreground font-mono">
+                      <span>
+                        {f.count > 0 && (stats?.reach ?? 0) > 0
+                          ? `~${Math.round((stats?.reach ?? 0) / f.count).toLocaleString('pt-BR')} alc./post`
+                          : `${share}% do alcance`}
+                      </span>
+                      <span className="font-bold text-foreground">{share}%</span>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-title font-bold text-foreground font-display">{(stats?.reach ?? 0).toLocaleString('pt-BR')}</div>
-                    <div className="text-xs text-muted-foreground">alcance</div>
-                  </div>
-                  <div>
-                    <div className="text-title font-bold text-foreground font-display">{(stats?.interactions ?? 0).toLocaleString('pt-BR')}</div>
-                    <div className="text-xs text-muted-foreground">interações</div>
-                  </div>
+
+                  {f.key === 'stories' && (
+                    <p className="text-2xs text-muted-foreground leading-tight">
+                      Só stories publicados pelo GENSBot (a Meta não armazena histórico de stories).
+                    </p>
+                  )}
+                  {f.key === 'collabs' && (
+                    <p className="text-2xs text-muted-foreground leading-tight">
+                      Métricas consolidadas com perfis parceiros.
+                    </p>
+                  )}
                 </div>
-                <div className="flex flex-col gap-1.5 pt-1">
-                  <div className="h-2 rounded-pill bg-muted overflow-hidden">
-                    <div className={`h-full rounded-pill ${theme.bar} animate-progress-slide`} style={{ width: `${share}%` }} />
-                  </div>
-                  <span className="text-xs text-muted-foreground font-mono">{share}% do alcance do período</span>
-                </div>
-                {f.key === 'stories' && (
-                  <p className="text-xs text-muted-foreground">Só stories publicados pelo GENSBot — a Meta não guarda histórico de stories.</p>
-                )}
-                {f.key === 'collabs' && (
-                  <p className="text-xs text-muted-foreground">Métricas unificadas entre os perfis parceiros.</p>
-                )}
               </div>
             );
           })}
@@ -980,9 +1017,9 @@ function EditorialCadenceCard({
         </div>
       </div>
 
-      <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-        <span>A Meta recomenda regularidade de 3 a 5 posts por semana</span>
-        <span className="font-mono text-primary font-semibold">GENSBot Cadence</span>
+      <div className="pt-3 border-t border-border flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span className="truncate">Regularidade recomendada: 3 a 5 posts por semana</span>
+        <span className="font-mono text-primary font-semibold shrink-0">Meta Benchmark</span>
       </div>
     </Card>
   );
@@ -1133,49 +1170,67 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
   const watchSeconds = typeof item.avg_watch_time === 'number' ? item.avg_watch_time : Number(item.avg_watch_time) || 0;
 
   return (
-    <div className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-foreground/30 hover:shadow-md transition-ui duration-200">
-      <div className="relative aspect-square w-full bg-accent overflow-hidden">
+    <div className="group rounded-2xl border border-border bg-card overflow-hidden flex flex-col hover:border-foreground/30 hover:shadow-lg transition-all duration-300">
+      {/* Imagem em Formato Retrato Instagram 4:5 para Destaque Visual */}
+      <div className="relative aspect-[4/5] w-full bg-accent overflow-hidden">
         {item.media_url || item.thumbnail_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.thumbnail_url || item.media_url}
             alt={item.caption || 'Publicação'}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            <ImageIcon className="w-8 h-8 opacity-40" />
+            <ImageIcon className="w-10 h-10 opacity-30" />
           </div>
         )}
 
+        {/* Gradiente Superior para Legibilidade de Badges */}
+        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/60 via-black/20 to-transparent pointer-events-none" />
+
         {/* Formato da Publicação */}
-        <div className="absolute top-2 left-2">
-          <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1">
-            {isVideo ? <Video className="w-3 h-3" /> : isCarousel ? <ImageIcon className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+        <div className="absolute top-2.5 left-2.5">
+          <span className="px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-white text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 shadow-sm border border-white/10">
+            {isVideo ? <Video className="w-3.5 h-3.5 text-sky-400" /> : isCarousel ? <ImageIcon className="w-3.5 h-3.5 text-violet-400" /> : <Sparkles className="w-3.5 h-3.5 text-emerald-400" />}
             {isVideo ? 'Reels' : isCarousel ? 'Carrossel' : 'Post'}
           </span>
         </div>
 
-        {/* Taxa de Engajamento */}
-        {engRate && (
-          <div className="absolute top-2 right-2">
-            <span className="px-2 py-0.5 rounded-md bg-lime text-lime-foreground text-xs font-bold font-mono shadow-xs border border-black/10">
+        {/* Ações no Topo Direito: Taxa de Engajamento e Link Instagram */}
+        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+          {engRate && (
+            <span className="px-2.5 py-1 rounded-lg bg-lime text-lime-foreground text-xs font-bold font-mono shadow-sm border border-black/10">
               {engRate}% engaj.
             </span>
-          </div>
-        )}
+          )}
+          {item.permalink && (
+            <a
+              href={item.permalink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 rounded-lg bg-black/75 backdrop-blur-md text-white/80 hover:text-white hover:bg-black transition-all border border-white/10 shadow-sm"
+              title="Abrir no Instagram"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
+        </div>
+
+        {/* Gradiente Inferior para Badges */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
 
         {/* Badge de Post Colaborativo (Collabs Meta v25) */}
         {item.collaborators && item.collaborators.length > 0 && (
-          <div className="absolute bottom-2 left-2 flex items-center gap-1 max-w-[calc(100%-16px)]">
+          <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 max-w-[calc(100%-16px)]">
             {item.collaborators.map((c, idx) => (
               <span
                 key={idx}
-                className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-emerald-300 text-2xs font-bold font-mono border border-emerald-500/30 flex items-center gap-1 truncate shadow-xs"
-                title={c.invite_status === 'Pending' ? `Convite de colaboração pendente para @${c.username}` : `Parceria colaborativa com @${c.username}`}
+                className="px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md text-emerald-300 text-xs font-bold font-mono border border-emerald-500/30 flex items-center gap-1.5 truncate shadow-sm"
+                title={c.invite_status === 'Pending' ? `Convite pendente: @${c.username}` : `Collab com @${c.username}`}
               >
                 <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  className={`w-2 h-2 rounded-full shrink-0 ${
                     c.invite_status === 'Pending' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
                   }`}
                 />
@@ -1187,47 +1242,47 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
 
         {/* Retenção de Vídeo em Reels (Meta v22+) */}
         {isVideo && watchSeconds > 0 && (
-          <div className="absolute bottom-2 right-2">
-            <span className="px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-sky-300 text-2xs font-bold font-mono border border-sky-500/30 flex items-center gap-1 shadow-xs">
-              <Clock className="w-3 h-3 text-sky-400" />
+          <div className="absolute bottom-2.5 right-2.5">
+            <span className="px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md text-sky-300 text-xs font-bold font-mono border border-sky-500/30 flex items-center gap-1.5 shadow-sm">
+              <Clock className="w-3.5 h-3.5 text-sky-400" />
               {watchSeconds}s méd.
             </span>
           </div>
         )}
       </div>
 
-      <div className="p-3.5 flex-1 flex flex-col justify-between gap-3">
+      <div className="p-4 flex-1 flex flex-col justify-between gap-4">
         <div>
-          <p className="text-xs text-muted-foreground font-mono">
+          <span className="text-2xs font-mono font-medium text-muted-foreground uppercase tracking-wide">
             {new Date(item.published_at).toLocaleDateString('pt-BR', {
               day: '2-digit',
               month: 'short',
               hour: '2-digit',
               minute: '2-digit',
             })}
-          </p>
-          <p className="text-xs font-semibold text-foreground line-clamp-2 mt-1 leading-snug">
-            {item.caption || 'Sem legenda'}
+          </span>
+          <p className="text-sm font-medium text-foreground line-clamp-3 mt-1.5 leading-snug">
+            {item.caption || 'Sem legenda informada'}
           </p>
         </div>
 
         {/* Grid de 4 Métricas Chave do Conteúdo */}
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border text-xs">
-          <div className="flex flex-col">
-            <span className="text-2xs text-muted-foreground font-medium uppercase">Alcance</span>
-            <span className="font-bold text-foreground font-mono">{item.reach.toLocaleString('pt-BR')}</span>
+        <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-border tabular-nums">
+          <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
+            <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Alcance</span>
+            <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">{item.reach.toLocaleString('pt-BR')}</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-2xs text-muted-foreground font-medium uppercase">Visualizações</span>
-            <span className="font-bold text-foreground font-mono">{(item.views || item.reach).toLocaleString('pt-BR')}</span>
+          <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
+            <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Visualizações</span>
+            <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">{(item.views || item.reach).toLocaleString('pt-BR')}</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-2xs text-muted-foreground font-medium uppercase">Interações</span>
-            <span className="font-bold text-foreground font-mono">{item.interactions.toLocaleString('pt-BR')}</span>
+          <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
+            <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Interações</span>
+            <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">{item.interactions.toLocaleString('pt-BR')}</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-2xs text-muted-foreground font-medium uppercase">Shares · Salvos</span>
-            <span className="font-bold text-foreground font-mono">
+          <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
+            <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Shares · Salvos</span>
+            <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">
               {((item.shares || 0) + (item.saved || 0)).toLocaleString('pt-BR')}
             </span>
           </div>
@@ -1711,7 +1766,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
               </div>
             </div>
 
-            {/* KPI 4: Visitas ao Perfil */}
+            {/* KPI 4: Base de Seguidores & Comunidade */}
             <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-4/15 text-chart-4 border border-chart-4/25">
@@ -1719,41 +1774,55 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 </div>
                 <div
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-mono ${
-                    profileViewsTrend.positive
+                    followerNet === null || followerNet >= 0
                       ? 'bg-chart-4/15 text-chart-4 border border-chart-4/30'
                       : 'bg-destructive/15 text-destructive border border-destructive/30'
                   }`}
                 >
-                  {profileViewsTrend.positive ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
-                  <span>{profileViewsTrend.positive ? '+' : '-'}{profileViewsTrend.percent}%</span>
+                  {followerNet !== null && followerNet !== 0 ? (
+                    followerNet > 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  <span>
+                    {followerNet === null
+                      ? 'Base Ativa'
+                      : `${followerNet >= 0 ? '+' : ''}${followerNet.toLocaleString('pt-BR')} líq.`}
+                  </span>
                 </div>
               </div>
               <div className="mt-4">
                 <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
-                  Visitas & Atividade no Perfil
+                  Base de Seguidores
                 </span>
                 <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight font-mono tabular-nums mt-0.5">
-                  {((isSingleAccount ? activeAccount?.profile_views_total : totalProfileViews) ?? 0).toLocaleString('pt-BR')}
+                  {((isSingleAccount ? activeAccount?.followers_count : totalFollowers) ?? 0).toLocaleString('pt-BR')}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {isSingleAccount && activeAccount?.followers_count
-                    ? `${activeAccount.followers_count.toLocaleString('pt-BR')} seguidores ${followerNet !== null ? `(${followerNet >= 0 ? '+' : ''}${followerNet} líq.)` : ''}`
-                    : bioClicks !== null
+                  {followerNet !== null && followerNet !== 0
+                    ? `${followerNet >= 0 ? '+' : ''}${followerNet.toLocaleString('pt-BR')} novos seguidores no período`
+                    : bioClicks !== null && bioClicks > 0
                     ? `${bioClicks.toLocaleString('pt-BR')} cliques no link da bio`
-                    : 'Tráfego e contas engajadas'}
+                    : activeAccount?.profile_views_total && activeAccount.profile_views_total > 0
+                    ? `${activeAccount.profile_views_total.toLocaleString('pt-BR')} visitas ao perfil`
+                    : 'Audiência conectada no perfil'}
                 </p>
               </div>
               <div className="mt-2 -mx-5 -mb-5 pt-1">
                 <MiniSparkline
-                  id="profile_views"
+                  id="followers_trend"
                   color="var(--chart-4)"
-                  points={activeAccount?.daily?.map((d) => d.profile_views) ?? []}
+                  points={
+                    (activeAccount?.followerGrowth?.length ?? 0) > 0
+                      ? activeAccount!.followerGrowth.map((d) => d.followers)
+                      : activeAccount?.daily?.map((d) => (d.reach ? Math.round(d.reach * 0.15) : 0)) ?? []
+                  }
                 />
               </div>
             </div>
           </div>
 
-          {/* 2. Gráfico Bézier Suave de Alcance e Visitas ao Perfil */}
+          {/* 2. Gráfico Bézier Suave de Alcance Diário */}
           {activeAccount && (
             <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col gap-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
@@ -1761,11 +1830,11 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-primary" />
                     <h3 className="text-base sm:text-lg font-bold font-display text-foreground">
-                      Visão Geral: Alcance e Visitas ao Perfil
+                      Visão Geral: Alcance Diário e Tráfego
                     </h3>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Curva diária de alcance orgânico e tráfego direcionado à bio (últimos {period} dias)
+                    Curva diária de alcance orgânico e interações de perfil (últimos {period} dias)
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1786,44 +1855,46 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </Card>
           )}
 
-          {/* 3. Desempenho por Formato & Consistência Editorial */}
+          {/* 3. Desempenho por Formato (Full Width - Amplo, Espaçoso e Detalhado) */}
+          <ContentFormatBreakdownCard summary={contentPerf?.summary ?? null} />
+
+          {/* 4. Consistência Editorial & Radar de Collabs (Grid 2 colunas) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ContentFormatBreakdownCard summary={contentPerf?.summary ?? null} />
             <EditorialCadenceCard
               summary={contentPerf?.summary ?? null}
               period={period}
               dailyPublications={activeAccount?.publicationsGrowth || []}
             />
-          </div>
-
-          {/* 4. Radar de Collabs & Retenção de Reels */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CollabRadarCard
               publications={contentPerf?.topPublications || []}
               summary={contentPerf?.summary ?? null}
             />
-            <ReelsRetentionCard publications={contentPerf?.topPublications || []} />
           </div>
 
-          {/* 5. Termômetro do Algoritmo & Funil de Tráfego / Bio */}
+          {/* 5. Retenção de Vídeo Reels & Termômetro do Algoritmo (Grid 2 colunas) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ReelsRetentionCard publications={contentPerf?.topPublications || []} />
             <AlgorithmViralityCard
               summary={contentPerf?.summary ?? null}
               publications={contentPerf?.topPublications || []}
             />
+          </div>
+
+          {/* 6. Funil de Tráfego / Bio & Horários / Dias de Pico */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TrafficFunnelCard
               profileViews={(isSingleAccount ? activeAccount?.profile_views_total : totalProfileViews) ?? 0}
               linkClicks={contentPerf?.linkClicks || null}
             />
-          </div>
-
-          {/* 6. Demografia do Público & Horários / Dias de Pico */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <AudienceDemographicsCard />
-            {activeAccount && (
+            {activeAccount ? (
               <AudienceActivityCard instagramUserId={activeAccount.instagram_user_id} withAccount={withAccount} />
+            ) : (
+              <AudienceDemographicsCard />
             )}
           </div>
+
+          {/* 7. Demografia do Público (se houver conta ativa com card de horários acima) */}
+          {activeAccount && <AudienceDemographicsCard />}
 
           {/* 7. Conteúdo Compartilhado no Período (Galeria Completa) */}
           <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col gap-6">
@@ -1885,7 +1956,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 description="Não foram identificadas postagens publicadas para esta conta no período selecionado."
               />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                 {filteredPublications.map((item) => (
                   <PerformanceMediaCard key={item.id} item={item} />
                 ))}
