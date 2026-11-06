@@ -48,8 +48,10 @@ import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { EditorRico } from '@/components/ui/editor-rico';
 import { EtiquetasSeletor } from '@/components/etiquetas-seletor';
+import { SugestoesTextoCard } from '@/components/sugestoes-texto-card';
+import type { CampoSugestao } from '@/lib/sugestoes-texto';
 import type { CorEtiqueta, Etiqueta } from '@/lib/etiquetas';
-import { conteudoInicial, LIMITE_BRIEFING } from '@/lib/editor-rico';
+import { conteudoInicial, LIMITE_BRIEFING, textoParaHtml } from '@/lib/editor-rico';
 import {
   contarHashtags,
   paraCapitalizado,
@@ -282,6 +284,8 @@ export function DemandaSheet({
   const [briefingHtml, setBriefingHtml] = useState(() => item?.briefing_html || '');
   const [briefingEditado, setBriefingEditado] = useState(false);
   const [legenda, setLegenda] = useState(() => item?.legenda || '');
+  // Sobe quando um texto sugerido pela cliente é aceito: o editor (não controlado) recomeça com o texto novo.
+  const [chaveEditor, setChaveEditor] = useState(0);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(() => item?.checklist || []);
   const [novoItemTexto, setNovoItemTexto] = useState('');
   const [clienteId, setClienteId] = useState(() => item?.cliente_id || clienteInicialId || '');
@@ -1345,11 +1349,28 @@ export function DemandaSheet({
         {/* 2. Corpo rolável: conteúdo à esquerda, cartão de ação e propriedades à direita (como no Orkestrya) */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8 flex flex-col gap-7 min-w-0">
+            {editando && item?.id && (
+              <SugestoesTextoCard
+                itemId={item.id}
+                showToast={showToast}
+                onAceita={(campo: CampoSugestao, texto: string) => {
+                  if (campo === 'titulo') setTitulo(texto);
+                  else if (campo === 'legenda') setLegenda(texto);
+                  else {
+                    setBriefing(texto);
+                    setBriefingHtml(textoParaHtml(texto));
+                    setChaveEditor((k) => k + 1);
+                  }
+                }}
+              />
+            )}
+
             <section aria-label="Descrição" className="flex flex-col gap-2.5">
               <SecaoTitulo icon={AlignLeft}>Descrição</SecaoTitulo>
               <div className="flex flex-col gap-2">
                 <EditorRico
-                  valorInicial={conteudoInicial(item?.briefing_html, item?.briefing)}
+                  key={chaveEditor}
+                  valorInicial={chaveEditor === 0 ? conteudoInicial(item?.briefing_html, item?.briefing) : conteudoInicial(briefingHtml, briefing)}
                   placeholder="Escreva o briefing da demanda. Dica: -- cria uma linha divisória."
                   aria-label="Briefing e roteiro"
                   minHeight="140px"

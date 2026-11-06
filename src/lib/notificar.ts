@@ -6,12 +6,13 @@
 import { supabase } from './supabase';
 import { enviarPush } from './push';
 
-export type TipoNotificacao = 'post_falhou' | 'cliente_aprovou' | 'cliente_pediu_ajuste' | 'demanda_atribuida' | 'lead_novo';
+export type TipoNotificacao = 'post_falhou' | 'cliente_aprovou' | 'cliente_pediu_ajuste' | 'demanda_atribuida' | 'lead_novo' | 'cliente_sugeriu_texto';
 
 export const TIPOS_NOTIFICACAO: Record<TipoNotificacao, { rotulo: string; descricao: string; pushPadrao: boolean }> = {
   post_falhou: { rotulo: 'Post que falhou', descricao: 'Quando uma publicação não consegue sair no Instagram.', pushPadrao: true },
   cliente_aprovou: { rotulo: 'Cliente aprovou', descricao: 'Quando o cliente aprova uma peça sua.', pushPadrao: true },
   cliente_pediu_ajuste: { rotulo: 'Cliente pediu ajuste', descricao: 'Quando o cliente pede alteração numa peça sua.', pushPadrao: true },
+  cliente_sugeriu_texto: { rotulo: 'Cliente sugeriu texto', descricao: 'Quando o cliente sugere uma mudança no texto de um post em planejamento.', pushPadrao: true },
   demanda_atribuida: { rotulo: 'Demanda atribuída a você', descricao: 'Quando alguém passa uma demanda para você.', pushPadrao: true },
   lead_novo: { rotulo: 'Lead novo', descricao: 'Quando uma automação sua captura um lead. Pode ser frequente.', pushPadrao: false },
 };
