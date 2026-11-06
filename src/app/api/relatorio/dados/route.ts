@@ -42,6 +42,8 @@ export async function GET(req: Request) {
         metrics: {
           reach_total: metrics.reach_total,
           profile_views_total: metrics.profile_views_total,
+          views_total: metrics.views_total ?? 0,
+          accounts_engaged_total: metrics.accounts_engaged_total ?? 0,
           daily: metrics.daily,
           followerGrowth: metrics.followerGrowth,
           followerGrowthUnavailable: metrics.followerGrowthUnavailable,
