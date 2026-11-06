@@ -91,6 +91,8 @@
 
   /* Escala tipográfica do produto (modo Operate). Piso de 12px: nada de
      text-[9px]/[10px] — ver DESIGN.md §3. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 0.875rem;
   --text-caption: 0.75rem;
   --text-caption--line-height: 1rem;
   --text-label: 0.8125rem;
@@ -371,6 +373,7 @@
 /* Rótulo de seção em caixa alta com tracking positivo. Usar em cabeçalho de
    grupo (sidebar, colunas), nunca como "kicker" acima de um título. */
 @utility eyebrow {
+  font-family: var(--font-sans);
   font-size: 0.75rem;
   line-height: 1rem;
   letter-spacing: 0.08em;

@@ -215,6 +215,18 @@ function MiniSparkline({
   );
 }
 
+/** Formata data de post de forma limpa, sem pontuação solta: ex "18 out · 14:38" */
+function formatarDataPublicacao(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const dia = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return `${dia} · ${hora}`;
+  } catch {
+    return '';
+  }
+}
+
 /** 1. Gráfico de Curva Suave Bézier com Hover Tooltip */
 function SmoothAreaChart({
   data,
@@ -348,23 +360,23 @@ function SmoothAreaChart({
             className="absolute top-2 z-30 pointer-events-none -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border px-3 py-2 rounded-2xl shadow-xl text-xs flex flex-col gap-1 min-w-[160px]"
             style={{ left: `${(pointsA[hoverIndex].x / width) * 100}%` }}
           >
-            <span className="text-xs text-muted-foreground font-mono font-bold">
+            <span className="text-xs text-muted-foreground font-sans font-medium">
               {new Date(pointsA[hoverIndex].date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
             </span>
             <div className="flex items-center justify-between gap-3 text-foreground font-bold">
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 font-sans">
                 <span className="w-2 h-2 rounded-full bg-foreground" />
                 {labelA}:
               </span>
-              <span className="font-mono">{pointsA[hoverIndex].val.toLocaleString('pt-BR')}</span>
+              <span className="font-sans tabular-nums">{pointsA[hoverIndex].val.toLocaleString('pt-BR')}</span>
             </div>
             {pointsB[hoverIndex] && (
               <div className="flex items-center justify-between gap-3 text-success font-bold">
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 font-sans">
                   <span className="w-2 h-2 rounded-full bg-success" />
                   {labelB}:
                 </span>
-                <span className="font-mono">{pointsB[hoverIndex].val.toLocaleString('pt-BR')}</span>
+                <span className="font-sans tabular-nums">{pointsB[hoverIndex].val.toLocaleString('pt-BR')}</span>
               </div>
             )}
           </div>
@@ -382,7 +394,7 @@ function SmoothAreaChart({
             <span className="font-medium text-muted-foreground">{labelB}</span>
           </div>
         </div>
-        <span className="text-xs font-mono text-muted-foreground">Passe o cursor sobre os pontos para detalhar o dia</span>
+        <span className="text-xs font-sans text-muted-foreground">Passe o cursor sobre os pontos para detalhar o dia</span>
       </div>
     </div>
   );
@@ -417,7 +429,7 @@ function ContentFormatBreakdownCard({ summary }: { summary: ContentPerformance['
           </div>
         </div>
         {totalPublications > 0 && (
-          <Badge variant="muted" className="font-mono text-xs self-start sm:self-auto bg-accent border-border text-muted-foreground">
+          <Badge variant="muted" className="text-xs font-sans self-start sm:self-auto bg-accent border-border text-muted-foreground">
             {totalPublications} conteúdos analisados
           </Badge>
         )}
@@ -438,66 +450,66 @@ function ContentFormatBreakdownCard({ summary }: { summary: ContentPerformance['
             ][idx % 4];
 
             return (
-              <div key={f.key} className="p-4 rounded-2xl border border-border bg-background/50 hover:bg-background transition-all flex flex-col justify-between gap-3 group">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-2">
+              <div key={f.key} className="p-4 sm:p-5 rounded-2xl border border-border bg-background/50 hover:bg-background transition-all flex flex-col justify-between gap-4 group">
+                <div className="flex flex-col gap-3.5">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className={`squircle-icon w-8 h-8 rounded-xl border shrink-0 ${theme.squircle}`}>
                         <f.icon aria-hidden className="w-4 h-4" />
                       </div>
-                      <span className="text-sm font-semibold text-foreground truncate">{f.name}</span>
+                      <span className="text-sm sm:text-base font-semibold font-display text-foreground leading-snug">{f.name}</span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-2xs font-mono font-bold shrink-0 border ${theme.badge}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold font-sans shrink-0 border ${theme.badge}`}>
                       {share}% alcance
                     </span>
                   </div>
 
-                  {/* 3 Métricas Limpas e Não-Colidentes */}
-                  <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-card border border-border/70 tabular-nums">
+                  {/* 3 Métricas Limpas, Proporcionais e Sem Truncamento */}
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 p-3 rounded-xl bg-card border border-border">
                     <div className="min-w-0">
-                      <span className="text-2xs text-muted-foreground uppercase font-mono block truncate">Posts</span>
-                      <div className="text-base sm:text-lg font-bold font-mono text-foreground mt-0.5 truncate">
+                      <span className="text-xs text-muted-foreground font-medium font-sans block">Posts</span>
+                      <div className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5">
                         {f.count.toLocaleString('pt-BR')}
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <span className="text-2xs text-muted-foreground uppercase font-mono block truncate">Alcance</span>
-                      <div className="text-base sm:text-lg font-bold font-mono text-foreground mt-0.5 truncate">
+                      <span className="text-xs text-muted-foreground font-medium font-sans block">Alcance</span>
+                      <div className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5">
                         {(stats?.reach ?? 0).toLocaleString('pt-BR')}
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <span className="text-2xs text-muted-foreground uppercase font-mono block truncate">Interações</span>
-                      <div className="text-base sm:text-lg font-bold font-mono text-foreground mt-0.5 truncate">
+                      <span className="text-xs text-muted-foreground font-medium font-sans block">Interações</span>
+                      <div className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5">
                         {(stats?.interactions ?? 0).toLocaleString('pt-BR')}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 pt-1 border-t border-border/50">
+                <div className="flex flex-col gap-2 pt-2 border-t border-border/50 min-h-[56px] justify-end">
                   <div className="flex flex-col gap-1.5">
-                    <div className="h-2 rounded-pill bg-muted overflow-hidden">
-                      <div className={`h-full rounded-pill ${theme.bar} animate-progress-slide`} style={{ width: `${share}%` }} />
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className={`h-full rounded-full ${theme.bar} animate-progress-slide`} style={{ width: `${share}%` }} />
                     </div>
-                    <div className="flex items-center justify-between text-2xs text-muted-foreground font-mono">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground font-sans">
                       <span>
                         {f.count > 0 && (stats?.reach ?? 0) > 0
                           ? `~${Math.round((stats?.reach ?? 0) / f.count).toLocaleString('pt-BR')} alc./post`
                           : `${share}% do alcance`}
                       </span>
-                      <span className="font-bold text-foreground">{share}%</span>
+                      <span className="font-semibold text-foreground font-sans tabular-nums">{share}%</span>
                     </div>
                   </div>
 
                   {f.key === 'stories' && (
-                    <p className="text-2xs text-muted-foreground leading-tight">
-                      Só stories publicados pelo GENSBot (a Meta não armazena histórico de stories).
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Stories recentes monitorados via GENSBot.
                     </p>
                   )}
                   {f.key === 'collabs' && (
-                    <p className="text-2xs text-muted-foreground leading-tight">
-                      Métricas consolidadas com perfis parceiros.
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Métricas conjuntas com perfis parceiros.
                     </p>
                   )}
                 </div>
@@ -562,7 +574,7 @@ function CollabRadarCard({
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold font-sans bg-primary/10 text-primary border border-primary/20">
             {collabs.length} no período
           </span>
         </div>
@@ -578,21 +590,21 @@ function CollabRadarCard({
           <div className="mt-4 flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-background/50 border border-border">
               <div>
-                <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Média Post Solo</span>
-                <div className="text-lg font-bold font-mono text-foreground mt-0.5">{avgSoloReach.toLocaleString('pt-BR')}</div>
-                <span className="text-2xs text-muted-foreground">alcance por post</span>
+                <span className="text-xs text-muted-foreground font-medium font-sans">Média Post Solo</span>
+                <div className="text-lg font-bold font-sans tabular-nums text-foreground mt-0.5">{avgSoloReach.toLocaleString('pt-BR')}</div>
+                <span className="text-xs text-muted-foreground">alcance por post</span>
               </div>
               <div>
-                <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Média Post Collab</span>
-                <div className="text-lg font-bold font-mono text-primary flex items-center gap-1.5 mt-0.5">
+                <span className="text-xs text-muted-foreground font-medium font-sans">Média Post Collab</span>
+                <div className="text-lg font-bold font-sans tabular-nums text-primary flex items-center gap-1.5 mt-0.5">
                   {avgCollabReach.toLocaleString('pt-BR')}
                   {reachBoost > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-md bg-emerald-500/15 text-emerald-400 text-2xs font-mono font-bold">
+                    <span className="px-1.5 py-0.2 rounded-md bg-emerald-500/15 text-emerald-400 text-xs font-semibold font-sans">
                       +{reachBoost}%
                     </span>
                   )}
                 </div>
-                <span className="text-2xs text-muted-foreground">alcance conjunto</span>
+                <span className="text-xs text-muted-foreground">alcance conjunto</span>
               </div>
             </div>
 
@@ -602,14 +614,14 @@ function CollabRadarCard({
                 {partnerStats.slice(0, 4).map(([username, s]) => (
                   <span
                     key={username}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/60 border border-border text-xs font-mono text-foreground"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/60 border border-border text-xs font-sans text-foreground"
                   >
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${s.status === 'Pending' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}
                       title={s.status === 'Pending' ? 'Convite pendente' : 'Confirmado'}
                     />
                     <span className="font-bold">@{username}</span>
-                    <span className="text-muted-foreground text-2xs">({s.count} post{s.count > 1 ? 's' : ''} · {s.reach.toLocaleString('pt-BR')} alc.)</span>
+                    <span className="text-muted-foreground text-xs">({s.count} post{s.count > 1 ? 's' : ''} · {s.reach.toLocaleString('pt-BR')} alc.)</span>
                   </span>
                 ))}
               </div>
@@ -620,7 +632,7 @@ function CollabRadarCard({
 
       <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <span>Métricas unificadas entre os perfis</span>
-        <span className="font-mono text-primary font-semibold">Meta Graph API v25</span>
+        <span className="text-primary font-semibold font-sans">Meta Graph API v25</span>
       </div>
     </Card>
   );
@@ -667,7 +679,7 @@ function ReelsRetentionCard({ publications }: { publications: PublicationItem[] 
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-chart-1/10 text-chart-1 border border-chart-1/20">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold font-sans bg-chart-1/10 text-chart-1 border border-chart-1/20">
             {reels.length} Reels
           </span>
         </div>
@@ -683,37 +695,37 @@ function ReelsRetentionCard({ publications }: { publications: PublicationItem[] 
           <div className="mt-4 flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-background/50 border border-border">
               <div>
-                <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Retenção Média</span>
-                <div className="text-2xl font-bold font-mono text-sky-400 mt-0.5 flex items-baseline gap-1">
+                <span className="text-xs text-muted-foreground font-medium font-sans">Retenção Média</span>
+                <div className="text-2xl font-bold font-display text-sky-400 mt-0.5 flex items-baseline gap-1 tabular-nums">
                   {avgWatchSeconds}s
-                  <span className="text-xs font-normal text-muted-foreground">por espectador</span>
+                  <span className="text-xs font-normal text-muted-foreground font-sans">por espectador</span>
                 </div>
-                <span className="text-2xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground font-sans mt-0.5 block">
                   {avgWatchSeconds >= 15 ? '🔥 Alta retenção' : avgWatchSeconds >= 8 ? '⚡ Retenção equilibrada' : '⏱️ Consumo rápido'}
                 </span>
               </div>
               <div>
-                <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Status do Algoritmo</span>
-                <div className="text-sm font-bold text-foreground mt-1.5 flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground font-medium font-sans">Status do Algoritmo</span>
+                <div className="text-sm font-semibold text-foreground mt-1.5 flex items-center gap-1.5 font-sans">
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   Priorizado no Feed
                 </div>
-                <p className="text-2xs text-muted-foreground mt-0.5">Reels com &gt;10s ganham distribuição adicional no Explore.</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed font-sans">Reels com &gt;10s ganham distribuição adicional no Explore.</p>
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold text-foreground">Reels com Maior Tempo de Tela</span>
+              <span className="text-xs font-semibold text-foreground font-sans">Reels com Maior Tempo de Tela</span>
               <div className="flex flex-col gap-1.5">
                 {topRetentive.map((r, i) => (
                   <div
                     key={r.id || i}
-                    className="flex items-center justify-between p-2 rounded-xl bg-accent/40 border border-border text-xs"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-accent/40 border border-border text-xs"
                   >
-                    <span className="truncate max-w-[200px] sm:max-w-xs text-foreground font-medium">
+                    <span className="truncate max-w-[200px] sm:max-w-xs text-foreground font-medium font-sans">
                       {r.caption ? r.caption.slice(0, 45) + '...' : `Reels de ${new Date(r.published_at).toLocaleDateString('pt-BR')}`}
                     </span>
-                    <span className="font-mono text-sky-400 font-bold shrink-0">
+                    <span className="font-sans font-bold tabular-nums text-sky-400 shrink-0">
                       {r.avg_watch_time ? `${r.avg_watch_time}s méd.` : `${avgWatchSeconds}s méd.`}
                     </span>
                   </div>
@@ -725,8 +737,8 @@ function ReelsRetentionCard({ publications }: { publications: PublicationItem[] 
       </div>
 
       <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-        <span>Tempo de tela oficial (Meta v22+)</span>
-        <span className="font-mono text-sky-400 font-semibold">ig_reels_avg_watch_time</span>
+        <span>Tempo de tela oficial (Meta Reels)</span>
+        <span className="font-semibold text-sky-400 font-sans">Retenção de Vídeo</span>
       </div>
     </Card>
   );
@@ -773,7 +785,7 @@ function AlgorithmViralityCard({
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-chart-2/10 text-chart-2 border border-chart-2/20">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold font-sans tabular-nums bg-chart-2/10 text-chart-2 border border-chart-2/20">
             {totalAlgorithmicPower.toLocaleString('pt-BR')} sinais
           </span>
         </div>
@@ -781,30 +793,30 @@ function AlgorithmViralityCard({
         <div className="mt-4 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-background/50 border border-border">
             <div>
-              <div className="flex items-center gap-1.5 text-2xs text-muted-foreground font-mono uppercase font-medium">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium font-sans">
                 <Share2 className="w-3.5 h-3.5 text-chart-2" />
                 <span>Viralidade (Shares)</span>
               </div>
-              <div className="text-2xl font-bold font-mono text-foreground mt-1">
+              <div className="text-2xl font-bold font-display text-foreground mt-1 tabular-nums">
                 {totalShares.toLocaleString('pt-BR')}
               </div>
-              <span className="text-2xs text-muted-foreground">Envios via DM e Stories</span>
+              <span className="text-xs text-muted-foreground font-sans mt-0.5 block">Envios via DM e Stories</span>
             </div>
 
             <div>
-              <div className="flex items-center gap-1.5 text-2xs text-muted-foreground font-mono uppercase font-medium">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium font-sans">
                 <Sparkles className="w-3.5 h-3.5 text-chart-1" />
                 <span>Valor (Salvos)</span>
               </div>
-              <div className="text-2xl font-bold font-mono text-foreground mt-1">
+              <div className="text-2xl font-bold font-display text-foreground mt-1 tabular-nums">
                 {totalSaved.toLocaleString('pt-BR')}
               </div>
-              <span className="text-2xs text-muted-foreground">Guardados para consultar</span>
+              <span className="text-xs text-muted-foreground font-sans mt-0.5 block">Guardados para consultar</span>
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-2xs font-mono text-muted-foreground">
+            <div className="flex items-center justify-between text-xs font-sans text-muted-foreground">
               <span>Shares: {sharesShare}%</span>
               <span>Salvos: {savedShare}%</span>
             </div>
@@ -817,26 +829,26 @@ function AlgorithmViralityCard({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             {topShared && (
               <div className="p-2.5 rounded-xl bg-accent/40 border border-border flex flex-col gap-1">
-                <span className="text-2xs font-mono text-chart-2 font-bold uppercase flex items-center gap-1">
+                <span className="text-xs font-semibold text-chart-2 font-sans uppercase flex items-center gap-1">
                   <Share2 className="w-3 h-3" /> Mais Compartilhado
                 </span>
-                <span className="line-clamp-1 font-semibold text-foreground text-xs">
+                <span className="line-clamp-1 font-semibold text-foreground text-xs font-sans">
                   {topShared.caption || 'Sem legenda'}
                 </span>
-                <span className="font-mono text-muted-foreground text-2xs">
+                <span className="text-muted-foreground text-xs font-sans tabular-nums">
                   {(topShared.shares || 0).toLocaleString('pt-BR')} envios
                 </span>
               </div>
             )}
             {topSaved && (
               <div className="p-2.5 rounded-xl bg-accent/40 border border-border flex flex-col gap-1">
-                <span className="text-2xs font-mono text-chart-1 font-bold uppercase flex items-center gap-1">
+                <span className="text-xs font-sans font-semibold text-chart-1 uppercase tracking-wide flex items-center gap-1">
                   <Sparkles className="w-3 h-3" /> Mais Salvo
                 </span>
-                <span className="line-clamp-1 font-semibold text-foreground text-xs">
+                <span className="line-clamp-1 font-semibold text-foreground text-xs font-sans">
                   {topSaved.caption || 'Sem legenda'}
                 </span>
-                <span className="font-mono text-muted-foreground text-2xs">
+                <span className="font-sans tabular-nums text-muted-foreground text-xs">
                   {(topSaved.saved || 0).toLocaleString('pt-BR')} salvamentos
                 </span>
               </div>
@@ -845,9 +857,9 @@ function AlgorithmViralityCard({
         </div>
       </div>
 
-      <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+      <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground font-sans">
         <span>Sinais prioritários de ranking no algoritmo</span>
-        <span className="font-mono text-chart-2 font-semibold">Meta v25 Insights</span>
+        <span className="font-sans font-semibold text-chart-2">Meta Insights</span>
       </div>
     </Card>
   );
@@ -883,42 +895,42 @@ function TrafficFunnelCard({
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-chart-4/10 text-chart-4 border border-chart-4/20">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold font-sans bg-chart-4/10 text-chart-4 border border-chart-4/20">
             {ctr}% CTR
           </span>
         </div>
 
         <div className="mt-4 flex flex-col gap-4">
-          <div className="grid grid-cols-3 gap-2 p-3.5 rounded-2xl bg-background/50 border border-border tabular-nums text-center">
+          <div className="grid grid-cols-3 gap-2 p-3.5 rounded-2xl bg-background/50 border border-border text-center">
             <div>
-              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Visitas Perfil</span>
-              <div className="text-xl font-bold font-mono text-foreground mt-1">
+              <span className="text-xs text-muted-foreground font-medium font-sans">Visitas Perfil</span>
+              <div className="text-xl font-bold font-sans tabular-nums text-foreground mt-1">
                 {profileViews.toLocaleString('pt-BR')}
               </div>
-              <span className="text-2xs text-muted-foreground">topo do funil</span>
+              <span className="text-xs text-muted-foreground font-sans">topo do funil</span>
             </div>
             <div>
-              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Link da Bio</span>
-              <div className="text-xl font-bold font-mono text-primary mt-1">
+              <span className="text-xs text-muted-foreground font-medium font-sans">Link da Bio</span>
+              <div className="text-xl font-bold font-sans tabular-nums text-primary mt-1">
                 {bio.toLocaleString('pt-BR')}
               </div>
-              <span className="text-2xs text-muted-foreground">cliques diretos</span>
+              <span className="text-xs text-muted-foreground font-sans">cliques diretos</span>
             </div>
             <div>
-              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Automações DM</span>
-              <div className="text-xl font-bold font-mono text-chart-2 mt-1">
+              <span className="text-xs text-muted-foreground font-medium font-sans">Automações DM</span>
+              <div className="text-xl font-bold font-sans tabular-nums text-chart-2 mt-1">
                 {dm.toLocaleString('pt-BR')}
               </div>
-              <span className="text-2xs text-muted-foreground">cliques no chat</span>
+              <span className="text-xs text-muted-foreground font-sans">cliques no chat</span>
             </div>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-accent/30 border border-border flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
-              <span className="font-semibold text-foreground">Total de Tráfego Gerado</span>
+              <span className="font-semibold text-foreground font-sans">Total de Tráfego Gerado</span>
             </div>
-            <span className="font-bold font-mono text-foreground text-sm">
+            <span className="font-bold font-sans tabular-nums text-foreground text-sm">
               {totalClicks.toLocaleString('pt-BR')} cliques rastreados
             </span>
           </div>
@@ -927,7 +939,7 @@ function TrafficFunnelCard({
 
       <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <span>Rastreamento integrado com UTM links</span>
-        <span className="font-mono text-primary font-semibold">GENSBot Analytics</span>
+        <span className="text-primary font-semibold font-sans">GENSBot Analytics</span>
       </div>
     </Card>
   );
@@ -972,38 +984,38 @@ function EditorialCadenceCard({
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold font-sans bg-primary/10 text-primary border border-primary/20">
             {cadencePerWeek} posts/sem
           </span>
         </div>
 
         <div className="mt-4 flex flex-col gap-4">
-          <div className="grid grid-cols-3 gap-2 p-3.5 rounded-2xl bg-background/50 border border-border tabular-nums text-center">
+          <div className="grid grid-cols-3 gap-2 p-3.5 rounded-2xl bg-background/50 border border-border text-center">
             <div>
-              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Publicações</span>
-              <div className="text-xl font-bold font-mono text-foreground mt-1">
+              <span className="text-xs text-muted-foreground font-medium font-sans">Publicações</span>
+              <div className="text-xl font-bold font-sans tabular-nums text-foreground mt-1">
                 {totalItems}
               </div>
-              <span className="text-2xs text-muted-foreground">no período</span>
+              <span className="text-xs text-muted-foreground font-sans">no período</span>
             </div>
             <div>
-              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Dias Ativos</span>
-              <div className="text-xl font-bold font-mono text-primary mt-1">
+              <span className="text-xs text-muted-foreground font-medium font-sans">Dias Ativos</span>
+              <div className="text-xl font-bold font-sans tabular-nums text-primary mt-1">
                 {activeDays}/{totalDays}
               </div>
-              <span className="text-2xs text-muted-foreground">{activeRate}% do tempo</span>
+              <span className="text-xs text-muted-foreground font-sans">{activeRate}% do tempo</span>
             </div>
             <div>
-              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Ritmo Médio</span>
-              <div className="text-xl font-bold font-mono text-chart-2 mt-1">
+              <span className="text-xs text-muted-foreground font-medium font-sans">Ritmo Médio</span>
+              <div className="text-xl font-bold font-sans tabular-nums text-chart-2 mt-1">
                 {cadencePerWeek}
               </div>
-              <span className="text-2xs text-muted-foreground">por semana</span>
+              <span className="text-xs text-muted-foreground font-sans">por semana</span>
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-2xs font-mono text-muted-foreground">
+            <div className="flex items-center justify-between text-xs font-sans text-muted-foreground">
               <span>Feed: {postsCount}</span>
               <span>Reels: {reelsCount}</span>
               <span>Stories: {storiesCount}</span>
@@ -1019,7 +1031,7 @@ function EditorialCadenceCard({
 
       <div className="pt-3 border-t border-border flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="truncate">Regularidade recomendada: 3 a 5 posts por semana</span>
-        <span className="font-mono text-primary font-semibold shrink-0">Meta Benchmark</span>
+        <span className="font-semibold text-primary font-sans shrink-0">Meta Benchmark</span>
       </div>
     </Card>
   );
@@ -1111,7 +1123,7 @@ function AudienceActivityCard({
         </div>
 
         {peakHour && (
-          <span className="rounded-pill px-3 py-1 text-xs font-bold font-mono bg-primary/15 text-primary border border-primary/30 self-start sm:self-auto">
+          <span className="rounded-pill px-3 py-1 text-xs font-semibold font-sans tabular-nums bg-primary/15 text-primary border border-primary/30 self-start sm:self-auto">
             Pico: {peakHour.hour}:00h ({peakHour.followersOnline.toLocaleString('pt-BR')} online)
           </span>
         )}
@@ -1144,17 +1156,17 @@ function AudienceActivityCard({
                     animationDelay: `${idx * 25}ms`,
                   }}
                 />
-                {h.hour % 3 === 0 && <span className="text-xs text-muted-foreground font-mono mt-1.5">{h.hour}h</span>}
+                {h.hour % 3 === 0 && <span className="text-xs text-muted-foreground font-sans tabular-nums mt-1.5">{h.hour}h</span>}
               </div></Tip>
             );
           })}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border">
+        <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border font-sans">
           <span className="font-semibold text-foreground flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-primary" /> Dias de Pico: Seg, Ter e Qui
           </span>
-          <span className="font-mono text-xs">Janela recomendada: 18h às 21h</span>
+          <span className="font-medium text-xs">Janela recomendada: 18h às 21h</span>
         </div>
       </div>
       )}
@@ -1191,7 +1203,7 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
 
         {/* Formato da Publicação */}
         <div className="absolute top-2.5 left-2.5">
-          <span className="px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-white text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 shadow-sm border border-white/10">
+          <span className="px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-white text-xs font-semibold font-sans uppercase tracking-wide flex items-center gap-1.5 shadow-sm border border-white/10">
             {isVideo ? <Video className="w-3.5 h-3.5 text-sky-400" /> : isCarousel ? <ImageIcon className="w-3.5 h-3.5 text-violet-400" /> : <Sparkles className="w-3.5 h-3.5 text-emerald-400" />}
             {isVideo ? 'Reels' : isCarousel ? 'Carrossel' : 'Post'}
           </span>
@@ -1200,7 +1212,7 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
         {/* Ações no Topo Direito: Taxa de Engajamento e Link Instagram */}
         <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
           {engRate && (
-            <span className="px-2.5 py-1 rounded-lg bg-lime text-lime-foreground text-xs font-bold font-mono shadow-sm border border-black/10">
+            <span className="px-2.5 py-1 rounded-lg bg-lime text-lime-foreground text-xs font-semibold font-sans tabular-nums shadow-sm border border-black/10">
               {engRate}% engaj.
             </span>
           )}
@@ -1226,7 +1238,7 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
             {item.collaborators.map((c, idx) => (
               <span
                 key={idx}
-                className="px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md text-emerald-300 text-xs font-bold font-mono border border-emerald-500/30 flex items-center gap-1.5 truncate shadow-sm"
+                className="px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md text-emerald-300 text-xs font-semibold font-sans border border-emerald-500/30 flex items-center gap-1.5 truncate shadow-sm"
                 title={c.invite_status === 'Pending' ? `Convite pendente: @${c.username}` : `Collab com @${c.username}`}
               >
                 <span
@@ -1243,7 +1255,7 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
         {/* Retenção de Vídeo em Reels (Meta v22+) */}
         {isVideo && watchSeconds > 0 && (
           <div className="absolute bottom-2.5 right-2.5">
-            <span className="px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md text-sky-300 text-xs font-bold font-mono border border-sky-500/30 flex items-center gap-1.5 shadow-sm">
+            <span className="px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md text-sky-300 text-xs font-semibold font-sans border border-sky-500/30 flex items-center gap-1.5 shadow-sm">
               <Clock className="w-3.5 h-3.5 text-sky-400" />
               {watchSeconds}s méd.
             </span>
@@ -1253,36 +1265,31 @@ function PerformanceMediaCard({ item }: { item: PublicationItem }) {
 
       <div className="p-4 flex-1 flex flex-col justify-between gap-4">
         <div>
-          <span className="text-2xs font-mono font-medium text-muted-foreground uppercase tracking-wide">
-            {new Date(item.published_at).toLocaleDateString('pt-BR', {
-              day: '2-digit',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+          <span className="text-xs font-medium text-muted-foreground font-sans block">
+            {formatarDataPublicacao(item.published_at)}
           </span>
-          <p className="text-sm font-medium text-foreground line-clamp-3 mt-1.5 leading-snug">
+          <p className="text-sm font-medium text-foreground line-clamp-3 mt-1.5 leading-snug font-sans">
             {item.caption || 'Sem legenda informada'}
           </p>
         </div>
 
         {/* Grid de 4 Métricas Chave do Conteúdo */}
-        <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-border tabular-nums">
-          <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
-            <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Alcance</span>
-            <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">{item.reach.toLocaleString('pt-BR')}</span>
+        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border">
+          <div className="p-2.5 rounded-xl bg-accent/30 border border-border flex flex-col justify-between min-w-0 overflow-hidden">
+            <span className="text-xs text-muted-foreground font-medium font-sans truncate">Alcance</span>
+            <span className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5">{item.reach.toLocaleString('pt-BR')}</span>
           </div>
-          <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
-            <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Visualizações</span>
-            <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">{(item.views || item.reach).toLocaleString('pt-BR')}</span>
+          <div className="p-2.5 rounded-xl bg-accent/30 border border-border flex flex-col justify-between min-w-0 overflow-hidden">
+            <span className="text-xs text-muted-foreground font-medium font-sans truncate">Visualizações</span>
+            <span className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5">{(item.views || item.reach).toLocaleString('pt-BR')}</span>
           </div>
-          <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
-            <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Interações</span>
-            <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">{item.interactions.toLocaleString('pt-BR')}</span>
+          <div className="p-2.5 rounded-xl bg-accent/30 border border-border flex flex-col justify-between min-w-0 overflow-hidden">
+            <span className="text-xs text-muted-foreground font-medium font-sans truncate">Interações</span>
+            <span className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5">{item.interactions.toLocaleString('pt-BR')}</span>
           </div>
-          <div className="p-2 rounded-xl bg-accent/40 border border-border/60 flex flex-col">
-            <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Shares · Salvos</span>
-            <span className="text-sm sm:text-base font-bold text-foreground font-mono mt-0.5">
+          <div className="p-2.5 rounded-xl bg-accent/30 border border-border flex flex-col justify-between min-w-0 overflow-hidden">
+            <span className="text-xs text-muted-foreground font-medium font-sans truncate">Salvos & Shares</span>
+            <span className="text-sm sm:text-base font-bold font-sans tabular-nums text-foreground mt-0.5">
               {((item.shares || 0) + (item.saved || 0)).toLocaleString('pt-BR')}
             </span>
           </div>
@@ -1582,7 +1589,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
           >
             <History className="w-4 h-4" />
             Histórico de Relatórios Gerados
-            <span className="px-2 py-0.5 rounded-full bg-card/80 text-foreground text-xs font-mono border">
+            <span className="px-2 py-0.5 rounded-full bg-card/80 text-foreground text-xs font-sans tabular-nums font-semibold border">
               {relatoriosSalvos.length}
             </span>
           </button>
@@ -1670,7 +1677,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <div
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-mono ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums ${
                     reachTrend.positive
                       ? 'bg-success/15 text-success border border-success/30'
                       : 'bg-destructive/15 text-destructive border border-destructive/30'
@@ -1681,13 +1688,13 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 </div>
               </div>
               <div className="mt-4">
-                <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide font-sans">
                   Contas Alcançadas
                 </span>
-                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight font-mono tabular-nums mt-0.5">
+                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums mt-0.5">
                   {((isSingleAccount ? activeAccount?.reach_total : totalReach) ?? 0).toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">Soma diária dos últimos {period} dias</p>
+                <p className="text-xs text-muted-foreground mt-0.5 font-sans">Soma diária dos últimos {period} dias</p>
               </div>
               <div className="mt-2 -mx-5 -mb-5 pt-1">
                 <MiniSparkline
@@ -1705,7 +1712,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   <Eye className="w-5 h-5" />
                 </div>
                 <div
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-mono ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums ${
                     viewsTrend.positive
                       ? 'bg-chart-2/15 text-chart-2 border border-chart-2/30'
                       : 'bg-destructive/15 text-destructive border border-destructive/30'
@@ -1716,13 +1723,13 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 </div>
               </div>
               <div className="mt-4">
-                <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide font-sans">
                   Visualizações Totais
                 </span>
-                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight font-mono tabular-nums mt-0.5">
+                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums mt-0.5">
                   {totalViews.toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">Métrica universal v25 (posts, carrosséis e reels)</p>
+                <p className="text-xs text-muted-foreground mt-0.5 font-sans">Métrica universal v25 (posts, carrosséis e reels)</p>
               </div>
               <div className="mt-2 -mx-5 -mb-5 pt-1">
                 <MiniSparkline
@@ -1739,19 +1746,19 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-3/15 text-chart-3 border border-chart-3/25">
                   <Heart className="w-5 h-5" />
                 </div>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-mono bg-chart-3/15 text-chart-3 border border-chart-3/30">
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums bg-chart-3/15 text-chart-3 border border-chart-3/30">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>{contentPerf?.summary?.reachTotal ? `${contentPerf.summary.engagementRate.toFixed(1)}% taxa` : 'Engajamento'}</span>
                 </div>
               </div>
               <div className="mt-4">
-                <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide font-sans">
                   Interações Totais
                 </span>
-                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight font-mono tabular-nums mt-0.5">
+                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums mt-0.5">
                   {totalInteractions.toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5 font-sans">
                   {(contentPerf?.summary?.savedTotal || 0) > 0 || (contentPerf?.summary?.sharesTotal || 0) > 0
                     ? `${((contentPerf?.summary?.sharesTotal || 0) + (contentPerf?.summary?.savedTotal || 0)).toLocaleString('pt-BR')} shares e salvos`
                     : 'Curtidas, comentários e salvamentos'}
@@ -1773,7 +1780,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   <Users className="w-5 h-5" />
                 </div>
                 <div
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-mono ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums ${
                     followerNet === null || followerNet >= 0
                       ? 'bg-chart-4/15 text-chart-4 border border-chart-4/30'
                       : 'bg-destructive/15 text-destructive border border-destructive/30'
@@ -1792,13 +1799,13 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 </div>
               </div>
               <div className="mt-4">
-                <span className="text-xs font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide font-sans">
                   Base de Seguidores
                 </span>
-                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight font-mono tabular-nums mt-0.5">
+                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums mt-0.5">
                   {((isSingleAccount ? activeAccount?.followers_count : totalFollowers) ?? 0).toLocaleString('pt-BR')}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5 font-sans">
                   {followerNet !== null && followerNet !== 0
                     ? `${followerNet >= 0 ? '+' : ''}${followerNet.toLocaleString('pt-BR')} novos seguidores no período`
                     : bioClicks !== null && bioClicks > 0
@@ -1838,7 +1845,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="muted" className="font-mono text-xs bg-primary/15 text-primary border-primary/30">
+                  <Badge variant="muted" className="font-sans font-semibold text-xs tabular-nums bg-primary/15 text-primary border-primary/30">
                     Total: {activeAccount.reach_total.toLocaleString('pt-BR')} contas
                   </Badge>
                 </div>
@@ -1935,7 +1942,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                     <span>{f.label}</span>
                     {typeof f.badge === 'number' && f.badge > 0 && (
                       <span
-                        className={`px-1.5 py-0.2 rounded-full text-2xs font-mono font-bold ${
+                        className={`px-1.5 py-0.2 rounded-full text-xs font-sans font-semibold tabular-nums ${
                           contentFilter === f.id
                             ? 'bg-primary-foreground/20 text-primary-foreground'
                             : 'bg-primary/15 text-primary'
