@@ -3,6 +3,7 @@ import { supabase as db } from '@/lib/supabase';
 import { getContextoAgencia, respostaErro, validarAcessoItemConteudo } from '@/lib/clientes-server';
 import { ehUuid } from '@/lib/clientes';
 import { campoValido, patchAoAceitar } from '@/lib/sugestoes-texto';
+import { recomporCampo } from '@/lib/roteiro-cliente';
 
 /** Aceita ou recusa uma sugestão de texto. Aceitar grava o texto na demanda. */
 export async function POST(req: Request, { params }: { params: Promise<{ sid: string }> }) {
@@ -29,6 +30,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ sid: st
   if (negado) return negado;
 
   const agora = new Date().toISOString();
+  let textoAplicado: string | null = null;
 
   // Marca como resolvida só se ainda estiver pendente (evita aplicar duas vezes).
   const { data: marcada, error: erroMarca } = await db
@@ -41,9 +43,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ sid: st
   if (!marcada?.length) return respostaErro('Esta sugestão já foi resolvida.', 409);
 
   if (acao === 'aceitar') {
+    // A cliente editou só a parte visível: recoloca prefixo do título e notas internas do roteiro.
+    const { data: atualItem } = await db.from('conteudo_items').select('titulo, briefing, legenda').eq('id', sug.item_id).maybeSingle();
+    const valorAtual = (atualItem as Record<string, string | null> | null)?.[sug.campo] ?? null;
+    const textoFinal = recomporCampo(sug.campo, sug.texto_proposto, valorAtual);
+    textoAplicado = textoFinal;
     const { error } = await db
       .from('conteudo_items')
-      .update({ ...patchAoAceitar(sug.campo, sug.texto_proposto), atualizado_em: agora })
+      .update({ ...patchAoAceitar(sug.campo, textoFinal), atualizado_em: agora })
       .eq('id', sug.item_id)
       .eq('agencia_id', auth.ctx.membro.agencia_id);
     if (error) {
@@ -53,5 +60,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ sid: st
     }
   }
 
-  return NextResponse.json({ ok: true, status: acao === 'aceitar' ? 'aceita' : 'recusada' });
+  // texto_final: valor completo gravado (com prefixo/notas internas), para o formulário aberto não sobrescrever.
+  return NextResponse.json({ ok: true, status: acao === 'aceitar' ? 'aceita' : 'recusada', texto_final: textoAplicado });
 }

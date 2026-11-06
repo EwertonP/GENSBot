@@ -64,7 +64,7 @@ export function SugestoesTextoCard({ itemId, onAceita, showToast }: Props) {
       if (!res.ok) throw new Error(json.error || 'Não foi possível resolver.');
       setSugestoes((lista) => lista.filter((x) => x.id !== s.id));
       if (acao === 'aceitar') {
-        onAceita(s.campo, s.texto_proposto);
+        onAceita(s.campo, typeof json.texto_final === 'string' ? json.texto_final : s.texto_proposto);
         showToast('Texto da cliente aplicado na demanda.', 'success');
       } else {
         showToast('Sugestão recusada.', 'success');

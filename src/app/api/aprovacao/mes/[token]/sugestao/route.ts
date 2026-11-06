@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { notificar } from '@/lib/notificar';
 import { etapaNoLinkDoMes } from '@/lib/link-do-mes';
 import { campoValido, podeSugerirTexto, ROTULO_CAMPO, validarSugestao } from '@/lib/sugestoes-texto';
+import { limparTitulo, textoVisivel } from '@/lib/roteiro-cliente';
 import type { StatusConteudo } from '@/lib/conteudo';
 
 type Params = { params: Promise<{ token: string }> };
@@ -48,7 +49,8 @@ export async function POST(req: Request, { params }: Params) {
     );
   }
 
-  const atual = (item as Record<string, string | null>)[campo];
+  // Compara com o que a cliente vê (sem prefixos nem notas internas).
+  const atual = textoVisivel(campo, (item as Record<string, string | null>)[campo]);
   const valid = validarSugestao(campo, body.texto, atual);
   if (!valid.ok) return NextResponse.json({ error: valid.erro }, { status: 400 });
 
@@ -76,7 +78,7 @@ export async function POST(req: Request, { params }: Params) {
   await notificar([item.responsavel_id, ...(Array.isArray(item.co_responsaveis_ids) ? item.co_responsaveis_ids : [])], {
     tipo: 'cliente_sugeriu_texto',
     titulo: `${cliente.nome} sugeriu mudança no texto`,
-    corpo: `${ROTULO_CAMPO[campo]}: ${item.titulo || 'Publicação'}`,
+    corpo: `${ROTULO_CAMPO[campo]}: ${limparTitulo(item.titulo) || 'Publicação'}`,
     url: `/?tab=esteira&item=${item.id}`,
   });
 

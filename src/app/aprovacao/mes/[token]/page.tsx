@@ -4,26 +4,34 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   ArrowLeft,
-  CalendarDays,
   Check,
   ChevronLeft,
   ChevronRight,
+  CircleCheck,
   Clapperboard,
+  Clock,
   Copy,
+  GalleryHorizontalEnd,
   Image as ImageIcon,
-  Images,
+  Info,
   MessageSquare,
   Pencil,
-  Sparkles,
+  Smartphone,
   Type,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { IconButton } from '@/components/ui/icon-button';
 import { Spinner } from '@/components/ui/spinner';
 import { SegmentedItem } from '@/components/ui/segmented';
 import { toast } from '@/components/ui/toast';
+import { InstagramCarrosselPreview } from '@/components/aprovacao/instagram-carrossel-preview';
+import { InstagramReelsPreview } from '@/components/aprovacao/instagram-reels-preview';
+import { InstagramStoryPreview } from '@/components/aprovacao/instagram-story-preview';
 import { cn } from '@/lib/utils';
 import type { AbaMes, ItemDoMes } from '@/lib/link-do-mes';
 import type { CampoSugestao } from '@/lib/sugestoes-texto';
+import { blocosDoRoteiro, partesNegrito, roteiroComoTextoPuro, ROTULO_FORMATO, type FormatoPost } from '@/lib/roteiro-cliente';
 
 interface Dados {
   cliente: { nome: string; cor: string | null; nicho: string | null; foto_url: string | null; usuario: string | null };
@@ -34,204 +42,297 @@ interface Dados {
 }
 
 const NOME_KEY = 'gens_aprovacao_nome';
+const LEITURA_KEY = 'gens_modo_leitura';
 
-function rotuloMes(mes: string): string {
-  const [a, m] = mes.split('-');
-  const nome = new Date(Number(a), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
-  return `${nome.charAt(0).toUpperCase()}${nome.slice(1)} de ${a}`;
+function lerLocal(chave: string): string {
+  try {
+    return typeof window === 'undefined' ? '' : localStorage.getItem(chave) || '';
+  } catch {
+    return '';
+  }
 }
 
-function rotuloData(data: string | null): string | null {
+function gravarLocal(chave: string, valor: string) {
+  try {
+    localStorage.setItem(chave, valor);
+  } catch {
+    /* sem armazenamento: só não lembra */
+  }
+}
+
+// ---------------- Datas ----------------
+
+function paraData(data: string | null): Date | null {
   if (!data) return null;
   const d = new Date(data.length <= 10 ? `${data}T12:00:00` : data);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function rotuloTipo(tipo: string): string {
-  if (tipo === 'reel') return 'Reels';
-  if (tipo === 'story') return 'Story';
-  return 'Post';
+function nomeMes(mes: string): { mes: string; ano: string } {
+  const [a, m] = mes.split('-');
+  const nome = new Date(Number(a), Number(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
+  return { mes: `${nome.charAt(0).toUpperCase()}${nome.slice(1)}`, ano: a };
 }
 
-const ETAPA_ROTULO: Record<ItemDoMes['etapa'], { texto: string; classe: string }> = {
-  texto: { texto: 'Em planejamento', classe: 'bg-muted text-muted-foreground' },
-  aprovacao: { texto: 'Aguardando você', classe: 'bg-warning/15 text-warning' },
-  publicado: { texto: 'Agendado ou publicado', classe: 'bg-success/15 text-success' },
+function dataPorExtenso(data: string | null): string | null {
+  const d = paraData(data);
+  if (!d) return null;
+  const t = d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' });
+  return `${t.charAt(0).toUpperCase()}${t.slice(1)}`;
+}
+
+function diaEDiaSemana(data: string | null): { dia: string; semana: string } | null {
+  const d = paraData(data);
+  if (!d) return null;
+  const dia = d.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'America/Sao_Paulo' });
+  const semana = d.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '');
+  return { dia, semana };
+}
+
+// ---------------- Pequenos componentes ----------------
+
+const ICONE_FORMATO: Record<FormatoPost, React.ElementType> = {
+  reels: Clapperboard,
+  carrossel: GalleryHorizontalEnd,
+  story: Smartphone,
+  post: ImageIcon,
 };
 
-function IconeTipo({ tipo, ehCarrossel, className }: { tipo: string; ehCarrossel: boolean; className?: string }) {
-  if (tipo === 'reel') return <Clapperboard className={className} />;
-  if (ehCarrossel) return <Images className={className} />;
-  return <ImageIcon className={className} />;
+function SeloFormato({ formato }: { formato: FormatoPost }) {
+  const Icone = ICONE_FORMATO[formato];
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+      <Icone className="size-3.5" aria-hidden />
+      {ROTULO_FORMATO[formato]}
+    </span>
+  );
 }
 
-function Previa({ item }: { item: ItemDoMes }) {
-  const [slide, setSlide] = useState(0);
+function SeloEtapa({ item }: { item: ItemDoMes }) {
+  if (item.etapa === 'texto') return <Badge variant="info" icon={Pencil}>Revisar texto</Badge>;
+  if (item.etapa === 'aprovacao') return <Badge variant="warning" icon={Clock}>Para aprovar</Badge>;
+  return item.publicado_em ? (
+    <Badge variant="success" icon={CircleCheck}>Publicado</Badge>
+  ) : (
+    <Badge variant="muted" icon={Clock}>Agendado</Badge>
+  );
+}
 
-  if (item.etapa === 'texto' || item.arquivos.length === 0) {
-    return (
-      <div className="flex w-full flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-border-strong bg-muted/40 px-6 py-6 text-center xl:aspect-[4/5]">
-        <Sparkles className="size-6 text-muted-foreground" aria-hidden />
-        <p className="text-sm font-semibold">
-          {item.etapa === 'texto' ? 'A arte ainda está sendo preparada' : item.etapa === 'publicado' ? 'Arquivos já arquivados' : 'Sem arquivo anexado'}
-        </p>
-        {item.etapa === 'texto' && (
-          <p className="text-xs text-muted-foreground">Por enquanto, confira o texto planejado ao lado. A arte aparece aqui quando estiver pronta.</p>
-        )}
-        {item.etapa === 'publicado' && (
-          <p className="text-xs text-muted-foreground">
-            Depois de publicado, só o texto fica guardado
-            {item.texto_ate ? `, até ${new Date(item.texto_ate).toLocaleDateString('pt-BR')}` : ''}. O post em si está no perfil do Instagram.
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  const arq = item.arquivos[Math.min(slide, item.arquivos.length - 1)];
-  const varios = item.arquivos.length > 1;
-
+function TextoComNegrito({ texto }: { texto: string }) {
   return (
-    <div className="relative mx-auto w-full max-w-sm">
-      <div className="overflow-hidden rounded-3xl border border-border bg-black">
-        {arq.tipo === 'video' ? (
-          <video key={arq.id} src={arq.url} poster={item.cover_url || undefined} controls playsInline className="aspect-[9/16] w-full bg-black object-contain" />
+    <>
+      {partesNegrito(texto).map((p, i) =>
+        p.negrito ? (
+          <strong key={i} className="font-semibold text-foreground">
+            {p.texto}
+          </strong>
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={arq.url} alt={item.titulo || 'Arte do post'} className="aspect-[4/5] w-full object-cover" />
-        )}
-      </div>
-      {varios && (
-        <>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <Button variant="secondary" size="sm" onClick={() => setSlide((s) => Math.max(0, s - 1))} disabled={slide === 0} aria-label="Slide anterior">
-              <ChevronLeft className="size-4" aria-hidden />
-            </Button>
-            <span className="text-xs font-semibold text-muted-foreground">
-              {slide + 1} de {item.arquivos.length}
-            </span>
-            <Button variant="secondary" size="sm" onClick={() => setSlide((s) => Math.min(item.arquivos.length - 1, s + 1))} disabled={slide === item.arquivos.length - 1} aria-label="Próximo slide">
-              <ChevronRight className="size-4" aria-hidden />
-            </Button>
-          </div>
-        </>
+          <React.Fragment key={i}>{p.texto}</React.Fragment>
+        )
       )}
+    </>
+  );
+}
+
+/** Roteiro em markdown simples virando seções, cenas, itens e parágrafos. */
+function normalizarRotulo(t: string): string {
+  return t.replace(/[^\p{L}\p{N} ]/gu, '').trim().toLowerCase();
+}
+
+function Roteiro({ texto, leitura, rotulo }: { texto: string; leitura: boolean; rotulo: string }) {
+  // Seção com o mesmo nome do bloco (ex.: "🖼️ Texto dos slides") só repetiria o rótulo.
+  const blocos = blocosDoRoteiro(texto).filter((b) => !(b.tipo === 'secao' && normalizarRotulo(b.texto) === normalizarRotulo(rotulo)));
+  const corpo = leitura ? 'text-xl leading-9' : 'text-base leading-7';
+  return (
+    <div className="flex flex-col">
+      {blocos.map((b, i) => {
+        if (b.tipo === 'secao') {
+          return (
+            <h4 key={i} className={cn('font-display text-title font-semibold', i > 0 && 'mt-6 border-t border-border pt-5')}>
+              {b.texto}
+            </h4>
+          );
+        }
+        if (b.tipo === 'subtitulo') {
+          return (
+            <p key={i} className="mt-4 text-label font-semibold uppercase tracking-wide text-brand-text">
+              {b.texto}
+            </p>
+          );
+        }
+        if (b.tipo === 'item') {
+          return (
+            <div key={i} className={cn('mt-2 flex gap-3', corpo)}>
+              <span className="shrink-0 font-semibold tabular-nums text-brand-text">{b.marcador}</span>
+              <span className="min-w-0 whitespace-pre-line">
+                <TextoComNegrito texto={b.texto} />
+              </span>
+            </div>
+          );
+        }
+        return (
+          <p key={i} className={cn('mt-2 whitespace-pre-line', corpo)}>
+            <TextoComNegrito texto={b.texto} />
+          </p>
+        );
+      })}
     </div>
   );
 }
 
-function CampoTexto({ rotulo, texto, copiavel, leitura }: { rotulo: string; texto: string | null; copiavel?: boolean; leitura?: boolean }) {
-  if (!texto?.trim()) return null;
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(texto || '');
-      toast.success(`${rotulo} copiado.`);
-    } catch {
-      toast.error('Não foi possível copiar.');
-    }
+async function copiar(texto: string, rotulo: string) {
+  try {
+    await navigator.clipboard.writeText(texto);
+    toast.success(`${rotulo} copiado.`);
+  } catch {
+    toast.error('Não foi possível copiar.');
   }
-  return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{rotulo}</h3>
-        {copiavel && (
-          <Button variant="ghost" size="sm" onClick={copiar} aria-label={`Copiar ${rotulo.toLowerCase()}`}>
-            <Copy className="size-3.5" aria-hidden /> Copiar
-          </Button>
-        )}
-      </div>
-      <p className={cn('whitespace-pre-line', leitura ? 'text-xl leading-9' : 'text-[15px] leading-relaxed')}>{texto}</p>
-    </section>
-  );
 }
 
-
-interface CampoEditavelProps {
-  rotulo: string;
+interface EditorSugestaoProps {
   campo: CampoSugestao;
-  texto: string | null;
-  pendente?: string;
+  rotulo: string;
+  inicial: string;
   nome: string;
   onNome: (v: string) => void;
   onEnviar: (campo: CampoSugestao, texto: string) => Promise<boolean>;
-  grande?: boolean;
-  leitura?: boolean;
+  onCancelar: () => void;
 }
 
-/** Texto de um post em planejamento: a cliente pode sugerir uma mudança (nada é sobrescrito). */
-function CampoEditavel({ rotulo, campo, texto, pendente, nome, onNome, onEnviar, grande, leitura }: CampoEditavelProps) {
-  const [editando, setEditando] = useState(false);
-  const [valor, setValor] = useState('');
+function EditorSugestao({ campo, rotulo, inicial, nome, onNome, onEnviar, onCancelar }: EditorSugestaoProps) {
+  const [valor, setValor] = useState(inicial);
   const [enviando, setEnviando] = useState(false);
-
-  function abrir() {
-    setValor(pendente ?? texto ?? '');
-    setEditando(true);
-  }
 
   async function enviar() {
     setEnviando(true);
     const ok = await onEnviar(campo, valor);
     setEnviando(false);
-    if (ok) setEditando(false);
+    if (ok) onCancelar();
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{rotulo}</h3>
-        {!editando && (
-          <Button variant="ghost" size="sm" onClick={abrir} aria-label={`Sugerir mudança em ${rotulo.toLowerCase()}`}>
-            <Pencil className="size-3.5" aria-hidden /> {pendente ? 'Alterar sugestão' : 'Sugerir mudança'}
-          </Button>
-        )}
+    <div className="flex flex-col gap-3 rounded-2xl border border-border-strong bg-card p-4">
+      <label className="flex flex-col gap-1.5">
+        <span className="text-label font-semibold">Como você quer {rotulo.toLowerCase()}?</span>
+        <textarea
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          rows={campo === 'titulo' ? 3 : 10}
+          className="w-full rounded-xl border border-input bg-background p-3 text-base leading-7 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </label>
+      <label className="flex flex-col gap-1.5">
+        <span className="text-label font-semibold">Seu nome</span>
+        <input
+          value={nome}
+          onChange={(e) => onNome(e.target.value)}
+          autoComplete="name"
+          className="h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </label>
+      <p className="text-xs text-muted-foreground">A equipe recebe sua sugestão e aceita ou ajusta. O texto atual só muda depois disso.</p>
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="secondary" onClick={onCancelar} disabled={enviando}>
+          Cancelar
+        </Button>
+        <Button onClick={enviar} loading={enviando}>
+          <Check className="size-4" aria-hidden /> Enviar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+interface BlocoTextoProps {
+  rotulo: string;
+  campo: CampoSugestao;
+  texto: string | null;
+  roteiro?: boolean;
+  podeSugerir: boolean;
+  pendente?: string;
+  leitura: boolean;
+  nome: string;
+  onNome: (v: string) => void;
+  onEnviar: (campo: CampoSugestao, texto: string) => Promise<boolean>;
+}
+
+/** Roteiro ou legenda: leitura confortável, copiar e (em planejamento) sugerir mudança. */
+function BlocoTexto({ rotulo, campo, texto, roteiro, podeSugerir, pendente, leitura, nome, onNome, onEnviar }: BlocoTextoProps) {
+  const [editando, setEditando] = useState(false);
+  const temTexto = !!texto?.trim();
+  const textoPuro = roteiro ? roteiroComoTextoPuro(texto) : (texto ?? '').trim();
+
+  return (
+    <section className="flex flex-col gap-3" aria-label={rotulo}>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="eyebrow text-muted-foreground">{rotulo}</h3>
+        <div className="flex items-center gap-1">
+          {temTexto && (
+            <IconButton label={`Copiar ${rotulo.toLowerCase()}`} onClick={() => copiar(textoPuro, rotulo)}>
+              <Copy />
+            </IconButton>
+          )}
+          {podeSugerir && !editando && (
+            <Button variant="ghost" size="sm" onClick={() => setEditando(true)}>
+              <Pencil className="size-3.5" aria-hidden /> {pendente ? 'Alterar sugestão' : 'Sugerir mudança'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {editando ? (
-        <div className="flex flex-col gap-3">
-          <textarea
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-            rows={campo === 'titulo' ? 2 : 8}
-            aria-label={`Seu texto para ${rotulo.toLowerCase()}`}
-            className="w-full rounded-2xl border border-border-strong bg-background p-3 text-[15px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-          <input
-            value={nome}
-            onChange={(e) => onNome(e.target.value)}
-            placeholder="Seu nome"
-            aria-label="Seu nome"
-            className="h-11 w-full rounded-full border border-border-strong bg-background px-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-          <p className="text-xs text-muted-foreground">Sua sugestão vai para a equipe, que aceita ou não. O texto atual só muda depois disso.</p>
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" onClick={() => setEditando(false)} disabled={enviando}>
-              Cancelar
-            </Button>
-            <Button onClick={enviar} loading={enviando}>
-              <Check className="size-4" aria-hidden /> Enviar sugestão
-            </Button>
-          </div>
-        </div>
+        <EditorSugestao
+          campo={campo}
+          rotulo={rotulo}
+          inicial={pendente ?? textoPuro}
+          nome={nome}
+          onNome={onNome}
+          onEnviar={onEnviar}
+          onCancelar={() => setEditando(false)}
+        />
+      ) : temTexto ? (
+        roteiro ? (
+          <Roteiro texto={texto || ''} leitura={leitura} rotulo={rotulo} />
+        ) : (
+          <p className={cn('whitespace-pre-line', leitura ? 'text-xl leading-9' : 'text-base leading-7')}>{texto}</p>
+        )
       ) : (
-        <>
-          {texto?.trim() ? (
-            <p className={cn('whitespace-pre-line', !leitura && 'leading-relaxed', grande ? 'text-lg font-semibold' : leitura ? 'text-xl leading-9' : 'text-[15px]')}>{texto}</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Ainda não há texto aqui.</p>
-          )}
-          {pendente && (
-            <div className="mt-3 rounded-xl bg-warning/10 p-3">
-              <p className="mb-1 text-xs font-bold text-warning">Sua sugestão, aguardando a equipe</p>
-              <p className="whitespace-pre-line text-sm">{pendente}</p>
-            </div>
-          )}
-        </>
+        <p className="text-sm text-muted-foreground">Ainda não há texto aqui.</p>
+      )}
+
+      {pendente && !editando && (
+        <div className="rounded-2xl border border-warning-ring bg-warning-soft p-4">
+          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-warning">
+            <Clock className="size-3.5" aria-hidden /> Sua sugestão, aguardando a equipe
+          </p>
+          <p className="whitespace-pre-line text-sm leading-6">{pendente}</p>
+        </div>
       )}
     </section>
   );
 }
+
+/** Prévia no formato do Instagram (só quando a arte já existe). */
+function PreviaInstagram({ item, cliente }: { item: ItemDoMes; cliente: Dados['cliente'] }) {
+  const [slide, setSlide] = useState(0);
+  const [tempo, setTempo] = useState(0);
+  const comum = {
+    clienteNome: cliente.nome,
+    clienteCor: cliente.cor,
+    clienteFotoUrl: cliente.foto_url,
+    clienteInstagramUsername: cliente.usuario,
+  };
+  if (item.formato === 'reels') {
+    const video = item.arquivos.find((a) => a.tipo === 'video') || item.arquivos[0] || null;
+    return <InstagramReelsPreview {...comum} arquivoVideo={video} titulo={item.titulo} legenda={item.legenda} tempoAtual={tempo} onAtualizarTempo={setTempo} />;
+  }
+  if (item.formato === 'story') {
+    return <InstagramStoryPreview {...comum} arquivos={item.arquivos} slideAtual={slide} onMudarSlide={setSlide} />;
+  }
+  return <InstagramCarrosselPreview {...comum} arquivos={item.arquivos} titulo={item.titulo} legenda={item.legenda} slideAtual={slide} onMudarSlide={setSlide} />;
+}
+
+// ---------------- Página ----------------
 
 export default function LinkDoMesPage() {
   const { token } = useParams<{ token: string }>();
@@ -241,22 +342,10 @@ export default function LinkDoMesPage() {
   const [mes, setMes] = useState<string | null>(null);
   const [abaEscolhida, setAba] = useState<AbaMes | null>(null);
   const [abertoId, setAbertoId] = useState<string | null>(null);
-  const [nome, setNome] = useState(() => {
-    try {
-      return typeof window === 'undefined' ? '' : localStorage.getItem(NOME_KEY) || '';
-    } catch {
-      return '';
-    }
-  });
-  // Modo leitura: texto maior, para ler o roteiro no celular na hora de gravar.
-  const [leitura, setLeitura] = useState(() => {
-    try {
-      return typeof window !== 'undefined' && localStorage.getItem('gens_modo_leitura') === '1';
-    } catch {
-      return false;
-    }
-  });
-  const [pedindoAjuste, setPedindoAjuste] = useState(false);
+  const [nome, setNome] = useState(() => lerLocal(NOME_KEY));
+  const [leitura, setLeitura] = useState(() => lerLocal(LEITURA_KEY) === '1');
+  const [editandoTitulo, setEditandoTitulo] = useState(false);
+  const [painel, setPainel] = useState<null | 'aprovar' | 'ajuste'>(null);
   const [textoAjuste, setTextoAjuste] = useState('');
   const [enviando, setEnviando] = useState(false);
 
@@ -291,77 +380,47 @@ export default function LinkDoMesPage() {
       .finally(() => setCarregando(false));
   }, [token]);
 
-  // Sem escolha da cliente, abre a aba que tem algo a fazer.
-  const aba: AbaMes = abaEscolhida ?? (dados && dados.contagem.para_voce === 0 && dados.contagem.publicados > 0 ? 'publicados' : 'para_voce');
-
+  const aba: AbaMes =
+    abaEscolhida ?? (dados && dados.contagem.para_voce === 0 && dados.contagem.publicados > 0 ? 'publicados' : 'para_voce');
   const itensAba = useMemo(() => (dados?.itens || []).filter((i) => i.aba === aba), [dados, aba]);
-
-  // No computador sempre há um post aberto; no celular só depois do toque.
   const aberto = useMemo(() => itensAba.find((i) => i.id === abertoId) || null, [itensAba, abertoId]);
-  const selecionadoDesktop = aberto || itensAba[0] || null;
-  const indice = selecionadoDesktop ? itensAba.findIndex((i) => i.id === selecionadoDesktop.id) : -1;
+  // No computador sempre há um post aberto; no celular só depois do toque.
+  const selecionado = aberto || itensAba[0] || null;
+  const indice = selecionado ? itensAba.findIndex((i) => i.id === selecionado.id) : -1;
+
+  const resumo = useMemo(() => {
+    const itens = dados?.itens || [];
+    return {
+      texto: itens.filter((i) => i.etapa === 'texto').length,
+      aprovar: itens.filter((i) => i.etapa === 'aprovacao').length,
+      publicados: itens.filter((i) => i.etapa === 'publicado').length,
+    };
+  }, [dados]);
 
   function abrir(id: string) {
     setAbertoId(id);
-    setPedindoAjuste(false);
+    setEditandoTitulo(false);
+    setPainel(null);
     setTextoAjuste('');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+  }
+
+  function trocarAba(nova: AbaMes) {
+    setAba(nova);
+    setAbertoId(null);
+    setPainel(null);
+  }
+
+  function guardarNome(v: string) {
+    setNome(v);
+    gravarLocal(NOME_KEY, v);
   }
 
   function alternarLeitura() {
     const novo = !leitura;
     setLeitura(novo);
-    try {
-      localStorage.setItem('gens_modo_leitura', novo ? '1' : '0');
-    } catch {
-      /* ignora */
-    }
+    gravarLocal(LEITURA_KEY, novo ? '1' : '0');
   }
-
-  function guardarNome(v: string) {
-    setNome(v);
-    try {
-      localStorage.setItem(NOME_KEY, v);
-    } catch {
-      /* ignora */
-    }
-  }
-
-  async function agir(item: ItemDoMes, acao: 'aprovar' | 'ajuste') {
-    if (!item.token_aprovacao) return;
-    if (!nome.trim()) {
-      toast.error('Informe seu nome', { description: 'Assim a equipe sabe quem aprovou ou pediu o ajuste.' });
-      return;
-    }
-    if (acao === 'ajuste' && !textoAjuste.trim()) {
-      toast.error('Descreva o ajuste', { description: 'Escreva o que precisa mudar.' });
-      return;
-    }
-    setEnviando(true);
-    try {
-      const res = await fetch(`/api/aprovacao/${item.token_aprovacao}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          acao === 'aprovar'
-            ? { acao, autor: nome.trim() }
-            : { acao, autor: nome.trim(), texto: textoAjuste.trim(), parte: 'legenda' }
-        ),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Não foi possível enviar.');
-      toast.success(acao === 'aprovar' ? 'Post aprovado!' : 'Ajuste enviado para a equipe.');
-      setPedindoAjuste(false);
-      setTextoAjuste('');
-      setAbertoId(null);
-      await carregar(mes);
-    } catch (e) {
-      toast.error('Não foi possível enviar', { description: e instanceof Error ? e.message : 'Tente de novo em instantes.' });
-    } finally {
-      setEnviando(false);
-    }
-  }
-
 
   async function enviarSugestao(item: ItemDoMes, campo: CampoSugestao, texto: string): Promise<boolean> {
     if (!nome.trim()) {
@@ -385,6 +444,39 @@ export default function LinkDoMesPage() {
     }
   }
 
+  async function agir(item: ItemDoMes, acao: 'aprovar' | 'ajuste') {
+    if (!item.token_aprovacao) return;
+    if (!nome.trim()) {
+      toast.error('Informe seu nome', { description: 'Assim a equipe sabe quem aprovou ou pediu o ajuste.' });
+      return;
+    }
+    if (acao === 'ajuste' && !textoAjuste.trim()) {
+      toast.error('Descreva o ajuste', { description: 'Escreva o que precisa mudar.' });
+      return;
+    }
+    setEnviando(true);
+    try {
+      const res = await fetch(`/api/aprovacao/${item.token_aprovacao}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          acao === 'aprovar' ? { acao, autor: nome.trim() } : { acao, autor: nome.trim(), texto: textoAjuste.trim(), parte: 'legenda' }
+        ),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Não foi possível enviar.');
+      toast.success(acao === 'aprovar' ? 'Post aprovado!' : 'Ajuste enviado para a equipe.');
+      setPainel(null);
+      setTextoAjuste('');
+      setAbertoId(null);
+      await carregar(mes);
+    } catch (e) {
+      toast.error('Não foi possível enviar', { description: e instanceof Error ? e.message : 'Tente de novo em instantes.' });
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   if (carregando) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
@@ -396,253 +488,372 @@ export default function LinkDoMesPage() {
   if (erro || !dados) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background px-6 text-center">
-        <div className="max-w-sm">
-          <h1 className="mb-2 text-lg font-semibold">Link indisponível</h1>
-          <p className="text-sm text-muted-foreground">{erro || 'Não foi possível abrir este link. Peça um novo à agência.'}</p>
+        <div className="flex max-w-sm flex-col items-center gap-3">
+          <Info className="size-8 text-muted-foreground" aria-hidden />
+          <h1 className="font-display text-title font-semibold">Link indisponível</h1>
+          <p className="text-sm text-muted-foreground">{erro || 'Não foi possível abrir este link.'} Peça um novo à agência.</p>
         </div>
       </div>
     );
   }
 
-  const naoHaNada = dados.itens.length === 0;
+  const { mes: nomeDoMes, ano } = nomeMes(dados.mes);
+  const usuario = dados.cliente.usuario ? `@${dados.cliente.usuario.replace(/^@/, '')}` : null;
+  const nomeExibido = dados.cliente.nome.replace(/^@/, '') === (dados.cliente.usuario || '').replace(/^@/, '') ? null : dados.cliente.nome;
 
-  const lista = (
-    <ul className="flex flex-col gap-2" aria-label="Posts do mês">
-      {itensAba.map((it) => {
-        const ativo = selecionadoDesktop?.id === it.id;
-        const rot = ETAPA_ROTULO[it.etapa];
-        const dt = rotuloData(it.data_programada || it.publicado_em);
-        return (
-          <li key={it.id}>
-            <button
-              type="button"
-              onClick={() => abrir(it.id)}
-              className={cn(
-                'flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-colors min-h-14',
-                ativo ? 'border-border-strong bg-card lg:ring-1 lg:ring-ring/30' : 'border-border bg-card/60 hover:bg-card'
-              )}
-            >
-              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                <IconeTipo tipo={it.tipo} ehCarrossel={it.arquivos.length > 1} className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="line-clamp-2 text-sm font-semibold">{it.titulo || 'Sem título'}</span>
-                <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                  <span>{rotuloTipo(it.tipo)}</span>
-                  {dt && (
-                    <span className="inline-flex items-center gap-1">
-                      <CalendarDays className="size-3" aria-hidden /> {dt}
-                    </span>
-                  )}
-                  <span className={cn('rounded-full px-2 py-0.5 font-semibold', rot.classe)}>{rot.texto}</span>
-                </span>
-              </span>
-            </button>
-          </li>
-        );
-      })}
-      {itensAba.length === 0 && (
-        <li className="rounded-2xl border border-dashed border-border-strong p-6 text-center text-sm text-muted-foreground">
-          {aba === 'para_voce' ? 'Nada aguardando você neste mês. Quando houver post para revisar, ele aparece aqui.' : 'Nenhum post agendado ou publicado neste mês ainda.'}
-        </li>
-      )}
-    </ul>
+  // ---------- Cabeçalho do mês ----------
+  const cabecalho = (
+    <header className="flex flex-col gap-5">
+      <div className="flex items-center gap-3">
+        {dados.cliente.foto_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={dados.cliente.foto_url} alt="" className="size-11 rounded-full object-cover" />
+        ) : (
+          <span className="flex size-11 items-center justify-center rounded-full bg-muted font-display text-base font-semibold">
+            {(nomeExibido || usuario || '?').replace('@', '').charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          {nomeExibido && <p className="truncate text-sm font-semibold">{nomeExibido}</p>}
+          {usuario && <p className={cn('truncate', nomeExibido ? 'text-xs text-muted-foreground' : 'text-sm font-semibold')}>{usuario}</p>}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div>
+          <p className="text-sm text-muted-foreground">Conteúdo de</p>
+          <h1 className="font-display text-display font-semibold leading-none">
+            {nomeDoMes} <span className="text-muted-foreground">{ano}</span>
+          </h1>
+        </div>
+        {dados.meses.length > 1 && (
+          <select
+            value={mes || dados.mes}
+            onChange={(e) => {
+              setCarregando(true);
+              setAbertoId(null);
+              carregar(e.target.value);
+            }}
+            aria-label="Trocar o mês"
+            className="h-11 w-full rounded-full border border-input bg-card px-4 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto sm:self-start lg:w-full"
+          >
+            {dados.meses.map((m) => {
+              const n = nomeMes(m.mes);
+              return (
+                <option key={m.mes} value={m.mes}>
+                  {n.mes} {n.ano}
+                </option>
+              );
+            })}
+          </select>
+        )}
+      </div>
+
+      <p className="text-base leading-7 text-muted-foreground">
+        {resumo.texto + resumo.aprovar > 0
+          ? 'Revise os textos e aprove o que já estiver pronto. A equipe acompanha cada resposta.'
+          : 'Tudo em dia por aqui. Os posts do mês aparecem conforme ficam prontos.'}
+      </p>
+
+      <dl className="grid grid-cols-3 gap-2">
+        {[
+          { rotulo: 'Revisar texto', valor: resumo.texto },
+          { rotulo: 'Para aprovar', valor: resumo.aprovar },
+          { rotulo: 'Publicados', valor: resumo.publicados },
+        ].map((r) => (
+          <div key={r.rotulo} className="flex flex-col-reverse rounded-2xl border border-border bg-card px-3 py-3">
+            <dt className="text-xs text-muted-foreground">{r.rotulo}</dt>
+            <dd className="font-display text-headline font-semibold tabular-nums">{r.valor}</dd>
+          </div>
+        ))}
+      </dl>
+    </header>
   );
 
-  const detalhe = (it: ItemDoMes) => (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-      <Previa key={it.id} item={it} />
-      <div className="flex min-w-0 flex-col gap-3">
-        <div>
-          <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-semibold">{rotuloTipo(it.tipo)}</span>
-            {rotuloData(it.data_programada || it.publicado_em) && <span>· {rotuloData(it.data_programada || it.publicado_em)}</span>}
-            <span className={cn('rounded-full px-2 py-0.5 font-semibold', ETAPA_ROTULO[it.etapa].classe)}>{ETAPA_ROTULO[it.etapa].texto}</span>
-          </div>
-          {it.etapa !== 'texto' && <h2 className="text-xl font-semibold leading-snug">{it.titulo || 'Sem título'}</h2>}
+  // ---------- Lista ----------
+  const lista = (
+    <div className="flex flex-col gap-4">
+      <div className="flex gap-1 rounded-2xl bg-muted p-1" role="group" aria-label="Filtrar posts">
+        <SegmentedItem group="aba-mes" active={aba === 'para_voce'} onClick={() => trocarAba('para_voce')} className="h-11 flex-1 rounded-xl text-sm">
+          Para você
+          <span className="tabular-nums text-muted-foreground">{dados.contagem.para_voce}</span>
+        </SegmentedItem>
+        <SegmentedItem group="aba-mes" active={aba === 'publicados'} onClick={() => trocarAba('publicados')} className="h-11 flex-1 rounded-xl text-sm">
+          Publicados
+          <span className="tabular-nums text-muted-foreground">{dados.contagem.publicados}</span>
+        </SegmentedItem>
+      </div>
+
+      {itensAba.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border-strong px-6 py-10 text-center">
+          <p className="text-sm font-semibold">{aba === 'para_voce' ? 'Nada esperando você' : 'Nada publicado ainda'}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {aba === 'para_voce' ? 'Quando houver post para revisar, ele aparece aqui.' : 'Os posts aparecem aqui depois de agendados.'}
+          </p>
         </div>
-        {it.etapa === 'texto' ? (
-          <>
-            {(['titulo', 'briefing', 'legenda'] as const).map((campo) => (
-              <CampoEditavel
-                key={`${it.id}-${campo}`}
-                campo={campo}
-                rotulo={campo === 'titulo' ? 'Título' : campo === 'briefing' ? (it.tipo === 'reel' ? 'Roteiro do vídeo' : 'Texto da peça') : 'Legenda'}
-                texto={it[campo]}
-                pendente={it.sugestoes?.find((x) => x.campo === campo)?.texto}
-                nome={nome}
-                onNome={guardarNome}
-                onEnviar={(c, t) => enviarSugestao(it, c, t)}
-                grande={campo === 'titulo'}
-                leitura={leitura}
+      ) : (
+        <ol className="flex flex-col gap-2" aria-label="Posts do mês">
+          {itensAba.map((it) => {
+            const ativo = selecionado?.id === it.id;
+            const d = diaEDiaSemana(it.data_programada || it.publicado_em);
+            const sugestoes = it.sugestoes?.length || 0;
+            return (
+              <li key={it.id}>
+                <button
+                  type="button"
+                  onClick={() => abrir(it.id)}
+                  aria-current={ativo ? 'true' : undefined}
+                  className={cn(
+                    'flex w-full items-stretch gap-3 rounded-2xl border bg-card p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    ativo ? 'border-border lg:border-primary lg:ring-1 lg:ring-primary' : 'border-border hover:border-border-strong'
+                  )}
+                >
+                  <span className="flex w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-muted py-1.5">
+                    <span className="font-display text-title font-semibold tabular-nums leading-none">{d?.dia ?? '—'}</span>
+                    <span className="mt-1 text-xs capitalize text-muted-foreground">{d?.semana ?? 's/ data'}</span>
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <SeloFormato formato={it.formato} />
+                      <SeloEtapa item={it} />
+                    </span>
+                    <span className="line-clamp-2 text-sm font-semibold leading-5">{it.titulo || 'Sem título'}</span>
+                    {sugestoes > 0 && (
+                      <span className="text-xs text-warning">
+                        {sugestoes === 1 ? '1 sugestão sua aguardando a equipe' : `${sugestoes} sugestões suas aguardando a equipe`}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronRight className="size-4 shrink-0 self-center text-muted-foreground lg:hidden" aria-hidden />
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+
+  // ---------- Detalhe ----------
+  const detalhe = (it: ItemDoMes) => {
+    const temArte = it.etapa !== 'texto' && it.arquivos.length > 0;
+    const pendente = (campo: CampoSugestao) => it.sugestoes?.find((s) => s.campo === campo)?.texto;
+    const podeSugerir = it.etapa === 'texto';
+    const rotuloRoteiro = it.formato === 'reels' ? 'Roteiro do vídeo' : it.formato === 'carrossel' ? 'Texto dos slides' : 'Texto da arte';
+    const quando = dataPorExtenso(it.data_programada || it.publicado_em);
+
+    return (
+      <article className={cn('flex flex-col gap-6', !temArte && 'max-w-3xl')}>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <SeloFormato formato={it.formato} />
+            <SeloEtapa item={it} />
+          </div>
+          <div className="flex items-start gap-2">
+            <h2 className="min-w-0 flex-1 font-display text-headline font-semibold">{it.titulo || 'Sem título'}</h2>
+            {podeSugerir && !editandoTitulo && (
+              <IconButton label={pendente('titulo') ? 'Alterar sugestão de título' : 'Sugerir mudança no título'} onClick={() => setEditandoTitulo(true)}>
+                <Pencil />
+              </IconButton>
+            )}
+          </div>
+          {quando && <p className="text-sm text-muted-foreground">{it.etapa === 'publicado' && it.publicado_em ? `Publicado em ${quando.toLowerCase()}` : quando}</p>}
+          {editandoTitulo && (
+            <EditorSugestao
+              campo="titulo"
+              rotulo="Título"
+              inicial={pendente('titulo') ?? it.titulo ?? ''}
+              nome={nome}
+              onNome={guardarNome}
+              onEnviar={(c, t) => enviarSugestao(it, c, t)}
+              onCancelar={() => setEditandoTitulo(false)}
+            />
+          )}
+          {pendente('titulo') && !editandoTitulo && (
+            <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm">
+              <span className="font-semibold text-warning">Título sugerido: </span>
+              {pendente('titulo')}
+            </p>
+          )}
+        </div>
+
+        {it.etapa === 'texto' && (
+          <p className="flex gap-3 rounded-2xl border border-info-ring bg-info-soft p-4 text-sm leading-6">
+            <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
+            <span>A arte deste post ainda está sendo produzida. Por enquanto, revise o texto e sugira o que quiser mudar.</span>
+          </p>
+        )}
+        {it.etapa === 'publicado' && !temArte && (
+          <p className="flex gap-3 rounded-2xl border border-border bg-muted p-4 text-sm leading-6 text-muted-foreground">
+            <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              Depois de publicado, só o texto fica guardado aqui
+              {it.texto_ate ? `, até ${new Date(it.texto_ate).toLocaleDateString('pt-BR')}` : ''}. O post completo está no seu Instagram.
+            </span>
+          </p>
+        )}
+
+        <div className={cn('grid gap-8', temArte && 'xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start')}>
+          {temArte && (
+            <div className="mx-auto w-full max-w-sm xl:sticky xl:top-24">
+              <PreviaInstagram key={it.id} item={it} cliente={dados.cliente} />
+            </div>
+          )}
+          <div className="flex min-w-0 flex-col gap-8">
+            <BlocoTexto
+              key={`${it.id}-briefing`}
+              rotulo={rotuloRoteiro}
+              campo="briefing"
+              texto={it.briefing}
+              roteiro
+              podeSugerir={podeSugerir}
+              pendente={pendente('briefing')}
+              leitura={leitura}
+              nome={nome}
+              onNome={guardarNome}
+              onEnviar={(c, t) => enviarSugestao(it, c, t)}
+            />
+            <BlocoTexto
+              key={`${it.id}-legenda`}
+              rotulo="Legenda"
+              campo="legenda"
+              texto={it.legenda}
+              podeSugerir={podeSugerir}
+              pendente={pendente('legenda')}
+              leitura={leitura}
+              nome={nome}
+              onNome={guardarNome}
+              onEnviar={(c, t) => enviarSugestao(it, c, t)}
+            />
+          </div>
+        </div>
+      </article>
+    );
+  };
+
+  // ---------- Ações (aprovação) ----------
+  const acoes = (it: ItemDoMes) => (
+    <div className="flex flex-col gap-3">
+      {painel && (
+        <div className="flex flex-col gap-3">
+          {painel === 'ajuste' && (
+            <label className="flex flex-col gap-1.5">
+              <span className="text-label font-semibold">O que precisa mudar?</span>
+              <textarea
+                value={textoAjuste}
+                onChange={(e) => setTextoAjuste(e.target.value)}
+                rows={3}
+                className="w-full rounded-xl border border-input bg-background p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
-            ))}
+            </label>
+          )}
+          <label className="flex flex-col gap-1.5">
+            <span className="text-label font-semibold">Seu nome</span>
+            <input
+              value={nome}
+              onChange={(e) => guardarNome(e.target.value)}
+              autoComplete="name"
+              className="h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </label>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        {painel ? (
+          <>
+            <Button variant="secondary" size="lg" onClick={() => setPainel(null)} disabled={enviando}>
+              Voltar
+            </Button>
+            <Button size="lg" onClick={() => agir(it, painel === 'aprovar' ? 'aprovar' : 'ajuste')} loading={enviando}>
+              {painel === 'aprovar' ? (
+                <>
+                  <Check className="size-4" aria-hidden /> Confirmar
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="size-4" aria-hidden /> Enviar ajuste
+                </>
+              )}
+            </Button>
           </>
         ) : (
           <>
-            <CampoTexto rotulo={it.tipo === 'reel' ? 'Roteiro do vídeo' : 'Texto da peça'} texto={it.briefing} copiavel leitura={leitura} />
-            <CampoTexto rotulo="Legenda" texto={it.legenda} copiavel leitura={leitura} />
+            <Button variant="secondary" size="lg" onClick={() => setPainel('ajuste')}>
+              <MessageSquare className="size-4" aria-hidden /> Pedir ajuste
+            </Button>
+            <Button size="lg" onClick={() => (nome.trim() ? agir(it, 'aprovar') : setPainel('aprovar'))} loading={enviando}>
+              <Check className="size-4" aria-hidden /> Aprovar
+            </Button>
           </>
-        )}
-        {it.etapa !== 'texto' && !it.briefing?.trim() && !it.legenda?.trim() && (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Type className="size-4" aria-hidden /> Ainda não há texto para este post.
-          </p>
-        )}
-        {it.etapa === 'texto' && (
-          <p className="rounded-2xl bg-muted/50 p-3 text-xs text-muted-foreground">
-            Este post ainda está em planejamento. Toque em &ldquo;Sugerir mudança&rdquo; em qualquer texto para propor uma alteração à equipe.
-          </p>
         )}
       </div>
     </div>
   );
 
-  const barraAcoes = (it: ItemDoMes) =>
-    it.pode_agir ? (
-      <div className="flex flex-col gap-3">
-        <input
-          value={nome}
-          onChange={(e) => guardarNome(e.target.value)}
-          placeholder="Seu nome"
-          aria-label="Seu nome"
-          className="h-11 w-full rounded-full border border-border-strong bg-card px-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        />
-        {pedindoAjuste && (
-          <textarea
-            value={textoAjuste}
-            onChange={(e) => setTextoAjuste(e.target.value)}
-            placeholder="O que precisa mudar neste post?"
-            aria-label="Descreva o ajuste"
-            rows={4}
-            className="w-full rounded-2xl border border-border-strong bg-card p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        )}
-        <div className="grid grid-cols-2 gap-2">
-          {pedindoAjuste ? (
-            <>
-              <Button variant="secondary" onClick={() => setPedindoAjuste(false)} disabled={enviando}>
-                Cancelar
-              </Button>
-              <Button onClick={() => agir(it, 'ajuste')} loading={enviando}>
-                <MessageSquare className="size-4" aria-hidden /> Enviar ajuste
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="secondary" onClick={() => setPedindoAjuste(true)} disabled={enviando}>
-                <MessageSquare className="size-4" aria-hidden /> Pedir ajuste
-              </Button>
-              <Button onClick={() => agir(it, 'aprovar')} loading={enviando}>
-                <Check className="size-4" aria-hidden /> Aprovar
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-    ) : null;
+  // ---------- Barra do post aberto ----------
+  const barraNavegacao = (
+    <div className="flex items-center gap-1">
+      <IconButton label="Modo leitura (texto maior)" onClick={alternarLeitura} aria-pressed={leitura} className={cn(leitura && 'bg-accent text-foreground')}>
+        <Type />
+      </IconButton>
+      <IconButton label="Post anterior" onClick={() => indice > 0 && abrir(itensAba[indice - 1].id)} disabled={indice <= 0}>
+        <ChevronLeft />
+      </IconButton>
+      <span className="min-w-12 text-center text-xs font-semibold tabular-nums text-muted-foreground">
+        {indice + 1} de {itensAba.length}
+      </span>
+      <IconButton label="Próximo post" onClick={() => indice < itensAba.length - 1 && abrir(itensAba[indice + 1].id)} disabled={indice >= itensAba.length - 1}>
+        <ChevronRight />
+      </IconButton>
+    </div>
+  );
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-4 lg:px-8">
-          {dados.cliente.foto_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={dados.cliente.foto_url} alt="" className="size-10 rounded-full object-cover" />
-          ) : (
-            <span className="flex size-10 items-center justify-center rounded-full bg-muted text-sm font-bold">{dados.cliente.nome.charAt(0)}</span>
-          )}
-          <div className="min-w-0 flex-1">
-            <h1 className="text-base font-semibold leading-tight">{dados.cliente.nome}</h1>
-            <p className="text-xs text-muted-foreground">{dados.cliente.usuario ? `@${dados.cliente.usuario} · ` : ''}Conteúdo de {rotuloMes(dados.mes)}</p>
-          </div>
-          {dados.meses.length > 1 && (
-            <select
-              value={mes || dados.mes}
-              onChange={(e) => {
-                setCarregando(true);
-                setAbertoId(null);
-                carregar(e.target.value);
-              }}
-              aria-label="Mês"
-              className="h-11 w-full rounded-full border border-border-strong bg-card px-4 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto"
-            >
-              {dados.meses.map((m) => (
-                <option key={m.mes} value={m.mes}>
-                  {rotuloMes(m.mes)}
-                </option>
-              ))}
-            </select>
-          )}
+      {/* Celular com post aberto: barra fixa no topo para voltar e navegar */}
+      {aberto && (
+        <div className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-2 py-2 backdrop-blur lg:hidden">
+          <Button variant="ghost" size="sm" onClick={() => setAbertoId(null)}>
+            <ArrowLeft className="size-4" aria-hidden /> Posts
+          </Button>
+          {barraNavegacao}
         </div>
-      </header>
+      )}
 
-      <main className="mx-auto max-w-7xl px-4 pb-32 pt-5 lg:px-8 lg:pb-10">
-        {naoHaNada ? (
-          <p className="rounded-2xl border border-dashed border-border-strong p-10 text-center text-sm text-muted-foreground">
-            Ainda não há posts para mostrar em {rotuloMes(dados.mes)}.
-          </p>
-        ) : (
-          <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
-            {/* Lista: no celular some quando um post está aberto */}
-            <aside className={cn('flex flex-col gap-3', aberto && 'max-lg:hidden')}>
-              <div className="flex gap-1 rounded-xl bg-muted p-1" role="group" aria-label="Abas">
-                <SegmentedItem group="aba-mes" active={aba === 'para_voce'} onClick={() => { setAba('para_voce'); setAbertoId(null); }} className="flex-1 py-2.5">
-                  Para você ({dados.contagem.para_voce})
-                </SegmentedItem>
-                <SegmentedItem group="aba-mes" active={aba === 'publicados'} onClick={() => { setAba('publicados'); setAbertoId(null); }} className="flex-1 py-2.5">
-                  Publicados ({dados.contagem.publicados})
-                </SegmentedItem>
-              </div>
-              {aba === 'publicados' && dados.contagem.total > 0 && (
-                <p className="px-1 text-xs text-muted-foreground">
-                  {dados.contagem.publicados} de {dados.contagem.total} posts do mês já foram agendados ou publicados.
-                </p>
-              )}
-              {lista}
-            </aside>
+      <div className="mx-auto w-full max-w-6xl px-4 pb-40 pt-6 sm:px-6 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:gap-10 lg:px-8 lg:pb-16 lg:pt-10">
+        {/* Coluna do mês: no celular some quando um post está aberto */}
+        <aside className={cn('flex flex-col gap-8 lg:sticky lg:top-10 lg:max-h-[calc(100dvh-5rem)] lg:self-start lg:overflow-y-auto lg:pb-4', aberto && 'max-lg:hidden')}>
+          {cabecalho}
+          {dados.itens.length > 0 && lista}
+          {dados.itens.length === 0 && (
+            <p className="rounded-2xl border border-dashed border-border-strong p-8 text-center text-sm text-muted-foreground">
+              Ainda não há posts para mostrar em {nomeDoMes.toLowerCase()}.
+            </p>
+          )}
+        </aside>
 
-            {/* Detalhe: sempre visível no computador; no celular só com um post aberto */}
-            <section className={cn('min-w-0', !aberto && 'max-lg:hidden')}>
-              {selecionadoDesktop ? (
-                <div className="flex flex-col gap-5">
-                  <div className="flex items-center justify-between gap-2">
-                    <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setAbertoId(null)}>
-                      <ArrowLeft className="size-4" aria-hidden /> Voltar
-                    </Button>
-                    <div className="ml-auto flex items-center gap-2">
-                      <Button variant={leitura ? 'primary' : 'secondary'} size="sm" onClick={alternarLeitura} aria-pressed={leitura} aria-label="Modo leitura (texto maior)">
-                        <Type className="size-4" aria-hidden /> Leitura
-                      </Button>
-                      <Button variant="secondary" size="sm" onClick={() => abrir(itensAba[indice - 1].id)} disabled={indice <= 0} aria-label="Post anterior">
-                        <ChevronLeft className="size-4" aria-hidden />
-                      </Button>
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        {indice + 1} de {itensAba.length}
-                      </span>
-                      <Button variant="secondary" size="sm" onClick={() => abrir(itensAba[indice + 1].id)} disabled={indice >= itensAba.length - 1} aria-label="Próximo post">
-                        <ChevronRight className="size-4" aria-hidden />
-                      </Button>
-                    </div>
+        {/* Post aberto: sempre visível no computador; no celular só depois do toque */}
+        <main className={cn('min-w-0', !aberto && 'max-lg:hidden')}>
+          {selecionado ? (
+            <div className="flex flex-col gap-6">
+              <div className="hidden items-center justify-end lg:flex">{barraNavegacao}</div>
+              {detalhe(selecionado)}
+              {selecionado.pode_agir && (
+                <>
+                  <div className="sticky bottom-6 z-10 hidden max-w-md self-end rounded-2xl border border-border-strong bg-card p-4 shadow-lg lg:block">{acoes(selecionado)}</div>
+                  <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
+                    {acoes(selecionado)}
                   </div>
-                  {detalhe(selecionadoDesktop)}
-                  {/* Ações: no celular, barra fixa embaixo; no computador, no fluxo da página */}
-                  {selecionadoDesktop.pode_agir && (
-                    <>
-                      <div className="max-lg:hidden max-w-md">{barraAcoes(selecionadoDesktop)}</div>
-                      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
-                        {barraAcoes(selecionadoDesktop)}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <p className="rounded-2xl border border-dashed border-border-strong p-10 text-center text-sm text-muted-foreground">Selecione um post para ver os detalhes.</p>
+                </>
               )}
-            </section>
-          </div>
-        )}
-      </main>
+            </div>
+          ) : (
+            <p className="hidden rounded-2xl border border-dashed border-border-strong p-10 text-center text-sm text-muted-foreground lg:block">
+              Selecione um post para ver os detalhes.
+            </p>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
