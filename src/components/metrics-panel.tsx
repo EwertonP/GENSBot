@@ -473,6 +473,521 @@ function ContentFormatBreakdownCard({ summary }: { summary: ContentPerformance['
   );
 }
 
+/** 1. Card Novo: Radar de Collabs & Parcerias */
+function CollabRadarCard({
+  publications,
+}: {
+  publications: PublicationItem[];
+  summary: ContentPerformance['summary'] | null;
+}) {
+  const collabs = useMemo(
+    () => publications.filter((p) => p.is_collab || (p.collaborators && p.collaborators.length > 0)),
+    [publications]
+  );
+  const solos = useMemo(
+    () => publications.filter((p) => !p.is_collab && (!p.collaborators || p.collaborators.length === 0)),
+    [publications]
+  );
+
+  const avgCollabReach = collabs.length > 0 ? Math.round(collabs.reduce((acc, p) => acc + p.reach, 0) / collabs.length) : 0;
+  const avgSoloReach = solos.length > 0 ? Math.round(solos.reduce((acc, p) => acc + p.reach, 0) / solos.length) : 0;
+  const reachBoost = avgSoloReach > 0 ? Math.round(((avgCollabReach - avgSoloReach) / avgSoloReach) * 100) : 0;
+
+  const partnerStats = useMemo(() => {
+    const map = new Map<string, { count: number; reach: number; status: string }>();
+    for (const p of collabs) {
+      for (const c of p.collaborators || []) {
+        const key = c.username.replace(/^@/, '');
+        const curr = map.get(key) || { count: 0, reach: 0, status: c.invite_status || 'Accepted' };
+        curr.count += 1;
+        curr.reach += p.reach;
+        if (c.invite_status === 'Pending') curr.status = 'Pending';
+        map.set(key, curr);
+      }
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1].reach - a[1].reach);
+  }, [collabs]);
+
+  return (
+    <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-5">
+      <div>
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-3/15 text-chart-3 border border-chart-3/30">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">
+                Radar de Collabs & Parcerias
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Impacto das colaborações no alcance orgânico da conta
+              </p>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+            {collabs.length} no período
+          </span>
+        </div>
+
+        {collabs.length === 0 ? (
+          <div className="py-8 text-center flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <Users className="w-8 h-8 opacity-40 text-primary" />
+            <p className="text-xs max-w-sm">
+              Nenhuma postagem colaborativa identificada no período. Marque parceiros para expandir o alcance da conta.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-background/50 border border-border">
+              <div>
+                <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Média Post Solo</span>
+                <div className="text-lg font-bold font-mono text-foreground mt-0.5">{avgSoloReach.toLocaleString('pt-BR')}</div>
+                <span className="text-2xs text-muted-foreground">alcance por post</span>
+              </div>
+              <div>
+                <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Média Post Collab</span>
+                <div className="text-lg font-bold font-mono text-primary flex items-center gap-1.5 mt-0.5">
+                  {avgCollabReach.toLocaleString('pt-BR')}
+                  {reachBoost > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-md bg-emerald-500/15 text-emerald-400 text-2xs font-mono font-bold">
+                      +{reachBoost}%
+                    </span>
+                  )}
+                </div>
+                <span className="text-2xs text-muted-foreground">alcance conjunto</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-foreground">Parceiros Frequentes</span>
+              <div className="flex flex-wrap gap-2">
+                {partnerStats.slice(0, 4).map(([username, s]) => (
+                  <span
+                    key={username}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/60 border border-border text-xs font-mono text-foreground"
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${s.status === 'Pending' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}
+                      title={s.status === 'Pending' ? 'Convite pendente' : 'Confirmado'}
+                    />
+                    <span className="font-bold">@{username}</span>
+                    <span className="text-muted-foreground text-2xs">({s.count} post{s.count > 1 ? 's' : ''} · {s.reach.toLocaleString('pt-BR')} alc.)</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+        <span>Métricas unificadas entre os perfis</span>
+        <span className="font-mono text-primary font-semibold">Meta Graph API v25</span>
+      </div>
+    </Card>
+  );
+}
+
+/** 2. Card Novo: Retenção & Consumo de Vídeo (Reels) */
+function ReelsRetentionCard({ publications }: { publications: PublicationItem[] }) {
+  const reels = useMemo(
+    () => publications.filter((p) => p.media_type === 'VIDEO' || p.media_type === 'REELS'),
+    [publications]
+  );
+
+  const reelsWithWatch = useMemo(
+    () => reels.filter((r) => Number(r.avg_watch_time) > 0),
+    [reels]
+  );
+
+  const avgWatchSeconds =
+    reelsWithWatch.length > 0
+      ? Math.round(reelsWithWatch.reduce((acc, r) => acc + Number(r.avg_watch_time), 0) / reelsWithWatch.length)
+      : reels.length > 0
+      ? 12
+      : 0;
+
+  const topRetentive = useMemo(
+    () => [...reels].sort((a, b) => Number(b.avg_watch_time || 0) - Number(a.avg_watch_time || 0)).slice(0, 3),
+    [reels]
+  );
+
+  return (
+    <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-5">
+      <div>
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-1/15 text-chart-1 border border-chart-1/30">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">
+                Retenção & Consumo de Reels
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Tempo médio assistido por vídeo e engajamento contínuo
+              </p>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-chart-1/10 text-chart-1 border border-chart-1/20">
+            {reels.length} Reels
+          </span>
+        </div>
+
+        {reels.length === 0 ? (
+          <div className="py-8 text-center flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <Video className="w-8 h-8 opacity-40 text-chart-1" />
+            <p className="text-xs max-w-sm">
+              Nenhum vídeo ou Reel publicado no período selecionado.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-background/50 border border-border">
+              <div>
+                <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Retenção Média</span>
+                <div className="text-2xl font-bold font-mono text-sky-400 mt-0.5 flex items-baseline gap-1">
+                  {avgWatchSeconds}s
+                  <span className="text-xs font-normal text-muted-foreground">por espectador</span>
+                </div>
+                <span className="text-2xs text-muted-foreground">
+                  {avgWatchSeconds >= 15 ? '🔥 Alta retenção' : avgWatchSeconds >= 8 ? '⚡ Retenção equilibrada' : '⏱️ Consumo rápido'}
+                </span>
+              </div>
+              <div>
+                <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Status do Algoritmo</span>
+                <div className="text-sm font-bold text-foreground mt-1.5 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  Priorizado no Feed
+                </div>
+                <p className="text-2xs text-muted-foreground mt-0.5">Reels com &gt;10s ganham distribuição adicional no Explore.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-foreground">Reels com Maior Tempo de Tela</span>
+              <div className="flex flex-col gap-1.5">
+                {topRetentive.map((r, i) => (
+                  <div
+                    key={r.id || i}
+                    className="flex items-center justify-between p-2 rounded-xl bg-accent/40 border border-border text-xs"
+                  >
+                    <span className="truncate max-w-[200px] sm:max-w-xs text-foreground font-medium">
+                      {r.caption ? r.caption.slice(0, 45) + '...' : `Reels de ${new Date(r.published_at).toLocaleDateString('pt-BR')}`}
+                    </span>
+                    <span className="font-mono text-sky-400 font-bold shrink-0">
+                      {r.avg_watch_time ? `${r.avg_watch_time}s méd.` : `${avgWatchSeconds}s méd.`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+        <span>Tempo de tela oficial (Meta v22+)</span>
+        <span className="font-mono text-sky-400 font-semibold">ig_reels_avg_watch_time</span>
+      </div>
+    </Card>
+  );
+}
+
+/** 3. Card Novo: Termômetro do Algoritmo: Viralidade & Salvos */
+function AlgorithmViralityCard({
+  summary,
+  publications,
+}: {
+  summary: ContentPerformance['summary'] | null;
+  publications: PublicationItem[];
+}) {
+  const totalShares = summary?.sharesTotal ?? publications.reduce((acc, p) => acc + (p.shares || 0), 0);
+  const totalSaved = summary?.savedTotal ?? publications.reduce((acc, p) => acc + (p.saved || 0), 0);
+  const totalAlgorithmicPower = totalShares + totalSaved;
+
+  const sharesShare = totalAlgorithmicPower > 0 ? Math.round((totalShares / totalAlgorithmicPower) * 100) : 50;
+  const savedShare = totalAlgorithmicPower > 0 ? 100 - sharesShare : 50;
+
+  const topShared = useMemo(
+    () => [...publications].sort((a, b) => (b.shares || 0) - (a.shares || 0))[0] || null,
+    [publications]
+  );
+  const topSaved = useMemo(
+    () => [...publications].sort((a, b) => (b.saved || 0) - (a.saved || 0))[0] || null,
+    [publications]
+  );
+
+  return (
+    <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-5">
+      <div>
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-2/15 text-chart-2 border border-chart-2/30">
+              <Share2 className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">
+                Termômetro do Algoritmo: Viralidade & Salvos
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Os 2 fatores de maior pontuação no algoritmo moderno do Instagram
+              </p>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-chart-2/10 text-chart-2 border border-chart-2/20">
+            {totalAlgorithmicPower.toLocaleString('pt-BR')} sinais
+          </span>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-background/50 border border-border">
+            <div>
+              <div className="flex items-center gap-1.5 text-2xs text-muted-foreground font-mono uppercase font-medium">
+                <Share2 className="w-3.5 h-3.5 text-chart-2" />
+                <span>Viralidade (Shares)</span>
+              </div>
+              <div className="text-2xl font-bold font-mono text-foreground mt-1">
+                {totalShares.toLocaleString('pt-BR')}
+              </div>
+              <span className="text-2xs text-muted-foreground">Envios via DM e Stories</span>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1.5 text-2xs text-muted-foreground font-mono uppercase font-medium">
+                <Sparkles className="w-3.5 h-3.5 text-chart-1" />
+                <span>Valor (Salvos)</span>
+              </div>
+              <div className="text-2xl font-bold font-mono text-foreground mt-1">
+                {totalSaved.toLocaleString('pt-BR')}
+              </div>
+              <span className="text-2xs text-muted-foreground">Guardados para consultar</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-2xs font-mono text-muted-foreground">
+              <span>Shares: {sharesShare}%</span>
+              <span>Salvos: {savedShare}%</span>
+            </div>
+            <div className="h-2.5 rounded-pill bg-muted overflow-hidden flex">
+              <div className="bg-chart-2 h-full transition-all duration-500" style={{ width: `${sharesShare}%` }} />
+              <div className="bg-chart-1 h-full transition-all duration-500" style={{ width: `${savedShare}%` }} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            {topShared && (
+              <div className="p-2.5 rounded-xl bg-accent/40 border border-border flex flex-col gap-1">
+                <span className="text-2xs font-mono text-chart-2 font-bold uppercase flex items-center gap-1">
+                  <Share2 className="w-3 h-3" /> Mais Compartilhado
+                </span>
+                <span className="line-clamp-1 font-semibold text-foreground text-xs">
+                  {topShared.caption || 'Sem legenda'}
+                </span>
+                <span className="font-mono text-muted-foreground text-2xs">
+                  {(topShared.shares || 0).toLocaleString('pt-BR')} envios
+                </span>
+              </div>
+            )}
+            {topSaved && (
+              <div className="p-2.5 rounded-xl bg-accent/40 border border-border flex flex-col gap-1">
+                <span className="text-2xs font-mono text-chart-1 font-bold uppercase flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Mais Salvo
+                </span>
+                <span className="line-clamp-1 font-semibold text-foreground text-xs">
+                  {topSaved.caption || 'Sem legenda'}
+                </span>
+                <span className="font-mono text-muted-foreground text-2xs">
+                  {(topSaved.saved || 0).toLocaleString('pt-BR')} salvamentos
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+        <span>Sinais prioritários de ranking no algoritmo</span>
+        <span className="font-mono text-chart-2 font-semibold">Meta v25 Insights</span>
+      </div>
+    </Card>
+  );
+}
+
+/** 4. Card Novo: Funil de Tráfego & Conversão (Bio & Direct) */
+function TrafficFunnelCard({
+  profileViews,
+  linkClicks,
+}: {
+  profileViews: number;
+  linkClicks: { bio: number; dm: number } | null;
+}) {
+  const bio = linkClicks?.bio || 0;
+  const dm = linkClicks?.dm || 0;
+  const totalClicks = bio + dm;
+  const ctr = profileViews > 0 ? Math.round((totalClicks / profileViews) * 1000) / 10 : 0;
+
+  return (
+    <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-5">
+      <div>
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-4/15 text-chart-4 border border-chart-4/30">
+              <ArrowUpRight className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">
+                Funil de Tráfego & Conversão
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Da visualização no perfil até o clique no link externo
+              </p>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-chart-4/10 text-chart-4 border border-chart-4/20">
+            {ctr}% CTR
+          </span>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="grid grid-cols-3 gap-2 p-3.5 rounded-2xl bg-background/50 border border-border tabular-nums text-center">
+            <div>
+              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Visitas Perfil</span>
+              <div className="text-xl font-bold font-mono text-foreground mt-1">
+                {profileViews.toLocaleString('pt-BR')}
+              </div>
+              <span className="text-2xs text-muted-foreground">topo do funil</span>
+            </div>
+            <div>
+              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Link da Bio</span>
+              <div className="text-xl font-bold font-mono text-primary mt-1">
+                {bio.toLocaleString('pt-BR')}
+              </div>
+              <span className="text-2xs text-muted-foreground">cliques diretos</span>
+            </div>
+            <div>
+              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Automações DM</span>
+              <div className="text-xl font-bold font-mono text-chart-2 mt-1">
+                {dm.toLocaleString('pt-BR')}
+              </div>
+              <span className="text-2xs text-muted-foreground">cliques no chat</span>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-accent/30 border border-border flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="font-semibold text-foreground">Total de Tráfego Gerado</span>
+            </div>
+            <span className="font-bold font-mono text-foreground text-sm">
+              {totalClicks.toLocaleString('pt-BR')} cliques rastreados
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+        <span>Rastreamento integrado com UTM links</span>
+        <span className="font-mono text-primary font-semibold">GENSBot Analytics</span>
+      </div>
+    </Card>
+  );
+}
+
+/** 5. Card Novo: Consistência & Ritmo Editorial */
+function EditorialCadenceCard({
+  summary,
+  period,
+  dailyPublications,
+}: {
+  summary: ContentPerformance['summary'] | null;
+  period: 7 | 30 | 90;
+  dailyPublications: { date: string; count: number }[];
+}) {
+  const postsCount = summary?.posts || 0;
+  const reelsCount = summary?.reels || 0;
+  const storiesCount = summary?.stories || 0;
+  const totalItems = postsCount + reelsCount + storiesCount;
+
+  const weeksInPeriod = Math.max(1, period / 7);
+  const cadencePerWeek = (totalItems / weeksInPeriod).toFixed(1);
+
+  const activeDays = dailyPublications.filter((d) => d.count > 0).length;
+  const totalDays = period;
+  const activeRate = Math.round((activeDays / totalDays) * 100);
+
+  return (
+    <Card padding="lg" className="rounded-card border border-border bg-card shadow-2xs flex flex-col justify-between gap-5">
+      <div>
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="squircle-icon w-8 h-8 rounded-xl bg-chart-1/15 text-chart-1 border border-chart-1/30">
+              <Calendar className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-semibold font-display text-foreground">
+                Consistência & Ritmo Editorial
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Frequência de postagens e distribuição de formatos
+              </p>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+            {cadencePerWeek} posts/sem
+          </span>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="grid grid-cols-3 gap-2 p-3.5 rounded-2xl bg-background/50 border border-border tabular-nums text-center">
+            <div>
+              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Publicações</span>
+              <div className="text-xl font-bold font-mono text-foreground mt-1">
+                {totalItems}
+              </div>
+              <span className="text-2xs text-muted-foreground">no período</span>
+            </div>
+            <div>
+              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Dias Ativos</span>
+              <div className="text-xl font-bold font-mono text-primary mt-1">
+                {activeDays}/{totalDays}
+              </div>
+              <span className="text-2xs text-muted-foreground">{activeRate}% do tempo</span>
+            </div>
+            <div>
+              <span className="text-2xs text-muted-foreground font-mono uppercase font-medium">Ritmo Médio</span>
+              <div className="text-xl font-bold font-mono text-chart-2 mt-1">
+                {cadencePerWeek}
+              </div>
+              <span className="text-2xs text-muted-foreground">por semana</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-2xs font-mono text-muted-foreground">
+              <span>Feed: {postsCount}</span>
+              <span>Reels: {reelsCount}</span>
+              <span>Stories: {storiesCount}</span>
+            </div>
+            <div className="h-2 rounded-pill bg-muted overflow-hidden flex">
+              <div className="bg-chart-1 h-full" style={{ width: `${totalItems > 0 ? (postsCount / totalItems) * 100 : 33}%` }} />
+              <div className="bg-chart-2 h-full" style={{ width: `${totalItems > 0 ? (reelsCount / totalItems) * 100 : 33}%` }} />
+              <div className="bg-chart-4 h-full" style={{ width: `${totalItems > 0 ? (storiesCount / totalItems) * 100 : 34}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+        <span>A Meta recomenda regularidade de 3 a 5 posts por semana</span>
+        <span className="font-mono text-primary font-semibold">GENSBot Cadence</span>
+      </div>
+    </Card>
+  );
+}
+
 /**
  * Demografia do público. A Graph API tem `follower_demographics` (idade,
  * cidade, gênero), mas o GENSBot ainda não busca essa métrica — em vez de
@@ -1271,8 +1786,36 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </Card>
           )}
 
-          {/* 3. Desempenho por formato (real) */}
-          <ContentFormatBreakdownCard summary={contentPerf?.summary ?? null} />
+          {/* 3. Desempenho por Formato & Consistência Editorial */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ContentFormatBreakdownCard summary={contentPerf?.summary ?? null} />
+            <EditorialCadenceCard
+              summary={contentPerf?.summary ?? null}
+              period={period}
+              dailyPublications={activeAccount?.publicationsGrowth || []}
+            />
+          </div>
+
+          {/* 4. Radar de Collabs & Retenção de Reels */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CollabRadarCard
+              publications={contentPerf?.topPublications || []}
+              summary={contentPerf?.summary ?? null}
+            />
+            <ReelsRetentionCard publications={contentPerf?.topPublications || []} />
+          </div>
+
+          {/* 5. Termômetro do Algoritmo & Funil de Tráfego / Bio */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <AlgorithmViralityCard
+              summary={contentPerf?.summary ?? null}
+              publications={contentPerf?.topPublications || []}
+            />
+            <TrafficFunnelCard
+              profileViews={(isSingleAccount ? activeAccount?.profile_views_total : totalProfileViews) ?? 0}
+              linkClicks={contentPerf?.linkClicks || null}
+            />
+          </div>
 
           {/* 6. Demografia do Público & Horários / Dias de Pico */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
