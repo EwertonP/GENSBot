@@ -49,6 +49,6 @@ export function patchAoAceitar(campo: CampoSugestao, texto: string): Record<stri
 }
 
 /** Só em planejamento a cliente edita o texto-base; depois disso é pedido de ajuste. */
-export function podeSugerirTexto(etapa: 'texto' | 'aprovacao' | 'publicado'): boolean {
+export function podeSugerirTexto(etapa: string): boolean {
   return etapa === 'texto';
 }

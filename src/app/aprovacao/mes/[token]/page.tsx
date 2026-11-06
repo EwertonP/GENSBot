@@ -14,6 +14,9 @@ import {
   GalleryHorizontalEnd,
   Image as ImageIcon,
   Info,
+  Palette,
+  CalendarClock,
+  SearchCheck,
   MessageSquare,
   Pencil,
   Smartphone,
@@ -29,7 +32,7 @@ import { InstagramCarrosselPreview } from '@/components/aprovacao/instagram-carr
 import { InstagramReelsPreview } from '@/components/aprovacao/instagram-reels-preview';
 import { InstagramStoryPreview } from '@/components/aprovacao/instagram-story-preview';
 import { cn } from '@/lib/utils';
-import type { AbaMes, ItemDoMes } from '@/lib/link-do-mes';
+import { ETAPAS_PROCESSO, indiceDaEtapa, itemNoFiltro, type FiltroMes, type ItemDoMes } from '@/lib/link-do-mes';
 import type { CampoSugestao } from '@/lib/sugestoes-texto';
 import { blocosDoRoteiro, partesNegrito, roteiroComoTextoPuro, ROTULO_FORMATO, type FormatoPost } from '@/lib/roteiro-cliente';
 
@@ -109,12 +112,69 @@ function SeloFormato({ formato }: { formato: FormatoPost }) {
 }
 
 function SeloEtapa({ item }: { item: ItemDoMes }) {
-  if (item.etapa === 'texto') return <Badge variant="info" icon={Pencil}>Revisar texto</Badge>;
-  if (item.etapa === 'aprovacao') return <Badge variant="warning" icon={Clock}>Para aprovar</Badge>;
-  return item.publicado_em ? (
-    <Badge variant="success" icon={CircleCheck}>Publicado</Badge>
-  ) : (
-    <Badge variant="muted" icon={Clock}>Agendado</Badge>
+  switch (item.etapa) {
+    case 'texto':
+      return item.texto_aprovado_em ? (
+        <Badge variant="success" icon={CircleCheck}>Texto aprovado</Badge>
+      ) : (
+        <Badge variant="info" icon={Pencil}>Revisar texto</Badge>
+      );
+    case 'producao':
+      return <Badge variant="muted" icon={Palette}>Em produção</Badge>;
+    case 'revisao':
+      return <Badge variant="muted" icon={SearchCheck}>Em revisão</Badge>;
+    case 'aprovacao':
+      return <Badge variant="warning" icon={Clock}>Para aprovar</Badge>;
+    case 'agendado':
+      return <Badge variant="info" icon={CalendarClock}>Agendado</Badge>;
+    default:
+      return <Badge variant="success" icon={CircleCheck}>Publicado</Badge>;
+  }
+}
+
+/** Barra de 6 segmentos: onde o post está no processo (da ideia ao Instagram). */
+function BarraProcesso({ etapa, compacta }: { etapa: ItemDoMes['etapa']; compacta?: boolean }) {
+  const atual = indiceDaEtapa(etapa);
+  return (
+    <div
+      role="img"
+      aria-label={`Etapa ${atual + 1} de ${ETAPAS_PROCESSO.length}: ${ETAPAS_PROCESSO[atual].rotulo}`}
+      className={cn('grid grid-cols-6', compacta ? 'gap-1' : 'gap-1.5')}
+    >
+      {ETAPAS_PROCESSO.map((e, i) => (
+        <span
+          key={e.etapa}
+          className={cn('rounded-full', compacta ? 'h-1' : 'h-1.5', i < atual ? 'bg-brand-text/60' : i === atual ? 'bg-brand-text' : 'bg-border-strong')}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Onde o post está agora e o que acontece em seguida. */
+function EtapasProcesso({ item }: { item: ItemDoMes }) {
+  const atual = indiceDaEtapa(item.etapa);
+  const info = ETAPAS_PROCESSO[atual];
+  return (
+    <section aria-label="Andamento do post" className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4">
+      <BarraProcesso etapa={item.etapa} />
+      <div>
+        <p className="text-xs font-semibold text-muted-foreground">
+          Etapa {atual + 1} de {ETAPAS_PROCESSO.length}
+        </p>
+        <p className="font-display text-title font-semibold">{info.rotulo}</p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          {item.etapa === 'texto' && item.texto_aprovado_em ? 'Você aprovou o texto. A equipe segue para a produção.' : info.descricao}
+        </p>
+      </div>
+      <ol className="hidden grid-cols-6 gap-1.5 lg:grid" aria-hidden>
+        {ETAPAS_PROCESSO.map((e, i) => (
+          <li key={e.etapa} className={cn('text-xs leading-4', i === atual ? 'font-semibold text-foreground' : 'text-muted-foreground')}>
+            {e.rotulo}
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -254,16 +314,17 @@ interface BlocoTextoProps {
   nome: string;
   onNome: (v: string) => void;
   onEnviar: (campo: CampoSugestao, texto: string) => Promise<boolean>;
+  editando: boolean;
+  onEditar: (aberto: boolean) => void;
 }
 
 /** Roteiro ou legenda: leitura confortável, copiar e (em planejamento) sugerir mudança. */
-function BlocoTexto({ rotulo, campo, texto, roteiro, podeSugerir, pendente, leitura, nome, onNome, onEnviar }: BlocoTextoProps) {
-  const [editando, setEditando] = useState(false);
+function BlocoTexto({ rotulo, campo, texto, roteiro, podeSugerir, pendente, leitura, nome, onNome, onEnviar, editando, onEditar }: BlocoTextoProps) {
   const temTexto = !!texto?.trim();
   const textoPuro = roteiro ? roteiroComoTextoPuro(texto) : (texto ?? '').trim();
 
   return (
-    <section className="flex flex-col gap-3" aria-label={rotulo}>
+    <section id={`bloco-${campo}`} className="flex scroll-mt-20 flex-col gap-3" aria-label={rotulo}>
       <div className="flex items-center justify-between gap-2">
         <h3 className="eyebrow text-muted-foreground">{rotulo}</h3>
         <div className="flex items-center gap-1">
@@ -273,7 +334,7 @@ function BlocoTexto({ rotulo, campo, texto, roteiro, podeSugerir, pendente, leit
             </IconButton>
           )}
           {podeSugerir && !editando && (
-            <Button variant="ghost" size="sm" onClick={() => setEditando(true)}>
+            <Button variant="ghost" size="sm" onClick={() => onEditar(true)}>
               <Pencil className="size-3.5" aria-hidden /> {pendente ? 'Alterar sugestão' : 'Sugerir mudança'}
             </Button>
           )}
@@ -288,7 +349,7 @@ function BlocoTexto({ rotulo, campo, texto, roteiro, podeSugerir, pendente, leit
           nome={nome}
           onNome={onNome}
           onEnviar={onEnviar}
-          onCancelar={() => setEditando(false)}
+          onCancelar={() => onEditar(false)}
         />
       ) : temTexto ? (
         roteiro ? (
@@ -340,11 +401,12 @@ export default function LinkDoMesPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [mes, setMes] = useState<string | null>(null);
-  const [abaEscolhida, setAba] = useState<AbaMes | null>(null);
+  const [filtro, setFiltro] = useState<FiltroMes>('todos');
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const [nome, setNome] = useState(() => lerLocal(NOME_KEY));
   const [leitura, setLeitura] = useState(() => lerLocal(LEITURA_KEY) === '1');
-  const [editandoTitulo, setEditandoTitulo] = useState(false);
+  const [campoEditando, setCampoEditando] = useState<CampoSugestao | null>(null);
+  const [aprovandoTexto, setAprovandoTexto] = useState(false);
   const [painel, setPainel] = useState<null | 'aprovar' | 'ajuste'>(null);
   const [textoAjuste, setTextoAjuste] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -367,9 +429,11 @@ export default function LinkDoMesPage() {
     [token]
   );
 
+  // Primeira carga: o link pode trazer o mês (?mes=2026-11).
   useEffect(() => {
     if (!token) return;
-    fetch(`/api/aprovacao/mes/${token}`)
+    const mesDoLink = new URLSearchParams(window.location.search).get('mes');
+    fetch(`/api/aprovacao/mes/${token}${mesDoLink ? `?mes=${encodeURIComponent(mesDoLink)}` : ''}`)
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Erro ao carregar.');
@@ -380,33 +444,37 @@ export default function LinkDoMesPage() {
       .finally(() => setCarregando(false));
   }, [token]);
 
-  const aba: AbaMes =
-    abaEscolhida ?? (dados && dados.contagem.para_voce === 0 && dados.contagem.publicados > 0 ? 'publicados' : 'para_voce');
-  const itensAba = useMemo(() => (dados?.itens || []).filter((i) => i.aba === aba), [dados, aba]);
-  const aberto = useMemo(() => itensAba.find((i) => i.id === abertoId) || null, [itensAba, abertoId]);
-  // No computador sempre há um post aberto; no celular só depois do toque.
-  const selecionado = aberto || itensAba[0] || null;
-  const indice = selecionado ? itensAba.findIndex((i) => i.id === selecionado.id) : -1;
-
-  const resumo = useMemo(() => {
-    const itens = dados?.itens || [];
-    return {
-      texto: itens.filter((i) => i.etapa === 'texto').length,
-      aprovar: itens.filter((i) => i.etapa === 'aprovacao').length,
-      publicados: itens.filter((i) => i.etapa === 'publicado').length,
+  // Atualiza sozinha: a cada 30s com a página visível e ao voltar para a aba.
+  useEffect(() => {
+    if (!token || !mes) return;
+    const atualizar = () => {
+      if (document.visibilityState === 'visible') carregar(mes);
     };
-  }, [dados]);
+    const id = window.setInterval(atualizar, 30000);
+    document.addEventListener('visibilitychange', atualizar);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', atualizar);
+    };
+  }, [token, mes, carregar]);
+
+  const itensFiltro = useMemo(() => (dados?.itens || []).filter((i) => itemNoFiltro(i, filtro)), [dados, filtro]);
+  const aberto = useMemo(() => itensFiltro.find((i) => i.id === abertoId) || null, [itensFiltro, abertoId]);
+  // No computador sempre há um post aberto; no celular só depois do toque.
+  const selecionado = aberto || itensFiltro[0] || null;
+  const indice = selecionado ? itensFiltro.findIndex((i) => i.id === selecionado.id) : -1;
+  const itensAba = itensFiltro;
 
   function abrir(id: string) {
     setAbertoId(id);
-    setEditandoTitulo(false);
+    setCampoEditando(null);
     setPainel(null);
     setTextoAjuste('');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
   }
 
-  function trocarAba(nova: AbaMes) {
-    setAba(nova);
+  function trocarFiltro(novo: FiltroMes) {
+    setFiltro(novo);
     setAbertoId(null);
     setPainel(null);
   }
@@ -441,6 +509,31 @@ export default function LinkDoMesPage() {
     } catch (e) {
       toast.error('Não foi possível enviar', { description: e instanceof Error ? e.message : 'Tente de novo em instantes.' });
       return false;
+    }
+  }
+
+  async function aprovarTexto(item: ItemDoMes) {
+    if (!nome.trim()) {
+      setPainel('aprovar');
+      toast.error('Informe seu nome', { description: 'Assim a equipe sabe quem aprovou o texto.' });
+      return;
+    }
+    setAprovandoTexto(true);
+    try {
+      const res = await fetch(`/api/aprovacao/mes/${token}/aprovar-texto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: item.id, autor: nome.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Não foi possível aprovar.');
+      toast.success('Texto aprovado!');
+      setPainel(null);
+      await carregar(mes);
+    } catch (e) {
+      toast.error('Não foi possível aprovar', { description: e instanceof Error ? e.message : 'Tente de novo em instantes.' });
+    } finally {
+      setAprovandoTexto(false);
     }
   }
 
@@ -550,23 +643,10 @@ export default function LinkDoMesPage() {
       </div>
 
       <p className="text-base leading-7 text-muted-foreground">
-        {resumo.texto + resumo.aprovar > 0
-          ? 'Revise os textos e aprove o que já estiver pronto. A equipe acompanha cada resposta.'
-          : 'Tudo em dia por aqui. Os posts do mês aparecem conforme ficam prontos.'}
+        {dados.contagem.para_voce > 0
+          ? `${dados.contagem.para_voce === 1 ? '1 post espera' : `${dados.contagem.para_voce} posts esperam`} você. Veja em que etapa está cada um do mês.`
+          : 'Nada esperando você agora. Acompanhe aqui em que etapa está cada post do mês.'}
       </p>
-
-      <dl className="grid grid-cols-3 gap-2">
-        {[
-          { rotulo: 'Revisar texto', valor: resumo.texto },
-          { rotulo: 'Para aprovar', valor: resumo.aprovar },
-          { rotulo: 'Publicados', valor: resumo.publicados },
-        ].map((r) => (
-          <div key={r.rotulo} className="flex flex-col-reverse rounded-2xl border border-border bg-card px-3 py-3">
-            <dt className="text-xs text-muted-foreground">{r.rotulo}</dt>
-            <dd className="font-display text-headline font-semibold tabular-nums">{r.valor}</dd>
-          </div>
-        ))}
-      </dl>
     </header>
   );
 
@@ -574,21 +654,24 @@ export default function LinkDoMesPage() {
   const lista = (
     <div className="flex flex-col gap-4">
       <div className="flex gap-1 rounded-2xl bg-muted p-1" role="group" aria-label="Filtrar posts">
-        <SegmentedItem group="aba-mes" active={aba === 'para_voce'} onClick={() => trocarAba('para_voce')} className="h-11 flex-1 rounded-xl text-sm">
-          Para você
-          <span className="tabular-nums text-muted-foreground">{dados.contagem.para_voce}</span>
-        </SegmentedItem>
-        <SegmentedItem group="aba-mes" active={aba === 'publicados'} onClick={() => trocarAba('publicados')} className="h-11 flex-1 rounded-xl text-sm">
-          Publicados
-          <span className="tabular-nums text-muted-foreground">{dados.contagem.publicados}</span>
-        </SegmentedItem>
+        {([
+          { id: 'todos', rotulo: 'Todos', n: dados.contagem.total },
+          { id: 'para_voce', rotulo: 'Para você', n: dados.contagem.para_voce },
+          { id: 'publicados', rotulo: 'No ar', n: dados.contagem.publicados },
+        ] as const).map((f) => (
+          <SegmentedItem key={f.id} group="filtro-mes" active={filtro === f.id} onClick={() => trocarFiltro(f.id)} className="h-11 flex-1 gap-1 rounded-xl px-1 text-sm">
+            {f.rotulo}
+            <span className="tabular-nums text-muted-foreground">{f.n}</span>
+          </SegmentedItem>
+        ))}
       </div>
+      <p className="-mt-1 px-1 text-xs text-muted-foreground">Esta página se atualiza sozinha.</p>
 
       {itensAba.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border-strong px-6 py-10 text-center">
-          <p className="text-sm font-semibold">{aba === 'para_voce' ? 'Nada esperando você' : 'Nada publicado ainda'}</p>
+          <p className="text-sm font-semibold">{filtro === 'para_voce' ? 'Nada esperando você' : filtro === 'publicados' ? 'Nada no ar ainda' : 'Nenhum post neste mês'}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {aba === 'para_voce' ? 'Quando houver post para revisar, ele aparece aqui.' : 'Os posts aparecem aqui depois de agendados.'}
+            {filtro === 'para_voce' ? 'Quando houver algo para revisar ou aprovar, ele aparece aqui.' : filtro === 'publicados' ? 'Os posts aparecem aqui depois de agendados.' : 'Os posts do mês aparecem conforme são planejados.'}
           </p>
         </div>
       ) : (
@@ -618,6 +701,7 @@ export default function LinkDoMesPage() {
                       <SeloEtapa item={it} />
                     </span>
                     <span className="line-clamp-2 text-sm font-semibold leading-5">{it.titulo || 'Sem título'}</span>
+                    <BarraProcesso etapa={it.etapa} compacta />
                     {sugestoes > 0 && (
                       <span className="text-xs text-warning">
                         {sugestoes === 1 ? '1 sugestão sua aguardando a equipe' : `${sugestoes} sugestões suas aguardando a equipe`}
@@ -636,7 +720,7 @@ export default function LinkDoMesPage() {
 
   // ---------- Detalhe ----------
   const detalhe = (it: ItemDoMes) => {
-    const temArte = it.etapa !== 'texto' && it.arquivos.length > 0;
+    const temArte = it.arquivos.length > 0;
     const pendente = (campo: CampoSugestao) => it.sugestoes?.find((s) => s.campo === campo)?.texto;
     const podeSugerir = it.etapa === 'texto';
     const rotuloRoteiro = it.formato === 'reels' ? 'Roteiro do vídeo' : it.formato === 'carrossel' ? 'Texto dos slides' : 'Texto da arte';
@@ -651,14 +735,14 @@ export default function LinkDoMesPage() {
           </div>
           <div className="flex items-start gap-2">
             <h2 className="min-w-0 flex-1 font-display text-headline font-semibold">{it.titulo || 'Sem título'}</h2>
-            {podeSugerir && !editandoTitulo && (
-              <IconButton label={pendente('titulo') ? 'Alterar sugestão de título' : 'Sugerir mudança no título'} onClick={() => setEditandoTitulo(true)}>
+            {podeSugerir && campoEditando !== 'titulo' && (
+              <IconButton label={pendente('titulo') ? 'Alterar sugestão de título' : 'Sugerir mudança no título'} onClick={() => setCampoEditando('titulo')}>
                 <Pencil />
               </IconButton>
             )}
           </div>
           {quando && <p className="text-sm text-muted-foreground">{it.etapa === 'publicado' && it.publicado_em ? `Publicado em ${quando.toLowerCase()}` : quando}</p>}
-          {editandoTitulo && (
+          {campoEditando === 'titulo' && (
             <EditorSugestao
               campo="titulo"
               rotulo="Título"
@@ -666,10 +750,10 @@ export default function LinkDoMesPage() {
               nome={nome}
               onNome={guardarNome}
               onEnviar={(c, t) => enviarSugestao(it, c, t)}
-              onCancelar={() => setEditandoTitulo(false)}
+              onCancelar={() => setCampoEditando(null)}
             />
           )}
-          {pendente('titulo') && !editandoTitulo && (
+          {pendente('titulo') && campoEditando !== 'titulo' && (
             <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm">
               <span className="font-semibold text-warning">Título sugerido: </span>
               {pendente('titulo')}
@@ -677,12 +761,8 @@ export default function LinkDoMesPage() {
           )}
         </div>
 
-        {it.etapa === 'texto' && (
-          <p className="flex gap-3 rounded-2xl border border-info-ring bg-info-soft p-4 text-sm leading-6">
-            <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
-            <span>A arte deste post ainda está sendo produzida. Por enquanto, revise o texto e sugira o que quiser mudar.</span>
-          </p>
-        )}
+        <EtapasProcesso item={it} />
+
         {it.etapa === 'publicado' && !temArte && (
           <p className="flex gap-3 rounded-2xl border border-border bg-muted p-4 text-sm leading-6 text-muted-foreground">
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -712,6 +792,8 @@ export default function LinkDoMesPage() {
               nome={nome}
               onNome={guardarNome}
               onEnviar={(c, t) => enviarSugestao(it, c, t)}
+              editando={campoEditando === 'briefing'}
+              onEditar={(aberto) => setCampoEditando(aberto ? 'briefing' : null)}
             />
             <BlocoTexto
               key={`${it.id}-legenda`}
@@ -724,6 +806,8 @@ export default function LinkDoMesPage() {
               nome={nome}
               onNome={guardarNome}
               onEnviar={(c, t) => enviarSugestao(it, c, t)}
+              editando={campoEditando === 'legenda'}
+              onEditar={(aberto) => setCampoEditando(aberto ? 'legenda' : null)}
             />
           </div>
         </div>
@@ -731,64 +815,112 @@ export default function LinkDoMesPage() {
     );
   };
 
-  // ---------- Ações (aprovação) ----------
-  const acoes = (it: ItemDoMes) => (
-    <div className="flex flex-col gap-3">
-      {painel && (
-        <div className="flex flex-col gap-3">
-          {painel === 'ajuste' && (
-            <label className="flex flex-col gap-1.5">
-              <span className="text-label font-semibold">O que precisa mudar?</span>
-              <textarea
-                value={textoAjuste}
-                onChange={(e) => setTextoAjuste(e.target.value)}
-                rows={3}
-                className="w-full rounded-xl border border-input bg-background p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </label>
-          )}
-          <label className="flex flex-col gap-1.5">
-            <span className="text-label font-semibold">Seu nome</span>
-            <input
-              value={nome}
-              onChange={(e) => guardarNome(e.target.value)}
-              autoComplete="name"
-              className="h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </label>
-        </div>
-      )}
-      <div className="grid grid-cols-2 gap-2">
-        {painel ? (
-          <>
-            <Button variant="secondary" size="lg" onClick={() => setPainel(null)} disabled={enviando}>
-              Voltar
-            </Button>
-            <Button size="lg" onClick={() => agir(it, painel === 'aprovar' ? 'aprovar' : 'ajuste')} loading={enviando}>
-              {painel === 'aprovar' ? (
-                <>
-                  <Check className="size-4" aria-hidden /> Confirmar
-                </>
-              ) : (
-                <>
-                  <MessageSquare className="size-4" aria-hidden /> Enviar ajuste
-                </>
-              )}
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button variant="secondary" size="lg" onClick={() => setPainel('ajuste')}>
-              <MessageSquare className="size-4" aria-hidden /> Pedir ajuste
-            </Button>
-            <Button size="lg" onClick={() => (nome.trim() ? agir(it, 'aprovar') : setPainel('aprovar'))} loading={enviando}>
-              <Check className="size-4" aria-hidden /> Aprovar
-            </Button>
-          </>
-        )}
-      </div>
-    </div>
+  // ---------- Ações: aprovar o texto (planejamento) ou a arte (aprovação) ----------
+  const campoNome = (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-label font-semibold">Seu nome</span>
+      <input
+        value={nome}
+        onChange={(e) => guardarNome(e.target.value)}
+        autoComplete="name"
+        className="h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      />
+    </label>
   );
+
+  const acoes = (it: ItemDoMes) => {
+    if (it.pode_aprovar_texto) {
+      const aguardandoEquipe = (it.sugestoes?.length || 0) > 0;
+      return (
+        <div className="flex flex-col gap-3">
+          {painel === 'aprovar' && campoNome}
+          {aguardandoEquipe && (
+            <p className="text-xs leading-5 text-muted-foreground">Sua sugestão está com a equipe. Depois que ela for resolvida, você poderá aprovar o texto.</p>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            {painel === 'aprovar' ? (
+              <>
+                <Button variant="secondary" size="lg" onClick={() => setPainel(null)} disabled={aprovandoTexto}>
+                  Voltar
+                </Button>
+                <Button size="lg" onClick={() => aprovarTexto(it)} loading={aprovandoTexto}>
+                  <Check className="size-4" aria-hidden /> Confirmar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="whitespace-nowrap px-3 text-sm"
+                  onClick={() => {
+                    setCampoEditando('briefing');
+                    requestAnimationFrame(() => document.getElementById('bloco-briefing')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                  }}
+                >
+                  <Pencil className="size-4" aria-hidden /> Sugerir mudança
+                </Button>
+                <Button size="lg" className="whitespace-nowrap px-3 text-sm" onClick={() => aprovarTexto(it)} loading={aprovandoTexto} disabled={aguardandoEquipe}>
+                  <Check className="size-4" aria-hidden /> Aprovar texto
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (!it.pode_agir) return null;
+    return (
+      <div className="flex flex-col gap-3">
+        {painel && (
+          <div className="flex flex-col gap-3">
+            {painel === 'ajuste' && (
+              <label className="flex flex-col gap-1.5">
+                <span className="text-label font-semibold">O que precisa mudar?</span>
+                <textarea
+                  value={textoAjuste}
+                  onChange={(e) => setTextoAjuste(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-input bg-background p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </label>
+            )}
+            {campoNome}
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          {painel ? (
+            <>
+              <Button variant="secondary" size="lg" onClick={() => setPainel(null)} disabled={enviando}>
+                Voltar
+              </Button>
+              <Button size="lg" onClick={() => agir(it, painel === 'aprovar' ? 'aprovar' : 'ajuste')} loading={enviando}>
+                {painel === 'aprovar' ? (
+                  <>
+                    <Check className="size-4" aria-hidden /> Confirmar
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="size-4" aria-hidden /> Enviar ajuste
+                  </>
+                )}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" size="lg" onClick={() => setPainel('ajuste')}>
+                <MessageSquare className="size-4" aria-hidden /> Pedir ajuste
+              </Button>
+              <Button size="lg" onClick={() => (nome.trim() ? agir(it, 'aprovar') : setPainel('aprovar'))} loading={enviando}>
+                <Check className="size-4" aria-hidden /> Aprovar
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // ---------- Barra do post aberto ----------
   const barraNavegacao = (
@@ -838,7 +970,7 @@ export default function LinkDoMesPage() {
             <div className="flex flex-col gap-6">
               <div className="hidden items-center justify-end lg:flex">{barraNavegacao}</div>
               {detalhe(selecionado)}
-              {selecionado.pode_agir && (
+              {(selecionado.pode_agir || selecionado.pode_aprovar_texto) && (
                 <>
                   <div className="sticky bottom-6 z-10 hidden max-w-md self-end rounded-2xl border border-border-strong bg-card p-4 shadow-lg lg:block">{acoes(selecionado)}</div>
                   <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">

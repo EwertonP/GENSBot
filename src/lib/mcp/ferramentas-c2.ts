@@ -222,17 +222,18 @@ export const FERRAMENTAS_C2: Ferramenta[] = [
   {
     name: 'link_aprovacao_mes',
     title: 'Link do mês do cliente',
-    description: 'Link público do mês: o cliente vê roteiros e legendas dos posts em planejamento, aprova os que estão em revisão e acompanha os publicados (só master). Devolve também o link da grade visual do feed. Não envia nada.',
-    inputSchema: { type: 'object', properties: { cliente_id: { type: 'string' } }, required: ['cliente_id'], additionalProperties: false },
+    description: 'Link público do mês: o cliente acompanha todos os posts do mês em cada etapa (planejamento, produção, revisão, aprovação, agendado, publicado), aprova textos e artes e sugere mudanças (só master). Informe o mês (AAAA-MM) para o link abrir nele; sem mês, abre no mês atual. Devolve também o link da grade visual do feed. Não envia nada.',
+    inputSchema: { type: 'object', properties: { cliente_id: { type: 'string' }, mes: { type: 'string', description: 'AAAA-MM. Padrão: mês atual.' } }, required: ['cliente_id'], additionalProperties: false },
     somenteLeitura: true,
     async executar(args, ctx) {
       if (ctx.papel !== 'master') throw new ErroFerramenta('Só administradores (master) geram o link do feed do mês.');
       const id = idArg(args, 'cliente_id')!;
       const { data: c } = await db.from('clientes').select('nome, token_aprovacao_mes').eq('id', id).eq('agencia_id', ctx.agenciaId).maybeSingle();
       if (!c) throw new ErroFerramenta('Cliente não encontrado nesta agência.');
+      const mesArg = typeof args.mes === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(args.mes) ? args.mes : null;
       return {
         cliente: c.nome,
-        link: `${origem(ctx)}/aprovacao/mes/${c.token_aprovacao_mes}`,
+        link: `${origem(ctx)}/aprovacao/mes/${c.token_aprovacao_mes}${mesArg ? `?mes=${mesArg}` : ''}`,
         link_feed_visual: `${origem(ctx)}/aprovacao/feed/${c.token_aprovacao_mes}`,
       };
     },
