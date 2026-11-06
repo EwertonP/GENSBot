@@ -73,7 +73,7 @@ const CAMPOS = [
   'foto_url_dark',
   'cnpj_cpf', 'responsavel_legal', 'cpf_responsavel', 'endereco',
   'valor_mensal', 'dia_vencimento', 'contrato_inicio', 'contrato_duracao_meses',
-  'posts_mes', 'reels_mes', 'dia_revisao',
+  'posts_mes', 'reels_mes', 'dia_revisao', 'retencao_texto_dias',
   'briefing', 'concorrentes', 'observacoes',
   'persona', 'raio_x', 'posicionamento', 'tom_de_voz',
 ] as const;
@@ -702,6 +702,18 @@ export default function ClienteFicha({
                 ))}
               </Select>
             </div>
+            <Input
+              label="Guardar o texto das publicações por (dias)"
+              type="number"
+              min={7}
+              max={365}
+              inputMode="numeric"
+              placeholder="30"
+              {...campo('retencao_texto_dias')}
+            />
+            <p className="-mt-2 text-xs text-muted-foreground">
+              Depois de publicada, a demanda fica visível para o cliente na aba Publicados do link do mês por esse prazo e então é excluída. Vazio usa 30 dias.
+            </p>
           </Secao>
 
           <Secao titulo="Briefing e notas">

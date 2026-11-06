@@ -1040,6 +1040,22 @@ export default function EsteiraTab({
 
               <Button
                 type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
+                  const url = `${window.location.origin}/aprovacao/mes/${token}`;
+                  navigator.clipboard.writeText(url);
+                  showToast('Link do mês (roteiros e aprovação) copiado!', 'success');
+                }}
+                className="rounded-xl text-xs h-8.5 font-semibold"
+              >
+                <Share2 className="w-3.5 h-3.5 mr-1.5" />
+                Link do mês
+              </Button>
+
+              <Button
+                type="button"
                 variant="primary"
                 size="sm"
                 onClick={() => {

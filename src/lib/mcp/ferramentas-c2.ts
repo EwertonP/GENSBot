@@ -221,8 +221,8 @@ export const FERRAMENTAS_C2: Ferramenta[] = [
   },
   {
     name: 'link_aprovacao_mes',
-    title: 'Link de aprovação do feed do mês',
-    description: 'Link público para o cliente aprovar a grade completa do feed do mês de uma vez (só master). Não envia nada.',
+    title: 'Link do mês do cliente',
+    description: 'Link público do mês: o cliente vê roteiros e legendas dos posts em planejamento, aprova os que estão em revisão e acompanha os publicados (só master). Devolve também o link da grade visual do feed. Não envia nada.',
     inputSchema: { type: 'object', properties: { cliente_id: { type: 'string' } }, required: ['cliente_id'], additionalProperties: false },
     somenteLeitura: true,
     async executar(args, ctx) {
@@ -230,7 +230,11 @@ export const FERRAMENTAS_C2: Ferramenta[] = [
       const id = idArg(args, 'cliente_id')!;
       const { data: c } = await db.from('clientes').select('nome, token_aprovacao_mes').eq('id', id).eq('agencia_id', ctx.agenciaId).maybeSingle();
       if (!c) throw new ErroFerramenta('Cliente não encontrado nesta agência.');
-      return { cliente: c.nome, link: `${origem(ctx)}/aprovacao/feed/${c.token_aprovacao_mes}` };
+      return {
+        cliente: c.nome,
+        link: `${origem(ctx)}/aprovacao/mes/${c.token_aprovacao_mes}`,
+        link_feed_visual: `${origem(ctx)}/aprovacao/feed/${c.token_aprovacao_mes}`,
+      };
     },
   },
 

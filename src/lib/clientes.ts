@@ -50,6 +50,8 @@ export interface Cliente {
   posts_mes: number | null;
   reels_mes: number | null;
   dia_revisao: number | null;
+  /** Dias que o texto de uma demanda publicada fica no link do mês (7 a 365). Vazio = 30. */
+  retencao_texto_dias: number | null;
   responsavel_fixo_id: string | null;
   etapa: string | null;
   observacoes: string | null;
@@ -145,6 +147,7 @@ const CLIENTE_FIELDS: Record<string, Rule> = {
   posts_mes: int(0, 500),
   reels_mes: int(0, 500),
   dia_revisao: int(0, 6),
+  retencao_texto_dias: int(7, 365),
   etapa: text(120),
   observacoes: text(5000),
   concorrentes: text(2000),
