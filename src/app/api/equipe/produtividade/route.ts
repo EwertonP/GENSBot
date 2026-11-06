@@ -96,7 +96,16 @@ export async function GET(req: Request) {
   const membroIdParam = searchParams.get('membro_id');
 
   try {
-    // 1. Busca todos os membros da agência
+    // Helper para definir se a demanda já foi finalizada pela equipe
+// Demandas agendadas ou com concluida = true já foram produzidas e aprovadas
+function isDemandaEntregue(d: any): boolean {
+  return (
+    d?.concluida === true ||
+    d?.status === 'publicado' ||
+    d?.status === 'agendamento' ||
+    d?.status === 'pronto_publicar'
+  );
+}
     const { data: membrosDb, error: errMembros } = await serviceSupabase
       .from('membros')
       .select('id, nome, email, papel, cargo, foto_url, ativo')
@@ -122,6 +131,7 @@ export async function GET(req: Request) {
         titulo,
         tipo,
         status,
+        concluida,
         mes_referencia,
         data_programada,
         prazo,
@@ -178,8 +188,8 @@ export async function GET(req: Request) {
           (Array.isArray(d.co_responsaveis_ids) && d.co_responsaveis_ids.includes(m.id))
       );
 
-      const entregues = demandasDoMembro.filter((d) => d.status === 'publicado');
-      const emAndamento = demandasDoMembro.filter((d) => d.status !== 'publicado');
+      const entregues = demandasDoMembro.filter((d) => isDemandaEntregue(d));
+      const emAndamento = demandasDoMembro.filter((d) => !isDemandaEntregue(d));
 
       const porTipo = { post: 0, reel: 0, story: 0, carrossel: 0 };
       for (const d of entregues) {
@@ -193,7 +203,7 @@ export async function GET(req: Request) {
         if (!d.cliente_id) continue;
         const cur = clientesAtendidosMap.get(d.cliente_id) || { total_entregues: 0, total_demandas: 0 };
         cur.total_demandas++;
-        if (d.status === 'publicado') cur.total_entregues++;
+        if (isDemandaEntregue(d)) cur.total_entregues++;
         clientesAtendidosMap.set(d.cliente_id, cur);
       }
 
@@ -237,8 +247,8 @@ export async function GET(req: Request) {
     const produtividadePorCliente: ResumoProdutividadeCliente[] = (clientesDb || [])
       .map((c) => {
         const demandasDoCliente = demandas.filter((d) => d.cliente_id === c.id);
-        const entregues = demandasDoCliente.filter((d) => d.status === 'publicado');
-        const emAndamento = demandasDoCliente.filter((d) => d.status !== 'publicado');
+        const entregues = demandasDoCliente.filter((d) => isDemandaEntregue(d));
+        const emAndamento = demandasDoCliente.filter((d) => !isDemandaEntregue(d));
 
         const porTipo = { post: 0, reel: 0, story: 0, carrossel: 0 };
         for (const d of entregues) {
@@ -295,8 +305,8 @@ export async function GET(req: Request) {
     produtividadePorCliente.sort((a, b) => b.total_entregues - a.total_entregues || b.total_demandas - a.total_demandas);
 
     // Resumo Geral
-    const totalEntreguesGeral = demandasFiltradas.filter((d) => d.status === 'publicado').length;
-    const totalEmAndamentoGeral = demandasFiltradas.filter((d) => d.status !== 'publicado').length;
+    const totalEntreguesGeral = demandasFiltradas.filter((d) => isDemandaEntregue(d)).length;
+    const totalEmAndamentoGeral = demandasFiltradas.filter((d) => !isDemandaEntregue(d)).length;
     const taxaEntregaGeral =
       demandasFiltradas.length > 0
         ? Math.round((totalEntreguesGeral / demandasFiltradas.length) * 100)
@@ -310,7 +320,7 @@ export async function GET(req: Request) {
 
     // Lista detalhada das peças entregues no período
     const itensEntregues: ItemEntregueDetalhe[] = demandasFiltradas
-      .filter((d) => d.status === 'publicado')
+      .filter((d) => isDemandaEntregue(d))
       .slice(0, 100)
       .map((d) => {
         const cli = d.cliente_id ? clientesMap.get(d.cliente_id) : null;

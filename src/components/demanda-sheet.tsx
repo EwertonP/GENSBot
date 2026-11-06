@@ -1920,7 +1920,17 @@ export function DemandaSheet({
                 <LinhaPropriedade icon={Layers} rotulo="Etapa">
                   <select
                     value={status}
-                    onChange={(e) => setStatus(e.target.value as StatusConteudo)}
+                    onChange={(e) => {
+                      const novoStatus = e.target.value as StatusConteudo;
+                      setStatus(novoStatus);
+                      if (
+                        novoStatus === 'agendamento' ||
+                        novoStatus === 'pronto_publicar' ||
+                        novoStatus === 'publicado'
+                      ) {
+                        setConcluida(true);
+                      }
+                    }}
                     aria-label={editando ? 'Etapa da demanda' : 'Etapa inicial'}
                     className={CAMPO_PAINEL}
                   >

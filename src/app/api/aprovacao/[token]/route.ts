@@ -162,14 +162,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       return NextResponse.json({ error: 'Ação não reconhecida' }, { status: 400 });
     }
 
+    const payloadUpdate: Record<string, any> = {
+      status: novoStatus,
+      comentarios_revisao: comentarios,
+      historico_atividades: historico,
+      atualizado_em: new Date().toISOString(),
+    };
+
+    if (acao === 'aprovar') {
+      // Quando o post vai para agendamento, já está pronto e concluído pela equipe
+      payloadUpdate.concluida = true;
+    } else if (acao === 'ajuste') {
+      // Reabre caso tenha voltado para revisão
+      payloadUpdate.concluida = false;
+    }
+
     const { data: updated, error: updateErr } = await supabase
       .from('conteudo_items')
-      .update({
-        status: novoStatus,
-        comentarios_revisao: comentarios,
-        historico_atividades: historico,
-        atualizado_em: new Date().toISOString(),
-      })
+      .update(payloadUpdate)
       .eq('id', item.id)
       .select('*, notion_page_id')
       .single();
