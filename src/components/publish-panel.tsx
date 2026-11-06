@@ -2400,104 +2400,35 @@ export default function PublishPanel({
                       : 'hover:bg-accent/25 border border-transparent'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <Tip label={isScheduled ? 'Clique para editar esta publicação no simulador' : undefined}><div
-                      onClick={() => isScheduled && handleStartEdit(post)}
-                      className={`flex items-center gap-3.5 min-w-0 ${isScheduled ? 'cursor-pointer group' : ''}`}
-                    >
-                      {/* Thumbnail */}
-                      <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-accent shrink-0 border border-border group-hover:border-foreground/40 transition-colors">
-                        <img src={post.cover_url || post.media_url} alt="" className="w-full h-full object-cover" />
-                        {isCarouselPost && post.media_urls && (
-                          <span className="absolute bottom-0 right-0 bg-black/80 text-white text-xs font-mono font-bold px-1 rounded-tl">
-                            {post.media_urls.length}
-                          </span>
-                        )}
-                        {post.cover_url && (
-                          <span className="absolute top-0 left-0 bg-primary/90 text-primary-foreground text-[8px] font-mono font-bold px-1 rounded-br">
-                            CAPA
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-mono font-bold bg-accent text-foreground px-2 py-0.5 rounded-md border border-border shrink-0">
-                            @{accounts.find((a) => a.instagram_user_id === post.instagram_user_id)?.instagram_username || 'instagram'}
-                          </span>
-                          <p className="text-xs font-bold text-foreground truncate max-w-md group-hover:text-primary transition-colors">
-                            {post.caption || '(sem legenda)'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap text-xs text-muted-foreground">
-                          <span>
-                            {post.media_type} · {new Date(post.status === 'published' && post.published_at ? post.published_at : post.scheduled_at).toLocaleString('pt-BR')}
-                          </span>
-                          {post.location_name && (
-                            <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
-                              · <MapPin className="w-2.5 h-2.5 text-primary" /> {post.location_name}
-                            </span>
-                          )}
-                          {post.audio_name && (
-                            <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
-                              · <Music className="w-2.5 h-2.5 text-primary" /> {post.audio_name}
-                            </span>
-                          )}
-                          {Array.isArray(post.collaborators) && post.collaborators.length > 0 && (
-                            <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
-                              · <User className="w-2.5 h-2.5 text-primary" /> {post.collaborators.map((c) => `@${typeof c === 'string' ? c : (c as any).username}`).join(', ')}
-                            </span>
-                          )}
-                        </div>
-                        {post.status === 'failed' && post.error_message && (
-                          <p className="text-xs text-destructive mt-0.5 font-medium">{post.error_message}</p>
-                        )}
-                        {post.aviso && (
-                          <p className="text-xs text-warning mt-0.5 font-medium inline-flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3 shrink-0" /> {post.aviso}
-                          </p>
-                        )}
-                        {post.automation_config?.enabled && (
-                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                            <Badge variant="info" className="text-xs px-2 py-0 font-bold flex items-center gap-1 max-w-full min-w-0">
-                              <Zap className="w-2.5 h-2.5 shrink-0" />
-                              <span className="truncate">Gatilho: {(post.automation_config.keywords || ['QUERO']).join(', ')}</span>
-                            </Badge>
-                            {post.created_automation_id ? (
-                              <span className="text-xs text-primary font-bold flex items-center gap-0.5">
-                                <Check className="w-3 h-3" /> Direct Ativo
-                              </span>
-                            ) : post.status === 'scheduled' ? (
-                              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                                <Clock className="w-3 h-3" /> Ativa ao publicar
-                              </span>
-                            ) : null}
-                          </div>
-                        )}
-                      </div>
-                    </div></Tip>
-
-                    {/* Ações e Badges */}
-                    <div className="flex items-center gap-2.5 shrink-0">
-                      <Badge variant={meta.variant} className="text-xs font-bold">
+                  {/* Topo do Card: Conta + Status + Ações Rápidas */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs font-mono font-bold bg-accent text-foreground px-2 py-0.5 rounded-md border border-border truncate">
+                        @{accounts.find((a) => a.instagram_user_id === post.instagram_user_id)?.instagram_username || 'instagram'}
+                      </span>
+                      <Badge variant={meta.variant} className="text-[11px] sm:text-xs font-bold shrink-0">
                         <StatusIcon className={`w-3 h-3 ${post.status === 'publishing' ? 'animate-spin' : ''}`} />
                         {meta.label}
                       </Badge>
+                    </div>
 
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                       {isScheduled && (
-                        <Tip label={"Editar publicação no simulador"}><button
-                          type="button"
-                          onClick={() => handleStartEdit(post)}
-                          className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-ui cursor-pointer shadow-2xs active:scale-[0.98] ${
-                            isEditingThis
-                              ? 'bg-warning text-warning-foreground border-warning-ring shadow-xs'
-                              : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 hover:border-primary/50'
-                          }`} aria-label={"Editar publicação no simulador"}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                          <span>{isEditingThis ? 'Editando' : 'Editar'}</span>
-                        </button></Tip>
+                        <Tip label={"Editar publicação no simulador"}>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(post)}
+                            className={`h-7 sm:h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-ui cursor-pointer shadow-2xs active:scale-[0.98] ${
+                              isEditingThis
+                                ? 'bg-warning text-warning-foreground border-warning-ring shadow-xs'
+                                : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 hover:border-primary/50'
+                            }`}
+                            aria-label={"Editar publicação no simulador"}
+                          >
+                            <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <span>{isEditingThis ? 'Editando' : 'Editar'}</span>
+                          </button>
+                        </Tip>
                       )}
 
                       {post.status === 'published' && post.ig_media_id && (
@@ -2505,7 +2436,7 @@ export default function PublishPanel({
                           variant="ghost"
                           size="sm"
                           onClick={() => setExpandedId(isExpanded ? null : post.id)}
-                          className="text-xs font-bold text-primary hover:text-primary/80"
+                          className="h-7 sm:h-8 text-xs font-bold text-primary hover:text-primary/80 px-2"
                         >
                           <BarChart3 className="w-3.5 h-3.5 mr-1" />
                           {isExpanded ? 'Ocultar' : 'Métricas'}
@@ -2516,17 +2447,97 @@ export default function PublishPanel({
                             ? 'Cancelar e excluir agendamento'
                             : post.status === 'published'
                             ? 'Excluir publicação do histórico'
-                            : 'Excluir registro da fila'}><button
-                        type="button"
-                        onClick={() => handleDeletePost(post)}
-                        className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer" aria-label={post.status === 'scheduled'
-                            ? 'Cancelar e excluir agendamento'
-                            : post.status === 'published'
-                            ? 'Excluir publicação do histórico'
-                            : 'Excluir registro da fila'}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button></Tip>
+                            : 'Excluir registro da fila'}>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePost(post)}
+                          className="p-1 sm:p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer shrink-0"
+                          aria-label={post.status === 'scheduled'
+                              ? 'Cancelar e excluir agendamento'
+                              : post.status === 'published'
+                              ? 'Excluir publicação do histórico'
+                              : 'Excluir registro da fila'}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
+                      </Tip>
+                    </div>
+                  </div>
+
+                  {/* Corpo do Card: Thumbnail + Detalhes (Legenda, Tipo, Data) */}
+                  <div
+                    onClick={() => isScheduled && handleStartEdit(post)}
+                    className={`flex items-start gap-3 min-w-0 ${isScheduled ? 'cursor-pointer group' : ''}`}
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-accent shrink-0 border border-border group-hover:border-foreground/40 transition-colors">
+                      <img src={post.cover_url || post.media_url} alt="" className="w-full h-full object-cover" />
+                      {isCarouselPost && post.media_urls && (
+                        <span className="absolute bottom-0 right-0 bg-black/80 text-white text-xs font-mono font-bold px-1 rounded-tl">
+                          {post.media_urls.length}
+                        </span>
+                      )}
+                      {post.cover_url && (
+                        <span className="absolute top-0 left-0 bg-primary/90 text-primary-foreground text-[8px] font-mono font-bold px-1 rounded-br">
+                          CAPA
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="text-xs font-bold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                        {post.caption || '(sem legenda)'}
+                      </p>
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs text-muted-foreground">
+                        <span className="font-semibold uppercase tracking-wider text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground/80 shrink-0">
+                          {post.media_type}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          {new Date(post.status === 'published' && post.published_at ? post.published_at : post.scheduled_at).toLocaleString('pt-BR')}
+                        </span>
+                        {post.location_name && (
+                          <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
+                            · <MapPin className="w-2.5 h-2.5 text-primary" /> {post.location_name}
+                          </span>
+                        )}
+                        {post.audio_name && (
+                          <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
+                            · <Music className="w-2.5 h-2.5 text-primary" /> {post.audio_name}
+                          </span>
+                        )}
+                        {Array.isArray(post.collaborators) && post.collaborators.length > 0 && (
+                          <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
+                            · <User className="w-2.5 h-2.5 text-primary" /> {post.collaborators.map((c) => `@${typeof c === 'string' ? c : (c as any).username}`).join(', ')}
+                          </span>
+                        )}
+                      </div>
+                      {post.status === 'failed' && post.error_message && (
+                        <p className="text-xs text-destructive mt-0.5 font-medium">{post.error_message}</p>
+                      )}
+                      {post.aviso && (
+                        <p className="text-xs text-warning mt-0.5 font-medium inline-flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3 shrink-0" /> {post.aviso}
+                        </p>
+                      )}
+                      {post.automation_config?.enabled && (
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          <Badge variant="info" className="text-xs px-2 py-0 font-bold flex items-center gap-1 max-w-full min-w-0">
+                            <Zap className="w-2.5 h-2.5 shrink-0" />
+                            <span className="truncate">Gatilho: {(post.automation_config.keywords || ['QUERO']).join(', ')}</span>
+                          </Badge>
+                          {post.created_automation_id ? (
+                            <span className="text-xs text-primary font-bold flex items-center gap-0.5">
+                              <Check className="w-3 h-3" /> Direct Ativo
+                            </span>
+                          ) : post.status === 'scheduled' ? (
+                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                              <Clock className="w-3 h-3" /> Ativa ao publicar
+                            </span>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   </div>
 

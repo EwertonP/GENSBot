@@ -425,12 +425,18 @@
    esteira foi para 3 e 11, e a Rotina para 0 botões pequenos.
    Não vale para campos de seleção em abas (role=tab) nem para interruptores.
    ───────────────────────────────────────────────────────────────────────── */
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 @media (max-width: 639px) {
   [class*="text-[11px]"],
   [class*="text-[10px]"] {
     font-size: 0.75rem;
   }
-  button:not([class*="w-full"]):not([role="switch"]):not([role="tab"]) {
+  button:not([class*="w-full"]):not([role="switch"]):not([role="tab"]):not([data-carousel-dot]):not([data-compact]):not([data-toolbar-button]):not([class*="!min-w-"]):not([class*="!size-"]):not([class*="min-w-0"]):not([class*="!h-"]):not([class*="!w-"]) {
     min-width: 2.5rem;
     min-height: 2.5rem;
   }

@@ -1097,50 +1097,45 @@ export function DemandaSheet({
       >
         {/* 1. Cabeçalho: contexto + etapa + ações; título em linha própria */}
         <div className="px-4 sm:px-6 pt-4 pb-4 border-b border-border flex flex-col gap-3 bg-card shrink-0">
-          <div className="flex items-center justify-between gap-3 max-md:flex-wrap">
+          <div className="flex items-center justify-between gap-2 w-full">
             <p className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {editando ? 'Demanda' : 'Nova demanda'} · {ETAPAS_PIPELINE.find((e) => e.status === status)?.label ?? 'Ajuste pedido'}
             </p>
 
-            <button
-              type="button"
-              onClick={fechar}
-              className="md:hidden inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
-              aria-label="Fechar"
-            >
-              <X className="size-5" />
-            </button>
-
-            <div className="flex items-center gap-2 shrink-0 max-md:order-last max-md:w-full">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {editando && (
-                <button
-                  type="button"
-                  onClick={() => onCopiarLinkAprovacao(item.token_aprovacao)}
-                  className="px-2.5 py-1.5 max-md:size-11 max-md:justify-center rounded-xl bg-accent/60 hover:bg-accent border border-border text-foreground font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs shadow-2xs"
-                  aria-label="Copiar link de aprovação do cliente"
-                >
-                  <Share2 className="w-3.5 h-3.5 text-brand-text" />
-                  <span className="hidden sm:inline">Link aprovação</span>
-                </button>
+                <Tip label="Link aprovação">
+                  <button
+                    type="button"
+                    onClick={() => onCopiarLinkAprovacao(item.token_aprovacao)}
+                    className="size-8 sm:size-auto sm:px-2.5 sm:py-1.5 rounded-xl bg-accent/60 hover:bg-accent border border-border text-foreground font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors text-xs shadow-2xs shrink-0 !min-w-0"
+                    aria-label="Copiar link de aprovação do cliente"
+                  >
+                    <Share2 className="w-3.5 h-3.5 text-brand-text" />
+                    <span className="hidden sm:inline">Link aprovação</span>
+                  </button>
+                </Tip>
               )}
 
               {editando && (status === 'agendamento' || status === 'pronto_publicar') && onLevarParaAgendamento && (
-                <button
-                  type="button"
-                  onClick={() => onLevarParaAgendamento(itemComEdicoes(item))}
-                  className="px-2.5 py-1.5 max-md:size-11 max-md:justify-center rounded-xl bg-primary hover:bg-primary/85 text-primary-foreground font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer text-xs"
-                  aria-label="Agendar postagem"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Agendamento</span>
-                </button>
+                <Tip label="Agendamento">
+                  <button
+                    type="button"
+                    onClick={() => onLevarParaAgendamento(itemComEdicoes(item))}
+                    className="size-8 sm:size-auto sm:px-2.5 sm:py-1.5 rounded-xl bg-primary hover:bg-primary/85 text-primary-foreground font-semibold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-xs shrink-0 !min-w-0"
+                    aria-label="Agendar postagem"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Agendamento</span>
+                  </button>
+                </Tip>
               )}
 
               {editando && (
                 <Menu.Root>
                   <Menu.Trigger
                     aria-label="Mais ações da demanda"
-                    className="p-1.5 max-md:size-11 max-md:grid max-md:place-items-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors data-popup-open:bg-accent data-popup-open:text-foreground"
+                    className="size-8 grid place-items-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors data-popup-open:bg-accent data-popup-open:text-foreground !min-w-0"
                   >
                     <MoreHorizontal className="w-4 h-4" />
                   </Menu.Trigger>
@@ -1229,7 +1224,7 @@ export function DemandaSheet({
               <button
                 type="button"
                 onClick={fechar}
-                className="max-md:hidden p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors"
+                className="size-8 grid place-items-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 cursor-pointer transition-colors !min-w-0"
                 aria-label="Fechar"
               >
                 <X className="w-4 h-4" />
@@ -1237,38 +1232,42 @@ export function DemandaSheet({
             </div>
           </div>
 
-          {/* Barra de comandos no celular: Excluir / Cancelar / Salvar sempre à vista,
-              sem depender do rodapé (que o teclado empurra). */}
-          <div className="md:hidden flex items-center gap-2">
-            {editando && (
-              <Tip label="Excluir demanda">
-                <button
-                  type="button"
-                  onClick={handleExcluir}
-                  disabled={excluindo || salvando}
-                  aria-label="Excluir demanda"
-                  className="grid size-11 shrink-0 place-items-center rounded-full bg-destructive-soft text-destructive hover:bg-destructive/20 cursor-pointer disabled:opacity-50"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </Tip>
-            )}
-            <span aria-live="polite" className="min-w-0 flex-1 truncate text-xs">
-              {excluindo ? (
-                <span className="text-muted-foreground">Excluindo…</span>
-              ) : sujo ? (
-                <span className="inline-flex items-center gap-1.5 font-medium text-warning">
-                  <span aria-hidden className="size-1.5 rounded-full bg-warning shrink-0" />
-                  {editando ? 'Alterações não salvas' : 'Ainda não criada'}
-                </span>
-              ) : null}
-            </span>
-            <Button type="button" variant="outline" size="md" onClick={fechar}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="primary" size="md" loading={salvando} title={editando ? 'Salvar (Ctrl+S)' : 'Criar demanda (Ctrl+S)'}>
-              {editando ? 'Salvar' : 'Criar'}
-            </Button>
+          {/* Barra de comandos no celular: Excluir / Cancelar / Salvar sempre à vista */}
+          <div className="md:hidden flex items-center justify-between gap-2 pt-1 border-t border-border/40">
+            <div className="flex items-center gap-1.5 min-w-0">
+              {editando && (
+                <Tip label="Excluir demanda">
+                  <button
+                    type="button"
+                    onClick={handleExcluir}
+                    disabled={excluindo || salvando}
+                    aria-label="Excluir demanda"
+                    className="size-8 shrink-0 grid place-items-center rounded-xl bg-destructive-soft text-destructive hover:bg-destructive/20 cursor-pointer disabled:opacity-50 !min-w-0"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </Tip>
+              )}
+              <span aria-live="polite" className="min-w-0 truncate text-[11px]">
+                {excluindo ? (
+                  <span className="text-muted-foreground">Excluindo…</span>
+                ) : sujo ? (
+                  <span className="inline-flex items-center gap-1 font-medium text-warning">
+                    <span aria-hidden className="size-1.5 rounded-full bg-warning shrink-0" />
+                    {editando ? 'Não salvo' : 'Novo'}
+                  </span>
+                ) : null}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button type="button" variant="outline" size="sm" onClick={fechar} className="h-8 px-2.5 text-xs">
+                Cancelar
+              </Button>
+              <Button type="submit" variant="primary" size="sm" loading={salvando} className="h-8 px-3 text-xs font-bold" title={editando ? 'Salvar (Ctrl+S)' : 'Criar demanda (Ctrl+S)'}>
+                {editando ? 'Salvar' : 'Criar'}
+              </Button>
+            </div>
           </div>
 
           {/* Título editorial em Sora */}

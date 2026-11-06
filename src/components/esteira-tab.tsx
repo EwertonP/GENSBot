@@ -1210,9 +1210,9 @@ export default function EsteiraTab({
                 <button
                   type="button"
                   onClick={() => handleAbrirModalNovo(colStatus)}
-                  className={`flex h-10 w-full items-center justify-center gap-1.5 rounded-full text-sm font-semibold text-background cursor-pointer transition-opacity hover:opacity-90 active:scale-[0.99] ${colConfig.dot}`}
+                  className={`flex h-8 sm:h-9 w-full items-center justify-center gap-1.5 rounded-full text-xs font-semibold text-background cursor-pointer transition-opacity hover:opacity-90 active:scale-[0.99] ${colConfig.dot}`}
                 >
-                  <Plus className="size-4" aria-hidden /> Nova demanda
+                  <Plus className="size-3.5" aria-hidden /> Nova demanda
                 </button>
 
                 {/* Lista de Cards da Coluna */}
@@ -1715,9 +1715,9 @@ export default function EsteiraTab({
                   <button
                     type="button"
                     onClick={() => handleAbrirModalNovo(colStatus)}
-                    className="flex h-10 w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-border-strong/70 text-sm font-medium text-muted-foreground cursor-pointer transition-colors hover:bg-card/60 hover:text-foreground"
+                    className="flex h-8 sm:h-9 w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-border-strong/70 text-xs font-medium text-muted-foreground cursor-pointer transition-colors hover:bg-card/60 hover:text-foreground"
                   >
-                    <Plus className="size-4" aria-hidden /> Nova demanda
+                    <Plus className="size-3.5" aria-hidden /> Nova demanda
                   </button>
                 )}
               </div>

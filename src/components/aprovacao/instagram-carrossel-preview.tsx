@@ -192,18 +192,19 @@ export function InstagramCarrosselPreview({
           </button>
         </div>
 
-        {/* Paginação por Bolinhas Centrada */}
+        {/* Paginação por Bolinhas Centrada (Estilo Oficial Instagram) */}
         {totalSlides > 1 && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-center gap-1.5 py-1">
             {arquivos.map((_, i) => (
               <button
                 key={i}
                 type="button"
+                data-carousel-dot="true"
                 onClick={() => onMudarSlide(i)}
-                className={`transition-ui rounded-full ${
+                className={`transition-all rounded-full !min-w-0 !min-h-0 border-0 p-0 cursor-pointer ${
                   slideValido === i
-                    ? 'w-4 h-1.5 bg-blue-500'
-                    : 'w-1.5 h-1.5 bg-neutral-400 dark:bg-neutral-600 hover:bg-neutral-500'
+                    ? '!w-4 !h-1.5 bg-primary shadow-xs'
+                    : '!w-1.5 !h-1.5 bg-muted-foreground/40 hover:bg-muted-foreground/70'
                 }`}
                 aria-label={`Ir para slide ${i + 1}`}
               />

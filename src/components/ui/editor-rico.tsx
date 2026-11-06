@@ -111,7 +111,7 @@ function BarraEditor({ editor }: { editor: Editor }) {
   const cmd = () => editor.chain().focus();
 
   return (
-    <div role="toolbar" aria-label="Formatação do texto" className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/40 p-1.5">
+    <div role="toolbar" aria-label="Formatação do texto" className="flex items-center gap-0.5 border-b border-border bg-muted/40 p-1.5 overflow-x-auto scrollbar-none max-w-full">
       <Botao rotulo="Desfazer" onClick={() => cmd().undo().run()} desabilitado={!estado.podeDesfazer}><Undo2 /></Botao>
       <Botao rotulo="Refazer" onClick={() => cmd().redo().run()} desabilitado={!estado.podeRefazer}><Redo2 /></Botao>
       <Separador />
@@ -136,7 +136,7 @@ function BarraEditor({ editor }: { editor: Editor }) {
 }
 
 function Separador() {
-  return <span aria-hidden className="mx-0.5 h-5 w-px bg-border" />;
+  return <span aria-hidden className="mx-0.5 h-5 w-px bg-border shrink-0" />;
 }
 
 function Botao({
@@ -155,6 +155,7 @@ function Botao({
   return (
     <button
       type="button"
+      data-toolbar-button="true"
       title={rotulo}
       aria-label={rotulo}
       aria-pressed={ativo}
@@ -163,7 +164,7 @@ function Botao({
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={cn(
-        'grid size-8 pointer-coarse:size-10 place-items-center rounded-lg text-muted-foreground transition-colors cursor-pointer [&_svg]:size-4',
+        'grid size-8 shrink-0 !min-w-0 !min-h-0 place-items-center rounded-lg text-muted-foreground transition-colors cursor-pointer [&_svg]:size-4',
         'hover:bg-accent hover:text-foreground disabled:opacity-35 disabled:pointer-events-none',
         ativo && 'bg-primary/15 text-brand-text'
       )}
