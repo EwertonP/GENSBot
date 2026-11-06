@@ -10,6 +10,7 @@
  * O status é lido a cada abertura do link; mover o card no kanban já atualiza.
  */
 import { mapearStatusParaColunaKanban, type ArquivoConteudo, type StatusConteudo } from './conteudo';
+import { formatoDoPost, limparTitulo, separarRoteiro, type FormatoPost } from './roteiro-cliente';
 
 export type EtapaMes = 'texto' | 'aprovacao' | 'publicado';
 export type AbaMes = 'para_voce' | 'publicados';
@@ -40,6 +41,8 @@ export interface SugestaoPublica {
 export interface ItemDoMes {
   id: string;
   tipo: string;
+  /** Formato para mostrar (Reels, Carrossel, Story, Post). */
+  formato: FormatoPost;
   etapa: EtapaMes;
   aba: AbaMes;
   titulo: string | null;
@@ -95,11 +98,13 @@ export function montarItemDoMes(item: ItemBrutoDoMes): ItemDoMes | null {
   return {
     id: item.id,
     tipo: item.tipo,
+    formato: formatoDoPost(item.tipo, item.titulo, (item.arquivos || []).length),
     etapa,
     aba: abaDaEtapa(etapa),
-    titulo: item.titulo,
+    // Prefixos internos do título e notas internas do roteiro não saem do servidor.
+    titulo: limparTitulo(item.titulo) || null,
     legenda: item.legenda,
-    briefing: item.briefing,
+    briefing: separarRoteiro(item.briefing).visivel || null,
     data_programada: item.data_programada,
     publicado_em: item.publicado_em,
     arquivos,
