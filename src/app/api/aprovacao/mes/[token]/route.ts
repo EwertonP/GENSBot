@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import {
   escolherMes,
+  itemNoFiltro,
+  mesDoItem,
   montarItemDoMes,
   ordenarItensDoMes,
   type ItemBrutoDoMes,
@@ -11,9 +13,10 @@ import { dataLimiteTexto, diasRetencaoTexto } from '@/lib/retencao';
 type Params = { params: Promise<{ token: string }> };
 
 /**
- * Link do mês (público, sem login): o que a cliente precisa ver no mês.
- * O token é o mesmo do feed (`clientes.token_aprovacao_mes`). Só sai daqui o
- * que a regra de visibilidade permite (ver lib/link-do-mes).
+ * Link do mês (público, sem login): todos os posts do mês, cada um na sua etapa
+ * do processo. O token é o mesmo do feed (`clientes.token_aprovacao_mes`). O mês
+ * de cada post é o da data programada. Só sai daqui o que a regra de
+ * visibilidade permite (ver lib/link-do-mes).
  */
 export async function GET(req: Request, { params }: Params) {
   const { token } = await params;
@@ -46,10 +49,13 @@ export async function GET(req: Request, { params }: Params) {
     .map((b) => ({ bruto: b, item: montarItemDoMes(b) }))
     .filter((x): x is { bruto: ItemBrutoDoMes; item: NonNullable<ReturnType<typeof montarItemDoMes>> } => !!x.item);
 
+  // Mês de cada post: o da data programada (ou o de referência, sem data).
+  const comMes = visiveis.map((x) => ({ ...x, mes: mesDoItem(x.bruto) }));
+
   // Meses que têm algo para mostrar (inclui pendências de meses anteriores).
   const contagemPorMes = new Map<string, number>();
-  for (const { bruto } of visiveis) {
-    contagemPorMes.set(bruto.mes_referencia, (contagemPorMes.get(bruto.mes_referencia) || 0) + 1);
+  for (const x of comMes) {
+    if (x.mes) contagemPorMes.set(x.mes, (contagemPorMes.get(x.mes) || 0) + 1);
   }
   const meses = [...contagemPorMes.entries()]
     .map(([mes, total]) => ({ mes, total }))
@@ -58,7 +64,7 @@ export async function GET(req: Request, { params }: Params) {
   const { searchParams } = new URL(req.url);
   const mes = escolherMes(searchParams.get('mes'), meses.map((m) => m.mes));
 
-  const doMes = visiveis.filter((x) => x.bruto.mes_referencia === mes);
+  const doMes = comMes.filter((x) => x.mes === mes);
   const ordemPorId = new Map(doMes.map((x) => [x.bruto.id, x.bruto.ordem ?? 0]));
   const itens = ordenarItensDoMes(
     doMes.map((x) => x.item),
@@ -103,8 +109,8 @@ export async function GET(req: Request, { params }: Params) {
     meses,
     itens,
     contagem: {
-      para_voce: itens.filter((i) => i.aba === 'para_voce').length,
-      publicados: itens.filter((i) => i.aba === 'publicados').length,
+      para_voce: itens.filter((i) => itemNoFiltro(i, 'para_voce')).length,
+      publicados: itens.filter((i) => itemNoFiltro(i, 'publicados')).length,
       total: itens.length,
     },
   });

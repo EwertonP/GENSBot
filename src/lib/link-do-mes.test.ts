@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
-  abaDaEtapa,
   escolherMes,
+  etapaMostraArte,
   etapaNoLinkDoMes,
+  indiceDaEtapa,
+  itemNoFiltro,
   mesAtual,
+  mesDoItem,
   montarItemDoMes,
   normalizarMes,
   ordenarItensDoMes,
+  ETAPAS_PROCESSO,
   type ItemBrutoDoMes,
 } from './link-do-mes';
 
@@ -14,11 +18,11 @@ const base: ItemBrutoDoMes = {
   id: 'i1',
   tipo: 'reel',
   status: 'planejamento',
-  titulo: 'Título',
+  titulo: '[Dra. Camila] [Reels] Título',
   legenda: 'Legenda',
-  briefing: 'Roteiro',
+  briefing: '## Fala\nRoteiro\n\n## 🎬 Produção visual\n- close',
   mes_referencia: '2026-11-01',
-  data_programada: '2026-11-10',
+  data_programada: '2026-11-10T15:00:00+00:00',
   publicado_em: null,
   ordem: 0,
   arquivos: [
@@ -30,65 +34,97 @@ const base: ItemBrutoDoMes = {
 };
 
 describe('etapaNoLinkDoMes', () => {
-  it('planejamento mostra só texto', () => expect(etapaNoLinkDoMes('planejamento')).toBe('texto'));
-  it('revisão do cliente vira aprovação', () => expect(etapaNoLinkDoMes('revisao_cliente')).toBe('aprovacao'));
-  it('agendado e publicado vão para publicados', () => {
-    for (const s of ['agendamento', 'pronto_publicar', 'revisao_agendamento', 'publicado'] as const) {
-      expect(etapaNoLinkDoMes(s)).toBe('publicado');
-    }
+  it('todas as colunas do kanban viram uma etapa do processo', () => {
+    expect(etapaNoLinkDoMes('planejamento')).toBe('texto');
+    for (const s of ['copy', 'criacao_arte', 'em_gravacao', 'em_edicao'] as const) expect(etapaNoLinkDoMes(s)).toBe('producao');
+    for (const s of ['revisao_arte', 'revisao_interna', 'travado'] as const) expect(etapaNoLinkDoMes(s)).toBe('revisao');
+    expect(etapaNoLinkDoMes('revisao_cliente')).toBe('aprovacao');
+    for (const s of ['agendamento', 'revisao_agendamento', 'pronto_publicar'] as const) expect(etapaNoLinkDoMes(s)).toBe('agendado');
+    expect(etapaNoLinkDoMes('publicado')).toBe('publicado');
   });
-  it('criação e revisão interna ficam ocultas', () => {
-    for (const s of ['copy', 'criacao_arte', 'em_gravacao', 'em_edicao', 'revisao_arte', 'revisao_interna', 'travado'] as const) {
-      expect(etapaNoLinkDoMes(s)).toBeNull();
-    }
+
+  it('a ordem do processo tem 6 etapas e cada uma tem índice', () => {
+    expect(ETAPAS_PROCESSO).toHaveLength(6);
+    expect(ETAPAS_PROCESSO.map((e) => indiceDaEtapa(e.etapa))).toEqual([0, 1, 2, 3, 4, 5]);
   });
-  it('abas', () => {
-    expect(abaDaEtapa('texto')).toBe('para_voce');
-    expect(abaDaEtapa('aprovacao')).toBe('para_voce');
-    expect(abaDaEtapa('publicado')).toBe('publicados');
+
+  it('arte só depois de pronta para a cliente', () => {
+    expect(['texto', 'producao', 'revisao'].map((e) => etapaMostraArte(e as never))).toEqual([false, false, false]);
+    expect(['aprovacao', 'agendado', 'publicado'].map((e) => etapaMostraArte(e as never))).toEqual([true, true, true]);
   });
 });
 
 describe('montarItemDoMes', () => {
-  it('em planejamento não vaza arte nem token', () => {
+  it('planejamento: sem arte nem token; título e roteiro sem notas internas; pode aprovar o texto', () => {
     const r = montarItemDoMes(base)!;
     expect(r.etapa).toBe('texto');
     expect(r.arquivos).toEqual([]);
     expect(r.cover_url).toBeNull();
     expect(r.token_aprovacao).toBeNull();
     expect(r.pode_agir).toBe(false);
-    expect(r.briefing).toBe('Roteiro');
+    expect(r.pode_aprovar_texto).toBe(true);
+    expect(r.precisa_de_voce).toBe(true);
+    expect(r.titulo).toBe('Título');
+    expect(r.briefing).toContain('Roteiro');
+    expect(r.briefing).not.toContain('Produção visual');
   });
 
-  it('em aprovação traz mídia ordenada e o token', () => {
+  it('texto já aprovado: não pede de novo, mas mostra quem aprovou', () => {
+    const r = montarItemDoMes({ ...base, texto_aprovado_em: '2026-11-02T10:00:00Z', texto_aprovado_por: 'Camila' })!;
+    expect(r.pode_aprovar_texto).toBe(false);
+    expect(r.precisa_de_voce).toBe(false);
+    expect(r.texto_aprovado_por).toBe('Camila');
+  });
+
+  it('produção e revisão interna aparecem, sem arte e sem ações', () => {
+    for (const status of ['criacao_arte', 'em_gravacao', 'revisao_interna', 'travado'] as const) {
+      const r = montarItemDoMes({ ...base, status })!;
+      expect(r.arquivos).toEqual([]);
+      expect(r.token_aprovacao).toBeNull();
+      expect(r.precisa_de_voce).toBe(false);
+      expect(r.pode_aprovar_texto).toBe(false);
+    }
+  });
+
+  it('aprovação: mídia ordenada, token e ação', () => {
     const r = montarItemDoMes({ ...base, status: 'revisao_cliente' })!;
     expect(r.arquivos.map((a) => a.id)).toEqual(['a', 'b']);
-    expect(r.cover_url).toBe('capa.jpg');
     expect(r.token_aprovacao).toBe('tok');
     expect(r.pode_agir).toBe(true);
+    expect(r.precisa_de_voce).toBe(true);
   });
 
-  it('publicado traz mídia mas não token', () => {
-    const r = montarItemDoMes({ ...base, status: 'publicado', publicado_em: '2026-11-10T12:00:00Z' })!;
-    expect(r.aba).toBe('publicados');
-    expect(r.arquivos).toHaveLength(2);
-    expect(r.token_aprovacao).toBeNull();
-    expect(r.pode_agir).toBe(false);
+  it('agendado e publicado mostram a mídia, sem token', () => {
+    for (const status of ['agendamento', 'publicado'] as const) {
+      const r = montarItemDoMes({ ...base, status })!;
+      expect(r.arquivos).toHaveLength(2);
+      expect(r.token_aprovacao).toBeNull();
+      expect(r.precisa_de_voce).toBe(false);
+    }
   });
 
-  it('oculta em criação, escondido do cliente e arquivado', () => {
-    expect(montarItemDoMes({ ...base, status: 'criacao_arte' })).toBeNull();
+  it('oculta o que a agência escondeu ou arquivou', () => {
     expect(montarItemDoMes({ ...base, visivel_cliente: false })).toBeNull();
     expect(montarItemDoMes({ ...base, arquivada_em: '2026-11-02T00:00:00Z' })).toBeNull();
   });
 
-  it('descarta arquivos sem url', () => {
+  it('descarta arquivos sem url e aceita arquivos nulos', () => {
     const r = montarItemDoMes({ ...base, status: 'revisao_cliente', arquivos: [{ id: 'x', url: '', tipo: 'imagem', ordem: 0 }, { id: 'y', url: 'y.jpg', tipo: 'imagem', ordem: 1 }] })!;
     expect(r.arquivos.map((a) => a.id)).toEqual(['y']);
-  });
-
-  it('aceita arquivos nulos', () => {
     expect(montarItemDoMes({ ...base, status: 'revisao_cliente', arquivos: null })!.arquivos).toEqual([]);
+  });
+});
+
+describe('filtros', () => {
+  const mk = (status: ItemBrutoDoMes['status']) => montarItemDoMes({ ...base, status })!;
+  it('para você = o que depende dela; publicados = agendado e publicado; todos = tudo', () => {
+    expect(itemNoFiltro(mk('planejamento'), 'para_voce')).toBe(true);
+    expect(itemNoFiltro(mk('criacao_arte'), 'para_voce')).toBe(false);
+    expect(itemNoFiltro(mk('revisao_cliente'), 'para_voce')).toBe(true);
+    expect(itemNoFiltro(mk('agendamento'), 'publicados')).toBe(true);
+    expect(itemNoFiltro(mk('publicado'), 'publicados')).toBe(true);
+    expect(itemNoFiltro(mk('criacao_arte'), 'publicados')).toBe(false);
+    expect(itemNoFiltro(mk('criacao_arte'), 'todos')).toBe(true);
   });
 });
 
@@ -102,9 +138,19 @@ describe('meses', () => {
   });
 
   it('mês atual usa Brasília', () => {
-    // 01/12 02:00 UTC ainda é 30/11 em Brasília
     expect(mesAtual(new Date('2026-12-01T02:00:00Z'))).toBe('2026-11-01');
     expect(mesAtual(new Date('2026-12-01T12:00:00Z'))).toBe('2026-12-01');
+  });
+
+  it('o mês do post é o da data programada, não o de referência', () => {
+    expect(mesDoItem({ data_programada: '2026-12-03T15:00:00+00:00', mes_referencia: '2026-11-01' })).toBe('2026-12-01');
+    expect(mesDoItem({ data_programada: '2026-11-30T23:30:00-03:00', mes_referencia: '2026-12-01' })).toBe('2026-11-01');
+    expect(mesDoItem({ data_programada: '2026-12-10', mes_referencia: '2026-10-01' })).toBe('2026-12-01');
+  });
+
+  it('sem data usa o mês de referência', () => {
+    expect(mesDoItem({ data_programada: null, mes_referencia: '2026-11-01' })).toBe('2026-11-01');
+    expect(mesDoItem({ data_programada: 'lixo', mes_referencia: '2026-11-01' })).toBe('2026-11-01');
   });
 
   it('escolhe o pedido, o atual ou o mais recente com itens', () => {

@@ -1,19 +1,36 @@
 /**
- * Link do mês: janela viva do que a cliente precisa ver, mês a mês.
+ * Link do mês: a cliente acompanha todo o processo de cada post do mês.
  *
- * Regra (por coluna do kanban):
- *  - planejamento     → "texto": só o texto (título, roteiro, legenda), sem arte
- *  - criação / revisão interna → oculto
- *  - revisão do cliente → "aprovacao": texto + mídia pronta, com aprovar/ajuste
- *  - agendado / publicado → "publicado": aba somente leitura
+ * Etapas que ela vê (a partir da coluna do kanban):
+ *  1. texto      planejamento: só o texto; ela aprova o texto ou sugere mudança
+ *  2. producao   criação, gravação, edição: texto visível, arte ainda não
+ *  3. revisao    revisão interna ou ajuste pela equipe: texto visível, arte não
+ *  4. aprovacao  revisão do cliente: texto + arte, com aprovar/pedir ajuste
+ *  5. agendado   aprovado e na fila de publicação
+ *  6. publicado  já no ar
  *
- * O status é lido a cada abertura do link; mover o card no kanban já atualiza.
+ * O status é lido a cada abertura (e a página recarrega sozinha): mover o card
+ * no kanban já muda o que ela vê. O mês de cada post é o da data programada.
  */
 import { mapearStatusParaColunaKanban, type ArquivoConteudo, type StatusConteudo } from './conteudo';
 import { formatoDoPost, limparTitulo, separarRoteiro, type FormatoPost } from './roteiro-cliente';
 
-export type EtapaMes = 'texto' | 'aprovacao' | 'publicado';
-export type AbaMes = 'para_voce' | 'publicados';
+export type EtapaMes = 'texto' | 'producao' | 'revisao' | 'aprovacao' | 'agendado' | 'publicado';
+export type FiltroMes = 'todos' | 'para_voce' | 'publicados';
+
+/** Etapas na ordem do processo, com o texto que a cliente lê. */
+export const ETAPAS_PROCESSO: { etapa: EtapaMes; rotulo: string; descricao: string }[] = [
+  { etapa: 'texto', rotulo: 'Planejamento', descricao: 'O texto está pronto para você revisar e aprovar.' },
+  { etapa: 'producao', rotulo: 'Produção', descricao: 'A equipe está criando a arte ou o vídeo.' },
+  { etapa: 'revisao', rotulo: 'Revisão da equipe', descricao: 'A equipe está revisando ou ajustando antes de mostrar a você.' },
+  { etapa: 'aprovacao', rotulo: 'Sua aprovação', descricao: 'A peça está pronta. Confira e aprove ou peça ajuste.' },
+  { etapa: 'agendado', rotulo: 'Agendado', descricao: 'Aprovado e na fila para publicar na data marcada.' },
+  { etapa: 'publicado', rotulo: 'Publicado', descricao: 'Já está no seu perfil.' },
+];
+
+export function indiceDaEtapa(etapa: EtapaMes): number {
+  return ETAPAS_PROCESSO.findIndex((e) => e.etapa === etapa);
+}
 
 export interface ItemBrutoDoMes {
   id: string;
@@ -31,6 +48,8 @@ export interface ItemBrutoDoMes {
   token_aprovacao: string | null;
   visivel_cliente?: boolean | null;
   arquivada_em?: string | null;
+  texto_aprovado_em?: string | null;
+  texto_aprovado_por?: string | null;
 }
 
 export interface SugestaoPublica {
@@ -44,7 +63,6 @@ export interface ItemDoMes {
   /** Formato para mostrar (Reels, Carrossel, Story, Post). */
   formato: FormatoPost;
   etapa: EtapaMes;
-  aba: AbaMes;
   titulo: string | null;
   legenda: string | null;
   briefing: string | null;
@@ -52,55 +70,74 @@ export interface ItemDoMes {
   publicado_em: string | null;
   arquivos: ArquivoConteudo[];
   cover_url: string | null;
-  /** Só vem preenchido quando a cliente pode agir (etapa "aprovacao"). */
+  /** Só vem preenchido quando a cliente pode aprovar a arte (etapa "aprovacao"). */
   token_aprovacao: string | null;
+  /** Aprovar a arte (etapa "aprovacao"). */
   pode_agir: boolean;
+  /** Aprovar o texto (etapa "texto", ainda não aprovado). */
+  pode_aprovar_texto: boolean;
+  texto_aprovado_em: string | null;
+  texto_aprovado_por: string | null;
+  /** Há algo para a cliente fazer agora. */
+  precisa_de_voce: boolean;
   /** Até quando o texto fica disponível (só posts publicados). */
   texto_ate?: string | null;
   /** Sugestões de texto da cliente ainda pendentes (só em planejamento). */
   sugestoes?: SugestaoPublica[];
 }
 
-/** Em que etapa o item aparece no link, ou null se deve ficar oculto. */
-export function etapaNoLinkDoMes(status: StatusConteudo): EtapaMes | null {
+/** Etapa que a cliente vê para um status da esteira. */
+export function etapaNoLinkDoMes(status: StatusConteudo): EtapaMes {
   switch (mapearStatusParaColunaKanban(status)) {
     case 'planejamento':
       return 'texto';
+    case 'criacao_arte':
+      return 'producao';
+    case 'revisao_interna':
+      return 'revisao';
     case 'revisao_cliente':
       return 'aprovacao';
     case 'agendamento':
+      return 'agendado';
     case 'publicado':
       return 'publicado';
     default:
-      return null;
+      return 'texto';
   }
 }
 
-export function abaDaEtapa(etapa: EtapaMes): AbaMes {
-  return etapa === 'publicado' ? 'publicados' : 'para_voce';
+/** A arte só aparece quando já foi mostrada à cliente para aprovar. */
+export function etapaMostraArte(etapa: EtapaMes): boolean {
+  return etapa === 'aprovacao' || etapa === 'agendado' || etapa === 'publicado';
+}
+
+export function itemNoFiltro(item: Pick<ItemDoMes, 'etapa' | 'precisa_de_voce'>, filtro: FiltroMes): boolean {
+  if (filtro === 'para_voce') return item.precisa_de_voce;
+  if (filtro === 'publicados') return item.etapa === 'agendado' || item.etapa === 'publicado';
+  return true;
 }
 
 /**
- * Monta o item que vai para a cliente. Nada além do necessário sai daqui:
- * em "texto" a arte e o token de aprovação nunca são enviados.
+ * Monta o item que vai para a cliente. Nada além do necessário sai daqui: arte
+ * só depois de pronta para ela, token de aprovação só na etapa de aprovação.
  */
 export function montarItemDoMes(item: ItemBrutoDoMes): ItemDoMes | null {
   if (item.visivel_cliente === false || item.arquivada_em) return null;
   const etapa = etapaNoLinkDoMes(item.status);
-  if (!etapa) return null;
 
-  const temMidia = etapa !== 'texto';
+  const temMidia = etapaMostraArte(etapa);
   const arquivos = temMidia
     ? [...(item.arquivos || [])].filter((a) => !!a?.url).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
     : [];
   const podeAgir = etapa === 'aprovacao';
+  const textoAprovadoEm = item.texto_aprovado_em ?? null;
+  const podeAprovarTexto = etapa === 'texto' && !textoAprovadoEm;
 
   return {
     id: item.id,
     tipo: item.tipo,
     formato: formatoDoPost(item.tipo, item.titulo, (item.arquivos || []).length),
     etapa,
-    aba: abaDaEtapa(etapa),
     // Prefixos internos do título e notas internas do roteiro não saem do servidor.
     titulo: limparTitulo(item.titulo) || null,
     legenda: item.legenda,
@@ -111,6 +148,10 @@ export function montarItemDoMes(item: ItemBrutoDoMes): ItemDoMes | null {
     cover_url: temMidia ? item.cover_url : null,
     token_aprovacao: podeAgir ? item.token_aprovacao : null,
     pode_agir: podeAgir,
+    pode_aprovar_texto: podeAprovarTexto,
+    texto_aprovado_em: textoAprovadoEm,
+    texto_aprovado_por: textoAprovadoEm ? item.texto_aprovado_por ?? null : null,
+    precisa_de_voce: podeAgir || podeAprovarTexto,
   };
 }
 
@@ -121,10 +162,27 @@ export function normalizarMes(valor: string | null | undefined): string | null {
   return m ? `${m[1]}-${m[2]}-01` : null;
 }
 
+/** Mês de uma data no fuso de Brasília, como "YYYY-MM-01". */
+export function mesDaData(data: Date): string {
+  const partes = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit' }).format(data);
+  return `${partes.slice(0, 7)}-01`;
+}
+
 /** Mês corrente no fuso de Brasília, como "YYYY-MM-01". */
 export function mesAtual(agora: Date = new Date()): string {
-  const partes = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit' }).format(agora);
-  return `${partes.slice(0, 7)}-01`;
+  return mesDaData(agora);
+}
+
+/**
+ * Mês em que o post aparece: o da data programada (o que a cliente espera ver),
+ * ou o mês de referência quando ainda não há data.
+ */
+export function mesDoItem(item: { data_programada: string | null; mes_referencia: string }): string | null {
+  if (item.data_programada) {
+    const d = new Date(item.data_programada.length <= 10 ? `${item.data_programada}T12:00:00-03:00` : item.data_programada);
+    if (!Number.isNaN(d.getTime())) return mesDaData(d);
+  }
+  return normalizarMes(item.mes_referencia);
 }
 
 /**

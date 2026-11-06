@@ -1044,9 +1044,9 @@ export default function EsteiraTab({
                 size="sm"
                 onClick={() => {
                   const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
-                  const url = `${window.location.origin}/aprovacao/mes/${token}`;
+                  const url = `${window.location.origin}/aprovacao/mes/${token}?mes=${mesSelecionado}`;
                   navigator.clipboard.writeText(url);
-                  showToast('Link do mês (roteiros e aprovação) copiado!', 'success');
+                  showToast(`Link de ${mesSelecionado.split('-').reverse().join('/')} copiado!`, 'success');
                 }}
                 className="rounded-xl text-xs h-8.5 font-semibold"
               >

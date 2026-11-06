@@ -53,6 +53,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ sid: st
       .update({ ...patchAoAceitar(sug.campo, textoFinal), atualizado_em: agora })
       .eq('id', sug.item_id)
       .eq('agencia_id', auth.ctx.membro.agencia_id);
+    // O texto mudou: a aprovação anterior da cliente deixa de valer (melhor esforço; coluna opcional).
+    if (!error) {
+      await db.from('conteudo_items').update({ texto_aprovado_em: null, texto_aprovado_por: null }).eq('id', sug.item_id).then(() => undefined, () => undefined);
+    }
     if (error) {
       // Desfaz a marcação para a sugestão não se perder.
       await db.from('conteudo_sugestoes_texto').update({ status: 'pendente', resolvido_em: null, resolvido_por: null }).eq('id', sug.id);
