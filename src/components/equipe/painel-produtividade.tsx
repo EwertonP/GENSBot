@@ -288,6 +288,80 @@ export function PainelProdutividade({ showToast }: PainelProdutividadeProps) {
             </span>
           </div>
 
+          {/* Gráfico Comparativo: Atribuições vs. Concluídas por Membro */}
+          {membros.length > 0 && (
+            <Card className="p-5 rounded-2xl border border-border bg-card shadow-2xs flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                <div>
+                  <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <BarChart3 className="size-4 text-primary" />
+                    Gráfico de Atribuições vs. Demandas Concluídas
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Comparativo de carga de trabalho e demandas finalizadas / agendadas por colaborador
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2.5 rounded-full bg-primary" />
+                    Concluídas / Agendadas
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2.5 rounded-full bg-muted-foreground/30" />
+                    Em Produção
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3.5">
+                {membros.map((m) => {
+                  const taxa =
+                    m.total_demandas > 0
+                      ? Math.round((m.total_entregues / m.total_demandas) * 100)
+                      : 0;
+                  const percConcluidas =
+                    m.total_demandas > 0 ? (m.total_entregues / m.total_demandas) * 100 : 0;
+
+                  return (
+                    <div key={`grafico-${m.id}`} className="flex flex-col gap-1.5 group">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Avatar nome={m.nome} src={m.foto_url} size="xs" />
+                          <span className="font-bold text-foreground truncate">{m.nome}</span>
+                          <span className="text-[11px] text-muted-foreground truncate hidden sm:inline">
+                            ({m.cargo || (m.papel === 'master' ? 'Sócio' : 'Membro')})
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 tabular-nums">
+                          <span className="font-bold text-foreground">
+                            {m.total_entregues} / {m.total_demandas}{' '}
+                            <span className="text-[11px] text-muted-foreground font-normal">
+                              feitas
+                            </span>
+                          </span>
+                          <Badge
+                            variant={taxa >= 80 ? 'success' : taxa >= 50 ? 'warning' : 'muted'}
+                            className="text-[10px] py-0 px-1.5 font-bold"
+                          >
+                            {taxa}%
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Barra de Progresso Comparativa */}
+                      <div className="w-full h-2.5 rounded-full bg-muted/60 overflow-hidden flex relative">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${percConcluidas}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {membros.map((m) => {
               const isMaster = m.papel === 'master';

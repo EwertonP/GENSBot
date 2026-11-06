@@ -49,6 +49,8 @@ export interface RelatorioSalvoItem {
 interface DailyPoint {
   date: string;
   reach: number;
+  views?: number;
+  accounts_engaged?: number;
   profile_views: number;
 }
 
@@ -71,6 +73,8 @@ interface AccountMetrics {
   period: 7 | 30 | 90;
   reach_total: number;
   profile_views_total: number;
+  views_total?: number;
+  accounts_engaged_total?: number;
   daily: DailyPoint[];
   followerGrowth: FollowerPoint[];
   followerGrowthUnavailable: boolean;

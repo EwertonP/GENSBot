@@ -143,4 +143,50 @@ describe('/api/equipe/produtividade', () => {
     expect(cliBeta.total_demandas).toBe(1);
     expect(cliBeta.taxa_entrega).toBe(0);
   });
+
+  it('considera demandas em agendamento ou com concluida=true como entregues', async () => {
+    mockDemandas = [
+      {
+        id: 'd1',
+        titulo: 'Reels Agendado',
+        tipo: 'reel',
+        status: 'agendamento',
+        concluida: true,
+        mes_referencia: '2026-11-01',
+        responsavel_id: 'm1',
+        co_responsaveis_ids: [],
+        cliente_id: 'c1',
+      },
+      {
+        id: 'd2',
+        titulo: 'Post Pronto Publicar',
+        tipo: 'post',
+        status: 'pronto_publicar',
+        concluida: false,
+        mes_referencia: '2026-11-01',
+        responsavel_id: 'm2',
+        co_responsaveis_ids: [],
+        cliente_id: 'c2',
+      },
+      {
+        id: 'd3',
+        titulo: 'Post em Aberto',
+        tipo: 'post',
+        status: 'roteiro',
+        concluida: false,
+        mes_referencia: '2026-11-01',
+        responsavel_id: 'm2',
+        co_responsaveis_ids: [],
+        cliente_id: 'c2',
+      },
+    ];
+
+    const res = await GET(new Request('http://localhost/api/equipe/produtividade?mes=2026-11'));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    expect(data.resumo.total_demandas).toBe(3);
+    expect(data.resumo.total_entregues).toBe(2); // d1 (agendamento) e d2 (pronto_publicar)
+    expect(data.resumo.total_em_andamento).toBe(1); // d3
+  });
 });

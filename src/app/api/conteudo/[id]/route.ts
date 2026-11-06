@@ -201,6 +201,25 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updates.publicado_em = new Date().toISOString();
     }
 
+    // Marcação automática de conclusão no agendamento / publicação
+    if ('status' in updates && !('concluida' in body)) {
+      if (
+        updates.status === 'agendamento' ||
+        updates.status === 'pronto_publicar' ||
+        updates.status === 'publicado'
+      ) {
+        updates.concluida = true;
+      } else if (
+        updates.status === 'ideia' ||
+        updates.status === 'roteiro' ||
+        updates.status === 'design' ||
+        updates.status === 'revisao_interna' ||
+        updates.status === 'revisao_cliente'
+      ) {
+        updates.concluida = false;
+      }
+    }
+
     // Quem era o responsável antes, para avisar só quem acabou de receber a demanda.
     let responsavelAnterior: string | null = null;
     if ('responsavel_id' in updates) {

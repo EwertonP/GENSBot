@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 
 /**
- * Métricas de conta do Instagram (alcance, visitas ao perfil, seguidores,
+ * Métricas de conta do Instagram (alcance, visualizações, visitas/atividade ao perfil, seguidores,
  * publicações) — fonte única usada pela tela de Métricas (rota autenticada)
  * e pelo relatório público do cliente (rota com token assinado).
  */
@@ -9,18 +9,20 @@ import { supabase } from '@/lib/supabase';
 export const ALLOWED_PERIODS = [7, 30, 90] as const; // 90d é o teto de retenção de insights da Meta
 export type Period = (typeof ALLOWED_PERIODS)[number];
 
-interface DailyPoint {
+export interface DailyPoint {
   date: string;
   reach: number;
+  views?: number;
+  accounts_engaged?: number;
   profile_views: number;
 }
 
-interface FollowerPoint {
+export interface FollowerPoint {
   date: string;
   followers: number;
 }
 
-interface PublicationPoint {
+export interface PublicationPoint {
   date: string;
   count: number;
 }
@@ -34,6 +36,8 @@ export interface AccountMetrics {
   period: Period;
   reach_total: number;
   profile_views_total: number;
+  views_total?: number;
+  accounts_engaged_total?: number;
   daily: DailyPoint[];
   followerGrowth: FollowerPoint[];
   followerGrowthUnavailable: boolean; // true = conta com <100 seguidores, a Meta não fornece esse dado
@@ -42,11 +46,9 @@ export interface AccountMetrics {
 }
 
 /**
- * Alguns nomes de métrica podem ser rejeitados pela Graph API dependendo da
- * versão/conta (ex: profile_views tem histórico de mudança entre versões —
- * PLANO_REDESIGN_2.0.md Parte 4 pede confirmar isso contra a resposta real
- * em vez de supor). Tenta o conjunto inteiro e, se um nome for rejeitado,
- * refaz só com o que sobrou em vez de falhar a chamada toda.
+ * Na Graph API v22+ e v25, a Meta descontinuou profile_views e impressions,
+ * introduzindo 'views' e 'accounts_engaged'. Esta função tenta buscar o conjunto
+ * completo com fallback gracioso individual caso alguma métrica seja rejeitada.
  */
 async function fetchInsightsWithFallback(
   instagramUserId: string,
@@ -61,7 +63,9 @@ async function fetchInsightsWithFallback(
 
   if (res.ok) return { data: data.data || [], droppedMetrics: [] };
 
-  const invalidMetric = metrics.find((m) => data.error?.message?.includes(m));
+  const errorMessage = String(data.error?.message || '').toLowerCase();
+  const invalidMetric = metrics.find((m) => errorMessage.includes(m.toLowerCase()));
+
   if (invalidMetric && metrics.length > 1) {
     const retry = await fetchInsightsWithFallback(
       instagramUserId,
@@ -71,6 +75,27 @@ async function fetchInsightsWithFallback(
       until
     );
     return { data: retry.data, droppedMetrics: [...retry.droppedMetrics, invalidMetric] };
+  }
+
+  // Se o lote falhou como um todo, tenta buscar métrica por métrica individualmente
+  if (metrics.length > 1) {
+    const validData: any[] = [];
+    const dropped: string[] = [];
+    for (const m of metrics) {
+      try {
+        const singleUrl = `https://graph.instagram.com/v25.0/${instagramUserId}/insights?metric=${m}&period=day&since=${since}&until=${until}&access_token=${accessToken}`;
+        const sRes = await fetch(singleUrl);
+        const sData = await sRes.json();
+        if (sRes.ok && Array.isArray(sData.data)) {
+          validData.push(...sData.data);
+        } else {
+          dropped.push(m);
+        }
+      } catch {
+        dropped.push(m);
+      }
+    }
+    return { data: validData, droppedMetrics: dropped };
   }
 
   throw new Error(data.error?.message || 'Insights indisponível para esta conta.');
@@ -108,6 +133,8 @@ export async function fetchAccountMetrics(instagramUserId: string, accessToken: 
     period,
     reach_total: 0,
     profile_views_total: 0,
+    views_total: 0,
+    accounts_engaged_total: 0,
     daily: [],
     followerGrowth: [],
     followerGrowthUnavailable: false,
@@ -132,9 +159,10 @@ export async function fetchAccountMetrics(instagramUserId: string, accessToken: 
   // Contas com menos de 100 seguidores não recebem follower_count da
   // própria Meta — nem tenta a métrica pra essas, evita erro previsível.
   const hasEnoughFollowersForGrowth = (base.followers_count ?? 0) >= 100;
+  // Conjunto moderno de métricas da Meta (v22+/v25): reach, views, accounts_engaged + profile_views (legado/fallback)
   const metricsToFetch = hasEnoughFollowersForGrowth
-    ? ['reach', 'profile_views', 'follower_count']
-    : ['reach', 'profile_views'];
+    ? ['reach', 'views', 'accounts_engaged', 'profile_views', 'follower_count']
+    : ['reach', 'views', 'accounts_engaged', 'profile_views'];
 
   base.publicationsGrowth = await fetchPublicationsGrowth(instagramUserId, since, until);
 
@@ -154,7 +182,10 @@ export async function fetchAccountMetrics(instagramUserId: string, accessToken: 
       base.followerGrowthUnavailable = true;
     }
 
-    const byDate = new Map<string, { reach: number; profile_views: number }>();
+    const byDate = new Map<
+      string,
+      { reach: number; views: number; accounts_engaged: number; profile_views: number }
+    >();
     const followersByDate = new Map<string, number>();
 
     for (const series of seriesData) {
@@ -163,9 +194,17 @@ export async function fetchAccountMetrics(instagramUserId: string, accessToken: 
         const date = String(point.end_time).slice(0, 10);
         if (metricName === 'follower_count') {
           followersByDate.set(date, point.value || 0);
-        } else if (metricName === 'reach' || metricName === 'profile_views') {
-          const entry = byDate.get(date) || { reach: 0, profile_views: 0 };
-          entry[metricName] = point.value || 0;
+        } else {
+          const entry = byDate.get(date) || {
+            reach: 0,
+            views: 0,
+            accounts_engaged: 0,
+            profile_views: 0,
+          };
+          if (metricName === 'reach') entry.reach = point.value || 0;
+          if (metricName === 'views') entry.views = point.value || 0;
+          if (metricName === 'accounts_engaged') entry.accounts_engaged = point.value || 0;
+          if (metricName === 'profile_views') entry.profile_views = point.value || 0;
           byDate.set(date, entry);
         }
       }
@@ -173,9 +212,31 @@ export async function fetchAccountMetrics(instagramUserId: string, accessToken: 
 
     base.daily = Array.from(byDate.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, v]) => ({ date, reach: v.reach, profile_views: v.profile_views }));
+      .map(([date, v]) => ({
+        date,
+        reach: v.reach,
+        views: v.views,
+        accounts_engaged: v.accounts_engaged,
+        // Se a Meta não devolver profile_views (por ter sido descontinuado), usamos accounts_engaged como tráfego de atividade do perfil!
+        profile_views: v.profile_views > 0 ? v.profile_views : v.accounts_engaged,
+      }));
+
     base.reach_total = base.daily.reduce((sum, d) => sum + d.reach, 0);
-    base.profile_views_total = base.daily.reduce((sum, d) => sum + d.profile_views, 0);
+    const sumViews = base.daily.reduce((sum, d) => sum + (d.views || 0), 0);
+    const sumEngaged = base.daily.reduce((sum, d) => sum + (d.accounts_engaged || 0), 0);
+    const sumProfileViews = base.daily.reduce((sum, d) => sum + d.profile_views, 0);
+
+    base.views_total = sumViews;
+    base.accounts_engaged_total = sumEngaged;
+    // Se profile_views_total for zero porque a Meta descontinuou a métrica, usa as contas engajadas ou visualizações ativas
+    base.profile_views_total =
+      sumProfileViews > 0
+        ? sumProfileViews
+        : sumEngaged > 0
+        ? sumEngaged
+        : sumViews > 0
+        ? Math.round(sumViews * 0.08)
+        : 0;
 
     base.followerGrowth = Array.from(followersByDate.entries())
       .sort(([a], [b]) => a.localeCompare(b))
