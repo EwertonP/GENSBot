@@ -3,13 +3,55 @@
  */
 
 /**
- * Converte o nome ou perfil de um cliente no formato oficial de handle do Instagram (@usuario)
+ * Retorna o username limpo do Instagram SEM o caractere '@'
+ * (como aparece no cabeçalho e na legenda dos posts oficiais do app)
+ */
+export function formatarUsernameInstagram(
+  nome?: string | null,
+  instagramUsername?: string | null
+): string {
+  if (instagramUsername && instagramUsername.trim()) {
+    return instagramUsername.trim().replace(/^@/, '');
+  }
+  if (!nome || !nome.trim()) return 'perfil';
+  const limpo = nome.trim().replace(/^@/, '');
+  return limpo.toLowerCase().replace(/[^a-z0-9_.]/g, '_');
+}
+
+/**
+ * Converte o nome ou perfil de um cliente no formato de menção (@usuario)
  */
 export function formatarHandleInstagram(nome?: string | null): string {
   if (!nome || !nome.trim()) return '@usuario';
   const limpo = nome.trim();
   if (limpo.startsWith('@')) return limpo;
   return `@${limpo.toLowerCase().replace(/[^a-z0-9_.]/g, '_')}`;
+}
+
+/**
+ * Formata o tempo transcorrido no estilo minúsculo oficial do Instagram ("há 3 horas", "há 37 minutos")
+ */
+export function formatarTempoRelativoInstagram(data?: string | Date | null): string {
+  if (!data) return 'há 3 horas';
+  try {
+    const d = typeof data === 'string' ? new Date(data) : data;
+    if (isNaN(d.getTime())) return 'há 3 horas';
+    const agora = Date.now();
+    const diffMs = Math.max(0, agora - d.getTime());
+    const diffMin = Math.floor(diffMs / (1000 * 60));
+    const diffHoras = Math.floor(diffMin / 60);
+    const diffDias = Math.floor(diffHoras / 24);
+
+    if (diffMin < 60) {
+      return `há ${Math.max(1, diffMin)} minutos`;
+    }
+    if (diffHoras < 24) {
+      return `há ${diffHoras} ${diffHoras === 1 ? 'hora' : 'horas'}`;
+    }
+    return `há ${diffDias} ${diffDias === 1 ? 'dia' : 'dias'}`;
+  } catch {
+    return 'há 3 horas';
+  }
 }
 
 /**

@@ -516,6 +516,8 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
   const clienteNome = item.cliente?.nome || 'Minha Empresa';
   const clienteCor = item.cliente?.cor;
   const clienteFotoUrl = item.cliente?.foto_url;
+  const clienteInstagramUsername = (item.cliente as any)?.instagram_username || null;
+  const dataCriacao = item.data_programada || null;
 
   // Detecção Inteligente do Formato do Instagram
   const isStory = item.tipo === 'story';
@@ -577,6 +579,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             clienteNome={clienteNome}
             clienteCor={clienteCor}
             clienteFotoUrl={clienteFotoUrl}
+            clienteInstagramUsername={clienteInstagramUsername}
             arquivos={arquivos}
             slideAtual={slideAtual}
             onMudarSlide={setSlideAtual}
@@ -587,6 +590,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             clienteNome={clienteNome}
             clienteCor={clienteCor}
             clienteFotoUrl={clienteFotoUrl}
+            clienteInstagramUsername={clienteInstagramUsername}
             arquivoVideo={arquivos[0] || null}
             titulo={item.titulo}
             legenda={item.legenda}
@@ -600,9 +604,11 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             clienteNome={clienteNome}
             clienteCor={clienteCor}
             clienteFotoUrl={clienteFotoUrl}
+            clienteInstagramUsername={clienteInstagramUsername}
             arquivos={arquivos}
             titulo={item.titulo}
             legenda={item.legenda}
+            dataCriacao={dataCriacao}
             slideAtual={slideAtual}
             onMudarSlide={setSlideAtual}
             onPedirAjuste={handleAbrirAjusteSlide}
@@ -745,6 +751,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               clienteNome={clienteNome}
               clienteCor={clienteCor}
               clienteFotoUrl={clienteFotoUrl}
+              clienteInstagramUsername={clienteInstagramUsername}
               arquivos={arquivos}
               slideAtual={slideAtual}
               onMudarSlide={setSlideAtual}
@@ -755,6 +762,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               clienteNome={clienteNome}
               clienteCor={clienteCor}
               clienteFotoUrl={clienteFotoUrl}
+              clienteInstagramUsername={clienteInstagramUsername}
               arquivoVideo={arquivos[0] || null}
               titulo={item.titulo}
               legenda={item.legenda}
@@ -767,9 +775,11 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               clienteNome={clienteNome}
               clienteCor={clienteCor}
               clienteFotoUrl={clienteFotoUrl}
+              clienteInstagramUsername={clienteInstagramUsername}
               arquivos={arquivos}
               titulo={item.titulo}
               legenda={item.legenda}
+              dataCriacao={dataCriacao}
               slideAtual={slideAtual}
               onMudarSlide={setSlideAtual}
               onPedirAjuste={handleAbrirAjusteSlide}
@@ -827,8 +837,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               />
               <div className="flex flex-col text-xs leading-relaxed space-y-1.5 flex-1">
                 <div>
-                  <span className="font-bold text-foreground mr-2">@{clienteNome.replace(/^@/, '').toLowerCase().replace(/\s+/g, '')}</span>
-                  {item.titulo && <span className="font-semibold text-foreground block mb-1">{item.titulo}</span>}
+                  <span className="font-bold text-foreground mr-1.5">{clienteInstagramUsername?.replace(/^@/, '') || clienteNome.replace(/^@/, '').toLowerCase().replace(/[^a-z0-9_.]/g, '_')}</span>
                   <span className="text-foreground/90 whitespace-pre-line font-normal">
                     {item.legenda || 'Nenhuma legenda informada para este post.'}
                   </span>

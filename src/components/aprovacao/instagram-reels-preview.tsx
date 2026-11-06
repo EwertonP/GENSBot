@@ -17,12 +17,14 @@ import {
 } from 'lucide-react';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { formatarTimecode, type ArquivoConteudo } from '@/lib/conteudo';
-import { formatarHandleInstagram } from './instagram-format';
+import { formatarUsernameInstagram } from './instagram-format';
 
 interface InstagramReelsPreviewProps {
   clienteNome: string;
   clienteCor?: string | null;
   clienteFotoUrl?: string | null;
+  clienteInstagramUsername?: string | null;
+  audioNome?: string | null;
   arquivoVideo?: ArquivoConteudo | null;
   titulo?: string | null;
   legenda?: string | null;
@@ -35,6 +37,8 @@ export function InstagramReelsPreview({
   clienteNome,
   clienteCor,
   clienteFotoUrl,
+  clienteInstagramUsername,
+  audioNome,
   arquivoVideo,
   titulo,
   legenda,
@@ -56,8 +60,8 @@ export function InstagramReelsPreview({
 
   const videoUrl = arquivoVideo?.url || '';
 
-  // Formata o username estilo handle oficial do Instagram (@username)
-  const handleInstagram = formatarHandleInstagram(clienteNome);
+  // Formata o username oficial do Instagram (sem @)
+  const usernameLimpo = formatarUsernameInstagram(clienteNome, clienteInstagramUsername);
 
   function togglePlay() {
     if (!videoRef.current) return;
@@ -267,27 +271,29 @@ export function InstagramReelsPreview({
               tamanho="xs"
               className="ring-1 ring-white"
             />
-            <span className="text-xs font-bold drop-shadow-md truncate">{handleInstagram}</span>
+            <span className="text-xs font-bold drop-shadow-md truncate">{usernameLimpo}</span>
+            <span
+              className="w-3.5 h-3.5 bg-[#0095F6] rounded-full inline-flex items-center justify-center text-[9px] font-black text-white shrink-0"
+              title="Verificado"
+            >
+              ✓
+            </span>
             <button
               type="button"
-              className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/60 text-white backdrop-blur-xs hover:bg-white/20 transition-colors shrink-0 cursor-pointer"
+              className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/60 text-white backdrop-blur-xs hover:bg-white/20 transition-colors shrink-0 cursor-pointer ml-1"
             >
               Seguir
             </button>
           </div>
 
-          {/* Título opcional */}
-          {titulo && (
-            <p className="text-xs font-bold text-white drop-shadow leading-tight mt-0.5">{titulo}</p>
-          )}
-
-          {/* Legenda com Expansão inline */}
+          {/* Legenda com Expansão inline e autor colado */}
           {legenda && (
             <div className="text-xs drop-shadow leading-relaxed text-white/95">
+              <span className="font-bold mr-1.5">{usernameLimpo}</span>
               <span className={expandido ? 'whitespace-pre-line' : 'line-clamp-2'}>
                 {legenda}
               </span>
-              {legenda.length > 70 && (
+              {legenda.length > 50 && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -305,7 +311,9 @@ export function InstagramReelsPreview({
           {/* Áudio Original com Ticker */}
           <div className="flex items-center gap-1.5 text-[11px] text-white/85 mt-0.5">
             <Music2 className="w-3 h-3 text-white shrink-0 animate-pulse" />
-            <span className="truncate">Áudio original • {handleInstagram}</span>
+            <span className="truncate">
+              {audioNome || `Áudio original · ${usernameLimpo}`}
+            </span>
           </div>
         </div>
 

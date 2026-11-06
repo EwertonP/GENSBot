@@ -13,12 +13,13 @@ import {
 } from 'lucide-react';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import type { ArquivoConteudo } from '@/lib/conteudo';
-import { formatarHandleInstagram } from './instagram-format';
+import { formatarUsernameInstagram } from './instagram-format';
 
 interface InstagramStoryPreviewProps {
   clienteNome: string;
   clienteCor?: string | null;
   clienteFotoUrl?: string | null;
+  clienteInstagramUsername?: string | null;
   arquivos: ArquivoConteudo[];
   slideAtual: number;
   onMudarSlide: (novoSlide: number) => void;
@@ -29,6 +30,7 @@ export function InstagramStoryPreview({
   clienteNome,
   clienteCor,
   clienteFotoUrl,
+  clienteInstagramUsername,
   arquivos,
   slideAtual,
   onMudarSlide,
@@ -45,8 +47,8 @@ export function InstagramStoryPreview({
   const slideValido = Math.min(Math.max(0, slideAtual), totalSlides - 1);
   const arquivoAtual = arquivos[slideValido] || null;
 
-  // Formata o username estilo handle oficial do Instagram (@username)
-  const handleInstagram = formatarHandleInstagram(clienteNome);
+  // Username oficial sem o caractere '@'
+  const usernameLimpo = formatarUsernameInstagram(clienteNome, clienteInstagramUsername);
 
   function handleStoryClick(e: React.MouseEvent<HTMLDivElement>) {
     const agora = Date.now();
@@ -149,9 +151,15 @@ export function InstagramStoryPreview({
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-xs font-bold text-white drop-shadow-md truncate">
-                {handleInstagram}
+                {usernameLimpo}
               </span>
-              <span className="text-[10px] text-white/75 drop-shadow-sm font-medium shrink-0">
+              <span
+                className="w-3.5 h-3.5 bg-[#0095F6] rounded-full inline-flex items-center justify-center text-[9px] font-black text-white shrink-0"
+                title="Verificado"
+              >
+                ✓
+              </span>
+              <span className="text-[10px] text-white/75 drop-shadow-sm font-medium shrink-0 ml-0.5">
                 2 h
               </span>
             </div>
