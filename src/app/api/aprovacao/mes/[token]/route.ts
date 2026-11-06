@@ -65,6 +65,22 @@ export async function GET(req: Request, { params }: Params) {
     ordemPorId
   );
 
+  // Sugestões pendentes da cliente nos itens em planejamento.
+  const idsTexto = itens.filter((i) => i.etapa === 'texto').map((i) => i.id);
+  if (idsTexto.length) {
+    const { data: sugs } = await supabase
+      .from('conteudo_sugestoes_texto')
+      .select('item_id, campo, texto_proposto')
+      .in('item_id', idsTexto)
+      .eq('status', 'pendente');
+    for (const it of itens) {
+      if (it.etapa !== 'texto') continue;
+      it.sugestoes = (sugs || [])
+        .filter((s) => s.item_id === it.id)
+        .map((s) => ({ campo: s.campo as 'titulo' | 'briefing' | 'legenda', texto: s.texto_proposto as string }));
+    }
+  }
+
   const ig = (cliente as { instagram_accounts?: { instagram_username?: string | null; profile_picture_url?: string | null } | null }).instagram_accounts;
 
   return NextResponse.json({

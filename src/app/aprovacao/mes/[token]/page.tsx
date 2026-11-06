@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   Images,
   MessageSquare,
+  Pencil,
   Sparkles,
   Type,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ import { SegmentedItem } from '@/components/ui/segmented';
 import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import type { AbaMes, ItemDoMes } from '@/lib/link-do-mes';
+import type { CampoSugestao } from '@/lib/sugestoes-texto';
 
 interface Dados {
   cliente: { nome: string; cor: string | null; nicho: string | null; foto_url: string | null; usuario: string | null };
@@ -69,7 +71,7 @@ function Previa({ item }: { item: ItemDoMes }) {
 
   if (item.etapa === 'texto' || item.arquivos.length === 0) {
     return (
-      <div className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-border-strong bg-muted/40 px-6 text-center">
+      <div className="flex w-full flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-border-strong bg-muted/40 px-6 py-6 text-center xl:aspect-[4/5]">
         <Sparkles className="size-6 text-muted-foreground" aria-hidden />
         <p className="text-sm font-semibold">
           {item.etapa === 'texto' ? 'A arte ainda está sendo preparada' : 'Sem arquivo anexado'}
@@ -134,6 +136,92 @@ function CampoTexto({ rotulo, texto, copiavel }: { rotulo: string; texto: string
         )}
       </div>
       <p className="whitespace-pre-line text-[15px] leading-relaxed">{texto}</p>
+    </section>
+  );
+}
+
+
+interface CampoEditavelProps {
+  rotulo: string;
+  campo: CampoSugestao;
+  texto: string | null;
+  pendente?: string;
+  nome: string;
+  onNome: (v: string) => void;
+  onEnviar: (campo: CampoSugestao, texto: string) => Promise<boolean>;
+  grande?: boolean;
+}
+
+/** Texto de um post em planejamento: a cliente pode sugerir uma mudança (nada é sobrescrito). */
+function CampoEditavel({ rotulo, campo, texto, pendente, nome, onNome, onEnviar, grande }: CampoEditavelProps) {
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  function abrir() {
+    setValor(pendente ?? texto ?? '');
+    setEditando(true);
+  }
+
+  async function enviar() {
+    setEnviando(true);
+    const ok = await onEnviar(campo, valor);
+    setEnviando(false);
+    if (ok) setEditando(false);
+  }
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{rotulo}</h3>
+        {!editando && (
+          <Button variant="ghost" size="sm" onClick={abrir} aria-label={`Sugerir mudança em ${rotulo.toLowerCase()}`}>
+            <Pencil className="size-3.5" aria-hidden /> {pendente ? 'Alterar sugestão' : 'Sugerir mudança'}
+          </Button>
+        )}
+      </div>
+
+      {editando ? (
+        <div className="flex flex-col gap-3">
+          <textarea
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            rows={campo === 'titulo' ? 2 : 8}
+            aria-label={`Seu texto para ${rotulo.toLowerCase()}`}
+            className="w-full rounded-2xl border border-border-strong bg-background p-3 text-[15px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <input
+            value={nome}
+            onChange={(e) => onNome(e.target.value)}
+            placeholder="Seu nome"
+            aria-label="Seu nome"
+            className="h-11 w-full rounded-full border border-border-strong bg-background px-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <p className="text-xs text-muted-foreground">Sua sugestão vai para a equipe, que aceita ou não. O texto atual só muda depois disso.</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="secondary" onClick={() => setEditando(false)} disabled={enviando}>
+              Cancelar
+            </Button>
+            <Button onClick={enviar} loading={enviando}>
+              <Check className="size-4" aria-hidden /> Enviar sugestão
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {texto?.trim() ? (
+            <p className={cn('whitespace-pre-line leading-relaxed', grande ? 'text-lg font-semibold' : 'text-[15px]')}>{texto}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Ainda não há texto aqui.</p>
+          )}
+          {pendente && (
+            <div className="mt-3 rounded-xl bg-warning/10 p-3">
+              <p className="mb-1 text-xs font-bold text-warning">Sua sugestão, aguardando a equipe</p>
+              <p className="whitespace-pre-line text-sm">{pendente}</p>
+            </div>
+          )}
+        </>
+      )}
     </section>
   );
 }
@@ -249,6 +337,29 @@ export default function LinkDoMesPage() {
     }
   }
 
+
+  async function enviarSugestao(item: ItemDoMes, campo: CampoSugestao, texto: string): Promise<boolean> {
+    if (!nome.trim()) {
+      toast.error('Informe seu nome', { description: 'Assim a equipe sabe quem sugeriu.' });
+      return false;
+    }
+    try {
+      const res = await fetch(`/api/aprovacao/mes/${token}/sugestao`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: item.id, campo, texto, autor: nome.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Não foi possível enviar.');
+      toast.success('Sugestão enviada para a equipe.');
+      await carregar(mes);
+      return true;
+    } catch (e) {
+      toast.error('Não foi possível enviar', { description: e instanceof Error ? e.message : 'Tente de novo em instantes.' });
+      return false;
+    }
+  }
+
   if (carregando) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
@@ -323,18 +434,38 @@ export default function LinkDoMesPage() {
             {rotuloData(it.data_programada || it.publicado_em) && <span>· {rotuloData(it.data_programada || it.publicado_em)}</span>}
             <span className={cn('rounded-full px-2 py-0.5 font-semibold', ETAPA_ROTULO[it.etapa].classe)}>{ETAPA_ROTULO[it.etapa].texto}</span>
           </div>
-          <h2 className="text-xl font-semibold leading-snug">{it.titulo || 'Sem título'}</h2>
+          {it.etapa !== 'texto' && <h2 className="text-xl font-semibold leading-snug">{it.titulo || 'Sem título'}</h2>}
         </div>
-        <CampoTexto rotulo={it.tipo === 'reel' ? 'Roteiro do vídeo' : 'Texto da peça'} texto={it.briefing} copiavel />
-        <CampoTexto rotulo="Legenda" texto={it.legenda} copiavel />
-        {!it.briefing?.trim() && !it.legenda?.trim() && (
+        {it.etapa === 'texto' ? (
+          <>
+            {(['titulo', 'briefing', 'legenda'] as const).map((campo) => (
+              <CampoEditavel
+                key={`${it.id}-${campo}`}
+                campo={campo}
+                rotulo={campo === 'titulo' ? 'Título' : campo === 'briefing' ? (it.tipo === 'reel' ? 'Roteiro do vídeo' : 'Texto da peça') : 'Legenda'}
+                texto={it[campo]}
+                pendente={it.sugestoes?.find((x) => x.campo === campo)?.texto}
+                nome={nome}
+                onNome={guardarNome}
+                onEnviar={(c, t) => enviarSugestao(it, c, t)}
+                grande={campo === 'titulo'}
+              />
+            ))}
+          </>
+        ) : (
+          <>
+            <CampoTexto rotulo={it.tipo === 'reel' ? 'Roteiro do vídeo' : 'Texto da peça'} texto={it.briefing} copiavel />
+            <CampoTexto rotulo="Legenda" texto={it.legenda} copiavel />
+          </>
+        )}
+        {it.etapa !== 'texto' && !it.briefing?.trim() && !it.legenda?.trim() && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <Type className="size-4" aria-hidden /> Ainda não há texto para este post.
           </p>
         )}
         {it.etapa === 'texto' && (
           <p className="rounded-2xl bg-muted/50 p-3 text-xs text-muted-foreground">
-            Este post ainda está em planejamento. Se quiser mudar algo no texto, avise a equipe.
+            Este post ainda está em planejamento. Toque em &ldquo;Sugerir mudança&rdquo; em qualquer texto para propor uma alteração à equipe.
           </p>
         )}
       </div>

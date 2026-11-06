@@ -32,6 +32,11 @@ export interface ItemBrutoDoMes {
   arquivada_em?: string | null;
 }
 
+export interface SugestaoPublica {
+  campo: 'titulo' | 'briefing' | 'legenda';
+  texto: string;
+}
+
 export interface ItemDoMes {
   id: string;
   tipo: string;
@@ -47,6 +52,8 @@ export interface ItemDoMes {
   /** Só vem preenchido quando a cliente pode agir (etapa "aprovacao"). */
   token_aprovacao: string | null;
   pode_agir: boolean;
+  /** Sugestões de texto da cliente ainda pendentes (só em planejamento). */
+  sugestoes?: SugestaoPublica[];
 }
 
 /** Em que etapa o item aparece no link, ou null se deve ficar oculto. */

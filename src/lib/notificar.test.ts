@@ -61,7 +61,8 @@ describe('notificar', () => {
     expect((inseridas[0].titulo as string).length).toBe(120);
     expect((inseridas[0].corpo as string).length).toBe(400);
     expect(tipoValido('lead_novo')).toBe(true);
+    expect(tipoValido('cliente_sugeriu_texto')).toBe(true);
     expect(tipoValido('x')).toBe(false);
-    expect(Object.keys(TIPOS_NOTIFICACAO)).toHaveLength(5);
+    expect(Object.keys(TIPOS_NOTIFICACAO)).toHaveLength(6);
   });
 });
