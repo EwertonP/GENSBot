@@ -6,6 +6,7 @@ import {
   ordenarItensDoMes,
   type ItemBrutoDoMes,
 } from '@/lib/link-do-mes';
+import { dataLimiteTexto, diasRetencaoTexto } from '@/lib/retencao';
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -64,6 +65,14 @@ export async function GET(req: Request, { params }: Params) {
     doMes.map((x) => x.item),
     ordemPorId
   );
+
+  // Prazo de retenção do texto (se a coluna ainda não existir, vale o padrão).
+  const { data: ret } = await supabase.from('clientes').select('retencao_texto_dias').eq('id', cliente.id).maybeSingle();
+  const diasTexto = diasRetencaoTexto((ret as { retencao_texto_dias?: number | null } | null)?.retencao_texto_dias);
+  const publicadoEmPorId = new Map(doMes.map((x) => [x.bruto.id, x.bruto.status === 'publicado' ? x.bruto.publicado_em : null]));
+  for (const it of itens) {
+    if (it.etapa === 'publicado') it.texto_ate = dataLimiteTexto(publicadoEmPorId.get(it.id), diasTexto);
+  }
 
   // Sugestões pendentes da cliente nos itens em planejamento.
   const idsTexto = itens.filter((i) => i.etapa === 'texto').map((i) => i.id);
