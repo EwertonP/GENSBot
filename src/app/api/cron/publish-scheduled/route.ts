@@ -5,6 +5,7 @@ import { publishPost, PublishMediaType } from '@/lib/instagram-publish';
 import { createAutomationForPublishedPost } from '@/lib/publish-automation';
 import { getContextoAgencia } from '@/lib/clientes-server';
 import { notificar } from '@/lib/notificar';
+import { limparConteudoPublicado } from '@/lib/retencao-server';
 
 // Cada publicação pode esperar o processamento de vídeo pela Meta (waitForContainerReady) —
 // mesmo teto de src/app/api/instagram/publish/route.ts, teto do plano Hobby.
@@ -47,6 +48,8 @@ async function handlePublishScheduled(req: Request) {
 
     if (dueError) throw dueError;
     if (!due || due.length === 0) {
+      // Sem nada a publicar, a limpeza de rotina ainda precisa rodar.
+      await limparConteudoPublicado(supabase);
       return NextResponse.json({ message: 'Nenhuma publicação agendada pendente.' });
     }
 
@@ -174,17 +177,8 @@ async function handlePublishScheduled(req: Request) {
       }
     }
 
-    // Limpeza automática: exclui demandas publicadas há mais de 7 dias para manter a esteira limpa
-    try {
-      const limite7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      await supabase
-        .from('conteudo_items')
-        .delete()
-        .eq('status', 'publicado')
-        .lt('publicado_em', limite7Dias);
-    } catch (errLimpeza) {
-      console.warn('[Cron Publish] Erro na limpeza de posts publicados antigos:', errLimpeza);
-    }
+    // Limpeza automática: exclui demandas publicadas depois do prazo de retenção do cliente (padrão 30 dias).
+    await limparConteudoPublicado(supabase);
 
     return NextResponse.json({ processed: results.length, results });
   } catch (err: any) {

@@ -74,10 +74,16 @@ function Previa({ item }: { item: ItemDoMes }) {
       <div className="flex w-full flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-border-strong bg-muted/40 px-6 py-6 text-center xl:aspect-[4/5]">
         <Sparkles className="size-6 text-muted-foreground" aria-hidden />
         <p className="text-sm font-semibold">
-          {item.etapa === 'texto' ? 'A arte ainda está sendo preparada' : 'Sem arquivo anexado'}
+          {item.etapa === 'texto' ? 'A arte ainda está sendo preparada' : item.etapa === 'publicado' ? 'Arquivos já arquivados' : 'Sem arquivo anexado'}
         </p>
         {item.etapa === 'texto' && (
           <p className="text-xs text-muted-foreground">Por enquanto, confira o texto planejado ao lado. A arte aparece aqui quando estiver pronta.</p>
+        )}
+        {item.etapa === 'publicado' && (
+          <p className="text-xs text-muted-foreground">
+            Depois de publicado, só o texto fica guardado
+            {item.texto_ate ? `, até ${new Date(item.texto_ate).toLocaleDateString('pt-BR')}` : ''}. O post em si está no perfil do Instagram.
+          </p>
         )}
       </div>
     );

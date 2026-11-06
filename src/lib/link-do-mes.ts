@@ -52,6 +52,8 @@ export interface ItemDoMes {
   /** Só vem preenchido quando a cliente pode agir (etapa "aprovacao"). */
   token_aprovacao: string | null;
   pode_agir: boolean;
+  /** Até quando o texto fica disponível (só posts publicados). */
+  texto_ate?: string | null;
   /** Sugestões de texto da cliente ainda pendentes (só em planejamento). */
   sugestoes?: SugestaoPublica[];
 }
