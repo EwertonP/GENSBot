@@ -27,4 +27,4 @@ create index if not exists idx_onboarding_links_agencia on public.cliente_onboar
 alter table public.cliente_onboarding_links enable row level security;
 drop policy if exists "onboarding_links_agencia_policy" on public.cliente_onboarding_links;
 create policy "onboarding_links_agencia_policy" on public.cliente_onboarding_links
-  for all using (agencia_id = auth_agencia_id());
+  for all using (agencia_id = private.agencia_atual());

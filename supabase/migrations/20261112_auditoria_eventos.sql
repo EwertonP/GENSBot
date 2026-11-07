@@ -20,4 +20,4 @@ create index if not exists idx_auditoria_cliente on public.auditoria_eventos (ag
 alter table public.auditoria_eventos enable row level security;
 drop policy if exists "auditoria_agencia_policy" on public.auditoria_eventos;
 create policy "auditoria_agencia_policy" on public.auditoria_eventos
-  for all using (agencia_id = auth_agencia_id());
+  for all using (agencia_id = private.agencia_atual());

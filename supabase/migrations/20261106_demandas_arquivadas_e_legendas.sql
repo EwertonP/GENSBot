@@ -19,4 +19,4 @@ alter table public.legendas_padrao enable row level security;
 
 drop policy if exists legendas_padrao_tenant on public.legendas_padrao;
 create policy legendas_padrao_tenant on public.legendas_padrao
-  for all using (agencia_id = auth_agencia_id());
+  for all using (agencia_id = private.agencia_atual());
