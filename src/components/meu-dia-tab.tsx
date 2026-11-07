@@ -1,5 +1,6 @@
 'use client';
 
+import { hojeBrasilia } from '@/lib/rotina-recorrencia';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Sun,
@@ -138,7 +139,8 @@ export function MeuDiaTab({
     });
   }, []);
 
-  const hojeIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  // Dia de hoje em Brasília (toISOString usa UTC e virava o dia às 21h).
+  const hojeIso = useMemo(() => hojeBrasilia(), []);
 
   // Minhas tarefas de hoje
   const tarefasHoje = useMemo(() => {

@@ -3,7 +3,8 @@ import { validarCron } from '@/lib/segredos';
 import { supabase } from '@/lib/supabase';
 import { getDashboardMetrics, getTokenHealth, buildAlerts } from '@/lib/dashboard-metrics';
 import { sendEmail } from '@/lib/email';
-import { enviarPush } from '@/lib/push';
+import { notificar } from '@/lib/notificar';
+import { agenciaDoMembro, gestoresDaAgencia, unirDestinatarios } from '@/lib/notificar-destinatarios';
 
 // Não repete o mesmo alerta por e-mail antes desse número de dias.
 const RENOTIFY_AFTER_DAYS = 3;
@@ -60,39 +61,40 @@ async function handleCheckAlerts(req: Request) {
           continue;
         }
 
-        // Push primeiro (chega na hora no celular); o e-mail segue como registro.
+        // Sino + push (chega na hora no celular) para quem conectou a conta e para os gestores.
         const resumo = newAlerts[0].message + (newAlerts.length > 1 ? ` (e mais ${newAlerts.length - 1})` : '');
-        const push = await enviarPush(userId, {
-          title: `GENSBot: ${newAlerts.length} alerta(s)`,
-          body: resumo,
+        const gestores = await gestoresDaAgencia(await agenciaDoMembro(userId));
+        await notificar(unirDestinatarios([userId], gestores), {
+          tipo: 'alerta_conta',
+          titulo: `GENSBot: ${newAlerts.length} ${newAlerts.length === 1 ? 'alerta' : 'alertas'}`,
+          corpo: resumo,
           url: '/',
-          tag: 'alertas',
+          prioridade: newAlerts.some((a) => a.level === 'critical') ? 'urgente' : 'normal',
+          agrupar: 'alertas',
         });
-        const pushOk = push.enviados > 0;
 
         const { data: authUser } = await supabase.auth.admin.getUserById(userId);
         const email = authUser?.user?.email;
 
-        let emailOk = false;
         if (email) {
           const bulletList = newAlerts.map(a => `${a.level === 'critical' ? '🔴' : '🟡'} ${a.message}`).join('\n');
-          const emailResult = await sendEmail({
+          await sendEmail({
             to: email,
             subject: `GENSBot: ${newAlerts.length} alerta(s) precisam da sua atenção`,
             text: `Encontramos os seguintes pontos de atenção nas suas contas conectadas:\n\n${bulletList}\n\nAcesse o dashboard do GENSBot para mais detalhes.`,
             html: `<p>Encontramos os seguintes pontos de atenção nas suas contas conectadas:</p><ul>${newAlerts.map(a => `<li>${a.level === 'critical' ? '🔴' : '🟡'} ${a.message}</li>`).join('')}</ul><p>Acesse o dashboard do GENSBot para mais detalhes.</p>`,
           });
-          emailOk = emailResult.ok;
         }
 
-        if (emailOk || pushOk) {
+        // O aviso já está no sino, então o alerta conta como enviado mesmo sem e-mail.
+        {
           await supabase.from('alert_notifications').upsert(
             newAlerts.map(a => ({ user_id: userId, alert_key: a.key, last_sent_at: new Date().toISOString() })),
             { onConflict: 'user_id,alert_key' }
           );
         }
 
-        results.push({ userId, sent: emailOk || pushOk, alertCount: newAlerts.length });
+        results.push({ userId, sent: true, alertCount: newAlerts.length });
       } catch (err: any) {
         console.error('Erro ao processar alertas do usuário', userId, err);
         results.push({ userId, sent: false, alertCount: -1 });

@@ -61,11 +61,28 @@ export function NotificacoesSino({ onAbrir, className = '' }: { onAbrir: (url: s
     const t = setInterval(() => void carregar(), 60_000);
     const aoVoltar = () => document.visibilityState === 'visible' && void carregar();
     document.addEventListener('visibilitychange', aoVoltar);
+    // O service worker avisa quando chega um push: atualiza o sino na hora.
+    const aoReceberPush = (e: MessageEvent) => {
+      if (e.data?.tipo === 'notificacao') void carregar();
+    };
+    navigator.serviceWorker?.addEventListener('message', aoReceberPush);
     return () => {
       clearInterval(t);
       document.removeEventListener('visibilitychange', aoVoltar);
+      navigator.serviceWorker?.removeEventListener('message', aoReceberPush);
     };
   }, [carregar]);
+
+  // Número no ícone do app instalado (Android e computador), igual ao do sino.
+  useEffect(() => {
+    try {
+      const nav = navigator as Navigator & { setAppBadge?: (n: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+      if (naoLidas > 0) void nav.setAppBadge?.(naoLidas);
+      else void nav.clearAppBadge?.();
+    } catch {
+      /* badge é só um extra */
+    }
+  }, [naoLidas]);
 
   const abrirCentral = async () => {
     setAberto(true);
