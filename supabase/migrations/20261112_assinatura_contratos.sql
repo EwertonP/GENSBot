@@ -47,4 +47,4 @@ create index if not exists idx_contrato_eventos_agencia on public.contrato_event
 alter table public.contrato_eventos enable row level security;
 drop policy if exists "contrato_eventos_agencia_policy" on public.contrato_eventos;
 create policy "contrato_eventos_agencia_policy" on public.contrato_eventos
-  for all using (agencia_id = auth_agencia_id());
+  for all using (agencia_id = private.agencia_atual());

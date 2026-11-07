@@ -30,7 +30,7 @@ create index if not exists idx_modelos_agencia_tipo on public.modelos_documento 
 alter table public.modelos_documento enable row level security;
 drop policy if exists "modelos_agencia_policy" on public.modelos_documento;
 create policy "modelos_agencia_policy" on public.modelos_documento
-  for all using (agencia_id is null or agencia_id = auth_agencia_id());
+  for all using (agencia_id is null or agencia_id = private.agencia_atual());
 
 -- 3. Propostas Comerciais
 create table if not exists public.propostas (
@@ -64,7 +64,7 @@ create index if not exists idx_propostas_cliente on public.propostas (cliente_id
 alter table public.propostas enable row level security;
 drop policy if exists "propostas_agencia_policy" on public.propostas;
 create policy "propostas_agencia_policy" on public.propostas
-  for all using (agencia_id = auth_agencia_id());
+  for all using (agencia_id = private.agencia_atual());
 
 -- 4. Contratos
 create table if not exists public.contratos (
@@ -104,4 +104,4 @@ create index if not exists idx_contratos_cliente on public.contratos (cliente_id
 alter table public.contratos enable row level security;
 drop policy if exists "contratos_agencia_policy" on public.contratos;
 create policy "contratos_agencia_policy" on public.contratos
-  for all using (agencia_id = auth_agencia_id());
+  for all using (agencia_id = private.agencia_atual());

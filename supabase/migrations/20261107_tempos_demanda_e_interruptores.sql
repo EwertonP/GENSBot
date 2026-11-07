@@ -12,7 +12,7 @@ create table if not exists public.tempos_demanda (
   id uuid primary key default gen_random_uuid(),
   agencia_id uuid not null references public.agencias (id) on delete cascade,
   demanda_id uuid not null references public.conteudo_items (id) on delete cascade,
-  membro_id uuid references public.membros_equipe (id) on delete set null,
+  membro_id uuid references public.membros (id) on delete set null,
   inicio timestamptz not null default now(),
   fim timestamptz,
   segundos integer default 0,
@@ -28,4 +28,4 @@ alter table public.tempos_demanda enable row level security;
 
 drop policy if exists "tempos_demanda_mesma_agencia" on public.tempos_demanda;
 create policy "tempos_demanda_mesma_agencia" on public.tempos_demanda
-  for all using (agencia_id = auth_agencia_id());
+  for all using (agencia_id = private.agencia_atual());

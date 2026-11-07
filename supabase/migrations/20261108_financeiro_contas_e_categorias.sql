@@ -17,7 +17,7 @@ create index if not exists idx_contas_agencia on public.contas_bancarias (agenci
 alter table public.contas_bancarias enable row level security;
 drop policy if exists "contas_agencia_policy" on public.contas_bancarias;
 create policy "contas_agencia_policy" on public.contas_bancarias
-  for all using (agencia_id = auth_agencia_id());
+  for all using (agencia_id = private.agencia_atual());
 
 -- Categorias com metas mensais
 create table if not exists public.categorias_financeiro (
@@ -35,7 +35,7 @@ create index if not exists idx_categorias_agencia on public.categorias_financeir
 alter table public.categorias_financeiro enable row level security;
 drop policy if exists "categorias_agencia_policy" on public.categorias_financeiro;
 create policy "categorias_agencia_policy" on public.categorias_financeiro
-  for all using (agencia_id = auth_agencia_id());
+  for all using (agencia_id = private.agencia_atual());
 
 -- Alter table lancamentos (aditivo)
 alter table public.lancamentos
@@ -60,4 +60,4 @@ create index if not exists idx_transferencias_agencia on public.transferencias_c
 alter table public.transferencias_contas enable row level security;
 drop policy if exists "transferencias_agencia_policy" on public.transferencias_contas;
 create policy "transferencias_agencia_policy" on public.transferencias_contas
-  for all using (agencia_id = auth_agencia_id());
+  for all using (agencia_id = private.agencia_atual());
