@@ -47,6 +47,8 @@ export function PainelProdutividade({ showToast }: PainelProdutividadeProps) {
   const [visaoInterna, setVisaoInterna] = useState<'membros' | 'clientes' | 'demandas'>('membros');
 
   const [resumo, setResumo] = useState<{
+    total_posts_diretos?: number;
+    total_sem_responsavel?: number;
     total_demandas: number;
     total_entregues: number;
     total_em_andamento: number;
@@ -70,6 +72,8 @@ export function PainelProdutividade({ showToast }: PainelProdutividadeProps) {
   const [membros, setMembros] = useState<ResumoProdutividadeMembro[]>([]);
   const [clientes, setClientes] = useState<ResumoProdutividadeCliente[]>([]);
   const [itensEntregues, setItensEntregues] = useState<ItemEntregueDetalhe[]>([]);
+  const [semResponsavel, setSemResponsavel] = useState<ItemEntregueDetalhe[]>([]);
+  const [atribuindoId, setAtribuindoId] = useState<string | null>(null);
 
   // Gera lista dos últimos 12 meses para o seletor
   const mesesOpcoes = useMemo(() => {
@@ -107,10 +111,32 @@ export function PainelProdutividade({ showToast }: PainelProdutividadeProps) {
       setMembros(data.membros || []);
       setClientes(data.clientes || []);
       setItensEntregues(data.itens_entregues || []);
+      setSemResponsavel(data.itens_sem_responsavel || []);
     } catch {
       showToast('Erro de conexão ao carregar produtividade.', 'error');
     } finally {
       setCarregando(false);
+    }
+  }
+
+  /** Atribui uma entrega antiga a quem a fez; passa a contar na produtividade dessa pessoa. */
+  async function atribuirResponsavel(itemId: string, membroId: string) {
+    if (!membroId) return;
+    setAtribuindoId(itemId);
+    try {
+      const res = await fetch(`/api/conteudo/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ responsavel_id: membroId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Não foi possível atribuir.');
+      showToast('Entrega atribuída. Ela já conta para essa pessoa.', 'success');
+      await carregarDados();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Não foi possível atribuir.', 'error');
+    } finally {
+      setAtribuindoId(null);
     }
   }
 
@@ -268,6 +294,47 @@ export function PainelProdutividade({ showToast }: PainelProdutividadeProps) {
         </Card>
       </div>
 
+      {/* Entregas sem responsável: não contam para ninguém até alguém assumir */}
+      {!carregando && semResponsavel.length > 0 && (
+        <Card className="p-4 sm:p-5 rounded-2xl border border-warning-ring bg-warning-soft shadow-2xs flex flex-col gap-4">
+          <div>
+            <h4 className="text-sm font-bold text-foreground">
+              {semResponsavel.length} {semResponsavel.length === 1 ? 'entrega está sem responsável' : 'entregas estão sem responsável'}
+            </h4>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Elas foram entregues, mas não contam para ninguém. Escolha quem fez cada uma. Daqui para a frente, quem mover ou finalizar uma demanda sem responsável passa a ser o responsável dela.
+            </p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {semResponsavel.map((it) => (
+              <li key={it.id} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">{it.titulo || 'Sem título'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {it.cliente?.nome || 'Sem cliente'} · {it.tipo}
+                    {it.publicado_em ? ` · publicado em ${formatDateTime(it.publicado_em)}` : ''}
+                  </p>
+                </div>
+                <Select
+                  value=""
+                  onChange={(e) => atribuirResponsavel(it.id, e.target.value)}
+                  disabled={atribuindoId === it.id}
+                  aria-label={`Quem fez: ${it.titulo || 'entrega'}`}
+                  className="w-full text-xs font-medium sm:w-52"
+                >
+                  <option value="">Quem fez?</option>
+                  {membros.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome}
+                    </option>
+                  ))}
+                </Select>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {/* Conteúdo Principal Conforme Visão Selecionada */}
       {carregando ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy="true">
@@ -338,6 +405,11 @@ export function PainelProdutividade({ showToast }: PainelProdutividadeProps) {
                             <span className="text-[11px] text-muted-foreground font-normal">
                               feitas
                             </span>
+                            {m.posts_diretos > 0 && (
+                              <span className="ml-1 text-[11px] font-normal text-muted-foreground">
+                                (inclui {m.posts_diretos} {m.posts_diretos === 1 ? 'post direto' : 'posts diretos'})
+                              </span>
+                            )}
                           </span>
                           <Badge
                             variant={taxa >= 80 ? 'success' : taxa >= 50 ? 'warning' : 'muted'}

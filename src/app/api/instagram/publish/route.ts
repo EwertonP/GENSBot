@@ -1,3 +1,4 @@
+import { garantirResponsavelDaDemanda, membroDaAgencia } from '@/lib/responsavel-entrega-server';
 import { NextResponse } from 'next/server';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth-api';
 import { getAccountForUserOrAgency, listInstagramAccountsForUser, getUserIdsInSameAgency } from '@/lib/instagram-account';
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
       audio_name,
       conteudo_item_id,
       automation_config,
+      responsavel_id,
     } = body as {
       instagram_user_id: string;
       media_type: PublishMediaType;
@@ -49,6 +51,8 @@ export async function POST(req: Request) {
       audio_name?: string;
       conteudo_item_id?: string;
       automation_config?: PublishAutomationConfig;
+      /** Quem responde pelo post (conta como entrega). Padrão: quem está agendando. */
+      responsavel_id?: string;
     };
 
     if (!instagram_user_id || !media_type || !media_url) {
@@ -68,7 +72,7 @@ export async function POST(req: Request) {
     // Validação de escopo para membro colaborador
     const { data: membro } = await supabase
       .from('membros')
-      .select('papel')
+      .select('papel, agencia_id')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -94,8 +98,14 @@ export async function POST(req: Request) {
 
     const isFuture = scheduled_at && new Date(scheduled_at).getTime() > Date.now() + 60_000;
 
+    // Responsável pelo post: o escolhido (se for da agência) ou quem está agendando.
+    const escolhido = membro?.agencia_id ? await membroDaAgencia(responsavel_id, membro.agencia_id) : null;
+    const responsavelDoPost = escolhido || user.id;
+    if (conteudo_item_id) await garantirResponsavelDaDemanda(conteudo_item_id, responsavelDoPost);
+
     const commonFields = {
       user_id: user.id,
+      responsavel_id: responsavelDoPost,
       instagram_user_id,
       media_type,
       media_url,

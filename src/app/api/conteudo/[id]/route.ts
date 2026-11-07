@@ -11,6 +11,7 @@ import {
 } from '@/lib/clientes-server';
 import { ehUuid } from '@/lib/clientes';
 import { normalizarCoResponsaveis } from '@/lib/conteudo';
+import { responsavelAutomatico } from '@/lib/responsavel-entrega';
 
 function extrairColunaInexistente(error: { code?: string; message?: string } | null | undefined): string | null {
   if (!error?.message) return null;
@@ -217,6 +218,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         updates.status === 'revisao_cliente'
       ) {
         updates.concluida = false;
+      }
+    }
+
+    // Regra do responsável: demanda sem responsável fica com quem a trabalha
+    // (move de etapa, edita, conclui, publica), para a entrega contar na produtividade.
+    let atribuidoAutomaticamente: { id: string; nome: string | null } | null = null;
+    if (membro?.id && !('responsavel_id' in updates)) {
+      const { data: atualResp } = await serviceSupabase.from('conteudo_items').select('responsavel_id').eq('id', id).maybeSingle();
+      const novoResp = responsavelAutomatico({ responsavelAtual: atualResp?.responsavel_id, atorId: membro.id, updates });
+      if (novoResp) {
+        updates.responsavel_id = novoResp;
+        const { data: eu } = await serviceSupabase.from('membros').select('nome').eq('id', novoResp).maybeSingle();
+        atribuidoAutomaticamente = { id: novoResp, nome: eu?.nome ?? null };
       }
     }
 
@@ -467,7 +481,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     }
 
-    return NextResponse.json({ item: data, whatsapp: whatsappResultado });
+    return NextResponse.json({ item: data, whatsapp: whatsappResultado, responsavel_atribuido: atribuidoAutomaticamente });
   } catch (err: any) {
     console.error('Erro inesperado em PATCH /api/conteudo/[id]:', err);
     return respostaErro('Erro ao processar atualização: ' + (err?.message || 'dados inválidos'), 400);
