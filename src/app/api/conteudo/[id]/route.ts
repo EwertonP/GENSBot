@@ -12,6 +12,7 @@ import {
 import { ehUuid } from '@/lib/clientes';
 import { normalizarCoResponsaveis } from '@/lib/conteudo';
 import { responsavelAutomatico } from '@/lib/responsavel-entrega';
+import { arquivarEntregas } from '@/lib/entregas-arquivadas-server';
 
 function extrairColunaInexistente(error: { code?: string; message?: string } | null | undefined): string | null {
   if (!error?.message) return null;
@@ -496,6 +497,13 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const negado = await validarAcessoItemConteudo(auth.ctx, id);
   if (negado) return negado;
+
+  // Demanda já publicada: guarda o registro da entrega antes de excluir, para continuar contando.
+  const { data: paraExcluir } = await serviceSupabase.from('conteudo_items').select('*').eq('id', id).maybeSingle();
+  if (paraExcluir?.status === 'publicado') {
+    await arquivarEntregas(serviceSupabase, [paraExcluir]);
+  }
+
   let { error } = await supabase.from('conteudo_items').delete().eq('id', id);
 
   if (error && membro?.agencia_id) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getContextoAgencia, respostaErro } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { postsDiretos, type PostDireto } from '@/lib/responsavel-entrega';
+import { arquivadaComoDemanda } from '@/lib/entregas-arquivadas';
 
 export interface ResumoProdutividadeMembro {
   id: string;
@@ -59,6 +60,8 @@ export interface ResumoProdutividadeCliente {
 
 export interface ItemEntregueDetalhe {
   id: string;
+  /** A demanda já foi excluída; só o registro leve da entrega foi guardado. */
+  arquivada?: boolean;
   /** 'post_direto' = publicado sem demanda. */
   origem?: 'demanda' | 'post_direto';
   titulo: string | null;
@@ -170,7 +173,30 @@ function isDemandaEntregue(d: any): boolean {
     const { data: demandasDb, error: errDemandas } = await query;
     if (errDemandas) throw errDemandas;
 
-    const demandas = demandasDb || [];
+    // Entregas arquivadas: demandas já excluídas (retenção) que continuam contando mês a mês.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let demandas: any[] = demandasDb || [];
+    const postsDeArquivadas = new Set<string>();
+    try {
+      let qArq = serviceSupabase.from('entregas_arquivadas').select('*').eq('agencia_id', membro.agencia_id);
+      if (mesParam !== 'todos') {
+        const [a, m] = mesParam.split('-').map((n) => parseInt(n, 10));
+        if (!isNaN(a) && !isNaN(m)) {
+          const ini = `${a}-${String(m).padStart(2, '0')}-01`;
+          const prox = `${m === 12 ? a + 1 : a}-${String(m === 12 ? 1 : m + 1).padStart(2, '0')}-01`;
+          qArq = qArq.gte('mes_referencia', ini).lt('mes_referencia', prox);
+        }
+      }
+      if (clienteIdParam) qArq = qArq.eq('cliente_id', clienteIdParam);
+      const { data: arqDb } = await qArq.limit(5000);
+      const idsVivos = new Set(demandas.map((d) => d.id));
+      for (const l of arqDb || []) {
+        if (l.scheduled_post_id) postsDeArquivadas.add(l.scheduled_post_id);
+        if (!idsVivos.has(l.id)) demandas.push(arquivadaComoDemanda(l));
+      }
+    } catch (e) {
+      console.warn('[produtividade] não foi possível ler as entregas arquivadas:', e);
+    }
 
     // Posts publicados sem demanda: contam como entrega de quem os agendou/publicou.
     let diretos: PostDireto[] = [];
@@ -194,7 +220,8 @@ function isDemandaEntregue(d: any): boolean {
       const posts = postsDb || [];
       if (posts.length > 0) {
         const { data: vinculados } = await serviceSupabase.from('conteudo_items').select('scheduled_post_id').in('scheduled_post_id', posts.map((p) => p.id));
-        const idsComDemanda = new Set((vinculados || []).map((v: { scheduled_post_id: string }) => v.scheduled_post_id));
+        // Um post de demanda (viva ou arquivada) já conta pela demanda, não de novo como post direto.
+        const idsComDemanda = new Set([...(vinculados || []).map((v: { scheduled_post_id: string }) => v.scheduled_post_id), ...postsDeArquivadas]);
         const { data: contas } = await serviceSupabase
           .from('instagram_accounts')
           .select('id, instagram_user_id')
@@ -399,6 +426,7 @@ function isDemandaEntregue(d: any): boolean {
         return {
           id: d.id,
           origem: 'demanda' as const,
+          arquivada: Boolean(d.arquivada),
           titulo: d.titulo,
           tipo: d.tipo,
           status: d.status,
@@ -434,6 +462,7 @@ function isDemandaEntregue(d: any): boolean {
       return {
         id: d.id,
         origem: 'demanda' as const,
+        arquivada: Boolean(d.arquivada),
         titulo: d.titulo,
         tipo: d.tipo,
         status: d.status,

@@ -7,6 +7,7 @@ let mockClientes: any[] = [];
 let mockPosts: any[] = [];
 let mockVinculados: any[] = [];
 let mockContas: any[] = [];
+let mockArquivadas: any[] = [];
 
 vi.mock('@/lib/clientes-server', () => ({
   getContextoAgencia: vi.fn(async () => ({
@@ -55,6 +56,9 @@ vi.mock('@/lib/supabase', () => ({
       if (tabela === 'scheduled_posts') {
         return cadeia(() => ({ data: mockPosts, error: null }));
       }
+      if (tabela === 'entregas_arquivadas') {
+        return cadeia(() => ({ data: mockArquivadas, error: null }));
+      }
       if (tabela === 'instagram_accounts') {
         return cadeia(() => ({ data: mockContas, error: null }));
       }
@@ -80,6 +84,7 @@ describe('/api/equipe/produtividade', () => {
     mockPosts = [];
     mockVinculados = [];
     mockContas = [];
+    mockArquivadas = [];
     mockDemandas = [
       {
         id: 'd1',
@@ -247,5 +252,34 @@ describe('/api/equipe/produtividade', () => {
     // Cliente Alpha recebe os posts da conta ig1
     const alpha = data.clientes.find((c: any) => c.id === 'c1');
     expect(alpha.total_entregues).toBe(5); // d1 + d2 + d4 + p1 + p2
+  });
+
+  it('entregas arquivadas (demanda excluída) continuam contando, sem duplicar nem virar post direto', async () => {
+    mockClientes = [
+      { id: 'c1', nome: 'Cliente Alpha', cor: '#10b981', nicho: 'Saúde', foto_url: null, ativo: true, instagram_account_id: 'acc1' },
+      { id: 'c2', nome: 'Cliente Beta', cor: '#3b82f6', nicho: 'Tech', foto_url: null, ativo: true, instagram_account_id: null },
+    ];
+    mockContas = [{ id: 'acc1', instagram_user_id: 'ig1' }];
+    mockArquivadas = [
+      { id: 'a1', agencia_id: 'ag-1', cliente_id: 'c1', tipo: 'carrossel', titulo: 'Já excluída', status: 'publicado', mes_referencia: '2026-11-01', responsavel_id: 'm2', co_responsaveis_ids: [], scheduled_post_id: 'p1', publicado_em: '2026-11-02T10:00:00Z' },
+      { id: 'a2', agencia_id: 'ag-1', cliente_id: 'c1', tipo: 'post', titulo: 'Sem dono', status: 'publicado', mes_referencia: '2026-11-01', responsavel_id: null, co_responsaveis_ids: [], scheduled_post_id: null, publicado_em: '2026-11-03T10:00:00Z' },
+      // a mesma demanda ainda existe viva (d2): não pode contar duas vezes
+      { id: 'd2', agencia_id: 'ag-1', cliente_id: 'c1', tipo: 'carrossel', titulo: 'Carrossel Dicas', status: 'publicado', mes_referencia: '2026-11-01', responsavel_id: 'm2', co_responsaveis_ids: [], scheduled_post_id: null, publicado_em: null },
+    ];
+    // o post da demanda arquivada a1 continua existindo em scheduled_posts: não conta como post direto
+    mockPosts = [{ id: 'p1', user_id: 'm2', responsavel_id: 'm2', instagram_user_id: 'ig1', media_type: 'IMAGE', caption: 'x', status: 'published', published_at: '2026-11-02T10:00:00Z' }];
+
+    const res = await GET(new Request('http://localhost/api/equipe/produtividade?mes=2026-11'));
+    const data = await res.json();
+
+    const joao = data.membros.find((m: any) => m.id === 'm2');
+    expect(joao.total_entregues).toBe(3); // d1 (co) + d2 + a1; d2 não duplica; p1 não vira post direto
+    expect(joao.posts_diretos).toBe(0);
+    expect(data.resumo.total_posts_diretos).toBe(0);
+    expect(data.resumo.total_entregues).toBe(4); // d1 + d2 + a1 + a2
+    expect(data.itens_sem_responsavel.map((i: any) => [i.id, i.arquivada])).toEqual([['a2', true]]);
+
+    const alpha = data.clientes.find((c: any) => c.id === 'c1');
+    expect(alpha.total_entregues).toBe(4);
   });
 });
