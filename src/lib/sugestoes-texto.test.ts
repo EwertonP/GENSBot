@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { campoValido, LIMITE_CAMPO, patchAoAceitar, podeSugerirTexto, validarSugestao } from './sugestoes-texto';
+import { campoValido, LIMITE_CAMPO, patchAoAceitar, podeSugerirCampo, validarSugestao } from './sugestoes-texto';
 
 describe('validarSugestao', () => {
   it('aceita texto novo e apara espaços', () => {
@@ -42,9 +42,12 @@ describe('regras', () => {
     expect(campoValido('legenda')).toBe(true);
     expect(campoValido('status')).toBe(false);
   });
-  it('só planejamento recebe sugestão de texto', () => {
-    expect(podeSugerirTexto('texto')).toBe(true);
-    expect(podeSugerirTexto('aprovacao')).toBe(false);
-    expect(podeSugerirTexto('publicado')).toBe(false);
+  it('planejamento aceita qualquer campo; aprovação só a legenda; depois nada', () => {
+    for (const c of ['titulo', 'briefing', 'legenda'] as const) expect(podeSugerirCampo('texto', c)).toBe(true);
+    expect(podeSugerirCampo('aprovacao', 'legenda')).toBe(true);
+    expect(podeSugerirCampo('aprovacao', 'briefing')).toBe(false);
+    expect(podeSugerirCampo('aprovacao', 'titulo')).toBe(false);
+    for (const e of ['producao', 'revisao', 'agendado', 'publicado']) expect(podeSugerirCampo(e, 'legenda')).toBe(false);
   });
+
 });

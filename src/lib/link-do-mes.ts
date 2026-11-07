@@ -20,10 +20,10 @@ export type FiltroMes = 'todos' | 'para_voce' | 'publicados';
 
 /** Etapas na ordem do processo, com o texto que a cliente lê. */
 export const ETAPAS_PROCESSO: { etapa: EtapaMes; rotulo: string; descricao: string }[] = [
-  { etapa: 'texto', rotulo: 'Planejamento', descricao: 'O texto está pronto para você revisar e aprovar.' },
+  { etapa: 'texto', rotulo: 'Planejamento', descricao: 'Revise o texto. Quando estiver bom, toque em Aprovar texto. A arte vem depois.' },
   { etapa: 'producao', rotulo: 'Produção', descricao: 'A equipe está criando a arte ou o vídeo.' },
   { etapa: 'revisao', rotulo: 'Revisão da equipe', descricao: 'A equipe está revisando ou ajustando antes de mostrar a você.' },
-  { etapa: 'aprovacao', rotulo: 'Sua aprovação', descricao: 'A peça está pronta. Confira e aprove ou peça ajuste.' },
+  { etapa: 'aprovacao', rotulo: 'Sua aprovação', descricao: 'O post está pronto. Confira e toque em Aprovar post, ou peça ajuste.' },
   { etapa: 'agendado', rotulo: 'Agendado', descricao: 'Aprovado e na fila para publicar na data marcada.' },
   { etapa: 'publicado', rotulo: 'Publicado', descricao: 'Já está no seu perfil.' },
 ];
@@ -111,6 +111,14 @@ export function etapaMostraArte(etapa: EtapaMes): boolean {
   return etapa === 'aprovacao' || etapa === 'agendado' || etapa === 'publicado';
 }
 
+/**
+ * Com a arte pronta, o post é o que importa: o texto dos slides/roteiro sai de
+ * cena e ficam só a prévia e a legenda.
+ */
+export function etapaMostraRoteiro(etapa: EtapaMes): boolean {
+  return !etapaMostraArte(etapa);
+}
+
 export function itemNoFiltro(item: Pick<ItemDoMes, 'etapa' | 'precisa_de_voce'>, filtro: FiltroMes): boolean {
   if (filtro === 'para_voce') return item.precisa_de_voce;
   if (filtro === 'publicados') return item.etapa === 'agendado' || item.etapa === 'publicado';
@@ -141,7 +149,8 @@ export function montarItemDoMes(item: ItemBrutoDoMes): ItemDoMes | null {
     // Prefixos internos do título e notas internas do roteiro não saem do servidor.
     titulo: limparTitulo(item.titulo) || null,
     legenda: item.legenda,
-    briefing: separarRoteiro(item.briefing).visivel || null,
+    // Com a arte pronta o roteiro nem sai do servidor: só prévia e legenda.
+    briefing: etapaMostraRoteiro(etapa) ? separarRoteiro(item.briefing).visivel || null : null,
     data_programada: item.data_programada,
     publicado_em: item.publicado_em,
     arquivos,
