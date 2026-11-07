@@ -36,6 +36,7 @@ O link carrega o mês (`/aprovacao/mes/<token>?m=2026-11` ou token por mês) par
 Descoberta na implementação: a mídia **já é apagada do armazenamento no instante da publicação** (todos os caminhos de publicar esvaziam `arquivos`). Por isso não existe "mídia por 7 dias"; a aba Publicados mostra só o texto e avisa que os arquivos foram arquivados.
 - **Texto:** a demanda publicada fica disponível por **30 dias** (padrão) e depois é excluída de vez. Prazo por cliente em `clientes.retencao_texto_dias` (7 a 365; vazio = 30). A tela para editar esse prazo entra na fase 4.
 - A limpeza roda a cada chamada do cron de publicação, inclusive quando não há nada a publicar (antes só rodava quando havia posts vencidos) e apaga qualquer mídia que tenha sobrado.
+- **Entregas arquivadas:** antes de excluir uma demanda publicada (retenção ou exclusão manual) guardamos um registro leve em `entregas_arquivadas` (cliente, tipo, mês, responsáveis, post), sem texto nem mídia. A produtividade soma vivas + arquivadas e, se o arquivamento falhar, nada é excluído.
 - Em aberto: guardar o link do post no Instagram (permalink) na demanda para a aba Publicados mostrar o post real. Hoje o link é calculado na publicação e não é salvo.
 
 ## 7. Fases (um PR por fase)

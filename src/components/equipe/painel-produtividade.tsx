@@ -120,11 +120,12 @@ export function PainelProdutividade({ showToast }: PainelProdutividadeProps) {
   }
 
   /** Atribui uma entrega antiga a quem a fez; passa a contar na produtividade dessa pessoa. */
-  async function atribuirResponsavel(itemId: string, membroId: string) {
+  async function atribuirResponsavel(itemId: string, membroId: string, arquivada = false) {
     if (!membroId) return;
     setAtribuindoId(itemId);
     try {
-      const res = await fetch(`/api/conteudo/${itemId}`, {
+      // Entrega arquivada: a demanda já foi excluída, só o registro leve existe.
+      const res = await fetch(arquivada ? `/api/equipe/entregas-arquivadas/${itemId}` : `/api/conteudo/${itemId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ responsavel_id: membroId }),
@@ -317,7 +318,7 @@ export function PainelProdutividade({ showToast }: PainelProdutividadeProps) {
                 </div>
                 <Select
                   value=""
-                  onChange={(e) => atribuirResponsavel(it.id, e.target.value)}
+                  onChange={(e) => atribuirResponsavel(it.id, e.target.value, Boolean(it.arquivada))}
                   disabled={atribuindoId === it.id}
                   aria-label={`Quem fez: ${it.titulo || 'entrega'}`}
                   className="w-full text-xs font-medium sm:w-52"

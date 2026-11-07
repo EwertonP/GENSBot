@@ -1,18 +1,19 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { cleanupStorageMedia } from './storage-upload';
+import { arquivarEntregas } from './entregas-arquivadas-server';
+import type { DemandaParaArquivar } from './entregas-arquivadas';
 import { diasRetencaoTexto, RETENCAO_TEXTO_MIN_DIAS, vencidaParaExcluir } from './retencao';
 
-interface ItemPublicado {
-  id: string;
-  publicado_em: string | null;
+interface ItemPublicado extends DemandaParaArquivar {
   arquivos: unknown[] | null;
   cliente_id: string;
 }
 
 /**
  * Exclui de vez as demandas publicadas que passaram do prazo de retenção do
- * cliente (padrão 30 dias). Antes de apagar, remove qualquer mídia que tenha
- * sobrado no armazenamento. Nunca lança erro: é limpeza de rotina.
+ * cliente (padrão 30 dias). Antes de apagar, guarda o registro leve da entrega
+ * (a produtividade continua contando) e remove qualquer mídia que tenha sobrado.
+ * Se não conseguir arquivar, não exclui nada. Nunca lança erro: é limpeza de rotina.
  */
 export async function limparConteudoPublicado(db: SupabaseClient, agora: Date = new Date()): Promise<{ excluidas: number }> {
   try {
@@ -20,7 +21,7 @@ export async function limparConteudoPublicado(db: SupabaseClient, agora: Date = 
 
     const { data: itens, error } = await db
       .from('conteudo_items')
-      .select('id, publicado_em, arquivos, cliente_id')
+      .select('*')
       .eq('status', 'publicado')
       .not('publicado_em', 'is', null)
       .lt('publicado_em', corte)
@@ -39,6 +40,9 @@ export async function limparConteudoPublicado(db: SupabaseClient, agora: Date = 
       vencidaParaExcluir(i.publicado_em, diasRetencaoTexto(prazoPorCliente.get(i.cliente_id)), agora)
     );
     if (vencidas.length === 0) return { excluidas: 0 };
+
+    // A contagem de entregas não pode se perder: sem arquivo, sem exclusão.
+    if (!(await arquivarEntregas(db, vencidas))) return { excluidas: 0 };
 
     for (const item of vencidas) {
       if (Array.isArray(item.arquivos) && item.arquivos.length > 0) {
