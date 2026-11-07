@@ -48,7 +48,13 @@ export function patchAoAceitar(campo: CampoSugestao, texto: string): Record<stri
   return { [campo]: texto };
 }
 
-/** Só em planejamento a cliente edita o texto-base; depois disso é pedido de ajuste. */
-export function podeSugerirTexto(etapa: string): boolean {
-  return etapa === 'texto';
+/**
+ * Em planejamento a cliente sugere mudança em qualquer texto. Com a arte pronta
+ * (etapa de aprovação) só a legenda continua aberta a sugestão; o resto é
+ * "Pedir ajuste" no post.
+ */
+export function podeSugerirCampo(etapa: string, campo: CampoSugestao): boolean {
+  if (etapa === 'texto') return true;
+  if (etapa === 'aprovacao') return campo === 'legenda';
+  return false;
 }

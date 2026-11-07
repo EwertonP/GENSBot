@@ -33,7 +33,7 @@ import { InstagramReelsPreview } from '@/components/aprovacao/instagram-reels-pr
 import { InstagramStoryPreview } from '@/components/aprovacao/instagram-story-preview';
 import { cn } from '@/lib/utils';
 import { ETAPAS_PROCESSO, indiceDaEtapa, itemNoFiltro, type FiltroMes, type ItemDoMes } from '@/lib/link-do-mes';
-import type { CampoSugestao } from '@/lib/sugestoes-texto';
+import { podeSugerirCampo, type CampoSugestao } from '@/lib/sugestoes-texto';
 import { blocosDoRoteiro, partesNegrito, roteiroComoTextoPuro, ROTULO_FORMATO, type FormatoPost } from '@/lib/roteiro-cliente';
 
 interface Dados {
@@ -151,13 +151,34 @@ function BarraProcesso({ etapa, compacta }: { etapa: ItemDoMes['etapa']; compact
   );
 }
 
-/** Onde o post está agora e o que acontece em seguida. */
+/** Onde o post está agora: passos alinhados em seis colunas iguais e o que acontece em seguida. */
 function EtapasProcesso({ item }: { item: ItemDoMes }) {
   const atual = indiceDaEtapa(item.etapa);
   const info = ETAPAS_PROCESSO[atual];
+  const ultimo = ETAPAS_PROCESSO.length - 1;
   return (
-    <section aria-label="Andamento do post" className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4">
-      <BarraProcesso etapa={item.etapa} />
+    <section aria-label="Andamento do post" className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4">
+      <ol className="grid grid-cols-6" aria-label={`Etapa ${atual + 1} de ${ETAPAS_PROCESSO.length}: ${info.rotulo}`}>
+        {ETAPAS_PROCESSO.map((e, i) => {
+          const feito = i < atual;
+          const agora = i === atual;
+          return (
+            <li key={e.etapa} className="relative flex flex-col items-center gap-2">
+              {i > 0 && <span aria-hidden className={cn('absolute left-0 right-1/2 top-3 h-0.5 -translate-y-1/2', i <= atual ? 'bg-brand-text' : 'bg-border-strong')} />}
+              {i < ultimo && <span aria-hidden className={cn('absolute left-1/2 right-0 top-3 h-0.5 -translate-y-1/2', i < atual ? 'bg-brand-text' : 'bg-border-strong')} />}
+              <span
+                className={cn(
+                  'relative z-10 flex size-6 items-center justify-center rounded-full border-2',
+                  feito ? 'border-brand-text bg-brand-text text-background' : agora ? 'border-brand-text bg-background' : 'border-border-strong bg-background'
+                )}
+              >
+                {feito ? <Check className="size-3.5" strokeWidth={3} aria-hidden /> : agora ? <span className="size-2 rounded-full bg-brand-text" /> : null}
+              </span>
+              <span className={cn('hidden text-center text-xs leading-4 lg:block', agora ? 'font-semibold text-foreground' : 'text-muted-foreground')}>{e.rotulo}</span>
+            </li>
+          );
+        })}
+      </ol>
       <div>
         <p className="text-xs font-semibold text-muted-foreground">
           Etapa {atual + 1} de {ETAPAS_PROCESSO.length}
@@ -167,13 +188,6 @@ function EtapasProcesso({ item }: { item: ItemDoMes }) {
           {item.etapa === 'texto' && item.texto_aprovado_em ? 'Você aprovou o texto. A equipe segue para a produção.' : info.descricao}
         </p>
       </div>
-      <ol className="hidden grid-cols-6 gap-1.5 lg:grid" aria-hidden>
-        {ETAPAS_PROCESSO.map((e, i) => (
-          <li key={e.etapa} className={cn('text-xs leading-4', i === atual ? 'font-semibold text-foreground' : 'text-muted-foreground')}>
-            {e.rotulo}
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }
@@ -553,7 +567,7 @@ export default function LinkDoMesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
-          acao === 'aprovar' ? { acao, autor: nome.trim() } : { acao, autor: nome.trim(), texto: textoAjuste.trim(), parte: 'legenda' }
+          acao === 'aprovar' ? { acao, autor: nome.trim() } : { acao, autor: nome.trim(), texto: `[Arte/Mídia] ${textoAjuste.trim()}`, parte: 'arte' }
         ),
       });
       const json = await res.json();
@@ -722,12 +736,12 @@ export default function LinkDoMesPage() {
   const detalhe = (it: ItemDoMes) => {
     const temArte = it.arquivos.length > 0;
     const pendente = (campo: CampoSugestao) => it.sugestoes?.find((s) => s.campo === campo)?.texto;
-    const podeSugerir = it.etapa === 'texto';
+    const pode = (campo: CampoSugestao) => podeSugerirCampo(it.etapa, campo);
     const rotuloRoteiro = it.formato === 'reels' ? 'Roteiro do vídeo' : it.formato === 'carrossel' ? 'Texto dos slides' : 'Texto da arte';
     const quando = dataPorExtenso(it.data_programada || it.publicado_em);
 
     return (
-      <article className={cn('flex flex-col gap-6', !temArte && 'max-w-3xl')}>
+      <article className={cn('flex flex-col gap-6', temArte ? 'mx-auto max-w-xl' : 'max-w-3xl')}>
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <SeloFormato formato={it.formato} />
@@ -735,7 +749,7 @@ export default function LinkDoMesPage() {
           </div>
           <div className="flex items-start gap-2">
             <h2 className="min-w-0 flex-1 font-display text-headline font-semibold">{it.titulo || 'Sem título'}</h2>
-            {podeSugerir && campoEditando !== 'titulo' && (
+            {pode('titulo') && campoEditando !== 'titulo' && (
               <IconButton label={pendente('titulo') ? 'Alterar sugestão de título' : 'Sugerir mudança no título'} onClick={() => setCampoEditando('titulo')}>
                 <Pencil />
               </IconButton>
@@ -773,20 +787,21 @@ export default function LinkDoMesPage() {
           </p>
         )}
 
-        <div className={cn('grid gap-8', temArte && 'xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start')}>
+        <div className="flex min-w-0 flex-col gap-8">
           {temArte && (
-            <div className="mx-auto w-full max-w-sm xl:sticky xl:top-24">
+            <div className="mx-auto w-full max-w-sm">
               <PreviaInstagram key={it.id} item={it} cliente={dados.cliente} />
             </div>
           )}
-          <div className="flex min-w-0 flex-col gap-8">
+          {/* Roteiro só até a arte ficar pronta; depois ficam a prévia e a legenda */}
+          {it.briefing && (
             <BlocoTexto
               key={`${it.id}-briefing`}
               rotulo={rotuloRoteiro}
               campo="briefing"
               texto={it.briefing}
               roteiro
-              podeSugerir={podeSugerir}
+              podeSugerir={pode('briefing')}
               pendente={pendente('briefing')}
               leitura={leitura}
               nome={nome}
@@ -795,21 +810,21 @@ export default function LinkDoMesPage() {
               editando={campoEditando === 'briefing'}
               onEditar={(aberto) => setCampoEditando(aberto ? 'briefing' : null)}
             />
-            <BlocoTexto
-              key={`${it.id}-legenda`}
-              rotulo="Legenda"
-              campo="legenda"
-              texto={it.legenda}
-              podeSugerir={podeSugerir}
-              pendente={pendente('legenda')}
-              leitura={leitura}
-              nome={nome}
-              onNome={guardarNome}
-              onEnviar={(c, t) => enviarSugestao(it, c, t)}
-              editando={campoEditando === 'legenda'}
-              onEditar={(aberto) => setCampoEditando(aberto ? 'legenda' : null)}
-            />
-          </div>
+          )}
+          <BlocoTexto
+            key={`${it.id}-legenda`}
+            rotulo="Legenda"
+            campo="legenda"
+            texto={it.legenda}
+            podeSugerir={pode('legenda')}
+            pendente={pendente('legenda')}
+            leitura={leitura}
+            nome={nome}
+            onNome={guardarNome}
+            onEnviar={(c, t) => enviarSugestao(it, c, t)}
+            editando={campoEditando === 'legenda'}
+            onEditar={(aberto) => setCampoEditando(aberto ? 'legenda' : null)}
+          />
         </div>
       </article>
     );
@@ -909,11 +924,11 @@ export default function LinkDoMesPage() {
             </>
           ) : (
             <>
-              <Button variant="secondary" size="lg" onClick={() => setPainel('ajuste')}>
+              <Button variant="secondary" size="lg" className="whitespace-nowrap px-3 text-sm" onClick={() => setPainel('ajuste')}>
                 <MessageSquare className="size-4" aria-hidden /> Pedir ajuste
               </Button>
-              <Button size="lg" onClick={() => (nome.trim() ? agir(it, 'aprovar') : setPainel('aprovar'))} loading={enviando}>
-                <Check className="size-4" aria-hidden /> Aprovar
+              <Button size="lg" className="whitespace-nowrap px-3 text-sm" onClick={() => (nome.trim() ? agir(it, 'aprovar') : setPainel('aprovar'))} loading={enviando}>
+                <Check className="size-4" aria-hidden /> Aprovar post
               </Button>
             </>
           )}

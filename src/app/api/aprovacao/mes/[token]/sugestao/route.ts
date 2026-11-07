@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { notificar } from '@/lib/notificar';
 import { etapaNoLinkDoMes } from '@/lib/link-do-mes';
-import { campoValido, podeSugerirTexto, ROTULO_CAMPO, validarSugestao } from '@/lib/sugestoes-texto';
+import { campoValido, podeSugerirCampo, ROTULO_CAMPO, validarSugestao } from '@/lib/sugestoes-texto';
 import { limparTitulo, textoVisivel } from '@/lib/roteiro-cliente';
 import type { StatusConteudo } from '@/lib/conteudo';
 
@@ -42,9 +42,14 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   const etapa = etapaNoLinkDoMes(item.status as StatusConteudo);
-  if (!etapa || !podeSugerirTexto(etapa)) {
+  if (!etapa || !podeSugerirCampo(etapa, campo)) {
     return NextResponse.json(
-      { error: 'Este post já está em produção. Use "Pedir ajuste" quando ele chegar para sua aprovação.' },
+      {
+        error:
+          etapa === 'aprovacao'
+            ? 'Neste ponto só a legenda pode receber sugestão. Para mudar a arte, use "Pedir ajuste".'
+            : 'Este post já saiu do planejamento. Use "Pedir ajuste" quando ele chegar para sua aprovação.',
+      },
       { status: 409 }
     );
   }

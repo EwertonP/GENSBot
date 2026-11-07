@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   escolherMes,
   etapaMostraArte,
+  etapaMostraRoteiro,
   etapaNoLinkDoMes,
   indiceDaEtapa,
   itemNoFiltro,
@@ -48,6 +49,11 @@ describe('etapaNoLinkDoMes', () => {
     expect(ETAPAS_PROCESSO.map((e) => indiceDaEtapa(e.etapa))).toEqual([0, 1, 2, 3, 4, 5]);
   });
 
+  it('roteiro some quando a arte aparece', () => {
+    expect(['texto', 'producao', 'revisao'].map((e) => etapaMostraRoteiro(e as never))).toEqual([true, true, true]);
+    expect(['aprovacao', 'agendado', 'publicado'].map((e) => etapaMostraRoteiro(e as never))).toEqual([false, false, false]);
+  });
+
   it('arte só depois de pronta para a cliente', () => {
     expect(['texto', 'producao', 'revisao'].map((e) => etapaMostraArte(e as never))).toEqual([false, false, false]);
     expect(['aprovacao', 'agendado', 'publicado'].map((e) => etapaMostraArte(e as never))).toEqual([true, true, true]);
@@ -86,17 +92,20 @@ describe('montarItemDoMes', () => {
     }
   });
 
-  it('aprovação: mídia ordenada, token e ação', () => {
+  it('aprovação: mídia ordenada, token e ação; sem roteiro, com legenda', () => {
     const r = montarItemDoMes({ ...base, status: 'revisao_cliente' })!;
+    expect(r.briefing).toBeNull();
+    expect(r.legenda).toBe('Legenda');
     expect(r.arquivos.map((a) => a.id)).toEqual(['a', 'b']);
     expect(r.token_aprovacao).toBe('tok');
     expect(r.pode_agir).toBe(true);
     expect(r.precisa_de_voce).toBe(true);
   });
 
-  it('agendado e publicado mostram a mídia, sem token', () => {
+  it('agendado e publicado mostram a mídia, sem token e sem roteiro', () => {
     for (const status of ['agendamento', 'publicado'] as const) {
       const r = montarItemDoMes({ ...base, status })!;
+      expect(r.briefing).toBeNull();
       expect(r.arquivos).toHaveLength(2);
       expect(r.token_aprovacao).toBeNull();
       expect(r.precisa_de_voce).toBe(false);

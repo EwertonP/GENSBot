@@ -78,8 +78,9 @@ export async function carregarMesDoCliente(token: string, mesPedido: string | nu
     if (it.etapa === 'publicado') it.texto_ate = dataLimiteTexto(publicadoEmPorId.get(it.id), diasTexto);
   }
 
-  // Sugestões pendentes da cliente nos itens em planejamento.
-  const idsTexto = itens.filter((i) => i.etapa === 'texto').map((i) => i.id);
+  // Sugestões pendentes da cliente (planejamento e aprovação).
+  const comSugestao = (e: EtapaMes) => e === 'texto' || e === 'aprovacao';
+  const idsTexto = itens.filter((i) => comSugestao(i.etapa)).map((i) => i.id);
   if (idsTexto.length) {
     const { data: sugs } = await supabase
       .from('conteudo_sugestoes_texto')
@@ -87,7 +88,7 @@ export async function carregarMesDoCliente(token: string, mesPedido: string | nu
       .in('item_id', idsTexto)
       .eq('status', 'pendente');
     for (const it of itens) {
-      if (it.etapa !== 'texto') continue;
+      if (!comSugestao(it.etapa)) continue;
       it.sugestoes = (sugs || [])
         .filter((s) => s.item_id === it.id)
         .map((s) => ({ campo: s.campo as 'titulo' | 'briefing' | 'legenda', texto: s.texto_proposto as string }));
