@@ -4,6 +4,9 @@ let mockMembroPapel = 'master';
 let mockDemandas: any[] = [];
 let mockMembros: any[] = [];
 let mockClientes: any[] = [];
+let mockPosts: any[] = [];
+let mockVinculados: any[] = [];
+let mockContas: any[] = [];
 
 vi.mock('@/lib/clientes-server', () => ({
   getContextoAgencia: vi.fn(async () => ({
@@ -40,7 +43,20 @@ vi.mock('@/lib/supabase', () => ({
         return cadeia(() => ({ data: mockClientes, error: null }));
       }
       if (tabela === 'conteudo_items') {
-        return cadeia(() => ({ data: mockDemandas, error: null }));
+        const proxy: any = new Proxy(() => undefined, {
+          get(_alvo, prop) {
+            if (prop === 'then') return (ok: (v: any) => void) => ok({ data: mockDemandas, error: null });
+            if (prop === 'select') return (cols: string) => (String(cols).trim() === 'scheduled_post_id' ? cadeia(() => ({ data: mockVinculados, error: null })) : proxy);
+            return () => proxy;
+          },
+        });
+        return proxy;
+      }
+      if (tabela === 'scheduled_posts') {
+        return cadeia(() => ({ data: mockPosts, error: null }));
+      }
+      if (tabela === 'instagram_accounts') {
+        return cadeia(() => ({ data: mockContas, error: null }));
       }
       return cadeia(() => ({ data: [], error: null }));
     },
@@ -61,6 +77,9 @@ describe('/api/equipe/produtividade', () => {
       { id: 'c1', nome: 'Cliente Alpha', cor: '#10b981', nicho: 'Saúde', foto_url: null, ativo: true },
       { id: 'c2', nome: 'Cliente Beta', cor: '#3b82f6', nicho: 'Tech', foto_url: null, ativo: true },
     ];
+    mockPosts = [];
+    mockVinculados = [];
+    mockContas = [];
     mockDemandas = [
       {
         id: 'd1',
@@ -188,5 +207,45 @@ describe('/api/equipe/produtividade', () => {
     expect(data.resumo.total_demandas).toBe(3);
     expect(data.resumo.total_entregues).toBe(2); // d1 (agendamento) e d2 (pronto_publicar)
     expect(data.resumo.total_em_andamento).toBe(1); // d3
+  });
+
+  it('post publicado sem demanda conta como entrega de quem o agendou, e entrega sem responsável é listada', async () => {
+    mockClientes = [
+      { id: 'c1', nome: 'Cliente Alpha', cor: '#10b981', nicho: 'Saúde', foto_url: null, ativo: true, instagram_account_id: 'acc1' },
+      { id: 'c2', nome: 'Cliente Beta', cor: '#3b82f6', nicho: 'Tech', foto_url: null, ativo: true, instagram_account_id: null },
+    ];
+    mockContas = [{ id: 'acc1', instagram_user_id: 'ig1' }];
+    mockPosts = [
+      { id: 'p1', user_id: 'm2', responsavel_id: null, instagram_user_id: 'ig1', media_type: 'REELS', caption: 'Reels direto', status: 'published', published_at: '2026-11-05T15:00:00Z' },
+      { id: 'p2', user_id: 'm2', responsavel_id: 'm1', instagram_user_id: 'ig1', media_type: 'IMAGE', caption: 'Post do sócio', status: 'published', published_at: '2026-11-06T15:00:00Z' },
+      { id: 'p3', user_id: 'm2', responsavel_id: 'm1', instagram_user_id: 'ig1', media_type: 'IMAGE', caption: 'Já é de uma demanda', status: 'published', published_at: '2026-11-07T15:00:00Z' },
+    ];
+    mockVinculados = [{ scheduled_post_id: 'p3' }];
+    mockDemandas = [
+      ...mockDemandas,
+      { id: 'd4', titulo: 'Entregue sem responsável', tipo: 'post', status: 'publicado', mes_referencia: '2026-11-01', responsavel_id: null, co_responsaveis_ids: [], cliente_id: 'c1' },
+    ];
+
+    const res = await GET(new Request('http://localhost/api/equipe/produtividade?mes=2026-11'));
+    const data = await res.json();
+
+    // p1 conta para o João (quem agendou), p2 para o Ewerton (responsável escolhido); p3 já conta pela demanda
+    const joao = data.membros.find((m: any) => m.id === 'm2');
+    const ewerton = data.membros.find((m: any) => m.id === 'm1');
+    expect(joao.posts_diretos).toBe(1);
+    expect(joao.total_entregues).toBe(3); // d1 (co) + d2 + p1
+    expect(joao.por_tipo.reel).toBe(2); // d1 reel + p1 reel
+    expect(ewerton.posts_diretos).toBe(1);
+    expect(ewerton.total_entregues).toBe(2); // d1 + p2
+
+    // Resumo
+    expect(data.resumo.total_posts_diretos).toBe(2);
+    expect(data.resumo.total_sem_responsavel).toBe(1);
+    expect(data.itens_sem_responsavel.map((i: any) => i.id)).toEqual(['d4']);
+    expect(data.itens_entregues.filter((i: any) => i.origem === 'post_direto')).toHaveLength(2);
+
+    // Cliente Alpha recebe os posts da conta ig1
+    const alpha = data.clientes.find((c: any) => c.id === 'c1');
+    expect(alpha.total_entregues).toBe(5); // d1 + d2 + d4 + p1 + p2
   });
 });

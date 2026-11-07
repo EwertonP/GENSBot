@@ -482,6 +482,12 @@ export default function EsteiraTab({
           : `Demanda organizada em ${STATUS_LABELS[novoStatus].label}`;
         showToast(msgFeedback, 'success');
       }
+
+      // Regra do responsável: demanda sem responsável fica com quem a moveu.
+      if (data?.responsavel_atribuido) {
+        setItems((lista) => lista.map((i) => (i.id === itemId ? { ...i, responsavel_id: data.responsavel_atribuido.id } : i)));
+        showToast(`Você agora é o responsável por esta demanda (a entrega conta para você).`, 'success');
+      }
     } catch {
       carregarDados();
       showToast('Erro ao atualizar posição.', 'error');

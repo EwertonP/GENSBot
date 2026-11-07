@@ -6,6 +6,7 @@ import { createAutomationForPublishedPost } from '@/lib/publish-automation';
 import { getContextoAgencia } from '@/lib/clientes-server';
 import { notificar } from '@/lib/notificar';
 import { limparConteudoPublicado } from '@/lib/retencao-server';
+import { garantirResponsavelDaDemanda } from '@/lib/responsavel-entrega-server';
 
 // Cada publicação pode esperar o processamento de vídeo pela Meta (waitForContainerReady) —
 // mesmo teto de src/app/api/instagram/publish/route.ts, teto do plano Hobby.
@@ -151,6 +152,8 @@ async function handlePublishScheduled(req: Request) {
           const { cleanupStorageMedia } = await import('@/lib/storage-upload');
 
           for (const item of updatedConteudo) {
+            // Demanda sem responsável fica com quem agendou o post.
+            await garantirResponsavelDaDemanda(item.id, post.responsavel_id || post.user_id);
             if (item.arquivos) {
               await cleanupStorageMedia(supabase, item.arquivos).catch(() => {});
             }

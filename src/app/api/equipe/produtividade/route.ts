@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getContextoAgencia, respostaErro } from '@/lib/clientes-server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
+import { postsDiretos, type PostDireto } from '@/lib/responsavel-entrega';
 
 export interface ResumoProdutividadeMembro {
   id: string;
@@ -14,6 +15,8 @@ export interface ResumoProdutividadeMembro {
   como_principal: number;
   como_co_responsavel: number;
   total_em_andamento: number;
+  /** Posts publicados sem demanda que contam como entrega deste membro. */
+  posts_diretos: number;
   por_tipo: {
     post: number;
     reel: number;
@@ -56,6 +59,8 @@ export interface ResumoProdutividadeCliente {
 
 export interface ItemEntregueDetalhe {
   id: string;
+  /** 'post_direto' = publicado sem demanda. */
+  origem?: 'demanda' | 'post_direto';
   titulo: string | null;
   tipo: string;
   status: string;
@@ -117,7 +122,7 @@ function isDemandaEntregue(d: any): boolean {
     // 2. Busca todos os clientes da agência
     const { data: clientesDb, error: errClientes } = await serviceSupabase
       .from('clientes')
-      .select('id, nome, cor, nicho, foto_url, ativo')
+      .select('id, nome, cor, nicho, foto_url, ativo, instagram_account_id')
       .eq('agencia_id', membro.agencia_id)
       .order('nome', { ascending: true });
 
@@ -167,6 +172,47 @@ function isDemandaEntregue(d: any): boolean {
 
     const demandas = demandasDb || [];
 
+    // Posts publicados sem demanda: contam como entrega de quem os agendou/publicou.
+    let diretos: PostDireto[] = [];
+    try {
+      const idsMembros = (membrosDb || []).map((m) => m.id);
+      let qPosts = serviceSupabase
+        .from('scheduled_posts')
+        .select('id, user_id, responsavel_id, instagram_user_id, media_type, caption, status, published_at')
+        .eq('status', 'published')
+        .in('user_id', idsMembros);
+      if (mesParam !== 'todos') {
+        const [a, m] = mesParam.split('-').map((n) => parseInt(n, 10));
+        if (!isNaN(a) && !isNaN(m)) {
+          // Brasília: o mês começa 3h depois do UTC.
+          const ini = new Date(Date.UTC(a, m - 1, 1, 3)).toISOString();
+          const fim = new Date(Date.UTC(m === 12 ? a + 1 : a, m === 12 ? 0 : m, 1, 3)).toISOString();
+          qPosts = qPosts.gte('published_at', ini).lt('published_at', fim);
+        }
+      }
+      const { data: postsDb } = await qPosts.limit(2000);
+      const posts = postsDb || [];
+      if (posts.length > 0) {
+        const { data: vinculados } = await serviceSupabase.from('conteudo_items').select('scheduled_post_id').in('scheduled_post_id', posts.map((p) => p.id));
+        const idsComDemanda = new Set((vinculados || []).map((v: { scheduled_post_id: string }) => v.scheduled_post_id));
+        const { data: contas } = await serviceSupabase
+          .from('instagram_accounts')
+          .select('id, instagram_user_id')
+          .in('instagram_user_id', [...new Set(posts.map((p) => p.instagram_user_id).filter(Boolean))]);
+        const contaPorId = new Map((contas || []).map((c: { id: string; instagram_user_id: string }) => [c.id, c.instagram_user_id]));
+        const clientePorConta = new Map<string, string>();
+        for (const c of clientesDb || []) {
+          const ig = c.instagram_account_id ? contaPorId.get(c.instagram_account_id) : null;
+          if (ig) clientePorConta.set(ig, c.id);
+        }
+        diretos = postsDiretos(posts, idsComDemanda, clientePorConta);
+        if (clienteIdParam) diretos = diretos.filter((d) => d.cliente_id === clienteIdParam);
+      }
+    } catch (e) {
+      console.warn('[produtividade] não foi possível contar os posts diretos:', e);
+    }
+    const diretosDoMembro = (id: string) => diretos.filter((d) => d.responsavel_id === id);
+
     // Mapas para lookup rápido
     const membrosMap = new Map((membrosDb || []).map((m) => [m.id, m]));
     const clientesMap = new Map((clientesDb || []).map((c) => [c.id, c]));
@@ -190,12 +236,14 @@ function isDemandaEntregue(d: any): boolean {
 
       const entregues = demandasDoMembro.filter((d) => isDemandaEntregue(d));
       const emAndamento = demandasDoMembro.filter((d) => !isDemandaEntregue(d));
+      const postsDoMembro = diretosDoMembro(m.id);
 
       const porTipo = { post: 0, reel: 0, story: 0, carrossel: 0 };
       for (const d of entregues) {
         const t = d.tipo as keyof typeof porTipo;
         if (porTipo[t] !== undefined) porTipo[t]++;
       }
+      for (const p of postsDoMembro) porTipo[p.tipo]++;
 
       // Clientes atendidos por este membro
       const clientesAtendidosMap = new Map<string, { total_entregues: number; total_demandas: number }>();
@@ -205,6 +253,14 @@ function isDemandaEntregue(d: any): boolean {
         cur.total_demandas++;
         if (isDemandaEntregue(d)) cur.total_entregues++;
         clientesAtendidosMap.set(d.cliente_id, cur);
+      }
+
+      for (const p of postsDoMembro) {
+        if (!p.cliente_id) continue;
+        const cur = clientesAtendidosMap.get(p.cliente_id) || { total_entregues: 0, total_demandas: 0 };
+        cur.total_demandas++;
+        cur.total_entregues++;
+        clientesAtendidosMap.set(p.cliente_id, cur);
       }
 
       const clientesAtendidos = Array.from(clientesAtendidosMap.entries())
@@ -228,9 +284,10 @@ function isDemandaEntregue(d: any): boolean {
         cargo: m.cargo,
         papel: m.papel,
         foto_url: m.foto_url,
-        total_demandas: demandasDoMembro.length,
-        total_entregues: entregues.length,
-        como_principal: entregues.filter((d) => d.responsavel_id === m.id).length,
+        total_demandas: demandasDoMembro.length + postsDoMembro.length,
+        total_entregues: entregues.length + postsDoMembro.length,
+        posts_diretos: postsDoMembro.length,
+        como_principal: entregues.filter((d) => d.responsavel_id === m.id).length + postsDoMembro.length,
         como_co_responsavel: entregues.filter(
           (d) => Array.isArray(d.co_responsaveis_ids) && d.co_responsaveis_ids.includes(m.id)
         ).length,
@@ -256,7 +313,11 @@ function isDemandaEntregue(d: any): boolean {
           if (porTipo[t] !== undefined) porTipo[t]++;
         }
 
+        const postsDoCliente = diretos.filter((p) => p.cliente_id === c.id);
+        for (const p of postsDoCliente) porTipo[p.tipo]++;
+
         const membrosEnvolvidosMap = new Map<string, number>();
+        for (const p of postsDoCliente) membrosEnvolvidosMap.set(p.responsavel_id, (membrosEnvolvidosMap.get(p.responsavel_id) || 0) + 1);
         for (const d of entregues) {
           if (d.responsavel_id) {
             membrosEnvolvidosMap.set(d.responsavel_id, (membrosEnvolvidosMap.get(d.responsavel_id) || 0) + 1);
@@ -280,10 +341,9 @@ function isDemandaEntregue(d: any): boolean {
           })
           .sort((a, b) => b.total_entregues - a.total_entregues);
 
-        const taxaEntrega =
-          demandasDoCliente.length > 0
-            ? Math.round((entregues.length / demandasDoCliente.length) * 100)
-            : 0;
+        const totalCliente = demandasDoCliente.length + postsDoCliente.length;
+        const entreguesCliente = entregues.length + postsDoCliente.length;
+        const taxaEntrega = totalCliente > 0 ? Math.round((entreguesCliente / totalCliente) * 100) : 0;
 
         return {
           id: c.id,
@@ -291,8 +351,8 @@ function isDemandaEntregue(d: any): boolean {
           cor: c.cor,
           nicho: c.nicho,
           foto_url: c.foto_url,
-          total_demandas: demandasDoCliente.length,
-          total_entregues: entregues.length,
+          total_demandas: totalCliente,
+          total_entregues: entreguesCliente,
           total_em_andamento: emAndamento.length,
           taxa_entrega: taxaEntrega,
           por_tipo: porTipo,
@@ -305,12 +365,16 @@ function isDemandaEntregue(d: any): boolean {
     produtividadePorCliente.sort((a, b) => b.total_entregues - a.total_entregues || b.total_demandas - a.total_demandas);
 
     // Resumo Geral
-    const totalEntreguesGeral = demandasFiltradas.filter((d) => isDemandaEntregue(d)).length;
+    const diretosFiltrados = membroIdParam ? diretos.filter((d) => d.responsavel_id === membroIdParam) : diretos;
+    const totalEntreguesGeral = demandasFiltradas.filter((d) => isDemandaEntregue(d)).length + diretosFiltrados.length;
     const totalEmAndamentoGeral = demandasFiltradas.filter((d) => !isDemandaEntregue(d)).length;
-    const taxaEntregaGeral =
-      demandasFiltradas.length > 0
-        ? Math.round((totalEntreguesGeral / demandasFiltradas.length) * 100)
-        : 0;
+    const totalGeral = demandasFiltradas.length + diretosFiltrados.length;
+    const taxaEntregaGeral = totalGeral > 0 ? Math.round((totalEntreguesGeral / totalGeral) * 100) : 0;
+
+    // Entregas sem ninguém como responsável: não contam para ninguém até serem atribuídas.
+    const semResponsavel = demandas.filter(
+      (d) => isDemandaEntregue(d) && !d.responsavel_id && !(Array.isArray(d.co_responsaveis_ids) && d.co_responsaveis_ids.length > 0)
+    );
 
     // Membro destaque do período
     const topProdutor = produtividadePorMembro.find((m) => m.total_entregues > 0) || null;
@@ -334,6 +398,7 @@ function isDemandaEntregue(d: any): boolean {
 
         return {
           id: d.id,
+          origem: 'demanda' as const,
           titulo: d.titulo,
           tipo: d.tipo,
           status: d.status,
@@ -346,10 +411,47 @@ function isDemandaEntregue(d: any): boolean {
         };
       });
 
+    const itensDiretos: ItemEntregueDetalhe[] = diretosFiltrados.slice(0, 100).map((p) => {
+      const cli = p.cliente_id ? clientesMap.get(p.cliente_id) : null;
+      const resp = membrosMap.get(p.responsavel_id);
+      return {
+        id: p.id,
+        origem: 'post_direto' as const,
+        titulo: p.titulo,
+        tipo: p.tipo,
+        status: 'publicado',
+        mes_referencia: p.publicado_em.slice(0, 7) + '-01',
+        data_programada: null,
+        publicado_em: p.publicado_em,
+        cliente: cli ? { id: cli.id, nome: cli.nome, cor: cli.cor, foto_url: cli.foto_url } : null,
+        responsavel: resp ? { id: resp.id, nome: resp.nome, foto_url: resp.foto_url } : null,
+        co_responsaveis: [],
+      };
+    });
+
+    const itensSemResponsavel: ItemEntregueDetalhe[] = semResponsavel.slice(0, 100).map((d) => {
+      const cli = d.cliente_id ? clientesMap.get(d.cliente_id) : null;
+      return {
+        id: d.id,
+        origem: 'demanda' as const,
+        titulo: d.titulo,
+        tipo: d.tipo,
+        status: d.status,
+        mes_referencia: d.mes_referencia,
+        data_programada: d.data_programada,
+        publicado_em: d.publicado_em,
+        cliente: cli ? { id: cli.id, nome: cli.nome, cor: cli.cor, foto_url: cli.foto_url } : null,
+        responsavel: null,
+        co_responsaveis: [],
+      };
+    });
+
     return NextResponse.json({
       mes: mesParam,
       resumo: {
-        total_demandas: demandasFiltradas.length,
+        total_posts_diretos: diretosFiltrados.length,
+        total_sem_responsavel: semResponsavel.length,
+        total_demandas: totalGeral,
         total_entregues: totalEntreguesGeral,
         total_em_andamento: totalEmAndamentoGeral,
         taxa_entrega: taxaEntregaGeral,
@@ -374,7 +476,8 @@ function isDemandaEntregue(d: any): boolean {
       },
       membros: produtividadePorMembro,
       clientes: produtividadePorCliente,
-      itens_entregues: itensEntregues,
+      itens_entregues: [...itensEntregues, ...itensDiretos],
+      itens_sem_responsavel: itensSemResponsavel,
     });
   } catch (err: any) {
     console.error('Erro ao calcular produtividade da equipe:', err);

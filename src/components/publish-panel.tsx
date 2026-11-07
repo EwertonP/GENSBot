@@ -410,6 +410,26 @@ export default function PublishPanel({
   const [locationId, setLocationId] = useState<string | null>(null);
   const [locationName, setLocationName] = useState<string | null>(null);
   const [audioName, setAudioName] = useState<string>('');
+  // Responsável pelo post (conta como entrega na produtividade). Vazio = quem está publicando.
+  const [responsavelId, setResponsavelId] = useState<string>('');
+  const [equipe, setEquipe] = useState<{ id: string; nome: string }[]>([]);
+  const [euId, setEuId] = useState<string>('');
+
+  useEffect(() => {
+    let ativo = true;
+    Promise.all([
+      fetch('/api/equipe').then((r) => (r.ok ? r.json() : { membros: [] })).catch(() => ({ membros: [] })),
+      fetch('/api/membros/me').then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]).then(([eq, eu]) => {
+      if (!ativo) return;
+      const lista = ((eq?.membros || []) as { id: string; nome: string; ativo?: boolean }[]).filter((m) => m.ativo !== false).map((m) => ({ id: m.id, nome: m.nome }));
+      setEquipe(lista);
+      setEuId(eu?.membro?.id || eu?.id || '');
+    });
+    return () => {
+      ativo = false;
+    };
+  }, []);
   const [audioPickerOpen, setAudioPickerOpen] = useState(false);
   const [appKitOpen, setAppKitOpen] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<TrendingTrack | null>(null);
@@ -833,6 +853,7 @@ export default function PublishPanel({
             audio_name: audioName.trim() || undefined,
             scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
             conteudo_item_id: prefillData?.conteudoId || undefined,
+            responsavel_id: responsavelId || undefined,
             automation_config: automationPayload,
           }),
         });
@@ -2014,6 +2035,24 @@ export default function PublishPanel({
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
+          )}
+
+          {/* Responsável: o post conta como entrega de quem responde por ele */}
+          {equipe.length > 0 && (
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-bold text-foreground">Responsável pelo post</span>
+              <Select value={responsavelId || euId} onChange={(e) => setResponsavelId(e.target.value)} aria-label="Responsável pelo post" className="text-xs font-medium">
+                {equipe.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome}
+                    {m.id === euId ? ' (você)' : ''}
+                  </option>
+                ))}
+              </Select>
+              <span className="text-[11px] leading-4 text-muted-foreground">
+                Quem fez o post. Ele conta como uma entrega dessa pessoa, mesmo sem demanda.
+              </span>
+            </label>
           )}
 
           {/* Botão de Ação Principal */}
