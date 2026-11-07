@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { validarCron } from '@/lib/segredos';
 import { supabase } from '@/lib/supabase';
 import { cacheProfilePicture } from '@/lib/profile-picture';
+import { notificar } from '@/lib/notificar';
+import { agenciaDoMembro, gestoresDaAgencia, unirDestinatarios } from '@/lib/notificar-destinatarios';
 import { sendEmail } from '@/lib/email';
 
 // A Meta deixa renovar qualquer token com mais de 24h. Renovar com 30 dias de folga
@@ -144,8 +146,9 @@ export async function POST(req: Request) {
 }
 
 /**
- * Renovação que falha não pode ficar só no log: avisa o dono da conta por e-mail
- * (no máximo 1x por dia por conta, controlado em alert_notifications).
+ * Renovação que falha não pode ficar só no log: avisa no sino e no push o dono da
+ * conta e os gestores, e por e-mail o dono (no máximo 1x por dia por conta,
+ * controlado em alert_notifications).
  */
 async function avisarFalhas(falhas: { user_id: string; conta: string; vence_em: string | null; motivo: string }[]) {
   const avisos: { user_id: string; enviado: boolean }[] = [];
@@ -165,29 +168,39 @@ async function avisarFalhas(falhas: { user_id: string; conta: string; vence_em: 
     const pendentes = lista.filter((f) => !jaAvisadas.has(`token_refresh_falhou:${f.conta}`));
     if (pendentes.length === 0) continue;
 
-    const { data: dono } = await supabase.auth.admin.getUserById(userId);
-    const email = dono?.user?.email;
-    if (!email) {
-      avisos.push({ user_id: userId, enviado: false });
-      continue;
-    }
-
     const linhas = pendentes.map((f) => {
       const vence = f.vence_em ? new Date(f.vence_em).toLocaleDateString('pt-BR') : 'data desconhecida';
       return `@${f.conta}: vence em ${vence} (${f.motivo})`;
     });
-    const res = await sendEmail({
-      to: email,
-      subject: `GENSBot: a renovação do token do Instagram falhou (${pendentes.length} conta${pendentes.length > 1 ? 's' : ''})`,
-      text: `A renovação automática do acesso ao Instagram falhou hoje:\n\n${linhas.join('\n')}\n\nO GENSBot tenta de novo todo dia. Se continuar falhando até a data de vencimento, a conta precisa ser reconectada em Clientes.`,
+
+    // Sino + push para quem conectou a conta e para os gestores.
+    const gestores = await gestoresDaAgencia(await agenciaDoMembro(userId));
+    await notificar(unirDestinatarios([userId], gestores), {
+      tipo: 'alerta_conta',
+      titulo: `A renovação do Instagram falhou (${pendentes.length} ${pendentes.length === 1 ? 'conta' : 'contas'})`,
+      corpo: linhas.join(' · '),
+      url: '/',
+      prioridade: 'urgente',
+      agrupar: 'token-refresh',
     });
-    if (res.ok) {
-      await supabase.from('alert_notifications').upsert(
-        pendentes.map((f) => ({ user_id: userId, alert_key: `token_refresh_falhou:${f.conta}`, last_sent_at: new Date().toISOString() })),
-        { onConflict: 'user_id,alert_key' }
-      );
+
+    // E-mail como registro, quando houver endereço.
+    const { data: dono } = await supabase.auth.admin.getUserById(userId);
+    const email = dono?.user?.email;
+    if (email) {
+      await sendEmail({
+        to: email,
+        subject: `GENSBot: a renovação do token do Instagram falhou (${pendentes.length} conta${pendentes.length > 1 ? 's' : ''})`,
+        text: `A renovação automática do acesso ao Instagram falhou hoje:\n\n${linhas.join('\n')}\n\nO GENSBot tenta de novo todo dia. Se continuar falhando até a data de vencimento, a conta precisa ser reconectada em Clientes.`,
+      });
     }
-    avisos.push({ user_id: userId, enviado: res.ok });
+
+    // O aviso já está no sino, então conta como avisado mesmo sem e-mail.
+    await supabase.from('alert_notifications').upsert(
+      pendentes.map((f) => ({ user_id: userId, alert_key: `token_refresh_falhou:${f.conta}`, last_sent_at: new Date().toISOString() })),
+      { onConflict: 'user_id,alert_key' }
+    );
+    avisos.push({ user_id: userId, enviado: true });
   }
   return avisos;
 }
