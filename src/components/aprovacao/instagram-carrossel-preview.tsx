@@ -276,8 +276,7 @@ export function InstagramCarrosselPreview({
               {arquivos.map((arquivo, idx) => (
                 <div
                   key={arquivo.id || idx}
-                  className="w-full h-full shrink-0 relative overflow-hidden bg-neutral-100 dark:bg-neutral-950 flex items-center justify-center select-none shadow-[-16px_0_32px_rgba(0,0,0,0.5)]"
-                  style={{ zIndex: idx }}
+                  className="w-full h-full shrink-0 relative overflow-hidden bg-neutral-100 dark:bg-neutral-950 flex items-center justify-center select-none"
                 >
                   {arquivo.tipo === 'video' ? (
                     <video
