@@ -68,3 +68,19 @@ export function calcularEscalaDotCarrossel(
   if (distancia >= 2) return 'scale-75';
   return 'scale-100';
 }
+
+export interface MetricasInstagramSimuladas {
+  curtidas: number;
+  comentarios: number;
+  reposts: number;
+}
+
+/**
+ * Gera métricas aleatórias realistas (0 a 200) para curtidas, comentários e reposts
+ */
+export function gerarMetricasAleatoriasInstagram(): MetricasInstagramSimuladas {
+  const curtidas = Math.floor(Math.random() * 189) + 10;
+  const comentarios = Math.floor(Math.random() * 59) + 2;
+  const reposts = Math.floor(Math.random() * 30) + 1;
+  return { curtidas, comentarios, reposts };
+}

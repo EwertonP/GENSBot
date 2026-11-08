@@ -4,6 +4,7 @@ import {
   formatarHandleInstagram,
   formatarTempoRelativoInstagram,
   calcularEscalaDotCarrossel,
+  gerarMetricasAleatoriasInstagram,
 } from './instagram-format';
 
 describe('formatarUsernameInstagram', () => {
@@ -58,5 +59,19 @@ describe('calcularEscalaDotCarrossel', () => {
     expect(calcularEscalaDotCarrossel(0, 0, 8)).toBe('scale-100');
     expect(calcularEscalaDotCarrossel(2, 0, 8)).toBe('scale-75');
     expect(calcularEscalaDotCarrossel(3, 0, 8)).toBe('scale-50');
+  });
+});
+
+describe('gerarMetricasAleatoriasInstagram', () => {
+  it('gera métricas entre 0 e 200', () => {
+    for (let i = 0; i < 20; i++) {
+      const metricas = gerarMetricasAleatoriasInstagram();
+      expect(metricas.curtidas).toBeGreaterThanOrEqual(0);
+      expect(metricas.curtidas).toBeLessThanOrEqual(200);
+      expect(metricas.comentarios).toBeGreaterThanOrEqual(0);
+      expect(metricas.comentarios).toBeLessThanOrEqual(200);
+      expect(metricas.reposts).toBeGreaterThanOrEqual(0);
+      expect(metricas.reposts).toBeLessThanOrEqual(200);
+    }
   });
 });

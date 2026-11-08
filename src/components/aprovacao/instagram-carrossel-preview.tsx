@@ -13,6 +13,7 @@ import {
   formatarUsernameInstagram,
   formatarTempoRelativoInstagram,
   calcularEscalaDotCarrossel,
+  gerarMetricasAleatoriasInstagram,
 } from './instagram-format';
 import {
   InstagramVerifiedBadge,
@@ -56,12 +57,10 @@ export function InstagramCarrosselPreview({
   onPedirAjuste,
   className,
 }: InstagramCarrosselPreviewProps) {
-  const [curtido, setCurtido] = useState(false);
-  const [curtidasCount, setCurtidasCount] = useState(73);
+  const [metricasSimuladas] = useState(() => gerarMetricasAleatoriasInstagram());
   const [salvo, setSalvo] = useState(false);
   const [mutado, setMutado] = useState(true);
   const [expandido, setExpandido] = useState(false);
-  const [animandoCoracao, setAnimandoCoracao] = useState(false);
 
   // Controle de Gestos de Arraste e Toque (Swipe Mobile + Desktop Drag)
   const [dragDeltaX, setDragDeltaX] = useState(0);
@@ -69,8 +68,6 @@ export function InstagramCarrosselPreview({
   const isMouseDownRef = useRef(false);
   const startXRef = useRef(0);
   const currentDeltaRef = useRef(0);
-  const lastTapRef = useRef<number>(0);
-  const coracaoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const totalSlides = arquivos.length;
   const slideValido = Math.min(Math.max(0, slideAtual), Math.max(0, totalSlides - 1));
@@ -85,33 +82,6 @@ export function InstagramCarrosselPreview({
 
   function slideAnterior() {
     if (slideValido > 0) onMudarSlide(slideValido - 1);
-  }
-
-  function handleToggleCurtir() {
-    if (curtido) {
-      setCurtido(false);
-      setCurtidasCount((prev) => Math.max(0, prev - 1));
-    } else {
-      setCurtido(true);
-      setCurtidasCount((prev) => prev + 1);
-    }
-  }
-
-  // Double-tap ou Duplo Clique para Curtir com explosão de coração animado
-  function handleMediaTap() {
-    const agora = Date.now();
-    if (agora - lastTapRef.current < 320) {
-      if (!curtido) {
-        setCurtido(true);
-        setCurtidasCount((prev) => prev + 1);
-      }
-      setAnimandoCoracao(true);
-      if (coracaoTimeoutRef.current) clearTimeout(coracaoTimeoutRef.current);
-      coracaoTimeoutRef.current = setTimeout(() => {
-        setAnimandoCoracao(false);
-      }, 900);
-    }
-    lastTapRef.current = agora;
   }
 
   // Gestos de Deslize por Toque no Celular (Touch)
@@ -135,10 +105,7 @@ export function InstagramCarrosselPreview({
   }
 
   function handleTouchEnd() {
-    if (!isDragging) {
-      handleMediaTap();
-      return;
-    }
+    if (!isDragging) return;
     const delta = currentDeltaRef.current;
     setIsDragging(false);
     setDragDeltaX(0);
@@ -149,8 +116,6 @@ export function InstagramCarrosselPreview({
       } else if (delta > 0 && slideValido > 0) {
         slideAnterior();
       }
-    } else if (Math.abs(delta) < 5) {
-      handleMediaTap();
     }
   }
 
@@ -188,8 +153,6 @@ export function InstagramCarrosselPreview({
       } else if (delta > 0 && slideValido > 0) {
         slideAnterior();
       }
-    } else if (Math.abs(delta) < 5) {
-      handleMediaTap();
     }
   }
 
@@ -308,13 +271,6 @@ export function InstagramCarrosselPreview({
               </div>
             )}
 
-            {/* Explosão de Coração no Duplo Toque */}
-            {animandoCoracao && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-30 animate-in zoom-in-50 fade-in duration-200">
-                <InstagramHeartIcon size={96} filled className="text-white drop-shadow-[0_10px_25px_rgba(0,0,0,0.7)] animate-pulse" />
-              </div>
-            )}
-
             {/* Botão de Som / Mute no Canto Inferior Direito (como no print real) */}
             <button
               type="button"
@@ -392,52 +348,42 @@ export function InstagramCarrosselPreview({
       {/* 4. Nova Barra de Ações Oficial do Instagram com Ícones Vetoriais Figma */}
       <div className="px-3.5 py-2 flex items-center justify-between bg-white dark:bg-black text-neutral-900 dark:text-white">
         <div className="flex items-center gap-4">
-          {/* Curtir + Contagem */}
-          <button
-            type="button"
-            onClick={handleToggleCurtir}
-            className="flex items-center gap-1.5 hover:opacity-80 active:scale-110 transition-transform cursor-pointer"
-            aria-label="Curtir"
-          >
+          {/* Curtidas (Número Aleatório 0 a 200 Sem Interação Indesejada) */}
+          <div className="flex items-center gap-1.5 select-none" aria-label={`${metricasSimuladas.curtidas} curtidas`}>
             <InstagramHeartIcon
               size={24}
-              filled={curtido}
-              className={`transition-colors ${curtido ? 'text-[#FF0034]' : 'text-neutral-900 dark:text-white'}`}
+              className="text-neutral-900 dark:text-white"
             />
             <span className="text-[13px] font-semibold text-neutral-900 dark:text-white tracking-tight">
-              {curtidasCount}
+              {metricasSimuladas.curtidas}
             </span>
-          </button>
+          </div>
 
-          {/* Comentários / Solicitar Ajuste + Contagem */}
+          {/* Comentários / Solicitar Ajuste + Contagem Aleatória 0 a 200 */}
           <button
             type="button"
             onClick={() => onPedirAjuste?.(slideValido + 1)}
-            className="flex items-center gap-1.5 hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-neutral-900 dark:text-white"
+            className="flex items-center gap-1.5 hover:opacity-80 active:scale-105 transition-transform cursor-pointer text-neutral-900 dark:text-white"
             aria-label="Comentar ou solicitar ajuste"
           >
             <InstagramCommentIcon size={24} className="text-neutral-900 dark:text-white" />
-            <span className="text-[13px] font-semibold text-neutral-900 dark:text-white tracking-tight">2</span>
+            <span className="text-[13px] font-semibold text-neutral-900 dark:text-white tracking-tight">
+              {metricasSimuladas.comentarios}
+            </span>
           </button>
 
-          {/* Repost Oficial + Contagem */}
-          <button
-            type="button"
-            className="flex items-center gap-1.5 hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-neutral-900 dark:text-white"
-            aria-label="Repostar"
-          >
+          {/* Repost Oficial + Contagem Aleatória 0 a 200 */}
+          <div className="flex items-center gap-1.5 select-none text-neutral-900 dark:text-white" aria-label={`${metricasSimuladas.reposts} reposts`}>
             <InstagramRepostIcon size={22} className="text-neutral-900 dark:text-white" />
-            <span className="text-[13px] font-semibold text-neutral-900 dark:text-white tracking-tight">1</span>
-          </button>
+            <span className="text-[13px] font-semibold text-neutral-900 dark:text-white tracking-tight">
+              {metricasSimuladas.reposts}
+            </span>
+          </div>
 
           {/* Compartilhar / Direct (Figma 2026 Glyph) */}
-          <button
-            type="button"
-            className="hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-neutral-900 dark:text-white p-0.5"
-            aria-label="Compartilhar"
-          >
+          <div className="text-neutral-900 dark:text-white p-0.5 select-none" aria-label="Compartilhar">
             <InstagramShareIcon size={24} className="text-neutral-900 dark:text-white" />
-          </button>
+          </div>
         </div>
 
         {/* Salvar na Extrema Direita */}

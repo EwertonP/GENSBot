@@ -42,12 +42,7 @@ export function InstagramStoryPreview({
   onPedirAjuste,
   className,
 }: InstagramStoryPreviewProps) {
-  const [curtido, setCurtido] = useState(false);
   const [mutado, setMutado] = useState(true);
-  const [animandoCoracao, setAnimandoCoracao] = useState(false);
-
-  const lastTapRef = useRef<number>(0);
-  const coracaoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const totalSlides = Math.max(1, arquivos.length);
   const slideValido = Math.min(Math.max(0, slideAtual), totalSlides - 1);
@@ -57,20 +52,6 @@ export function InstagramStoryPreview({
   const usernameLimpo = formatarUsernameInstagram(clienteNome, clienteInstagramUsername);
 
   function handleStoryClick(e: React.MouseEvent<HTMLDivElement>) {
-    const agora = Date.now();
-    if (agora - lastTapRef.current < 320) {
-      // Duplo clique detectado: curtir com animação do coração
-      setCurtido(true);
-      setAnimandoCoracao(true);
-      if (coracaoTimeoutRef.current) clearTimeout(coracaoTimeoutRef.current);
-      coracaoTimeoutRef.current = setTimeout(() => {
-        setAnimandoCoracao(false);
-      }, 900);
-      lastTapRef.current = agora;
-      return;
-    }
-    lastTapRef.current = agora;
-
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const largura = rect.width;
@@ -114,13 +95,6 @@ export function InstagramStoryPreview({
               alt={`Story ${slideValido + 1}`}
               className="w-full h-full object-cover"
             />
-          )}
-
-          {/* Explosão de Coração no Duplo Toque */}
-          {animandoCoracao && (
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-30 animate-in zoom-in-50 fade-in duration-200">
-              <InstagramHeartIcon size={96} filled className="text-white drop-shadow-[0_10px_25px_rgba(0,0,0,0.6)] animate-pulse" />
-            </div>
           )}
         </div>
 
@@ -235,24 +209,12 @@ export function InstagramStoryPreview({
           >
             <span>Enviar mensagem...</span>
           </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurtido(!curtido);
-            }}
-            className="p-1.5 text-white hover:scale-110 active:scale-125 transition-transform cursor-pointer"
-            aria-label="Curtir story"
-          >
-            <InstagramHeartIcon size={24} filled={curtido} className={curtido ? 'text-[#FF0034]' : 'text-white'} />
-          </button>
-          <button
-            type="button"
-            className="p-1.5 text-white hover:scale-110 active:scale-125 transition-transform cursor-pointer"
-            aria-label="Compartilhar"
-          >
+          <div className="p-1.5 text-white select-none" aria-label="Curtir story">
+            <InstagramHeartIcon size={24} className="text-white" />
+          </div>
+          <div className="p-1.5 text-white select-none" aria-label="Compartilhar">
             <InstagramShareIcon size={24} className="text-white" />
-          </button>
+          </div>
         </div>
       </div>
 

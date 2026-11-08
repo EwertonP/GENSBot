@@ -10,7 +10,10 @@ import {
 } from 'lucide-react';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { formatarTimecode, type ArquivoConteudo } from '@/lib/conteudo';
-import { formatarUsernameInstagram } from './instagram-format';
+import {
+  formatarUsernameInstagram,
+  gerarMetricasAleatoriasInstagram,
+} from './instagram-format';
 import {
   InstagramVerifiedBadge,
   InstagramHeartIcon,
@@ -52,16 +55,12 @@ export function InstagramReelsPreview({
   className,
 }: InstagramReelsPreviewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [metricasSimuladas] = useState(() => gerarMetricasAleatoriasInstagram());
   const [pausado, setPausado] = useState(true);
   const [mutado, setMutado] = useState(false);
-  const [curtido, setCurtido] = useState(false);
   const [salvo, setSalvo] = useState(false);
   const [expandido, setExpandido] = useState(false);
   const [duracaoTotal, setDuracaoTotal] = useState(0);
-  const [animandoCoracao, setAnimandoCoracao] = useState(false);
-
-  const lastTapRef = useRef<number>(0);
-  const coracaoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const videoUrl = arquivoVideo?.url || '';
 
@@ -80,19 +79,7 @@ export function InstagramReelsPreview({
   }
 
   function handleVideoAreaClick() {
-    const agora = Date.now();
-    if (agora - lastTapRef.current < 320) {
-      // Double tap para curtir com animação do coração
-      setCurtido(true);
-      setAnimandoCoracao(true);
-      if (coracaoTimeoutRef.current) clearTimeout(coracaoTimeoutRef.current);
-      coracaoTimeoutRef.current = setTimeout(() => {
-        setAnimandoCoracao(false);
-      }, 900);
-    } else {
-      togglePlay();
-    }
-    lastTapRef.current = agora;
+    togglePlay();
   }
 
   function handleTimeUpdate() {
@@ -145,15 +132,8 @@ export function InstagramReelsPreview({
             </div>
           )}
 
-          {/* Explosão de Coração no Duplo Toque */}
-          {animandoCoracao && (
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-30 animate-in zoom-in-50 fade-in duration-200">
-              <InstagramHeartIcon size={96} filled className="text-white drop-shadow-[0_10px_25px_rgba(0,0,0,0.6)] animate-pulse" />
-            </div>
-          )}
-
           {/* Indicador de Play/Pause Flutuante no Centro */}
-          {pausado && videoUrl && !animandoCoracao && (
+          {pausado && videoUrl && (
             <div className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center shadow-xl border border-white/20 transition-ui hover:scale-105 pointer-events-none">
               <Play className="w-7 h-7 ml-1 fill-white" />
             </div>
@@ -184,21 +164,13 @@ export function InstagramReelsPreview({
 
         {/* Trilha Lateral Direita Oficial do Reels com Vetores Figma */}
         <div className="absolute right-2.5 bottom-16 z-20 flex flex-col items-center gap-3.5 text-white">
-          {/* Curtidas */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurtido(!curtido);
-            }}
-            className="flex flex-col items-center gap-1 group/btn cursor-pointer"
-            aria-label="Curtir Reels"
-          >
-            <div className="p-2 rounded-full bg-black/30 backdrop-blur-xs group-hover/btn:scale-110 active:scale-125 transition-transform">
-              <InstagramHeartIcon size={24} filled={curtido} className={curtido ? 'text-[#FF0034]' : 'text-white'} />
+          {/* Curtidas Reels (Aleatório 0 a 200 Sem Interação Indesejada) */}
+          <div className="flex flex-col items-center gap-1 select-none" aria-label={`${metricasSimuladas.curtidas} curtidas`}>
+            <div className="p-2 rounded-full bg-black/30 backdrop-blur-xs">
+              <InstagramHeartIcon size={24} className="text-white" />
             </div>
-            <span className="text-[10px] font-bold drop-shadow">18.4k</span>
-          </button>
+            <span className="text-[10px] font-bold drop-shadow">{metricasSimuladas.curtidas}</span>
+          </div>
 
           {/* Comentário / Ajuste no Minuto */}
           <button
@@ -217,20 +189,16 @@ export function InstagramReelsPreview({
             <div className="p-2 rounded-full bg-black/30 backdrop-blur-xs group-hover/btn:scale-110 active:scale-125 transition-transform">
               <InstagramCommentIcon size={24} className="text-white" />
             </div>
-            <span className="text-[10px] font-bold drop-shadow">Ajustar</span>
+            <span className="text-[10px] font-bold drop-shadow">{metricasSimuladas.comentarios}</span>
           </button>
 
           {/* Compartilhar (Figma 2026 Glyph) */}
-          <button
-            type="button"
-            className="flex flex-col items-center gap-1 group/btn cursor-pointer"
-            aria-label="Compartilhar"
-          >
-            <div className="p-2 rounded-full bg-black/30 backdrop-blur-xs group-hover/btn:scale-110 active:scale-125 transition-transform">
+          <div className="flex flex-col items-center gap-1 select-none" aria-label={`${metricasSimuladas.reposts} compartilhamentos`}>
+            <div className="p-2 rounded-full bg-black/30 backdrop-blur-xs">
               <InstagramShareIcon size={24} className="text-white" />
             </div>
-            <span className="text-[10px] font-bold drop-shadow">Enviar</span>
-          </button>
+            <span className="text-[10px] font-bold drop-shadow">{metricasSimuladas.reposts}</span>
+          </div>
 
           {/* Salvar */}
           <button
