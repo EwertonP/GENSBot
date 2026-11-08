@@ -61,15 +61,17 @@ export function InstagramCarrosselPreview({
   const [expandido, setExpandido] = useState(false);
   const [animandoCoracao, setAnimandoCoracao] = useState(false);
 
-  // Controle de Gestos de Toque (Swipe Mobile)
-  const touchStartXRef = useRef<number | null>(null);
-  const touchStartYRef = useRef<number | null>(null);
+  // Controle de Gestos de Arraste e Toque (Swipe Mobile + Desktop Drag)
+  const [dragDeltaX, setDragDeltaX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const isMouseDownRef = useRef(false);
+  const startXRef = useRef(0);
+  const currentDeltaRef = useRef(0);
   const lastTapRef = useRef<number>(0);
   const coracaoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const totalSlides = arquivos.length;
   const slideValido = Math.min(Math.max(0, slideAtual), Math.max(0, totalSlides - 1));
-  const arquivoAtual = arquivos[slideValido] || null;
 
   // Username oficial sem o caractere '@' (ex: byvickmachado, ph__cursos)
   const usernameLimpo = formatarUsernameInstagram(clienteNome, clienteInstagramUsername);
@@ -93,35 +95,10 @@ export function InstagramCarrosselPreview({
     }
   }
 
-  // Gestos de Deslize por Toque no Celular (Swipe)
-  function handleTouchStart(e: React.TouchEvent<HTMLDivElement>) {
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartYRef.current = e.touches[0].clientY;
-  }
-
-  function handleTouchEnd(e: React.TouchEvent<HTMLDivElement>) {
-    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
-    const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
-
-    // Apenas considera swipe horizontal predominante com distância mínima de 40px
-    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      if (deltaX < 0) {
-        proximoSlide();
-      } else {
-        slideAnterior();
-      }
-    }
-
-    touchStartXRef.current = null;
-    touchStartYRef.current = null;
-  }
-
   // Double-tap ou Duplo Clique para Curtir com explosão de coração animado
   function handleMediaTap() {
     const agora = Date.now();
     if (agora - lastTapRef.current < 320) {
-      // Duplo toque detectado!
       if (!curtido) {
         setCurtido(true);
         setCurtidasCount((prev) => prev + 1);
@@ -133,6 +110,91 @@ export function InstagramCarrosselPreview({
       }, 900);
     }
     lastTapRef.current = agora;
+  }
+
+  // Gestos de Deslize por Toque no Celular (Touch)
+  function handleTouchStart(e: React.TouchEvent<HTMLDivElement>) {
+    if (totalSlides <= 1) return;
+    startXRef.current = e.touches[0].clientX;
+    currentDeltaRef.current = 0;
+    setIsDragging(true);
+  }
+
+  function handleTouchMove(e: React.TouchEvent<HTMLDivElement>) {
+    if (!isDragging) return;
+    const delta = e.touches[0].clientX - startXRef.current;
+    let damping = 1;
+    if ((slideValido === 0 && delta > 0) || (slideValido === totalSlides - 1 && delta < 0)) {
+      damping = 0.25;
+    }
+    const finalDelta = delta * damping;
+    currentDeltaRef.current = finalDelta;
+    setDragDeltaX(finalDelta);
+  }
+
+  function handleTouchEnd() {
+    if (!isDragging) {
+      handleMediaTap();
+      return;
+    }
+    const delta = currentDeltaRef.current;
+    setIsDragging(false);
+    setDragDeltaX(0);
+
+    if (Math.abs(delta) > 40) {
+      if (delta < 0 && slideValido < totalSlides - 1) {
+        proximoSlide();
+      } else if (delta > 0 && slideValido > 0) {
+        slideAnterior();
+      }
+    } else if (Math.abs(delta) < 5) {
+      handleMediaTap();
+    }
+  }
+
+  // Gestos de Deslize por Mouse no Desktop (Drag)
+  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (totalSlides <= 1) return;
+    isMouseDownRef.current = true;
+    startXRef.current = e.clientX;
+    currentDeltaRef.current = 0;
+    setIsDragging(true);
+  }
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (!isMouseDownRef.current || !isDragging) return;
+    const delta = e.clientX - startXRef.current;
+    let damping = 1;
+    if ((slideValido === 0 && delta > 0) || (slideValido === totalSlides - 1 && delta < 0)) {
+      damping = 0.25;
+    }
+    const finalDelta = delta * damping;
+    currentDeltaRef.current = finalDelta;
+    setDragDeltaX(finalDelta);
+  }
+
+  function handleMouseUp() {
+    if (!isMouseDownRef.current && !isDragging) return;
+    const delta = currentDeltaRef.current;
+    isMouseDownRef.current = false;
+    setIsDragging(false);
+    setDragDeltaX(0);
+
+    if (Math.abs(delta) > 40) {
+      if (delta < 0 && slideValido < totalSlides - 1) {
+        proximoSlide();
+      } else if (delta > 0 && slideValido > 0) {
+        slideAnterior();
+      }
+    } else if (Math.abs(delta) < 5) {
+      handleMediaTap();
+    }
+  }
+
+  function handleMouseLeave() {
+    if (isMouseDownRef.current || isDragging) {
+      handleMouseUp();
+    }
   }
 
   return (
@@ -180,36 +242,69 @@ export function InstagramCarrosselPreview({
         </button>
       </div>
 
-      {/* 2. Área Visual 4:5 da Mídia com Suporte a Swipe Touch e Duplo Toque */}
+      {/* 2. Área Visual 4:5 da Mídia com Efeito de Deslize Fluído de Carrossel */}
       <div
-        className="relative w-full aspect-[4/5] bg-neutral-950 flex items-center justify-center overflow-hidden select-none group touch-pan-y"
+        className={`relative w-full aspect-[4/5] bg-neutral-950 flex items-center justify-center overflow-hidden select-none group touch-pan-y ${
+          totalSlides > 1 ? 'cursor-grab active:cursor-grabbing' : ''
+        }`}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onClick={handleMediaTap}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
       >
         {totalSlides === 0 ? (
           <div className="text-center p-6 text-neutral-400 text-xs">
             <p>Mídia em processamento pela equipe.</p>
           </div>
         ) : (
-          <div className="relative w-full h-full">
-            {arquivoAtual?.tipo === 'video' ? (
-              <video
-                src={arquivoAtual.url}
-                controls={false}
-                autoPlay
-                loop
-                muted={mutado}
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={arquivoAtual?.url}
-                alt={`Slide ${slideValido + 1}`}
-                className="w-full h-full object-cover transition-opacity duration-200"
-              />
+          <div className="relative w-full h-full overflow-hidden">
+            {/* Trilho de Slides com Transição Deslizante por Cima da Imagem Atual */}
+            <div
+              className="flex w-full h-full will-change-transform"
+              style={{
+                transform: `translateX(calc(-${slideValido * 100}% + ${dragDeltaX}px))`,
+                transition: isDragging
+                  ? 'none'
+                  : 'transform 360ms cubic-bezier(0.25, 1, 0.5, 1)',
+              }}
+            >
+              {arquivos.map((arquivo, idx) => (
+                <div
+                  key={arquivo.id || idx}
+                  className="w-full h-full shrink-0 relative overflow-hidden bg-neutral-950 flex items-center justify-center select-none shadow-[-16px_0_32px_rgba(0,0,0,0.6)]"
+                  style={{ zIndex: idx }}
+                >
+                  {arquivo.tipo === 'video' ? (
+                    <video
+                      src={arquivo.url}
+                      controls={false}
+                      autoPlay={idx === slideValido}
+                      loop
+                      muted={mutado}
+                      playsInline
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={arquivo.url}
+                      alt={`Slide ${idx + 1}`}
+                      className="w-full h-full object-cover pointer-events-none select-none"
+                      draggable={false}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Contador de Slides Flutuante no Topo Direito (1/3) Estilo Oficial Instagram */}
+            {totalSlides > 1 && (
+              <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-[11px] font-sans font-semibold text-white shadow-md border border-white/10 pointer-events-none z-20">
+                {slideValido + 1}/{totalSlides}
+              </div>
             )}
 
             {/* Explosão de Coração no Duplo Toque */}
@@ -226,7 +321,7 @@ export function InstagramCarrosselPreview({
                 e.stopPropagation();
                 setMutado(!mutado);
               }}
-              className="absolute bottom-3 right-3 w-7 h-7 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center shadow-md border border-white/10 hover:bg-black/80 transition-ui cursor-pointer z-10"
+              className="absolute bottom-3 right-3 w-7 h-7 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center shadow-md border border-white/10 hover:bg-black/80 transition-ui cursor-pointer z-20"
               aria-label={mutado ? 'Ativar som' : 'Desativar som'}
             >
               {mutado ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
@@ -243,7 +338,7 @@ export function InstagramCarrosselPreview({
                       slideAnterior();
                     }}
                     aria-label="Slide anterior"
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white hover:bg-black/80 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform active:scale-90 opacity-0 group-hover:opacity-100 z-10 cursor-pointer"
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white hover:bg-black/80 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform active:scale-90 opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -257,7 +352,7 @@ export function InstagramCarrosselPreview({
                       proximoSlide();
                     }}
                     aria-label="Próximo slide"
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white hover:bg-black/80 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform active:scale-90 opacity-0 group-hover:opacity-100 z-10 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white hover:bg-black/80 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform active:scale-90 opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
