@@ -2,22 +2,25 @@
 
 import React, { useRef, useState } from 'react';
 import {
-  Heart,
-  MessageCircle,
-  Send,
-  Bookmark,
-  MoreHorizontal,
   Play,
   Volume2,
   VolumeX,
-  Music2,
-  Clock,
-  Camera,
   Disc,
+  Clock,
 } from 'lucide-react';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { formatarTimecode, type ArquivoConteudo } from '@/lib/conteudo';
 import { formatarUsernameInstagram } from './instagram-format';
+import {
+  InstagramVerifiedBadge,
+  InstagramHeartIcon,
+  InstagramCommentIcon,
+  InstagramShareIcon,
+  InstagramSaveIcon,
+  InstagramOptionsIcon,
+  InstagramReelsIcon,
+  InstagramAudioWaveIcon,
+} from './instagram-icons';
 
 interface InstagramReelsPreviewProps {
   clienteNome: string;
@@ -143,7 +146,7 @@ export function InstagramReelsPreview({
           {/* Explosão de Coração no Duplo Toque */}
           {animandoCoracao && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-30 animate-in zoom-in-50 fade-in duration-200">
-              <Heart className="w-24 h-24 fill-white text-white drop-shadow-[0_10px_25px_rgba(0,0,0,0.6)] animate-pulse" />
+              <InstagramHeartIcon size={96} filled className="text-white drop-shadow-[0_10px_25px_rgba(0,0,0,0.6)] animate-pulse" />
             </div>
           )}
 
@@ -158,10 +161,10 @@ export function InstagramReelsPreview({
         {/* Degradê Superior para Header do Reels */}
         <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-black/75 via-black/35 to-transparent pointer-events-none z-10" />
 
-        {/* Header Superior do Reels */}
+        {/* Header Superior do Reels com Ícone Oficial Figma */}
         <div className="relative z-20 px-4 pt-3.5 flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
-            <Camera className="w-4 h-4 text-white" />
+            <InstagramReelsIcon size={20} className="text-white" />
             <span className="text-sm font-bold tracking-tight">Reels</span>
           </div>
           <button
@@ -177,7 +180,7 @@ export function InstagramReelsPreview({
           </button>
         </div>
 
-        {/* Trilha Lateral Direita Oficial do Reels */}
+        {/* Trilha Lateral Direita Oficial do Reels com Vetores Figma */}
         <div className="absolute right-2.5 bottom-16 z-20 flex flex-col items-center gap-3.5 text-white">
           {/* Curtidas */}
           <button
@@ -190,7 +193,7 @@ export function InstagramReelsPreview({
             aria-label="Curtir Reels"
           >
             <div className="p-2 rounded-full bg-black/30 backdrop-blur-xs group-hover/btn:scale-110 active:scale-125 transition-transform">
-              <Heart strokeWidth={1.8} className={`w-6 h-6 ${curtido ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+              <InstagramHeartIcon size={24} filled={curtido} className={curtido ? 'text-[#FF0034]' : 'text-white'} />
             </div>
             <span className="text-[10px] font-bold drop-shadow">18.4k</span>
           </button>
@@ -210,19 +213,19 @@ export function InstagramReelsPreview({
             aria-label="Comentar ou sugerir ajuste"
           >
             <div className="p-2 rounded-full bg-black/30 backdrop-blur-xs group-hover/btn:scale-110 active:scale-125 transition-transform">
-              <MessageCircle strokeWidth={1.8} className="w-6 h-6 text-white" />
+              <InstagramCommentIcon size={24} className="text-white" />
             </div>
             <span className="text-[10px] font-bold drop-shadow">Ajustar</span>
           </button>
 
-          {/* Compartilhar */}
+          {/* Compartilhar (Figma 2026 Glyph) */}
           <button
             type="button"
             className="flex flex-col items-center gap-1 group/btn cursor-pointer"
             aria-label="Compartilhar"
           >
             <div className="p-2 rounded-full bg-black/30 backdrop-blur-xs group-hover/btn:scale-110 active:scale-125 transition-transform">
-              <Send strokeWidth={1.8} className="w-6 h-6 text-white -rotate-45" />
+              <InstagramShareIcon size={24} className="text-white" />
             </div>
             <span className="text-[10px] font-bold drop-shadow">Enviar</span>
           </button>
@@ -237,7 +240,7 @@ export function InstagramReelsPreview({
             className="p-2 rounded-full bg-black/30 backdrop-blur-xs text-white hover:scale-110 active:scale-125 transition-transform cursor-pointer"
             aria-label="Salvar post"
           >
-            <Bookmark strokeWidth={1.8} className={`w-5 h-5 ${salvo ? 'fill-white text-white' : 'text-white'}`} />
+            <InstagramSaveIcon size={22} filled={salvo} className="text-white" />
           </button>
 
           {/* Mais opções */}
@@ -246,7 +249,7 @@ export function InstagramReelsPreview({
             className="p-1.5 rounded-full bg-black/30 backdrop-blur-xs text-white hover:text-white cursor-pointer"
             aria-label="Opções"
           >
-            <MoreHorizontal className="w-5 h-5" />
+            <InstagramOptionsIcon size={20} className="text-white" />
           </button>
 
           {/* Disco de Vinil Giratório */}
@@ -272,12 +275,7 @@ export function InstagramReelsPreview({
               className="ring-1 ring-white"
             />
             <span className="text-xs font-bold drop-shadow-md truncate">{usernameLimpo}</span>
-            <span
-              className="w-3.5 h-3.5 bg-[#0095F6] rounded-full inline-flex items-center justify-center text-[9px] font-black text-white shrink-0"
-              title="Verificado"
-            >
-              ✓
-            </span>
+            <InstagramVerifiedBadge size={13} />
             <button
               type="button"
               className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/60 text-white backdrop-blur-xs hover:bg-white/20 transition-colors shrink-0 cursor-pointer ml-1"
@@ -308,9 +306,9 @@ export function InstagramReelsPreview({
             </div>
           )}
 
-          {/* Áudio Original com Ticker */}
+          {/* Áudio Original com Ticker Oficial */}
           <div className="flex items-center gap-1.5 text-[11px] text-white/85 mt-0.5">
-            <Music2 className="w-3 h-3 text-white shrink-0 animate-pulse" />
+            <InstagramAudioWaveIcon size={12} className="text-white shrink-0" />
             <span className="truncate">
               {audioNome || `Áudio original · ${usernameLimpo}`}
             </span>

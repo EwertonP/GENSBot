@@ -25,6 +25,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Instagram } from '@/components/instagram-icon';
+import { InstagramGalleryIcon, InstagramReelsIcon } from '@/components/aprovacao/instagram-icons';
 import { STATUS_LABELS, type ConteudoItem, type StatusConteudo } from '@/lib/conteudo';
 import type { Cliente } from '@/lib/clientes';
 import { confirmDialog } from '@/components/ui/dialog';
@@ -226,17 +227,17 @@ export function FeedPreviewGrid({
                     #{String(idx + 1).padStart(2, '0')}
                   </span>
 
-                  {/* Badges de Formato no Topo Direito (Carrossel ou Vídeo) */}
+                  {/* Badges de Formato no Topo Direito (Carrossel ou Reels Oficiais) */}
                   <div className="absolute top-2 right-2 flex items-center gap-1">
                     {isCarrossel && (
-                      <span className="px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-[10px] font-mono font-bold text-white flex items-center gap-1 shadow-xs">
-                        <Layers className="w-2.5 h-2.5" />
+                      <span className="px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-[10px] font-sans font-bold text-white flex items-center gap-1 shadow-xs">
+                        <InstagramGalleryIcon size={11} className="text-white" />
                         <span>{slidesCount}</span>
                       </span>
                     )}
                     {isVideo && (
                       <span className="p-1 rounded-md bg-black/75 backdrop-blur-md text-white shadow-xs">
-                        <Video className="w-2.5 h-2.5" />
+                        <InstagramReelsIcon size={12} className="text-white" />
                       </span>
                     )}
                   </div>

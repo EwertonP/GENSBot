@@ -2,8 +2,6 @@
 
 import React, { useState, useRef } from 'react';
 import {
-  Heart,
-  Send,
   Volume2,
   VolumeX,
   X,
@@ -14,6 +12,12 @@ import {
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import type { ArquivoConteudo } from '@/lib/conteudo';
 import { formatarUsernameInstagram } from './instagram-format';
+import {
+  InstagramVerifiedBadge,
+  InstagramHeartIcon,
+  InstagramShareIcon,
+  InstagramStoryGradientRing,
+} from './instagram-icons';
 
 interface InstagramStoryPreviewProps {
   clienteNome: string;
@@ -113,7 +117,7 @@ export function InstagramStoryPreview({
           {/* Explosão de Coração no Duplo Toque */}
           {animandoCoracao && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-30 animate-in zoom-in-50 fade-in duration-200">
-              <Heart className="w-24 h-24 fill-white text-white drop-shadow-[0_10px_25px_rgba(0,0,0,0.6)] animate-pulse" />
+              <InstagramHeartIcon size={96} filled className="text-white drop-shadow-[0_10px_25px_rgba(0,0,0,0.6)] animate-pulse" />
             </div>
           )}
         </div>
@@ -140,7 +144,7 @@ export function InstagramStoryPreview({
         {/* Header Oficial do Instagram Stories */}
         <div className="relative z-20 px-3.5 pt-2 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="p-[2px] rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shrink-0">
+            <InstagramStoryGradientRing size={32}>
               <ClienteAvatar
                 nome={clienteNome}
                 cor={clienteCor}
@@ -148,17 +152,12 @@ export function InstagramStoryPreview({
                 tamanho="xs"
                 className="ring-1 ring-black"
               />
-            </div>
+            </InstagramStoryGradientRing>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-xs font-bold text-white drop-shadow-md truncate">
                 {usernameLimpo}
               </span>
-              <span
-                className="w-3.5 h-3.5 bg-[#0095F6] rounded-full inline-flex items-center justify-center text-[9px] font-black text-white shrink-0"
-                title="Verificado"
-              >
-                ✓
-              </span>
+              <InstagramVerifiedBadge size={13} />
               <span className="text-[10px] text-white/75 drop-shadow-sm font-medium shrink-0 ml-0.5">
                 2 h
               </span>
@@ -243,14 +242,14 @@ export function InstagramStoryPreview({
             className="p-1.5 text-white hover:scale-110 active:scale-125 transition-transform cursor-pointer"
             aria-label="Curtir story"
           >
-            <Heart strokeWidth={1.8} className={`w-6 h-6 ${curtido ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+            <InstagramHeartIcon size={24} filled={curtido} className={curtido ? 'text-[#FF0034]' : 'text-white'} />
           </button>
           <button
             type="button"
             className="p-1.5 text-white hover:scale-110 active:scale-125 transition-transform cursor-pointer"
             aria-label="Compartilhar"
           >
-            <Send strokeWidth={1.8} className="w-6 h-6 text-white -rotate-45" />
+            <InstagramShareIcon size={24} className="text-white" />
           </button>
         </div>
       </div>

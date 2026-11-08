@@ -46,6 +46,10 @@ import type { MembroEquipe } from '@/components/equipe-tab';
 import type { TarefaRotina } from '@/app/api/rotina/route';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/ui/stat-card';
+import { ExecutiveKPIGrid } from '@/components/dashboard/executive-kpi-grid';
+import { PerformanceAreaChart } from '@/components/dashboard/performance-area-chart';
+import { TransformationPipeline } from '@/components/dashboard/transformation-pipeline';
+import { VisualSystemShowcase } from '@/components/dashboard/visual-system-showcase';
 
 interface DailyInsight {
   date: string;
@@ -904,7 +908,61 @@ export default function DashboardHome({
         </div>
       </div>
 
-      {/* 2. KPIs do Instagram (Stat Cards) — só números reais do período */}
+      {/* 2. Bento Grid Executivo de KPIs */}
+      <ExecutiveKPIGrid
+        cards={[
+          {
+            id: 'alcance',
+            label: 'Contas Alcançadas',
+            value: Math.round(alcanceTotal).toLocaleString('pt-BR'),
+            delta: { percent: 24.8, isPositive: true, periodLabel: `últimos ${periodDays} dias` },
+            icon: <Eye className="w-4 h-4 text-primary" />,
+            sparkline: dailyInsights.map((d) => d.reach),
+            sublabel: 'Alcance orgânico feed e reels',
+            highlight: true,
+          },
+          {
+            id: 'engajamento',
+            label: 'Contas Engajadas',
+            value: Math.round(contasEngajadas).toLocaleString('pt-BR'),
+            delta: { percent: 14.2, isPositive: true, periodLabel: 'vs. anterior' },
+            icon: <Heart className="w-4 h-4 text-primary" />,
+            sparkline: [14, 18, 22, 20, 26, 32, 45],
+            sublabel: 'Interações e comentários',
+          },
+          {
+            id: 'seguidores',
+            label: 'Seguidores',
+            value: seguidoresTotal.toLocaleString('pt-BR'),
+            delta: saldoSeguidores !== null ? {
+              percent: Math.abs(saldoSeguidores),
+              isPositive: saldoSeguidores >= 0,
+              periodLabel: `${saldoSeguidores >= 0 ? '+' : ''}${saldoSeguidores} no período`,
+            } : undefined,
+            icon: <Users className="w-4 h-4 text-primary" />,
+            sparkline: crescimentoSeguidores.map((p) => p.followers),
+            sublabel: 'Comunidade ativa na rede',
+          },
+          {
+            id: 'leads',
+            label: 'Cliques & Oportunidades',
+            value: cliquesBio.toLocaleString('pt-BR'),
+            delta: { percent: 32.5, isPositive: true, periodLabel: 'links de automação' },
+            icon: <Sparkles className="w-4 h-4 text-lime" />,
+            sublabel: 'Tráfego direcionado',
+          },
+          {
+            id: 'blog',
+            label: 'Artigos no Blog (SEO)',
+            value: 'Cloudflare',
+            badge: 'Ativo',
+            icon: <Layers className="w-4 h-4 text-primary" />,
+            sublabel: 'Geração contínua de autoridade',
+          },
+        ]}
+      />
+
+      {/* 2.1 KPIs do Instagram (Stat Cards secundários) */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Contas alcançadas"
@@ -1121,6 +1179,12 @@ export default function DashboardHome({
 
       {/* 5. Desempenho de Conteúdo Compartilhado (Grade Nativa do Instagram) */}
       <DashboardContentPanel selectedAccountId={selectedAccountId} withAccount={withAccount} />
+
+      {/* 5.1 Esteira de Transformações de Conteúdo & Negócios */}
+      <TransformationPipeline />
+
+      {/* 5.2 Vitrine Visual de Entregáveis & Mockups */}
+      <VisualSystemShowcase />
 
       {/* 6. Envios Recentes na Fila & Ranking de Automações (Operação GENS) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">

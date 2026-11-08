@@ -438,7 +438,7 @@ function ContentFormatBreakdownCard({ summary }: { summary: ContentPerformance['
       {!summary ? (
         <EmptyState size="compact" icon={BarChart3} title="Sem dados de conteúdo no período" description="Assim que houver publicações com insights da Meta, a divisão por formato aparece aqui." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+        <div className={`grid grid-cols-1 ${formats.length === 4 ? 'md:grid-cols-2 2xl:grid-cols-4' : 'md:grid-cols-2 lg:grid-cols-3'} gap-4 sm:gap-5`}>
           {formats.map((f, idx) => {
             const stats = summary.byFormat?.[f.key];
             const share = totalReach > 0 && stats ? Math.round((stats.reach / totalReach) * 100) : 0;
