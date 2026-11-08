@@ -11,12 +11,8 @@ import {
   Clock,
   Sparkles,
   Smartphone,
-  Heart,
-  MessageCircle,
-  Bookmark,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
   Sun,
   Moon,
   Undo2,
@@ -37,6 +33,14 @@ import { InstagramStoryPreview } from '@/components/aprovacao/instagram-story-pr
 import { InstagramReelsPreview } from '@/components/aprovacao/instagram-reels-preview';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { toast } from '@/components/ui/toast';
+import {
+  InstagramVerifiedBadge,
+  InstagramHeartIcon,
+  InstagramCommentIcon,
+  InstagramShareIcon,
+  InstagramSaveIcon,
+  InstagramOptionsIcon,
+} from '@/components/aprovacao/instagram-icons';
 
 const NOME_STORAGE_KEY = 'gensbot_aprovacao_nome';
 const SEGUNDOS_DESFAZER = 8;
@@ -743,9 +747,9 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
       </main>
 
       {/* --- VISÃO DESKTOP (>= lg) estilo Instagram Web Native Modal --- */}
-      <main className="hidden lg:flex w-full max-w-5xl h-[660px] rounded-2xl bg-card border border-border shadow-2xl overflow-hidden my-auto">
+      <main className="hidden lg:flex w-full max-w-5xl h-[700px] xl:h-[720px] max-h-[calc(100dvh-5rem)] min-h-[580px] rounded-2xl bg-card border border-border shadow-2xl overflow-hidden my-auto">
         {/* Coluna da Esquerda (60%): Estágio Visual de Mídia (Carrossel / Reels / Story) */}
-        <div className="w-7/12 bg-muted dark:bg-black flex items-center justify-center relative overflow-hidden border-r border-border p-4">
+        <div className="w-7/12 bg-muted/40 dark:bg-black/60 flex items-center justify-center relative overflow-y-auto overflow-x-hidden border-r border-border p-4 scrollbar-none">
           {isStory ? (
             <InstagramStoryPreview
               clienteNome={clienteNome}
@@ -756,6 +760,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               slideAtual={slideAtual}
               onMudarSlide={setSlideAtual}
               onPedirAjuste={handleAbrirAjusteSlide}
+              className="max-w-[310px] xl:max-w-[330px]"
             />
           ) : isReel ? (
             <InstagramReelsPreview
@@ -769,6 +774,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               tempoAtual={videoTempo}
               onAtualizarTempo={setVideoTempo}
               onPedirAjuste={handleAbrirAjusteVideo}
+              className="max-w-[310px] xl:max-w-[330px]"
             />
           ) : (
             <InstagramCarrosselPreview
@@ -783,6 +789,7 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               slideAtual={slideAtual}
               onMudarSlide={setSlideAtual}
               onPedirAjuste={handleAbrirAjusteSlide}
+              className="max-w-[340px] xl:max-w-[360px]"
             />
           )}
         </div>
@@ -805,7 +812,9 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-bold text-foreground tracking-tight leading-tight">{clienteNome}</span>
-                  <Tip label={"Perfil Verificado"}><span className="w-4 h-4 bg-info text-info-foreground rounded-full inline-flex items-center justify-center text-xs font-bold">✓</span></Tip>
+                  <Tip label="Perfil Verificado">
+                    <InstagramVerifiedBadge size={16} />
+                  </Tip>
                 </div>
                 <span className="text-xs text-muted-foreground font-medium">Agência GENS • Central de Aprovação</span>
               </div>
@@ -817,8 +826,12 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
               >
                 {sucessoAprovado ? 'Aprovado' : item.status === 'travado' ? 'Ajustes Solicitados' : 'Pendente'}
               </Badge>
-              <button type="button" className="text-muted-foreground hover:text-foreground transition-colors p-1">
-                <MoreHorizontal className="w-5 h-5" />
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
+                aria-label="Mais opções"
+              >
+                <InstagramOptionsIcon size={20} />
               </button>
             </div>
           </div>
@@ -905,23 +918,39 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
             {/* Barra de Ações Ícones (Curtir, Comentar, Compartilhar, Salvar) */}
             <div className="px-4 pt-3 pb-2 flex items-center justify-between text-foreground">
               <div className="flex items-center gap-4">
-                <Tip label={"Curtir"}><button
-                  type="button"
-                  onClick={() => setCurtido(!curtido)}
-                  className="hover:text-muted-foreground transition-transform active:scale-125" aria-label={"Curtir"}
-                >
-                  <Heart className={`w-6 h-6 ${curtido ? 'fill-destructive text-destructive' : ''}`} />
-                </button></Tip>
-                <Tip label={"Comentar / Sugerir Ajuste"}><button
-                  type="button"
-                  onClick={() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirModalAjuste(slideAtual + 1))}
-                  className="hover:text-muted-foreground transition-transform active:scale-110" aria-label={"Comentar / Sugerir Ajuste"}
-                >
-                  <MessageCircle className="w-6 h-6" />
-                </button></Tip>
-                <Tip label={"Compartilhar"}><button type="button" className="hover:text-muted-foreground transition-transform active:scale-110" aria-label={"Compartilhar"}>
-                  <Send className="w-6 h-6" />
-                </button></Tip>
+                <Tip label="Curtir">
+                  <button
+                    type="button"
+                    onClick={() => setCurtido(!curtido)}
+                    className="hover:opacity-75 transition-transform active:scale-125 cursor-pointer"
+                    aria-label="Curtir"
+                  >
+                    <InstagramHeartIcon
+                      size={24}
+                      filled={curtido}
+                      className={`transition-colors ${curtido ? 'text-[#FF0034]' : 'text-foreground'}`}
+                    />
+                  </button>
+                </Tip>
+                <Tip label="Comentar / Sugerir Ajuste">
+                  <button
+                    type="button"
+                    onClick={() => (isReel ? handleAbrirAjusteVideo(videoTempo) : handleAbrirModalAjuste(slideAtual + 1))}
+                    className="hover:opacity-75 transition-transform active:scale-110 cursor-pointer text-foreground"
+                    aria-label="Comentar / Sugerir Ajuste"
+                  >
+                    <InstagramCommentIcon size={24} />
+                  </button>
+                </Tip>
+                <Tip label="Compartilhar">
+                  <button
+                    type="button"
+                    className="hover:opacity-75 transition-transform active:scale-110 cursor-pointer text-foreground"
+                    aria-label="Compartilhar"
+                  >
+                    <InstagramShareIcon size={24} />
+                  </button>
+                </Tip>
                 {arquivos.length > 0 && (
                   <Tip label="Baixar em Alta Definição (HD)">
                     <button
@@ -930,18 +959,21 @@ export default function PaginaAprovacaoClient({ itemInicial, token }: PaginaApro
                       className="hover:text-primary transition-transform active:scale-110 cursor-pointer"
                       aria-label="Baixar em Alta Definição"
                     >
-                      <Download className="w-6 h-6" />
+                      <Download className="w-5 h-5" />
                     </button>
                   </Tip>
                 )}
               </div>
-              <Tip label={"Salvar"}><button
-                type="button"
-                onClick={() => setSalvo(!salvo)}
-                className="hover:text-muted-foreground transition-transform active:scale-110" aria-label={"Salvar"}
-              >
-                <Bookmark className={`w-6 h-6 ${salvo ? 'fill-foreground text-foreground' : ''}`} />
-              </button></Tip>
+              <Tip label="Salvar">
+                <button
+                  type="button"
+                  onClick={() => setSalvo(!salvo)}
+                  className="hover:opacity-75 transition-transform active:scale-110 cursor-pointer text-foreground"
+                  aria-label="Salvar"
+                >
+                  <InstagramSaveIcon size={24} filled={salvo} />
+                </button>
+              </Tip>
             </div>
 
             {/* Contador de Curtidas e Horário */}

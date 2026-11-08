@@ -28,6 +28,7 @@ interface InstagramStoryPreviewProps {
   slideAtual: number;
   onMudarSlide: (novoSlide: number) => void;
   onPedirAjuste?: (slideIndex?: number) => void;
+  className?: string;
 }
 
 export function InstagramStoryPreview({
@@ -39,6 +40,7 @@ export function InstagramStoryPreview({
   slideAtual,
   onMudarSlide,
   onPedirAjuste,
+  className,
 }: InstagramStoryPreviewProps) {
   const [curtido, setCurtido] = useState(false);
   const [mutado, setMutado] = useState(true);
@@ -85,7 +87,7 @@ export function InstagramStoryPreview({
   return (
     <div className="w-full flex flex-col items-center">
       {/* Moldura de Smartphone do Instagram Story (9:16) */}
-      <div className="relative w-full max-w-[360px] sm:max-w-[380px] aspect-[9/16] rounded-[32px] sm:rounded-[38px] overflow-hidden shadow-2xl bg-black border-4 border-neutral-800 flex flex-col select-none">
+      <div className={`relative w-full ${className || 'max-w-[340px] sm:max-w-[360px]'} aspect-[9/16] rounded-[32px] sm:rounded-[38px] overflow-hidden shadow-2xl bg-black border-4 border-neutral-300 dark:border-neutral-800 flex flex-col select-none`}>
         
         {/* Camada de Mídia (100% 9:16 Full Bleed sem bordas pretas) */}
         <div

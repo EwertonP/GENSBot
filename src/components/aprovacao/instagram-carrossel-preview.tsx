@@ -39,6 +39,7 @@ interface InstagramCarrosselPreviewProps {
   slideAtual: number;
   onMudarSlide: (novoSlide: number) => void;
   onPedirAjuste?: (slideIndex?: number) => void;
+  className?: string;
 }
 
 export function InstagramCarrosselPreview({
@@ -53,6 +54,7 @@ export function InstagramCarrosselPreview({
   slideAtual,
   onMudarSlide,
   onPedirAjuste,
+  className,
 }: InstagramCarrosselPreviewProps) {
   const [curtido, setCurtido] = useState(false);
   const [curtidasCount, setCurtidasCount] = useState(73);
@@ -198,9 +200,9 @@ export function InstagramCarrosselPreview({
   }
 
   return (
-    <div className="w-full max-w-[420px] mx-auto bg-black rounded-none sm:rounded-2xl overflow-hidden flex flex-col text-white select-none border-0 sm:border sm:border-neutral-800 shadow-2xl transition-all">
+    <div className={`w-full ${className || 'max-w-[420px]'} mx-auto bg-white dark:bg-black rounded-none sm:rounded-2xl overflow-hidden flex flex-col text-neutral-900 dark:text-white select-none border-0 sm:border border-[#dbdfe4] dark:border-neutral-800 shadow-2xl transition-all`}>
       {/* 1. Header Oficial do Instagram (Idêntico ao print real: username sem @, selo azul oficial, áudio embaixo) */}
-      <div className="px-3.5 py-2.5 flex items-center justify-between bg-black text-white">
+      <div className="px-3.5 py-2.5 flex items-center justify-between bg-white dark:bg-black text-neutral-900 dark:text-white border-b border-neutral-100 dark:border-neutral-900/60">
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Avatar com anel colorido oficial de stories do Instagram */}
           <InstagramStoryGradientRing size={36}>
@@ -209,22 +211,22 @@ export function InstagramCarrosselPreview({
               cor={clienteCor}
               fotoUrl={clienteFotoUrl}
               tamanho="xs"
-              className="ring-2 ring-black"
+              className="ring-2 ring-white dark:ring-black"
             />
           </InstagramStoryGradientRing>
 
           <div className="min-w-0 flex flex-col justify-center">
             {/* Nome do usuário em negrito sem @ + selo de verificado oficial */}
             <div className="flex items-center gap-1 min-w-0">
-              <span className="text-[13px] font-semibold text-white tracking-tight leading-tight truncate">
+              <span className="text-[13px] font-semibold text-neutral-900 dark:text-white tracking-tight leading-tight truncate">
                 {usernameLimpo}
               </span>
-              <InstagramVerifiedBadge size={14} className="ml-0.5" />
+              <InstagramVerifiedBadge size={14} className="ml-0.5 shrink-0" />
             </div>
 
             {/* Linha de Áudio: Ícone de música oficial + faixa de áudio */}
-            <div className="flex items-center gap-1.5 text-[11px] text-white/90 leading-none mt-0.5 truncate">
-              <InstagramAudioWaveIcon size={12} className="text-white shrink-0" />
+            <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 dark:text-white/80 leading-none mt-0.5 truncate">
+              <InstagramAudioWaveIcon size={12} className="text-neutral-700 dark:text-white shrink-0" />
               <span className="truncate">
                 {audioNome || `Áudio original · ${usernameLimpo}`}
               </span>
@@ -235,16 +237,16 @@ export function InstagramCarrosselPreview({
         {/* Menu de Três Pontinhos do Instagram à direita (Figma SVG) */}
         <button
           type="button"
-          className="p-1 text-white/90 hover:text-white cursor-pointer"
+          className="p-1 text-neutral-700 dark:text-white/90 hover:text-neutral-900 dark:hover:text-white cursor-pointer"
           aria-label="Mais opções"
         >
-          <InstagramOptionsIcon size={20} className="text-white" />
+          <InstagramOptionsIcon size={20} className="text-neutral-900 dark:text-white" />
         </button>
       </div>
 
       {/* 2. Área Visual 4:5 da Mídia com Efeito de Deslize Fluído de Carrossel */}
       <div
-        className={`relative w-full aspect-[4/5] bg-neutral-950 flex items-center justify-center overflow-hidden select-none group touch-pan-y ${
+        className={`relative w-full aspect-[4/5] bg-neutral-100 dark:bg-neutral-950 flex items-center justify-center overflow-hidden select-none group touch-pan-y ${
           totalSlides > 1 ? 'cursor-grab active:cursor-grabbing' : ''
         }`}
         onTouchStart={handleTouchStart}
@@ -274,7 +276,7 @@ export function InstagramCarrosselPreview({
               {arquivos.map((arquivo, idx) => (
                 <div
                   key={arquivo.id || idx}
-                  className="w-full h-full shrink-0 relative overflow-hidden bg-neutral-950 flex items-center justify-center select-none shadow-[-16px_0_32px_rgba(0,0,0,0.6)]"
+                  className="w-full h-full shrink-0 relative overflow-hidden bg-neutral-100 dark:bg-neutral-950 flex items-center justify-center select-none shadow-[-16px_0_32px_rgba(0,0,0,0.5)]"
                   style={{ zIndex: idx }}
                 >
                   {arquivo.tipo === 'video' ? (
@@ -302,7 +304,7 @@ export function InstagramCarrosselPreview({
 
             {/* Contador de Slides Flutuante no Topo Direito (1/3) Estilo Oficial Instagram */}
             {totalSlides > 1 && (
-              <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-[11px] font-sans font-semibold text-white shadow-md border border-white/10 pointer-events-none z-20">
+              <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/60 dark:bg-black/70 backdrop-blur-md text-[11px] font-sans font-semibold text-white shadow-md border border-white/10 pointer-events-none z-20">
                 {slideValido + 1}/{totalSlides}
               </div>
             )}
@@ -338,7 +340,7 @@ export function InstagramCarrosselPreview({
                       slideAnterior();
                     }}
                     aria-label="Slide anterior"
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white hover:bg-black/80 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform active:scale-90 opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/80 dark:bg-black/50 text-neutral-900 dark:text-white hover:bg-white dark:hover:bg-black/80 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform active:scale-90 opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -352,7 +354,7 @@ export function InstagramCarrosselPreview({
                       proximoSlide();
                     }}
                     aria-label="Próximo slide"
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white hover:bg-black/80 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform active:scale-90 opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/80 dark:bg-black/50 text-neutral-900 dark:text-white hover:bg-white dark:hover:bg-black/80 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform active:scale-90 opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -365,7 +367,7 @@ export function InstagramCarrosselPreview({
 
       {/* 3. Bolinhas de Paginação Oficiais do Instagram (Posicionadas na base da foto) */}
       {totalSlides > 1 && (
-        <div className="flex items-center justify-center gap-1 pt-2 pb-1 bg-black">
+        <div className="flex items-center justify-center gap-1 pt-2 pb-1 bg-white dark:bg-black">
           {arquivos.map((_, i) => {
             const estaAtivo = slideValido === i;
             const tamanhoEscala = calcularEscalaDotCarrossel(i, slideValido, totalSlides);
@@ -379,7 +381,7 @@ export function InstagramCarrosselPreview({
                 className={`rounded-full !min-w-0 !min-h-0 border-0 p-0 cursor-pointer transition-all duration-200 ${tamanhoEscala} ${
                   estaAtivo
                     ? '!w-1.5 !h-1.5 bg-[#0095F6]'
-                    : '!w-1.5 !h-1.5 bg-neutral-600/80 hover:bg-neutral-500'
+                    : '!w-1.5 !h-1.5 bg-neutral-300 dark:bg-neutral-600/80 hover:bg-neutral-400 dark:hover:bg-neutral-500'
                 }`}
                 aria-label={`Ir para slide ${i + 1}`}
               />
@@ -389,7 +391,7 @@ export function InstagramCarrosselPreview({
       )}
 
       {/* 4. Nova Barra de Ações Oficial do Instagram com Ícones Vetoriais Figma */}
-      <div className="px-3.5 py-2 flex items-center justify-between bg-black text-white">
+      <div className="px-3.5 py-2 flex items-center justify-between bg-white dark:bg-black text-neutral-900 dark:text-white">
         <div className="flex items-center gap-4">
           {/* Curtir + Contagem */}
           <button
@@ -401,9 +403,9 @@ export function InstagramCarrosselPreview({
             <InstagramHeartIcon
               size={24}
               filled={curtido}
-              className={`transition-colors ${curtido ? 'text-[#FF0034]' : 'text-white'}`}
+              className={`transition-colors ${curtido ? 'text-[#FF0034]' : 'text-neutral-900 dark:text-white'}`}
             />
-            <span className="text-[13px] font-semibold text-white tracking-tight">
+            <span className="text-[13px] font-semibold text-neutral-900 dark:text-white tracking-tight">
               {curtidasCount}
             </span>
           </button>
@@ -412,30 +414,30 @@ export function InstagramCarrosselPreview({
           <button
             type="button"
             onClick={() => onPedirAjuste?.(slideValido + 1)}
-            className="flex items-center gap-1.5 hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-white"
+            className="flex items-center gap-1.5 hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-neutral-900 dark:text-white"
             aria-label="Comentar ou solicitar ajuste"
           >
-            <InstagramCommentIcon size={24} className="text-white" />
-            <span className="text-[13px] font-semibold text-white tracking-tight">2</span>
+            <InstagramCommentIcon size={24} className="text-neutral-900 dark:text-white" />
+            <span className="text-[13px] font-semibold text-neutral-900 dark:text-white tracking-tight">2</span>
           </button>
 
           {/* Repost Oficial + Contagem */}
           <button
             type="button"
-            className="flex items-center gap-1.5 hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-white"
+            className="flex items-center gap-1.5 hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-neutral-900 dark:text-white"
             aria-label="Repostar"
           >
-            <InstagramRepostIcon size={22} className="text-white" />
-            <span className="text-[13px] font-semibold text-white tracking-tight">1</span>
+            <InstagramRepostIcon size={22} className="text-neutral-900 dark:text-white" />
+            <span className="text-[13px] font-semibold text-neutral-900 dark:text-white tracking-tight">1</span>
           </button>
 
           {/* Compartilhar / Direct (Figma 2026 Glyph) */}
           <button
             type="button"
-            className="hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-white p-0.5"
+            className="hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-neutral-900 dark:text-white p-0.5"
             aria-label="Compartilhar"
           >
-            <InstagramShareIcon size={24} className="text-white" />
+            <InstagramShareIcon size={24} className="text-neutral-900 dark:text-white" />
           </button>
         </div>
 
@@ -443,18 +445,18 @@ export function InstagramCarrosselPreview({
         <button
           type="button"
           onClick={() => setSalvo(!salvo)}
-          className="hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-white p-0.5"
+          className="hover:opacity-80 active:scale-110 transition-transform cursor-pointer text-neutral-900 dark:text-white p-0.5"
           aria-label="Salvar publicação"
         >
-          <InstagramSaveIcon size={24} filled={salvo} className="text-white" />
+          <InstagramSaveIcon size={24} filled={salvo} className="text-neutral-900 dark:text-white" />
         </button>
       </div>
 
       {/* 5. Bloco de Legenda Oficial (Idêntico ao print real: username em negrito colado no texto + '... mais' inline) */}
-      <div className="px-3.5 pt-1.5 pb-3 flex flex-col gap-1 text-[13px] bg-black text-white">
+      <div className="px-3.5 pt-1.5 pb-3 flex flex-col gap-1 text-[13px] bg-white dark:bg-black text-neutral-900 dark:text-white">
         {legenda ? (
-          <div className="leading-snug text-white/95">
-            <span className="font-bold mr-1.5 text-white">{usernameLimpo}</span>
+          <div className="leading-snug text-neutral-900 dark:text-white/95">
+            <span className="font-bold mr-1.5 text-neutral-900 dark:text-white">{usernameLimpo}</span>
             <span className={expandido ? 'whitespace-pre-line' : 'line-clamp-2'}>
               {legenda}
             </span>
@@ -462,18 +464,18 @@ export function InstagramCarrosselPreview({
               <button
                 type="button"
                 onClick={() => setExpandido(!expandido)}
-                className="text-[13px] text-neutral-400 ml-1 font-normal hover:text-white cursor-pointer inline"
+                className="text-[13px] text-neutral-500 dark:text-neutral-400 ml-1 font-normal hover:text-neutral-900 dark:hover:text-white cursor-pointer inline"
               >
                 {expandido ? ' menos' : '... mais'}
               </button>
             )}
           </div>
         ) : (
-          <p className="text-xs text-neutral-500 italic">Sem legenda definida.</p>
+          <p className="text-xs text-neutral-400 dark:text-neutral-500 italic">Sem legenda definida.</p>
         )}
 
         {/* Timestamp Oficial em Minúsculas ("há 3 horas") */}
-        <p className="text-[11px] text-neutral-400 font-normal mt-0.5">
+        <p className="text-[11px] text-neutral-400 dark:text-neutral-500 font-normal mt-0.5 uppercase">
           {tempoRelativo}
         </p>
       </div>

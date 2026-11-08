@@ -34,6 +34,7 @@ interface InstagramReelsPreviewProps {
   tempoAtual: number;
   onAtualizarTempo: (segundos: number) => void;
   onPedirAjuste?: (segundos: number) => void;
+  className?: string;
 }
 
 export function InstagramReelsPreview({
@@ -48,6 +49,7 @@ export function InstagramReelsPreview({
   tempoAtual,
   onAtualizarTempo,
   onPedirAjuste,
+  className,
 }: InstagramReelsPreviewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [pausado, setPausado] = useState(true);
@@ -119,7 +121,7 @@ export function InstagramReelsPreview({
   return (
     <div className="w-full flex flex-col items-center">
       {/* Moldura de Smartphone do Instagram Reels (9:16) */}
-      <div className="relative w-full max-w-[360px] sm:max-w-[380px] aspect-[9/16] rounded-[32px] sm:rounded-[38px] overflow-hidden shadow-2xl bg-black border-4 border-neutral-800 flex flex-col select-none group">
+      <div className={`relative w-full ${className || 'max-w-[340px] sm:max-w-[360px]'} aspect-[9/16] rounded-[32px] sm:rounded-[38px] overflow-hidden shadow-2xl bg-black border-4 border-neutral-300 dark:border-neutral-800 flex flex-col select-none group`}>
         
         {/* Camada do Vídeo com Toque para Play/Pause e Duplo Toque para Like */}
         <div
