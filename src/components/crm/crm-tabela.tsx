@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tip } from '@/components/ui/tooltip';
-import { formatarMoeda, calcularDiasSemContato, gerarLinkWhatsApp } from '@/lib/crm';
+import { formatarMoeda, calcularDiasSemContato, gerarLinkWhatsApp, calcularTierScore, formatarFollowupRelativo } from '@/lib/crm';
 import type { CrmEstagio, CrmNegocio } from '@/types/crm';
 import {
   MessageSquare,
@@ -18,6 +18,8 @@ import {
   Zap,
   FileText,
   Target,
+  MapPin,
+  Clock,
 } from 'lucide-react';
 
 interface CrmTabelaProps {
@@ -99,7 +101,8 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
             <thead>
               <tr className="border-b border-border bg-accent/40 font-mono text-muted-foreground font-bold">
                 <th className="py-2.5 px-3">Oportunidade / Lead</th>
-                <th className="py-2.5 px-3">Contato</th>
+                <th className="py-2.5 px-3">Qualificação ICP</th>
+                <th className="py-2.5 px-3">Contato / Local</th>
                 <th
                   className="py-2.5 px-3 cursor-pointer hover:text-foreground transition-colors"
                   onClick={() => alternarOrdem('valor')}
@@ -110,17 +113,8 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
                   </div>
                 </th>
                 <th className="py-2.5 px-3">Estágio</th>
-                <th className="py-2.5 px-3">Origem</th>
+                <th className="py-2.5 px-3">Próximo Follow-up</th>
                 <th className="py-2.5 px-3">Responsável</th>
-                <th
-                  className="py-2.5 px-3 cursor-pointer hover:text-foreground transition-colors"
-                  onClick={() => alternarOrdem('ultimo_contato_em')}
-                >
-                  <div className="flex items-center gap-1">
-                    <span>Sem Contato</span>
-                    <ArrowUpDown className="w-3 h-3" />
-                  </div>
-                </th>
                 <th className="py-2.5 px-3 text-right">Ações</th>
               </tr>
             </thead>
@@ -151,12 +145,35 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
                       </div>
                     </td>
 
-                    {/* Contato */}
+                    {/* Qualificação ICP */}
+                    <td className="py-3 px-3">
+                      {(() => {
+                        const tier = calcularTierScore(negocio.score_qualificacao);
+                        if (!tier) return <span className="text-muted-foreground/60 font-mono text-[11px]">—</span>;
+                        return (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${tier.badgeClass}`}>
+                              <span>{tier.emoji}</span>
+                              <span>Tier {tier.tier}</span>
+                              <span className="opacity-80 font-mono">{negocio.score_qualificacao}</span>
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </td>
+
+                    {/* Contato & Local */}
                     <td className="py-3 px-3">
                       <div className="flex flex-col gap-0.5 max-w-[180px]">
-                        <span className="text-foreground truncate">{negocio.nome_contato}</span>
+                        <span className="text-foreground truncate font-medium">{negocio.nome_contato}</span>
+                        {(negocio.cidade || negocio.nicho) && (
+                          <span className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
+                            <MapPin className="w-2.5 h-2.5 text-primary shrink-0" />
+                            <span className="truncate">{negocio.cidade || '—'}{negocio.nicho ? ` • ${negocio.nicho}` : ''}</span>
+                          </span>
+                        )}
                         {negocio.telefone && (
-                          <span className="text-[11px] font-mono text-muted-foreground truncate">
+                          <span className="text-[10px] font-mono text-muted-foreground truncate">
                             {negocio.telefone}
                           </span>
                         )}
@@ -186,11 +203,36 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
                       </span>
                     </td>
 
-                    {/* Origem */}
+                    {/* Próximo Follow-up */}
                     <td className="py-3 px-3">
-                      <Badge variant="muted" className="text-[10px] capitalize font-mono">
-                        {negocio.origem.replace('_', ' ')}
-                      </Badge>
+                      {(() => {
+                        const fu = formatarFollowupRelativo(negocio.data_proximo_followup);
+                        if (!fu) {
+                          return (
+                            <span
+                              className={`font-mono text-[10px] ${
+                                estagnado ? 'text-amber-500 font-bold' : 'text-muted-foreground/60'
+                              }`}
+                            >
+                              {estagnado ? `${diasSemContato}d sem contato` : '—'}
+                            </span>
+                          );
+                        }
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                              fu.atrasado
+                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-500'
+                                : fu.hoje
+                                ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
+                                : 'bg-accent border-border text-muted-foreground'
+                            }`}
+                          >
+                            <Clock className="w-2.5 h-2.5 shrink-0" />
+                            <span>{fu.texto}</span>
+                          </span>
+                        );
+                      })()}
                     </td>
 
                     {/* Responsável */}
@@ -205,17 +247,6 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
                           {negocio.responsavel?.nome ? negocio.responsavel.nome.split(' ')[0] : 'Sem resp.'}
                         </span>
                       </div>
-                    </td>
-
-                    {/* Dias sem Contato */}
-                    <td className="py-3 px-3">
-                      <span
-                        className={`font-mono text-[11px] ${
-                          estagnado ? 'text-amber-500 font-bold' : 'text-muted-foreground'
-                        }`}
-                      >
-                        {diasSemContato} dia(s)
-                      </span>
                     </td>
 
                     {/* Ações */}

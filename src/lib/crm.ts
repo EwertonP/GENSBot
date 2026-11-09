@@ -87,6 +87,158 @@ export function gerarLinkWhatsApp(telefone: string, mensagem?: string): string {
   return url;
 }
 
+export interface InfoTierScore {
+  tier: 'A' | 'B' | 'C' | 'N/A';
+  rotulo: string;
+  badge: string;
+  classe: string;
+  emoji: string;
+  descricao: string;
+  badgeClass: string;
+}
+
+/**
+ * Classifica o lead com base no Score ICP 360 (0 a 10)
+ * Tier A (8 a 10): Lead Quente - Abordagem Imediata
+ * Tier B (5 a 7.9): Lead Morno - Nutrição / Abordagem Padrão
+ * Tier C (0 a 4.9): Frio / Baixo Fit
+ */
+export function calcularTierScore(score?: number | null): InfoTierScore {
+  if (score === null || score === undefined || isNaN(Number(score))) {
+    const classe = 'bg-muted/60 text-muted-foreground border-border/80';
+    return {
+      tier: 'N/A',
+      rotulo: 'Sem Score',
+      badge: 'Não Auditado',
+      classe,
+      badgeClass: classe,
+      emoji: '📋',
+      descricao: 'Não auditado',
+    };
+  }
+
+  const s = Number(score);
+  if (s >= 8.0) {
+    const classe = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-bold';
+    return {
+      tier: 'A',
+      rotulo: `Score ${s.toFixed(1)} (Tier A)`,
+      badge: `${s.toFixed(1)} • Quente`,
+      classe,
+      badgeClass: classe,
+      emoji: '🔥',
+      descricao: 'Quente (Fit Alto)',
+    };
+  }
+  if (s >= 5.0) {
+    const classe = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-semibold';
+    return {
+      tier: 'B',
+      rotulo: `Score ${s.toFixed(1)} (Tier B)`,
+      badge: `${s.toFixed(1)} • Morno`,
+      classe,
+      badgeClass: classe,
+      emoji: '⚡',
+      descricao: 'Morno (Fit Médio)',
+    };
+  }
+  const classe = 'bg-destructive/10 text-destructive border-destructive/20 font-medium';
+  return {
+    tier: 'C',
+    rotulo: `Score ${s.toFixed(1)} (Tier C)`,
+    badge: `${s.toFixed(1)} • Baixo Fit`,
+    classe,
+    badgeClass: classe,
+    emoji: '❄️',
+    descricao: 'Baixo Fit',
+  };
+}
+
+/**
+ * Formata a data de próximo follow-up de forma humanizada e indica se está vencido ou para hoje
+ */
+export function formatarFollowupRelativo(dataIso?: string | null): {
+  texto: string;
+  vencido: boolean;
+  atrasado: boolean;
+  hoje: boolean;
+  classe: string;
+} {
+  if (!dataIso) {
+    return { texto: 'Sem follow-up agendado', vencido: false, atrasado: false, hoje: false, classe: 'text-muted-foreground' };
+  }
+
+  try {
+    const data = new Date(dataIso);
+    if (isNaN(data.getTime())) {
+      return { texto: 'Data inválida', vencido: false, atrasado: false, hoje: false, classe: 'text-muted-foreground' };
+    }
+
+    const agora = new Date();
+    const diffMs = data.getTime() - agora.getTime();
+    const mesmoDia =
+      data.getDate() === agora.getDate() &&
+      data.getMonth() === agora.getMonth() &&
+      data.getFullYear() === agora.getFullYear();
+
+    const horaStr = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const dataStr = data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+    if (diffMs < 0) {
+      // Já passou
+      const horasVencidas = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60));
+      return {
+        texto: mesmoDia
+          ? `Vencido hoje às ${horaStr}`
+          : horasVencidas < 24
+          ? `Vencido há ${horasVencidas}h`
+          : `Vencido em ${dataStr} às ${horaStr}`,
+        vencido: true,
+        atrasado: true,
+        hoje: mesmoDia,
+        classe: 'text-destructive font-semibold',
+      };
+    }
+
+    if (mesmoDia) {
+      return {
+        texto: `Hoje às ${horaStr}`,
+        vencido: false,
+        atrasado: false,
+        hoje: true,
+        classe: 'text-amber-600 dark:text-amber-400 font-bold',
+      };
+    }
+
+    const amanha = new Date(agora);
+    amanha.setDate(amanha.getDate() + 1);
+    const ehAmanha =
+      data.getDate() === amanha.getDate() &&
+      data.getMonth() === amanha.getMonth() &&
+      data.getFullYear() === amanha.getFullYear();
+
+    if (ehAmanha) {
+      return {
+        texto: `Amanhã às ${horaStr}`,
+        vencido: false,
+        atrasado: false,
+        hoje: false,
+        classe: 'text-primary font-medium',
+      };
+    }
+
+    return {
+      texto: `${dataStr} às ${horaStr}`,
+      vencido: false,
+      atrasado: false,
+      hoje: false,
+      classe: 'text-foreground/90 font-medium',
+    };
+  } catch {
+    return { texto: 'Data inválida', vencido: false, atrasado: false, hoje: false, classe: 'text-muted-foreground' };
+  }
+}
+
 /** Calcula as métricas principais do funil com base na lista de negócios */
 export function calcularMetricasPipeline(negocios: CrmNegocio[]): CrmMetricasPipeline {
   const totalNegocios = negocios.length;
@@ -194,17 +346,19 @@ export const TEMPLATES_FUNIS: TemplateFunil[] = [
   },
   {
     id: 'agencia_servicos',
-    nome: 'Agência & Serviços B2B',
+    nome: 'Prospecção Agência (SDR)',
     icone: '💼',
-    descricao: 'Prospecção inbound e outbound, diagnóstico e contratos de serviços contínuos.',
-    nichoSugerido: 'Marketing, Agência, B2B, Consultoria, Software',
+    descricao: 'Esteira comercial autônoma e prospecção da Agência GENS.',
+    nichoSugerido: 'Marketing, Agência, B2B, Prospecção SDR, Consultoria',
     estagios: [
-      { nome: 'Novo Prospect', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
-      { nome: 'Primeiro Contato', cor: '#8b5cf6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
-      { nome: 'Diagnóstico / Reunião', cor: '#ec4899', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
-      { nome: 'Proposta Enviada', cor: '#f59e0b', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 5 },
-      { nome: 'Contrato Fechado', cor: '#10b981', ordem: 4, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
-      { nome: 'Perdido', cor: '#ef4444', ordem: 5, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
+      { nome: '1. Minerado & Auditado', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: '2. Abordagem Enviada', cor: '#8b5cf6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: '3. Em Qualificação', cor: '#f59e0b', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: '4. Follow-up Agendado', cor: '#f97316', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: '5. Reunião Agendada', cor: '#6366f1', ordem: 4, tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
+      { nome: '6. Proposta Apresentada', cor: '#ec4899', ordem: 5, tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
+      { nome: '7. Cliente Ganho', cor: '#00DC94', ordem: 6, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
+      { nome: '8. Perdido / Desqualificado', cor: '#ef4444', ordem: 7, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
     ],
   },
   {

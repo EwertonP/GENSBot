@@ -15,7 +15,7 @@ import CrmDealDrawer from './crm-deal-drawer';
 import CrmNovoNegocioModal from './crm-novo-negocio-modal';
 import CrmPipelineModal from './crm-pipeline-modal';
 import CrmAiConfigModal from './crm-ai-config-modal';
-import { formatarMoeda, calcularDiasSemContato } from '@/lib/crm';
+import { formatarMoeda, calcularDiasSemContato, calcularTierScore } from '@/lib/crm';
 import type { CrmPipeline, CrmEstagio, CrmNegocio, CrmMetricas, CrmStatus } from '@/types/crm';
 import type { Cliente } from '@/lib/clientes';
 import {
@@ -65,6 +65,9 @@ export default function CrmTab({
   const [filtroResponsavel, setFiltroResponsavel] = useState('todos');
   const [filtroStatus, setFiltroStatus] = useState<'aberto' | 'todos' | 'ganho' | 'perdido'>('aberto');
   const [filtroOrigem, setFiltroOrigem] = useState<string>('todos');
+  const [filtroTier, setFiltroTier] = useState<string>('todos');
+  const [filtroCidade, setFiltroCidade] = useState<string>('todos');
+  const [filtroNicho, setFiltroNicho] = useState<string>('todos');
 
   // Estados de Loading & Modais
   const [loading, setLoading] = useState(true);
@@ -301,7 +304,24 @@ export default function CrmTab({
     return pipelineAtivo?.estagios || [];
   }, [pipelineAtivo]);
 
-  // Negócios filtrados por texto e responsável
+  // Cidades e Nichos presentes para filtros dinâmicos
+  const cidadesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    negocios.forEach((n) => {
+      if (n.cidade?.trim()) set.add(n.cidade.trim());
+    });
+    return Array.from(set).sort();
+  }, [negocios]);
+
+  const nichosDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    negocios.forEach((n) => {
+      if (n.nicho?.trim()) set.add(n.nicho.trim());
+    });
+    return Array.from(set).sort();
+  }, [negocios]);
+
+  // Negócios filtrados por texto, responsável, origem, tier, cidade e nicho
   const negociosFiltrados = useMemo(() => {
     return negocios.filter((neg) => {
       // Filtro de busca
@@ -311,7 +331,18 @@ export default function CrmTab({
         const matchContato = neg.nome_contato?.toLowerCase().includes(termo);
         const matchEmpresa = neg.empresa?.toLowerCase().includes(termo);
         const matchEmail = neg.email?.toLowerCase().includes(termo);
-        if (!matchTitulo && !matchContato && !matchEmpresa && !matchEmail) {
+        const matchCidade = neg.cidade?.toLowerCase().includes(termo);
+        const matchNicho = neg.nicho?.toLowerCase().includes(termo);
+        const matchDor = neg.dor_principal?.toLowerCase().includes(termo);
+        if (
+          !matchTitulo &&
+          !matchContato &&
+          !matchEmpresa &&
+          !matchEmail &&
+          !matchCidade &&
+          !matchNicho &&
+          !matchDor
+        ) {
           return false;
         }
       }
@@ -327,9 +358,25 @@ export default function CrmTab({
         return false;
       }
 
+      // Filtro de Tier ICP
+      if (filtroTier !== 'todos') {
+        const tier = calcularTierScore(neg.score_qualificacao)?.tier;
+        if (tier !== filtroTier) return false;
+      }
+
+      // Filtro de Cidade
+      if (filtroCidade !== 'todos' && neg.cidade !== filtroCidade) {
+        return false;
+      }
+
+      // Filtro de Nicho
+      if (filtroNicho !== 'todos' && neg.nicho !== filtroNicho) {
+        return false;
+      }
+
       return true;
     });
-  }, [negocios, busca, filtroResponsavel, filtroOrigem]);
+  }, [negocios, busca, filtroResponsavel, filtroOrigem, filtroTier, filtroCidade, filtroNicho]);
 
   // Mover negócio no Kanban (Drag & Drop)
   const handleMoverNegocio = async (
@@ -437,6 +484,41 @@ export default function CrmTab({
       ],
     },
     {
+      id: 'tier',
+      rotulo: 'Qualificação ICP',
+      valor: filtroTier,
+      onChange: (v) => setFiltroTier(v),
+      padrao: 'todos',
+      opcoes: [
+        { valor: 'todos', rotulo: 'Todos os Tiers' },
+        { valor: 'A', rotulo: '🔥 Tier A: Quente (8-10)' },
+        { valor: 'B', rotulo: '⚡ Tier B: Morno (5-7.9)' },
+        { valor: 'C', rotulo: '❄️ Tier C: Frio (0-4.9)' },
+      ],
+    },
+    {
+      id: 'cidade',
+      rotulo: 'Cidade',
+      valor: filtroCidade,
+      onChange: (v) => setFiltroCidade(v),
+      padrao: 'todos',
+      opcoes: [
+        { valor: 'todos', rotulo: 'Todas as Cidades' },
+        ...cidadesDisponiveis.map((c) => ({ valor: c, rotulo: c })),
+      ],
+    },
+    {
+      id: 'nicho',
+      rotulo: 'Nicho',
+      valor: filtroNicho,
+      onChange: (v) => setFiltroNicho(v),
+      padrao: 'todos',
+      opcoes: [
+        { valor: 'todos', rotulo: 'Todos os Nichos' },
+        ...nichosDisponiveis.map((n) => ({ valor: n, rotulo: n })),
+      ],
+    },
+    {
       id: 'responsavel',
       rotulo: 'Responsável',
       valor: filtroResponsavel,
@@ -468,7 +550,17 @@ export default function CrmTab({
         { valor: 'manual', rotulo: 'Manual' },
       ],
     },
-  ], [filtroStatus, filtroResponsavel, filtroOrigem, membros]);
+  ], [
+    filtroStatus,
+    filtroTier,
+    filtroCidade,
+    filtroNicho,
+    cidadesDisponiveis,
+    nichosDisponiveis,
+    filtroResponsavel,
+    filtroOrigem,
+    membros,
+  ]);
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in w-full min-w-0 max-w-full">

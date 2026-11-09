@@ -23,6 +23,10 @@ export async function GET(req: Request) {
   const status = searchParams.get('status') || 'aberto';
   const responsavelId = searchParams.get('responsavel_id');
   const busca = searchParams.get('busca');
+  const cidade = searchParams.get('cidade');
+  const nicho = searchParams.get('nicho');
+  const tier = searchParams.get('tier');
+  const scoreMinimo = searchParams.get('score_minimo');
 
   // Isolamento estrito para usuários com perfil de cliente/secretária
   if (membro.papel === 'cliente') {
@@ -58,6 +62,28 @@ export async function GET(req: Request) {
 
     if (responsavelId && responsavelId !== 'all') {
       query = query.eq('responsavel_id', responsavelId);
+    }
+
+    if (cidade && cidade.trim()) {
+      query = query.ilike('cidade', `%${cidade.trim()}%`);
+    }
+
+    if (nicho && nicho.trim()) {
+      query = query.ilike('nicho', `%${nicho.trim()}%`);
+    }
+
+    if (scoreMinimo !== null && scoreMinimo !== '' && !isNaN(Number(scoreMinimo))) {
+      query = query.gte('score_qualificacao', Number(scoreMinimo));
+    }
+
+    if (tier && tier !== 'all') {
+      if (tier === 'A') {
+        query = query.gte('score_qualificacao', 8.0);
+      } else if (tier === 'B') {
+        query = query.gte('score_qualificacao', 5.0).lt('score_qualificacao', 8.0);
+      } else if (tier === 'C') {
+        query = query.lt('score_qualificacao', 5.0);
+      }
     }
 
     if (busca && busca.trim()) {
@@ -103,6 +129,14 @@ export async function POST(req: Request) {
       empresa: empresaRaw,
       empresa_nome,
       cargo,
+      tipo_perfil,
+      cidade,
+      bairro,
+      nicho,
+      dor_principal,
+      url_site,
+      score_qualificacao,
+      data_proximo_followup,
       origem = 'manual',
       prioridade = 'media',
       tags = [],
@@ -170,6 +204,14 @@ export async function POST(req: Request) {
         instagram_username: cleanInsta,
         empresa: empresaFinal || null,
         cargo: cargo ? cargo.trim() : null,
+        tipo_perfil: tipo_perfil || null,
+        cidade: cidade ? String(cidade).trim() : null,
+        bairro: bairro ? String(bairro).trim() : null,
+        nicho: nicho ? String(nicho).trim() : null,
+        dor_principal: dor_principal ? String(dor_principal).trim() : null,
+        url_site: url_site ? String(url_site).trim() : null,
+        score_qualificacao: score_qualificacao !== undefined && score_qualificacao !== null && !isNaN(Number(score_qualificacao)) ? Number(score_qualificacao) : null,
+        data_proximo_followup: data_proximo_followup ? String(data_proximo_followup) : null,
         origem,
         prioridade,
         tags: Array.isArray(tags) ? tags : [],

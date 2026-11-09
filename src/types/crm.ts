@@ -3,6 +3,9 @@ export type CrmStatus = CrmStatusNegocio;
 
 export type CrmPrioridade = 'baixa' | 'media' | 'alta' | 'urgente';
 
+export type CrmTierScore = 'A' | 'B' | 'C';
+export type CrmTipoPerfil = 'profissional' | 'empresa';
+
 export type CrmOrigem =
   | 'manual'
   | 'instagram'
@@ -77,6 +80,16 @@ export interface CrmNegocio {
   instagram_username: string | null;
   empresa: string | null;
   cargo: string | null;
+
+  // Qualificação ICP 360 & Auditoria Técnica
+  tipo_perfil?: 'profissional' | 'empresa' | null;
+  cidade?: string | null;
+  bairro?: string | null;
+  nicho?: string | null;
+  dor_principal?: string | null;
+  url_site?: string | null;
+  score_qualificacao?: number | null;
+  data_proximo_followup?: string | null;
 
   // Vínculos
   contact_id: string | null;

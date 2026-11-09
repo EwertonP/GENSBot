@@ -84,6 +84,14 @@ export async function PATCH(req: Request, { params }: Params) {
       instagram_username,
       empresa,
       cargo,
+      tipo_perfil,
+      cidade,
+      bairro,
+      nicho,
+      dor_principal,
+      url_site,
+      score_qualificacao,
+      data_proximo_followup,
       prioridade,
       responsavel_id,
       previsao_fechamento,
@@ -104,6 +112,16 @@ export async function PATCH(req: Request, { params }: Params) {
     }
     if (empresa !== undefined) updates.empresa = empresa ? empresa.trim() : null;
     if (cargo !== undefined) updates.cargo = cargo ? cargo.trim() : null;
+    if (tipo_perfil !== undefined) updates.tipo_perfil = tipo_perfil || null;
+    if (cidade !== undefined) updates.cidade = cidade ? cidade.trim() : null;
+    if (bairro !== undefined) updates.bairro = bairro ? bairro.trim() : null;
+    if (nicho !== undefined) updates.nicho = nicho ? nicho.trim() : null;
+    if (dor_principal !== undefined) updates.dor_principal = dor_principal ? dor_principal.trim() : null;
+    if (url_site !== undefined) updates.url_site = url_site ? url_site.trim() : null;
+    if (score_qualificacao !== undefined) {
+      updates.score_qualificacao = score_qualificacao !== null && !isNaN(Number(score_qualificacao)) ? Number(score_qualificacao) : null;
+    }
+    if (data_proximo_followup !== undefined) updates.data_proximo_followup = data_proximo_followup || null;
     if (prioridade !== undefined) updates.prioridade = prioridade;
     if (responsavel_id !== undefined) updates.responsavel_id = responsavel_id || null;
     if (previsao_fechamento !== undefined) updates.previsao_fechamento = previsao_fechamento || null;

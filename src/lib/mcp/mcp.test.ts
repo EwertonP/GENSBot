@@ -95,8 +95,8 @@ describe('C2: formulários e aprovações', async () => {
     expect(entrouEmAprovacao(h)).toBe('2026-09-05');
     expect(entrouEmAprovacao(null)).toBeNull();
   });
-  it('servidor expõe as 45 ferramentas', () => {
-    expect(listarFerramentas()).toHaveLength(45);
+  it('servidor expõe as 48 ferramentas', () => {
+    expect(listarFerramentas()).toHaveLength(48);
   });
 });
 

@@ -3,18 +3,21 @@ import { FERRAMENTAS_CRM } from './ferramentas-crm';
 import { listarFerramentas } from './servidor';
 
 describe('MCP CRM Tools', () => {
-  it('exporta 4 ferramentas de CRM com schemas válidos', () => {
-    expect(FERRAMENTAS_CRM.length).toBe(4);
+  it('exporta 7 ferramentas de CRM com schemas válidos', () => {
+    expect(FERRAMENTAS_CRM.length).toBe(7);
     const nomes = FERRAMENTAS_CRM.map((f) => f.name);
     expect(nomes).toContain('crm_listar_negocios');
     expect(nomes).toContain('crm_criar_negocio');
     expect(nomes).toContain('crm_mover_negocio');
     expect(nomes).toContain('crm_adicionar_nota');
+    expect(nomes).toContain('crm_listar_estagios');
+    expect(nomes).toContain('crm_agendar_followup');
+    expect(nomes).toContain('crm_listar_followups_pendentes');
   });
 
   it('as ferramentas aparecem na lista do servidor MCP', () => {
     const todas = listarFerramentas();
     const crmTools = todas.filter((t) => t.name.startsWith('crm_'));
-    expect(crmTools.length).toBe(4);
+    expect(crmTools.length).toBe(7);
   });
 });

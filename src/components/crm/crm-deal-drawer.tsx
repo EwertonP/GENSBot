@@ -10,8 +10,16 @@ import { Select } from '@/components/ui/select';
 import { Avatar } from '@/components/ui/avatar';
 import { Tip } from '@/components/ui/tooltip';
 import { confirmDialog } from '@/components/ui/dialog';
-import { formatarMoeda, gerarLinkWhatsApp, calcularDiasSemContato, TEMPLATES_WHATSAPP, formatarMensagemWhatsApp } from '@/lib/crm';
-import type { CrmEstagio, CrmNegocio, CrmAtividade, CrmTarefa, CrmPrioridade } from '@/types/crm';
+import {
+  formatarMoeda,
+  gerarLinkWhatsApp,
+  calcularDiasSemContato,
+  TEMPLATES_WHATSAPP,
+  formatarMensagemWhatsApp,
+  calcularTierScore,
+  formatarFollowupRelativo,
+} from '@/lib/crm';
+import type { CrmEstagio, CrmNegocio, CrmAtividade, CrmTarefa, CrmPrioridade, CrmTipoPerfil } from '@/types/crm';
 import {
   X,
   MessageSquare,
@@ -33,6 +41,10 @@ import {
   Check,
   FileText,
   FileSignature,
+  Globe,
+  MapPin,
+  Flame,
+  Target,
 } from 'lucide-react';
 
 interface CrmDealDrawerProps {
@@ -78,6 +90,16 @@ export default function CrmDealDrawer({
   const [responsavelId, setResponsavelId] = useState('');
   const [tags, setTags] = useState<string[]>([]);
 
+  // SDR & Auditoria fields
+  const [tipoPerfil, setTipoPerfil] = useState<CrmTipoPerfil>('profissional');
+  const [cidade, setCidade] = useState('');
+  const [bairro, setBairro] = useState('');
+  const [nicho, setNicho] = useState('');
+  const [dorPrincipal, setDorPrincipal] = useState('');
+  const [urlSite, setUrlSite] = useState('');
+  const [scoreQualificacao, setScoreQualificacao] = useState<string>('');
+  const [dataProximoFollowup, setDataProximoFollowup] = useState('');
+
   const carregarDetalhes = async (id: string) => {
     setCarregando(true);
     try {
@@ -99,6 +121,16 @@ export default function CrmDealDrawer({
       setPrioridade(data.prioridade || 'media');
       setResponsavelId(data.responsavel_id || '');
       setTags(data.tags || []);
+
+      // SDR & Auditoria
+      setTipoPerfil(data.tipo_perfil || 'profissional');
+      setCidade(data.cidade || '');
+      setBairro(data.bairro || '');
+      setNicho(data.nicho || '');
+      setDorPrincipal(data.dor_principal || '');
+      setUrlSite(data.url_site || '');
+      setScoreQualificacao(data.score_qualificacao !== null && data.score_qualificacao !== undefined ? String(data.score_qualificacao) : '');
+      setDataProximoFollowup(data.data_proximo_followup ? data.data_proximo_followup.slice(0, 16) : '');
     } catch {
       showToast('Erro ao carregar detalhes da oportunidade.', 'error');
     } finally {
@@ -135,6 +167,14 @@ export default function CrmDealDrawer({
           prioridade,
           responsavel_id: responsavelId || null,
           tags,
+          tipo_perfil: tipoPerfil,
+          cidade: cidade.trim() || null,
+          bairro: bairro.trim() || null,
+          nicho: nicho.trim() || null,
+          dor_principal: dorPrincipal.trim() || null,
+          url_site: urlSite.trim() || null,
+          score_qualificacao: scoreQualificacao === '' ? null : Number(scoreQualificacao),
+          data_proximo_followup: dataProximoFollowup ? new Date(dataProximoFollowup).toISOString() : null,
         }),
       });
       if (!res.ok) throw new Error('Falha ao salvar alterações.');
@@ -142,6 +182,34 @@ export default function CrmDealDrawer({
       onAtualizado();
     } catch {
       showToast('Erro ao salvar alterações.', 'error');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const handleAgendarFollowupRapido = async (diasNoFuturo: number) => {
+    const dataAlvo = new Date();
+    dataAlvo.setDate(dataAlvo.getDate() + diasNoFuturo);
+    dataAlvo.setHours(10, 0, 0, 0); // padrão: 10h da manhã
+    const isoString = dataAlvo.toISOString();
+    setDataProximoFollowup(isoString.slice(0, 16));
+
+    if (!negocio) return;
+    setSalvando(true);
+    try {
+      const res = await fetch(`/api/crm/negocios/${negocio.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data_proximo_followup: isoString,
+        }),
+      });
+      if (!res.ok) throw new Error('Falha ao agendar follow-up');
+      showToast(`Follow-up agendado para ${dataAlvo.toLocaleDateString('pt-BR')} às 10h! 📅`, 'success');
+      carregarDetalhes(negocio.id);
+      onAtualizado();
+    } catch {
+      showToast('Erro ao agendar follow-up.', 'error');
     } finally {
       setSalvando(false);
     }
@@ -709,6 +777,209 @@ export default function CrmDealDrawer({
               <Button size="sm" onClick={handleSalvarCampos} disabled={salvando} className="h-7 text-xs">
                 {salvando ? 'Salvando...' : 'Salvar Alterações'}
               </Button>
+            </div>
+          </div>
+
+          {/* Diagnóstico & Auditoria ICP (SDR) */}
+          <div className="flex flex-col gap-3.5 bg-card p-4 rounded-xl border border-border">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-primary shrink-0" />
+                <h4 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-wider">
+                  Diagnóstico & Auditoria ICP
+                </h4>
+              </div>
+
+              {(() => {
+                const tierAtual = calcularTierScore(scoreQualificacao === '' ? null : Number(scoreQualificacao));
+                if (!tierAtual) return null;
+                return (
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${tierAtual.badgeClass}`}
+                  >
+                    <span>{tierAtual.emoji}</span>
+                    <span>Tier {tierAtual.tier}</span>
+                    <span className="opacity-80 font-normal">({tierAtual.descricao})</span>
+                  </span>
+                );
+              })()}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block">Score de Qualificação (0 a 10)</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="10"
+                    value={scoreQualificacao}
+                    onChange={(e) => setScoreQualificacao(e.target.value)}
+                    placeholder="ex: 8.5"
+                    className="h-8 text-xs font-mono font-bold"
+                  />
+                  <span className="text-[11px] text-muted-foreground font-mono">/ 10</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block">Tipo de Perfil</label>
+                <Select
+                  value={tipoPerfil}
+                  onChange={(e) => setTipoPerfil(e.target.value as CrmTipoPerfil)}
+                  className="h-8 text-xs"
+                >
+                  <option value="profissional">Profissional Liberal / Dr(a)</option>
+                  <option value="empresa">Empresa / Clínica</option>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block">Nicho / Especialidade</label>
+                <Input
+                  value={nicho}
+                  onChange={(e) => setNicho(e.target.value)}
+                  placeholder="ex: Harmonização Facial, Odonto, Implante"
+                  className="h-8 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block">Cidade</label>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    value={cidade}
+                    onChange={(e) => setCidade(e.target.value)}
+                    placeholder="ex: Natal, Mossoró"
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    value={bairro}
+                    onChange={(e) => setBairro(e.target.value)}
+                    placeholder="Bairro (opcional)"
+                    className="h-8 text-xs w-28 shrink-0"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-[11px] text-muted-foreground mb-1 block">Site / Landing Page / Linktree</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={urlSite}
+                    onChange={(e) => setUrlSite(e.target.value)}
+                    placeholder="https://exemplo.com.br"
+                    className="h-8 text-xs font-mono"
+                  />
+                  {urlSite && (
+                    <Tip label="Abrir site em nova aba">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = urlSite.startsWith('http') ? urlSite : `https://${urlSite}`;
+                          window.open(url, '_blank');
+                        }}
+                        className="p-2 rounded-lg bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                      >
+                        <Globe className="w-4 h-4" />
+                      </button>
+                    </Tip>
+                  )}
+                </div>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-[11px] text-muted-foreground mb-1 block">Gargalo / Dor Principal Identificada</label>
+                <Textarea
+                  value={dorPrincipal}
+                  onChange={(e) => setDorPrincipal(e.target.value)}
+                  placeholder="Ex: Não tem tráfego pago ativo, perfil sem prova social, site desatualizado, atendimento no direct demora horas..."
+                  rows={2}
+                  className="text-xs resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <Button size="sm" onClick={handleSalvarCampos} disabled={salvando} className="h-7 text-xs">
+                {salvando ? 'Salvando...' : 'Salvar Diagnóstico'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Próximo Follow-up & Agendamento */}
+          <div className="flex flex-col gap-3 bg-card p-4 rounded-xl border border-border">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                <h4 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-wider">
+                  Próximo Follow-up
+                </h4>
+              </div>
+
+              {(() => {
+                const fu = formatarFollowupRelativo(dataProximoFollowup ? new Date(dataProximoFollowup).toISOString() : null);
+                if (!fu) return null;
+                return (
+                  <span
+                    className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold border ${
+                      fu.atrasado
+                        ? 'bg-rose-500/10 border-rose-500/20 text-rose-500'
+                        : fu.hoje
+                        ? 'bg-amber-500/10 border-amber-500/20 text-amber-600'
+                        : 'bg-accent border-border text-foreground'
+                    }`}
+                  >
+                    {fu.texto}
+                  </span>
+                );
+              })()}
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 text-xs">
+              <Input
+                type="datetime-local"
+                value={dataProximoFollowup}
+                onChange={(e) => setDataProximoFollowup(e.target.value)}
+                className="h-8 text-xs font-mono max-w-xs"
+              />
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => handleAgendarFollowupRapido(1)}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-accent/60 hover:bg-accent text-foreground border border-border transition-colors"
+                >
+                  Amanhã (+1d)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAgendarFollowupRapido(2)}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-accent/60 hover:bg-accent text-foreground border border-border transition-colors"
+                >
+                  Em 2 dias
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAgendarFollowupRapido(7)}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-accent/60 hover:bg-accent text-foreground border border-border transition-colors"
+                >
+                  Em 1 semana
+                </button>
+                {dataProximoFollowup && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDataProximoFollowup('');
+                      handleSalvarCampos();
+                    }}
+                    className="px-2 py-1 rounded-md text-[11px] text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

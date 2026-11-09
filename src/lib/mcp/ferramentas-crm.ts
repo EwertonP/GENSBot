@@ -17,6 +17,10 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         cliente_id: { type: 'string', description: 'ID do cliente (vazio = funil interno da agência).' },
         status: { type: 'string', enum: ['aberto', 'ganho', 'perdido', 'all'], description: 'Padrão "aberto".' },
         busca: { type: 'string', description: 'Trecho do nome do lead, empresa ou @ do Instagram.' },
+        cidade: { type: 'string', description: 'Filtra por cidade da sede (ex: "João Pessoa", "Recife").' },
+        nicho: { type: 'string', description: 'Filtra por nicho (ex: "Direito Previdenciário", "Endocrinologia").' },
+        tier: { type: 'string', enum: ['A', 'B', 'C', 'all'], description: 'Filtra por Tier ICP: A (8 a 10), B (5 a 7.9) ou C (0 a 4.9).' },
+        score_minimo: { type: 'number', description: 'Filtra negócios com score de qualificação maior ou igual a este valor.' },
       },
       additionalProperties: false,
     },
@@ -26,7 +30,8 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         .from('crm_negocios')
         .select(`
           id, titulo, valor, status, nome_contato, telefone, email, instagram_username, empresa,
-          origem, prioridade, tags, ultimo_contato_em, criado_em,
+          cargo, origem, prioridade, tags, tipo_perfil, cidade, bairro, nicho, dor_principal,
+          url_site, score_qualificacao, data_proximo_followup, ultimo_contato_em, criado_em,
           estagio:crm_estagios(id, nome, cor, tipo_conclusao),
           responsavel:membros(id, nome)
         `)
@@ -45,9 +50,31 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         query = query.eq('status', statusFiltro);
       }
 
+      if (args.cidade && typeof args.cidade === 'string') {
+        query = query.ilike('cidade', `%${args.cidade.trim()}%`);
+      }
+
+      if (args.nicho && typeof args.nicho === 'string') {
+        query = query.ilike('nicho', `%${args.nicho.trim()}%`);
+      }
+
+      if (args.score_minimo !== undefined && !isNaN(Number(args.score_minimo))) {
+        query = query.gte('score_qualificacao', Number(args.score_minimo));
+      }
+
+      if (args.tier && args.tier !== 'all') {
+        if (args.tier === 'A') {
+          query = query.gte('score_qualificacao', 8.0);
+        } else if (args.tier === 'B') {
+          query = query.gte('score_qualificacao', 5.0).lt('score_qualificacao', 8.0);
+        } else if (args.tier === 'C') {
+          query = query.lt('score_qualificacao', 5.0);
+        }
+      }
+
       if (args.busca && typeof args.busca === 'string') {
         const termo = args.busca.trim().replace(/[%,()*\\]/g, ' ');
-        query = query.or(`titulo.ilike.%${termo}%,nome_contato.ilike.%${termo}%,empresa.ilike.%${termo}%`);
+        query = query.or(`titulo.ilike.%${termo}%,nome_contato.ilike.%${termo}%,empresa.ilike.%${termo}%,nicho.ilike.%${termo}%,cidade.ilike.%${termo}%`);
       }
 
       const { data, error } = await query;
@@ -64,7 +91,7 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
     name: 'crm_criar_negocio',
     title: 'Criar negócio no CRM',
     description:
-      'Cadastra uma nova oportunidade/lead no funil do CRM da agência ou de um cliente. Se não for informado estágio, insere na etapa inicial do pipeline.',
+      'Cadastra uma nova oportunidade/lead no funil do CRM da agência com dados completos de auditoria, nicho, dor técnica, score de qualificação ICP e agendamento de follow-up.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -74,7 +101,15 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         email: { type: 'string', description: 'E-mail do lead.' },
         valor: { type: 'number', description: 'Valor estimado em R$.' },
         cliente_id: { type: 'string', description: 'ID do cliente da agência (vazio = agência).' },
-        empresa: { type: 'string', description: 'Nome da empresa (se B2B).' },
+        empresa: { type: 'string', description: 'Nome da clínica ou escritório (se B2B).' },
+        tipo_perfil: { type: 'string', enum: ['profissional', 'empresa'], description: 'Tipo do lead ("profissional" para Dr./Dra. ou "empresa" para clínica/escritório).' },
+        cidade: { type: 'string', description: 'Cidade da sede (ex: "João Pessoa", "Recife", "Campina Grande").' },
+        bairro: { type: 'string', description: 'Bairro da sede (ex: "Manaíra", "Boa Viagem").' },
+        nicho: { type: 'string', description: 'Nicho auditado (ex: "Direito Previdenciário", "Cardiologia").' },
+        dor_principal: { type: 'string', description: 'Gargalo técnico auditado (ex: "Sem Meta Pixel, landing page não responsiva").' },
+        url_site: { type: 'string', description: 'URL do site ou Linktree atual.' },
+        score_qualificacao: { type: 'number', description: 'Score de qualificação ICP 360 de 0.0 a 10.0.' },
+        data_proximo_followup: { type: 'string', description: 'Data e hora ISO do próximo follow-up (ex: "2026-11-11T10:00:00-03:00").' },
         origem: { type: 'string', enum: ['manual', 'instagram', 'formulario', 'webhook_ads', 'indicacao', 'outros'] },
         prioridade: { type: 'string', enum: ['baixa', 'media', 'alta', 'urgente'] },
       },
@@ -104,6 +139,14 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
           email: args.email ? String(args.email).trim().toLowerCase() : null,
           valor: Number(args.valor) || 0,
           empresa: args.empresa ? String(args.empresa).trim() : null,
+          tipo_perfil: args.tipo_perfil || null,
+          cidade: args.cidade ? String(args.cidade).trim() : null,
+          bairro: args.bairro ? String(args.bairro).trim() : null,
+          nicho: args.nicho ? String(args.nicho).trim() : null,
+          dor_principal: args.dor_principal ? String(args.dor_principal).trim() : null,
+          url_site: args.url_site ? String(args.url_site).trim() : null,
+          score_qualificacao: args.score_qualificacao !== undefined ? Number(args.score_qualificacao) : null,
+          data_proximo_followup: args.data_proximo_followup ? String(args.data_proximo_followup) : null,
           origem: (args.origem as any) || 'manual',
           prioridade: (args.prioridade as any) || 'media',
           responsavel_id: ctx.membroId,
@@ -120,7 +163,7 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         agencia_id: ctx.agenciaId,
         membro_id: ctx.membroId,
         tipo: 'criacao',
-        descricao: `Oportunidade criada via MCP na etapa "${primeiroEstagio.nome}"`,
+        descricao: `Oportunidade criada via MCP na etapa "${primeiroEstagio.nome}" com Score ${args.score_qualificacao ?? 'N/A'}`,
       });
 
       return {
@@ -128,6 +171,7 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         negocio_id: negocio.id,
         titulo: negocio.titulo,
         etapa: primeiroEstagio.nome,
+        score: negocio.score_qualificacao,
       };
     },
   },
@@ -238,6 +282,165 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         .eq('id', args.negocio_id);
 
       return { sucesso: true, atividade: data };
+    },
+  },
+
+  {
+    name: 'crm_listar_estagios',
+    title: 'Listar estágios do funil do CRM',
+    description:
+      'Retorna a lista de etapas/estágios do pipeline com seus IDs, nomes, ordem e cores. Permite que agentes descubram dinamicamente as etapas do funil para onde mover os leads.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cliente_id: { type: 'string', description: 'ID do cliente (vazio = funil interno da agência).' },
+        pipeline_id: { type: 'string', description: 'ID do pipeline (opcional; se omitido, busca o pipeline padrão ativo).' },
+      },
+      additionalProperties: false,
+    },
+    somenteLeitura: true,
+    async executar(args, ctx) {
+      let pipelineId = args.pipeline_id ? String(args.pipeline_id) : undefined;
+      if (!pipelineId) {
+        const clienteId = typeof args.cliente_id === 'string' ? args.cliente_id : null;
+        const pipe = await garantirPipelinePadrao(ctx.agenciaId, clienteId);
+        pipelineId = pipe?.id;
+      }
+
+      if (!pipelineId) {
+        throw new ErroFerramenta('Pipeline de vendas não localizado.');
+      }
+
+      const { data: estagios, error } = await db
+        .from('crm_estagios')
+        .select('id, pipeline_id, nome, cor, ordem, tipo_conclusao, dias_limite_estagnado')
+        .eq('pipeline_id', pipelineId)
+        .order('ordem', { ascending: true });
+
+      if (error) throw new Error(error.message);
+
+      return {
+        pipeline_id: pipelineId,
+        total: (estagios || []).length,
+        estagios: estagios || [],
+      };
+    },
+  },
+
+  {
+    name: 'crm_agendar_followup',
+    title: 'Agendar follow-up para um lead',
+    description:
+      'Registra a data e hora da próxima reabordagem para o lead no CRM, criando uma tarefa pendente e uma anotação na linha do tempo.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        negocio_id: { type: 'string', description: 'ID (UUID) do negócio no CRM.' },
+        data_hora: { type: 'string', description: 'Data e hora do follow-up no formato ISO (ex: "2026-11-11T15:00:00-03:00").' },
+        tipo: { type: 'string', enum: ['whatsapp', 'ligacao', 'reuniao'], description: 'Canal previsto para o follow-up (padrão: "whatsapp").' },
+        motivo: { type: 'string', description: 'Contexto ou motivo da reabordagem (ex: "Lead pediu para chamar quinta após as 15h").' },
+      },
+      required: ['negocio_id', 'data_hora'],
+      additionalProperties: false,
+    },
+    somenteLeitura: false,
+    async executar(args, ctx) {
+      const dataHora = String(args.data_hora).trim();
+      const tipo = args.tipo || 'whatsapp';
+      const motivo = args.motivo ? String(args.motivo).trim() : 'Follow-up agendado';
+
+      // 1. Atualiza a data no negócio
+      const { data: negocio, error: negErr } = await db
+        .from('crm_negocios')
+        .update({
+          data_proximo_followup: dataHora,
+          ultimo_contato_em: new Date().toISOString(),
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq('id', args.negocio_id)
+        .eq('agencia_id', ctx.agenciaId)
+        .select()
+        .single();
+
+      if (negErr || !negocio) throw new Error(negErr?.message || 'Negócio não encontrado.');
+
+      // 2. Insere a tarefa de follow-up
+      await db.from('crm_tarefas').insert({
+        negocio_id: args.negocio_id,
+        agencia_id: ctx.agenciaId,
+        responsavel_id: ctx.membroId,
+        titulo: motivo,
+        tipo,
+        prazo: dataHora,
+        concluida: false,
+      });
+
+      // 3. Registra na timeline
+      await db.from('crm_atividades').insert({
+        negocio_id: args.negocio_id,
+        agencia_id: ctx.agenciaId,
+        membro_id: ctx.membroId,
+        tipo: 'tarefa',
+        descricao: `⏱ Follow-up agendado para ${dataHora}: ${motivo}`,
+      });
+
+      return {
+        sucesso: true,
+        negocio_id: args.negocio_id,
+        data_proximo_followup: dataHora,
+        motivo,
+      };
+    },
+  },
+
+  {
+    name: 'crm_listar_followups_pendentes',
+    title: 'Listar follow-ups pendentes do CRM',
+    description:
+      'Retorna a fila de leads com follow-up agendado vencido ou com vencimento até a data informada (padrão: NOW). Utilizada pela rotina diária das 08:30 para disparos de reengajamento.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ate_data: { type: 'string', description: 'Data/hora limite no formato ISO (padrão: agora).' },
+        limite: { type: 'number', description: 'Quantidade máxima de leads a retornar (padrão 50).' },
+        cliente_id: { type: 'string', description: 'ID do cliente (vazio = agência).' },
+      },
+      additionalProperties: false,
+    },
+    somenteLeitura: true,
+    async executar(args, ctx) {
+      const dataLimite = args.ate_data ? String(args.ate_data).trim() : new Date().toISOString();
+      const limite = Number(args.limite) || 50;
+
+      let query = db
+        .from('crm_negocios')
+        .select(`
+          id, titulo, valor, status, nome_contato, telefone, email, empresa,
+          nicho, cidade, bairro, dor_principal, url_site, score_qualificacao,
+          data_proximo_followup, ultimo_contato_em,
+          estagio:crm_estagios(id, nome, cor)
+        `)
+        .eq('agencia_id', ctx.agenciaId)
+        .eq('status', 'aberto')
+        .not('data_proximo_followup', 'is', null)
+        .lte('data_proximo_followup', dataLimite)
+        .order('data_proximo_followup', { ascending: true })
+        .limit(limite);
+
+      if (args.cliente_id) {
+        query = query.eq('cliente_id', args.cliente_id);
+      } else {
+        query = query.is('cliente_id', null);
+      }
+
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+
+      return {
+        total: (data || []).length,
+        data_referencia: dataLimite,
+        leads_pendentes: data || [],
+      };
     },
   },
 ];

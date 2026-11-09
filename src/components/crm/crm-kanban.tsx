@@ -6,7 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Tip } from '@/components/ui/tooltip';
 import { ScrollShadow } from '@/components/ui/scroll-shadow';
-import { formatarMoeda, calcularDiasSemContato, gerarLinkWhatsApp, formatarMensagemWhatsApp } from '@/lib/crm';
+import {
+  formatarMoeda,
+  calcularDiasSemContato,
+  gerarLinkWhatsApp,
+  formatarMensagemWhatsApp,
+  calcularTierScore,
+  formatarFollowupRelativo,
+} from '@/lib/crm';
 import type { CrmEstagio, CrmNegocio } from '@/types/crm';
 import {
   MessageSquare,
@@ -22,6 +29,9 @@ import {
   Globe,
   Search,
   MessageCircle,
+  MapPin,
+  Clock,
+  Flame,
 } from 'lucide-react';
 
 interface CrmKanbanProps {
@@ -60,253 +70,379 @@ export default function CrmKanban({
   onAbrirNegocio,
   onNovoNegocioNoEstagio,
 }: CrmKanbanProps) {
+  const [activeStageId, setActiveStageId] = useState<string | null>(estagios[0]?.id || null);
   const [draggingNegocioId, setDraggingNegocioId] = useState<string | null>(null);
   const [draggingOverEstagioId, setDraggingOverEstagioId] = useState<string | null>(null);
   const [draggingOverNegocioId, setDraggingOverNegocioId] = useState<string | null>(null);
 
-  return (
-    <ScrollShadow className="w-full min-w-0 max-w-full pb-4">
-      <div className="flex gap-4 p-1 min-w-full">
-        {estagios.map((estagio, estagioIdx) => {
-          const cardsDaColuna = negocios.filter((n) => n.estagio_id === estagio.id);
-          const valorTotalColuna = cardsDaColuna.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
-          const isOver = draggingOverEstagioId === estagio.id;
+  const rolarParaEstagio = (estagioId: string) => {
+    setActiveStageId(estagioId);
+    const el = document.getElementById(`estagio-${estagioId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  };
 
+  return (
+    <div className="flex flex-col gap-3 w-full min-w-0">
+      {/* Mobile Stage Pill Scroller */}
+      <div className="flex md:hidden items-center gap-1.5 overflow-x-auto pb-1.5 px-1 scrollbar-none no-scrollbar snap-x">
+        {estagios.map((est) => {
+          const count = negocios.filter((n) => n.estagio_id === est.id).length;
+          const isActive = activeStageId === est.id;
           return (
-            <div
-              key={estagio.id}
-              id={`estagio-${estagio.id}`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                if (draggingOverEstagioId !== estagio.id) setDraggingOverEstagioId(estagio.id);
-              }}
-              onDragLeave={() => {
-                if (draggingOverEstagioId === estagio.id) setDraggingOverEstagioId(null);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDraggingOverEstagioId(null);
-                setDraggingNegocioId(null);
-                const negocioId = e.dataTransfer.getData('text/plain');
-                if (negocioId) {
-                  onMoverNegocio(negocioId, estagio.id);
-                }
-              }}
-              className={`w-[85vw] max-w-80 snap-start shrink-0 flex flex-col gap-3 p-3.5 rounded-3xl border transition-all duration-200 min-h-[520px] ${
-                isOver
-                  ? 'bg-lime/10 border-primary ring-2 ring-primary/20 shadow-md'
-                  : 'bg-accent/25 border-border'
+            <button
+              key={est.id}
+              type="button"
+              onClick={() => rolarParaEstagio(est.id)}
+              className={`shrink-0 snap-start flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                isActive
+                  ? 'bg-foreground text-background border-foreground font-semibold shadow-2xs'
+                  : 'bg-card text-muted-foreground border-border hover:border-foreground/30'
               }`}
             >
-              {/* Cabeçalho da Coluna */}
-              <div className="flex flex-col gap-1 px-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: estagio.cor || '#3b82f6' }}
-                    />
-                    <span className="text-xs font-bold font-display text-foreground truncate max-w-[170px]">
-                      {estagio.nome}
-                    </span>
-                    <span className="text-[11px] font-mono font-bold bg-accent text-muted-foreground px-2 py-0.5 rounded-full border border-border">
-                      {cardsDaColuna.length}
-                    </span>
-                  </div>
-
-                  {onNovoNegocioNoEstagio && (
-                    <Tip label="Adicionar oportunidade nesta etapa">
-                      <button
-                        type="button"
-                        onClick={() => onNovoNegocioNoEstagio(estagio.id)}
-                        className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </Tip>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground px-0.5">
-                  <span>Total</span>
-                  <span className="font-bold text-foreground">{formatarMoeda(valorTotalColuna)}</span>
-                </div>
-              </div>
-
-              {/* Lista de Cards da Coluna */}
-              <div className="flex flex-col gap-2.5 flex-1">
-                {cardsDaColuna.map((negocio) => {
-                  const isDragging = draggingNegocioId === negocio.id;
-                  const isOverCard = draggingOverNegocioId === negocio.id;
-                  const diasSemContato = calcularDiasSemContato(negocio.ultimo_contato_em);
-                  const limiteEstagnado = estagio.dias_limite_estagnado ?? 3;
-                  const estagnado = estagio.tipo_conclusao === 'aberto' && limiteEstagnado > 0 && diasSemContato >= limiteEstagnado;
-                  const isEtapaDocumentos = /proposta|orçamento|orcamento|contrato/i.test(estagio.nome);
-
-                  const origemMeta = ORIGEM_CONFIG[negocio.origem] || ORIGEM_CONFIG.manual;
-                  const OrigemIcon = origemMeta.icon;
-                  const prioridadeMeta = PRIORIDADE_CONFIG[negocio.prioridade] || PRIORIDADE_CONFIG.media;
-
-                  return (
-                    <Card
-                      key={negocio.id}
-                      draggable={true}
-                      tabIndex={0}
-                      role="group"
-                      aria-label={`${negocio.titulo} — ${estagio.nome}. Enter abre; Alt + setas movem de etapa.`}
-                      onClick={() => onAbrirNegocio(negocio)}
-                      onKeyDown={(e) => {
-                        if (e.target !== e.currentTarget) return;
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          onAbrirNegocio(negocio);
-                          return;
-                        }
-                        if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
-                          e.preventDefault();
-                          const proximoEstagio = estagios[estagioIdx + (e.key === 'ArrowRight' ? 1 : -1)];
-                          if (proximoEstagio) onMoverNegocio(negocio.id, proximoEstagio.id);
-                        }
-                      }}
-                      onDragStart={(e) => {
-                        setDraggingNegocioId(negocio.id);
-                        e.dataTransfer.setData('text/plain', negocio.id);
-                        e.dataTransfer.effectAllowed = 'move';
-                      }}
-                      onDragEnd={() => {
-                        setDraggingNegocioId(null);
-                        setDraggingOverNegocioId(null);
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (draggingOverNegocioId !== negocio.id) setDraggingOverNegocioId(negocio.id);
-                      }}
-                      onDragLeave={(e) => {
-                        e.stopPropagation();
-                        if (draggingOverNegocioId === negocio.id) setDraggingOverNegocioId(null);
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDraggingOverEstagioId(null);
-                        setDraggingNegocioId(null);
-                        setDraggingOverNegocioId(null);
-                        const draggedId = e.dataTransfer.getData('text/plain');
-                        if (draggedId) {
-                          onMoverNegocio(draggedId, estagio.id, negocio.id);
-                        }
-                      }}
-                      className={`group p-3.5 rounded-2xl border bg-card shadow-2xs hover:shadow-md hover:border-border-strong transition-all duration-200 flex flex-col gap-2.5 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                        isDragging ? 'opacity-40 scale-[0.98]' : ''
-                      } ${isOverCard ? 'border-primary ring-2 ring-primary/20' : 'border-border/80 hover:border-foreground/30'}`}
-                    >
-                      {/* Topo do Card: Origem, Prioridade e Valor */}
-                      <div className="flex items-center justify-between gap-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${origemMeta.color}`}
-                          >
-                            <OrigemIcon className="w-2.5 h-2.5" />
-                            <span>{origemMeta.label}</span>
-                          </span>
-
-                          {negocio.prioridade !== 'media' && (
-                            <span
-                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${prioridadeMeta.color}`}
-                            >
-                              {prioridadeMeta.label}
-                            </span>
-                          )}
-                        </div>
-
-                        <span className="font-mono font-bold text-xs text-foreground shrink-0">
-                          {formatarMoeda(negocio.valor)}
-                        </span>
-                      </div>
-
-                      {/* Título & Empresa */}
-                      <div className="flex flex-col gap-0.5">
-                        <h4 className="font-semibold text-xs text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
-                          {negocio.titulo}
-                        </h4>
-                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
-                          <User className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{negocio.nome_contato}</span>
-                          {negocio.empresa && (
-                            <>
-                              <span className="text-border">•</span>
-                              <Building className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{negocio.empresa}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Alerta de Estagnação (se aplicável) */}
-                      {estagnado && (
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-medium">
-                          <AlertTriangle className="w-3 h-3 shrink-0" />
-                          <span>{diasSemContato}d sem contato registrado</span>
-                        </div>
-                      )}
-
-                      {/* Rodapé: Responsável e Botão de Ação Rápida */}
-                      <div className="flex items-center justify-between pt-1 border-t border-border/50 text-[11px]">
-                        <div className="flex items-center gap-1.5">
-                          <Avatar
-                            nome={negocio.responsavel?.nome || 'Não atribuído'}
-                            size="sm"
-                            className="w-5 h-5 text-[9px]"
-                          />
-                          <span className="text-muted-foreground text-[10px] truncate max-w-[100px]">
-                            {negocio.responsavel?.nome ? negocio.responsavel.nome.split(' ')[0] : 'Sem resp.'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          {isEtapaDocumentos && (
-                            <Tip label="Etapa comercial com proposta / contrato vinculados">
-                              <span className="p-1 rounded-md bg-primary/10 text-primary">
-                                <FileText className="w-3.5 h-3.5" />
-                              </span>
-                            </Tip>
-                          )}
-
-                          {/* Botão Rápido de WhatsApp */}
-                          {negocio.telefone && (
-                            <Tip label={`Chamar ${negocio.nome_contato.split(' ')[0]} no WhatsApp`}>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const msg = `Olá, ${negocio.nome_contato.split(' ')[0]}! Tudo bem?`;
-                                  const link = gerarLinkWhatsApp(negocio.telefone!, msg);
-                                  if (link) window.open(link, '_blank');
-                                }}
-                                className="p-1 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors"
-                              >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                              </button>
-                            </Tip>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-
-                {cardsDaColuna.length === 0 && (
-                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border border-dashed border-border rounded-xl text-muted-foreground/60">
-                    <span className="text-xs">Nenhum card aqui</span>
-                  </div>
-                )}
-              </div>
-            </div>
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: est.cor || '#3b82f6' }}
+              />
+              <span className="truncate max-w-[130px]">{est.nome}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                  isActive ? 'bg-background/20 text-background' : 'bg-accent text-foreground'
+                }`}
+              >
+                {count}
+              </span>
+            </button>
           );
         })}
       </div>
-    </ScrollShadow>
+
+      <ScrollShadow className="w-full min-w-0 max-w-full pb-4">
+        <div className="flex gap-4 p-1 min-w-full">
+          {estagios.map((estagio, estagioIdx) => {
+            const cardsDaColuna = negocios.filter((n) => n.estagio_id === estagio.id);
+            const valorTotalColuna = cardsDaColuna.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
+            const isOver = draggingOverEstagioId === estagio.id;
+
+            return (
+              <div
+                key={estagio.id}
+                id={`estagio-${estagio.id}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  if (draggingOverEstagioId !== estagio.id) setDraggingOverEstagioId(estagio.id);
+                }}
+                onDragLeave={() => {
+                  if (draggingOverEstagioId === estagio.id) setDraggingOverEstagioId(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDraggingOverEstagioId(null);
+                  setDraggingNegocioId(null);
+                  const negocioId = e.dataTransfer.getData('text/plain');
+                  if (negocioId) {
+                    onMoverNegocio(negocioId, estagio.id);
+                  }
+                }}
+                className={`w-[85vw] sm:w-[320px] max-w-80 snap-start shrink-0 flex flex-col gap-3 p-3.5 rounded-3xl border transition-all duration-200 min-h-[520px] ${
+                  isOver
+                    ? 'bg-lime/10 border-primary ring-2 ring-primary/20 shadow-md'
+                    : 'bg-accent/25 border-border'
+                }`}
+              >
+                {/* Cabeçalho da Coluna */}
+                <div className="flex flex-col gap-1 px-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: estagio.cor || '#3b82f6' }}
+                      />
+                      <span className="text-xs font-bold font-display text-foreground truncate max-w-[170px]">
+                        {estagio.nome}
+                      </span>
+                      <span className="text-[11px] font-mono font-bold bg-accent text-muted-foreground px-2 py-0.5 rounded-full border border-border">
+                        {cardsDaColuna.length}
+                      </span>
+                    </div>
+
+                    {onNovoNegocioNoEstagio && (
+                      <Tip label="Adicionar oportunidade nesta etapa">
+                        <button
+                          type="button"
+                          onClick={() => onNovoNegocioNoEstagio(estagio.id)}
+                          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </Tip>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground px-0.5">
+                    <span>Total</span>
+                    <span className="font-bold text-foreground">{formatarMoeda(valorTotalColuna)}</span>
+                  </div>
+                </div>
+
+                {/* Lista de Cards da Coluna */}
+                <div className="flex flex-col gap-2.5 flex-1">
+                  {cardsDaColuna.map((negocio) => {
+                    const isDragging = draggingNegocioId === negocio.id;
+                    const isOverCard = draggingOverNegocioId === negocio.id;
+                    const diasSemContato = calcularDiasSemContato(negocio.ultimo_contato_em);
+                    const limiteEstagnado = estagio.dias_limite_estagnado ?? 3;
+                    const estagnado =
+                      estagio.tipo_conclusao === 'aberto' &&
+                      limiteEstagnado > 0 &&
+                      diasSemContato >= limiteEstagnado;
+                    const isEtapaDocumentos = /proposta|orçamento|orcamento|contrato/i.test(estagio.nome);
+
+                    const origemMeta = ORIGEM_CONFIG[negocio.origem] || ORIGEM_CONFIG.manual;
+                    const OrigemIcon = origemMeta.icon;
+                    const prioridadeMeta = PRIORIDADE_CONFIG[negocio.prioridade] || PRIORIDADE_CONFIG.media;
+                    const tierMeta = calcularTierScore(negocio.score_qualificacao);
+                    const followupRelativo = formatarFollowupRelativo(negocio.data_proximo_followup);
+
+                    return (
+                      <Card
+                        key={negocio.id}
+                        draggable={true}
+                        tabIndex={0}
+                        role="group"
+                        aria-label={`${negocio.titulo} — ${estagio.nome}. Enter abre; Alt + setas movem de etapa.`}
+                        onClick={() => onAbrirNegocio(negocio)}
+                        onKeyDown={(e) => {
+                          if (e.target !== e.currentTarget) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onAbrirNegocio(negocio);
+                            return;
+                          }
+                          if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+                            e.preventDefault();
+                            const proximoEstagio = estagios[estagioIdx + (e.key === 'ArrowRight' ? 1 : -1)];
+                            if (proximoEstagio) onMoverNegocio(negocio.id, proximoEstagio.id);
+                          }
+                        }}
+                        onDragStart={(e) => {
+                          setDraggingNegocioId(negocio.id);
+                          e.dataTransfer.setData('text/plain', negocio.id);
+                          e.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragEnd={() => {
+                          setDraggingNegocioId(null);
+                          setDraggingOverNegocioId(null);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (draggingOverNegocioId !== negocio.id) setDraggingOverNegocioId(negocio.id);
+                        }}
+                        onDragLeave={(e) => {
+                          e.stopPropagation();
+                          if (draggingOverNegocioId === negocio.id) setDraggingOverNegocioId(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDraggingOverEstagioId(null);
+                          setDraggingNegocioId(null);
+                          setDraggingOverNegocioId(null);
+                          const draggedId = e.dataTransfer.getData('text/plain');
+                          if (draggedId) {
+                            onMoverNegocio(draggedId, estagio.id, negocio.id);
+                          }
+                        }}
+                        className={`group p-3.5 rounded-2xl border bg-card shadow-2xs hover:shadow-md hover:border-border-strong transition-all duration-200 flex flex-col gap-2.5 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                          isDragging ? 'opacity-40 scale-[0.98]' : ''
+                        } ${isOverCard ? 'border-primary ring-2 ring-primary/20' : 'border-border/80 hover:border-foreground/30'}`}
+                      >
+                        {/* Topo do Card: Origem, Prioridade, Tier Score e Valor */}
+                        <div className="flex items-center justify-between gap-1 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${origemMeta.color}`}
+                            >
+                              <OrigemIcon className="w-2.5 h-2.5" />
+                              <span>{origemMeta.label}</span>
+                            </span>
+
+                            {/* Badge Tier Score ICP */}
+                            {tierMeta && (
+                              <span
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border ${tierMeta.badgeClass}`}
+                                title={`Score ICP: ${negocio.score_qualificacao}/10 (${tierMeta.descricao})`}
+                              >
+                                <span>{tierMeta.emoji}</span>
+                                <span>Tier {tierMeta.tier}</span>
+                                <span className="opacity-80 font-mono text-[9px]">{negocio.score_qualificacao}</span>
+                              </span>
+                            )}
+
+                            {negocio.prioridade !== 'media' && (
+                              <span
+                                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${prioridadeMeta.color}`}
+                              >
+                                {prioridadeMeta.label}
+                              </span>
+                            )}
+                          </div>
+
+                          <span className="font-mono font-bold text-xs text-foreground shrink-0">
+                            {formatarMoeda(negocio.valor)}
+                          </span>
+                        </div>
+
+                        {/* Título & Empresa */}
+                        <div className="flex flex-col gap-0.5">
+                          <h4 className="font-semibold text-xs text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                            {negocio.titulo}
+                          </h4>
+                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
+                            {negocio.tipo_perfil === 'empresa' ? (
+                              <Building className="w-3 h-3 shrink-0 text-muted-foreground" />
+                            ) : (
+                              <User className="w-3 h-3 shrink-0 text-muted-foreground" />
+                            )}
+                            <span className="truncate">{negocio.nome_contato}</span>
+                            {negocio.empresa && (
+                              <>
+                                <span className="text-border">•</span>
+                                <span className="truncate text-muted-foreground/90 font-medium">
+                                  {negocio.empresa}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Localização & Nicho */}
+                        {(negocio.cidade || negocio.nicho) && (
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground flex-wrap">
+                            {negocio.cidade && (
+                              <span className="inline-flex items-center gap-1 truncate max-w-[140px]">
+                                <MapPin className="w-2.5 h-2.5 text-primary shrink-0" />
+                                <span className="truncate">{negocio.cidade}{negocio.bairro ? ` (${negocio.bairro})` : ''}</span>
+                              </span>
+                            )}
+                            {negocio.cidade && negocio.nicho && <span className="text-border">•</span>}
+                            {negocio.nicho && (
+                              <span className="font-medium text-foreground/80 truncate max-w-[130px]">
+                                {negocio.nicho}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Dor Principal Identificada */}
+                        {negocio.dor_principal && (
+                          <div className="px-2 py-1 rounded-lg bg-accent/40 border border-border/70 text-[10px] text-muted-foreground line-clamp-2 italic leading-relaxed">
+                            <span className="font-semibold text-foreground not-italic mr-1">Gargalo:</span>
+                            {negocio.dor_principal}
+                          </div>
+                        )}
+
+                        {/* Follow-up Agendado */}
+                        {followupRelativo && (
+                          <div
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium border ${
+                              followupRelativo.atrasado
+                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-500 dark:text-rose-400 font-semibold'
+                                : followupRelativo.hoje
+                                ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold'
+                                : 'bg-muted/50 border-border text-muted-foreground'
+                            }`}
+                          >
+                            <Clock className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{followupRelativo.texto}</span>
+                          </div>
+                        )}
+
+                        {/* Alerta de Estagnação (se aplicável) */}
+                        {estagnado && !followupRelativo && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-medium">
+                            <AlertTriangle className="w-3 h-3 shrink-0" />
+                            <span>{diasSemContato}d sem contato registrado</span>
+                          </div>
+                        )}
+
+                        {/* Rodapé: Responsável, Link do Site e Botão de WhatsApp */}
+                        <div className="flex items-center justify-between pt-1 border-t border-border/50 text-[11px]">
+                          <div className="flex items-center gap-1.5">
+                            <Avatar
+                              nome={negocio.responsavel?.nome || 'Não atribuído'}
+                              size="sm"
+                              className="w-5 h-5 text-[9px]"
+                            />
+                            <span className="text-muted-foreground text-[10px] truncate max-w-[90px]">
+                              {negocio.responsavel?.nome ? negocio.responsavel.nome.split(' ')[0] : 'Sem resp.'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {negocio.url_site && (
+                              <Tip label={`Abrir site: ${negocio.url_site}`}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const url = negocio.url_site?.startsWith('http')
+                                      ? negocio.url_site
+                                      : `https://${negocio.url_site}`;
+                                    window.open(url, '_blank');
+                                  }}
+                                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                                >
+                                  <Globe className="w-3.5 h-3.5" />
+                                </button>
+                              </Tip>
+                            )}
+
+                            {isEtapaDocumentos && (
+                              <Tip label="Etapa comercial com proposta / contrato vinculados">
+                                <span className="p-1 rounded-md bg-primary/10 text-primary">
+                                  <FileText className="w-3.5 h-3.5" />
+                                </span>
+                              </Tip>
+                            )}
+
+                            {/* Botão Rápido de WhatsApp */}
+                            {negocio.telefone && (
+                              <Tip label={`Chamar ${negocio.nome_contato.split(' ')[0]} no WhatsApp`}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const msg = `Olá, ${negocio.nome_contato.split(' ')[0]}! Tudo bem?`;
+                                    const link = gerarLinkWhatsApp(negocio.telefone!, msg);
+                                    if (link) window.open(link, '_blank');
+                                  }}
+                                  className="p-1 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                </button>
+                              </Tip>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+
+                  {cardsDaColuna.length === 0 && (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border border-dashed border-border rounded-xl text-muted-foreground/60">
+                      <span className="text-xs">Nenhum card aqui</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </ScrollShadow>
+    </div>
   );
 }

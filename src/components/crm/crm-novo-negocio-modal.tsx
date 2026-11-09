@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import type { CrmEstagio, CrmNegocio, CrmOrigem, CrmPrioridade } from '@/types/crm';
-import { X, Target, User, Phone, Mail, Building, DollarSign } from 'lucide-react';
+import type { CrmEstagio, CrmNegocio, CrmOrigem, CrmPrioridade, CrmTipoPerfil } from '@/types/crm';
+import { calcularTierScore } from '@/lib/crm';
+import { X, Target, User, Phone, Mail, Building, DollarSign, Globe, MapPin, Sparkles } from 'lucide-react';
 
 interface CrmNovoNegocioModalProps {
   open: boolean;
@@ -47,6 +48,15 @@ export default function CrmNovoNegocioModal({
   const [responsavelId, setResponsavelId] = useState('');
   const [descricao, setDescricao] = useState('');
 
+  // SDR & Auditoria
+  const [tipoPerfil, setTipoPerfil] = useState<CrmTipoPerfil>('profissional');
+  const [cidade, setCidade] = useState('');
+  const [bairro, setBairro] = useState('');
+  const [nicho, setNicho] = useState('');
+  const [dorPrincipal, setDorPrincipal] = useState('');
+  const [urlSite, setUrlSite] = useState('');
+  const [scoreQualificacao, setScoreQualificacao] = useState('');
+
   // Sincroniza estágio inicial quando abre
   useEffect(() => {
     if (open) {
@@ -60,6 +70,14 @@ export default function CrmNovoNegocioModal({
       setPrioridade('media');
       setResponsavelId(membros[0]?.id || '');
       setDescricao('');
+
+      setTipoPerfil('profissional');
+      setCidade('');
+      setBairro('');
+      setNicho('');
+      setDorPrincipal('');
+      setUrlSite('');
+      setScoreQualificacao('');
 
       if (estagioInicialId && estagios.some((e) => e.id === estagioInicialId)) {
         setEstagioId(estagioInicialId);
@@ -101,6 +119,13 @@ export default function CrmNovoNegocioModal({
           prioridade,
           responsavel_id: responsavelId || null,
           descricao: descricao.trim() || null,
+          tipo_perfil: tipoPerfil,
+          cidade: cidade.trim() || null,
+          bairro: bairro.trim() || null,
+          nicho: nicho.trim() || null,
+          dor_principal: dorPrincipal.trim() || null,
+          url_site: urlSite.trim() || null,
+          score_qualificacao: scoreQualificacao === '' ? null : Number(scoreQualificacao),
         }),
       });
 
@@ -280,6 +305,97 @@ export default function CrmNovoNegocioModal({
                   </option>
                 ))}
               </Select>
+            </div>
+          </div>
+
+          {/* Qualificação & Diagnóstico Inicial (SDR) */}
+          <div className="border border-border/80 rounded-xl p-3.5 bg-accent/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-semibold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                <span>Auditoria & Qualificação SDR</span>
+              </div>
+              {(() => {
+                const tier = calcularTierScore(scoreQualificacao === '' ? null : Number(scoreQualificacao));
+                if (!tier) return null;
+                return (
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${tier.badgeClass}`}>
+                    {tier.emoji} Tier {tier.tier}
+                  </span>
+                );
+              })()}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">Score ICP (0 a 10)</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="10"
+                  placeholder="ex: 8.5"
+                  value={scoreQualificacao}
+                  onChange={(e) => setScoreQualificacao(e.target.value)}
+                  className="font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">Tipo de Perfil</label>
+                <Select value={tipoPerfil} onChange={(e) => setTipoPerfil(e.target.value as CrmTipoPerfil)}>
+                  <option value="profissional">Profissional Liberal / Dr(a)</option>
+                  <option value="empresa">Empresa / Clínica</option>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">Nicho / Especialidade</label>
+                <Input
+                  placeholder="Ex: Harmonização Facial, Odonto"
+                  value={nicho}
+                  onChange={(e) => setNicho(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-muted-foreground" /> Cidade / Bairro
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    placeholder="Cidade"
+                    value={cidade}
+                    onChange={(e) => setCidade(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Bairro"
+                    value={bairro}
+                    onChange={(e) => setBairro(e.target.value)}
+                    className="w-24 shrink-0"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-2 space-y-1">
+                <label className="text-xs font-medium text-foreground flex items-center gap-1">
+                  <Globe className="w-3 h-3 text-muted-foreground" /> URL do Site ou Instagram
+                </label>
+                <Input
+                  placeholder="https://..."
+                  value={urlSite}
+                  onChange={(e) => setUrlSite(e.target.value)}
+                />
+              </div>
+
+              <div className="sm:col-span-2 space-y-1">
+                <label className="text-xs font-medium text-foreground">Gargalo Principal / Ponto Fraco</label>
+                <Input
+                  placeholder="Ex: Sem tráfego pago ativo, atendimento lento no Direct"
+                  value={dorPrincipal}
+                  onChange={(e) => setDorPrincipal(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 

@@ -5,6 +5,8 @@ import {
   normalizarWhatsApp,
   gerarLinkWhatsApp,
   calcularMetricasPipeline,
+  calcularTierScore,
+  formatarFollowupRelativo,
 } from './crm';
 import type { CrmNegocio } from '@/types/crm';
 
@@ -188,5 +190,46 @@ describe('CRM Helpers', () => {
     expect(metricas.ticketMedio).toBe(5000);
     // 1 ganho / 2 finalizados = 50%
     expect(metricas.taxaConversao).toBe(50);
+  });
+
+  describe('calcularTierScore', () => {
+    it('classifica Tier A para score >= 8', () => {
+      const res = calcularTierScore(8.5);
+      expect(res.tier).toBe('A');
+      expect(res.badge).toContain('Quente');
+      expect(res.emoji).toBe('🔥');
+    });
+
+    it('classifica Tier B para score entre 5 e 7.9', () => {
+      const res = calcularTierScore(6.2);
+      expect(res.tier).toBe('B');
+      expect(res.badge).toContain('Morno');
+      expect(res.emoji).toBe('⚡');
+    });
+
+    it('classifica Tier C para score < 5', () => {
+      const res = calcularTierScore(3.5);
+      expect(res.tier).toBe('C');
+      expect(res.badge).toContain('Baixo Fit');
+      expect(res.emoji).toBe('❄️');
+    });
+
+    it('retorna N/A quando não auditado', () => {
+      expect(calcularTierScore(null).tier).toBe('N/A');
+      expect(calcularTierScore(undefined).tier).toBe('N/A');
+    });
+  });
+
+  describe('formatarFollowupRelativo', () => {
+    it('informa quando não há follow-up agendado', () => {
+      expect(formatarFollowupRelativo(null).texto).toBe('Sem follow-up agendado');
+    });
+
+    it('identifica follow-ups vencidos', () => {
+      const duasHorasAtras = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const res = formatarFollowupRelativo(duasHorasAtras);
+      expect(res.vencido).toBe(true);
+      expect(res.texto).toContain('Vencido');
+    });
   });
 });
