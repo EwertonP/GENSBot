@@ -29,6 +29,7 @@ import {
   AlertCircle,
   Archive,
   SlidersHorizontal,
+  Trash2,
 } from 'lucide-react';
 import { Menu } from '@base-ui/react/menu';
 import { corDaEtiqueta, type Etiqueta } from '@/lib/etiquetas';
@@ -60,6 +61,7 @@ import { detectarGatilhosDaLegenda } from '@/lib/publish-automation';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
 import { uploadMediaFile } from '@/lib/storage-upload';
+import { confirmDialog } from '@/components/ui/dialog';
 import { MoverEtapaMenu } from '@/components/mover-etapa-menu';
 import { DuplicarMesSheet } from '@/components/esteira-duplicar-mes-sheet';
 import { AprovacaoWhatsappSheet } from '@/components/esteira-aprovacao-whatsapp-sheet';
@@ -703,6 +705,24 @@ export default function EsteiraTab({
       showToast(err.message || 'Erro ao duplicar mês de conteúdo.', 'error');
     } finally {
       setDuplicando(false);
+    }
+  }
+
+  async function handleExcluirDemanda(item: { id: string }) {
+    const ok = await confirmDialog({
+      title: 'Excluir esta demanda?',
+      description: 'Ela sai da esteira e do link da cliente. Se veio do Notion, não volta na próxima sincronização.',
+      confirmLabel: 'Excluir demanda',
+      tone: 'destructive',
+    });
+    if (!ok) return;
+    try {
+      const res = await fetch(`/api/conteudo/${item.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Erro ao excluir demanda.');
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      showToast('Demanda excluída da esteira.', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erro ao excluir.', 'error');
     }
   }
 
@@ -1442,6 +1462,13 @@ export default function EsteiraTab({
                                         <span>Ver tela de aprovação</span>
                                       </Menu.Item>
                                     )}
+                                    <Menu.Item
+                                      onClick={() => handleExcluirDemanda(item)}
+                                      className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs cursor-pointer outline-none text-destructive hover:bg-destructive/10 focus:bg-destructive/10"
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                      <span>Excluir demanda</span>
+                                    </Menu.Item>
                                   </Menu.Popup>
                                 </Menu.Positioner>
                               </Menu.Portal>

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { cleanupStorageMedia } from './storage-upload';
 import { arquivarEntregas } from './entregas-arquivadas-server';
+import { ignorarPaginasNotion } from './notion-ignoradas';
 import type { DemandaParaArquivar } from './entregas-arquivadas';
 import { diasRetencaoTexto, RETENCAO_TEXTO_MIN_DIAS, vencidaParaExcluir } from './retencao';
 
@@ -43,6 +44,7 @@ export async function limparConteudoPublicado(db: SupabaseClient, agora: Date = 
 
     // A contagem de entregas não pode se perder: sem arquivo, sem exclusão.
     if (!(await arquivarEntregas(db, vencidas))) return { excluidas: 0 };
+    await ignorarPaginasNotion(db, vencidas);
 
     for (const item of vencidas) {
       if (Array.isArray(item.arquivos) && item.arquivos.length > 0) {

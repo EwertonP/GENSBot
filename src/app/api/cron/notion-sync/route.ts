@@ -1,3 +1,4 @@
+import { paginasNotionIgnoradas } from '@/lib/notion-ignoradas';
 import { NextResponse } from 'next/server';
 import { segredoConfere } from '@/lib/segredos';
 import { supabase } from '@/lib/supabase';
@@ -123,6 +124,9 @@ export async function handleNotionSync(req: Request) {
       });
     }
 
+    // Páginas de demandas que foram excluídas no GENSBot não voltam.
+    const ignoradas = await paginasNotionIgnoradas(supabase);
+    let totalIgnoradas = 0;
     let totalSynced = 0;
     let totalCreated = 0;
     let totalUpdated = 0;
@@ -139,6 +143,10 @@ export async function handleNotionSync(req: Request) {
       for (const page of pages) {
         totalSynced++;
         const demand = mapNotionPageToDemand(page);
+        if (demand.notionPageId && ignoradas.has(demand.notionPageId)) {
+          totalIgnoradas++;
+          continue;
+        }
 
         // Resolve o cliente dono da página pela coluna "Cliente" (match exato com notion_cliente_label,
         // com fallback pro matching por nome só pra manter compatibilidade com configurações antigas).
@@ -293,6 +301,7 @@ export async function handleNotionSync(req: Request) {
     return NextResponse.json({
       success: true,
       databasesScanned: databaseIds.length,
+      ignoradas: totalIgnoradas,
       totalSynced,
       totalCreated,
       totalUpdated,
