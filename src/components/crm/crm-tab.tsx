@@ -37,6 +37,7 @@ import {
   Edit3,
   Bot,
   Sparkles,
+  Download,
 } from 'lucide-react';
 
 interface CrmTabProps {
@@ -78,6 +79,7 @@ export default function CrmTab({
   const [showPipelineModal, setShowPipelineModal] = useState(false);
   const [pipelineParaEditar, setPipelineParaEditar] = useState<CrmPipeline | null>(null);
   const [showAiModal, setShowAiModal] = useState(false);
+  const [importandoHub, setImportandoHub] = useState(false);
 
   // Perfil do usuário (admin/membro vs cliente/secretária) & Toggle rápido de IA
   const [usuarioPapel, setUsuarioPapel] = useState<'admin' | 'membro' | 'cliente' | null>(null);
@@ -198,6 +200,22 @@ export default function CrmTab({
       showToast('Erro ao alternar status da IA.', 'error');
     } finally {
       setAlternandoAi(false);
+    }
+  };
+
+  // Importa a tabela de prospecção do Hub Central (Auditoria 360)
+  const handleImportarHubCentral = async () => {
+    setImportandoHub(true);
+    try {
+      const res = await fetch('/api/crm/seed-prospeccao', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao importar leads');
+      showToast(data.mensagem || 'Leads do Hub Central importados com sucesso!', 'success');
+      await carregarNegocios(false);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Erro ao importar prospecções', 'error');
+    } finally {
+      setImportandoHub(false);
     }
   };
 
@@ -721,6 +739,22 @@ export default function CrmTab({
                 <Sparkles className="w-3.5 h-3.5 text-purple-500" />
                 <span className="inline">Agente IA SDR</span>
               </button>
+            </Tip>
+          )}
+
+          {/* Botão Importar Prospecções do Hub Central */}
+          {!contextoClienteId && (
+            <Tip label="Sincronizar e importar os leads e diagnósticos auditados da tabela do Hub Central">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleImportarHubCentral}
+                disabled={importandoHub}
+                className="h-10 md:h-9 text-xs font-semibold rounded-xl px-3 border-border hover:bg-accent cursor-pointer"
+              >
+                <Download className={`w-3.5 h-3.5 mr-1.5 text-primary ${importandoHub ? 'animate-bounce' : ''}`} />
+                {importandoHub ? 'Importando...' : 'Importar Hub Central'}
+              </Button>
             </Tip>
           )}
 

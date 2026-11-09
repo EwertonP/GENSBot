@@ -143,9 +143,38 @@ export async function PATCH(req: Request, { params }: Params) {
       updateQuery = updateQuery.eq('cliente_id', membro.cliente_id);
     }
 
-    const { data: atualizado, error } = await updateQuery
+    let { data: atualizado, error } = await updateQuery
       .select(SELECT_NEGOCIO)
       .maybeSingle();
+
+    if (error && (error.message.includes('column') || (error as any).code === '42703')) {
+      // Remove campos novos se o banco ainda não rodou a migration
+      const updatesLimpos = { ...updates };
+      delete updatesLimpos.tipo_perfil;
+      delete updatesLimpos.cidade;
+      delete updatesLimpos.bairro;
+      delete updatesLimpos.nicho;
+      delete updatesLimpos.dor_principal;
+      delete updatesLimpos.url_site;
+      delete updatesLimpos.score_qualificacao;
+      delete updatesLimpos.data_proximo_followup;
+
+      let retryQuery = serviceSupabase
+        .from('crm_negocios')
+        .update(updatesLimpos)
+        .eq('id', id)
+        .eq('agencia_id', membro.agencia_id);
+
+      if (membro.papel === 'cliente' && membro.cliente_id) {
+        retryQuery = retryQuery.eq('cliente_id', membro.cliente_id);
+      }
+
+      const retryRes = await retryQuery.select(SELECT_NEGOCIO).maybeSingle();
+      if (!retryRes.error && retryRes.data) {
+        atualizado = retryRes.data;
+        error = null;
+      }
+    }
 
     if (error) return traduzirErroBanco(error, 'PATCH /api/crm/negocios/[id]');
     if (!atualizado) return respostaErro('Negócio não encontrado.', 404);

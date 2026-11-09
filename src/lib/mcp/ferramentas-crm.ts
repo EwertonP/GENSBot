@@ -74,11 +74,40 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
 
       if (args.busca && typeof args.busca === 'string') {
         const termo = args.busca.trim().replace(/[%,()*\\]/g, ' ');
-        query = query.or(`titulo.ilike.%${termo}%,nome_contato.ilike.%${termo}%,empresa.ilike.%${termo}%,nicho.ilike.%${termo}%,cidade.ilike.%${termo}%`);
+        query = query.or(`titulo.ilike.%${termo}%,nome_contato.ilike.%${termo}%,empresa.ilike.%${termo}%`);
       }
 
-      const { data, error } = await query;
-      if (error) throw new Error(error.message);
+      let { data, error } = await query;
+
+      // Fallback gracioso caso a migration de novas colunas ainda não tenha sido aplicada no Supabase
+      if (error && (error.message.includes('column') || (error as any).code === '42703')) {
+        let fallbackQuery = db
+          .from('crm_negocios')
+          .select(`
+            id, titulo, valor, status, nome_contato, telefone, email, instagram_username, empresa,
+            cargo, origem, prioridade, tags, ultimo_contato_em, criado_em,
+            estagio:crm_estagios(id, nome, cor, tipo_conclusao),
+            responsavel:membros(id, nome)
+          `)
+          .eq('agencia_id', ctx.agenciaId)
+          .order('ordem_no_estagio', { ascending: true })
+          .order('criado_em', { ascending: false });
+
+        if (args.cliente_id) fallbackQuery = fallbackQuery.eq('cliente_id', args.cliente_id);
+        else fallbackQuery = fallbackQuery.is('cliente_id', null);
+
+        if (statusFiltro !== 'all') fallbackQuery = fallbackQuery.eq('status', statusFiltro);
+
+        const fbResult = await fallbackQuery;
+        if (!fbResult.error && fbResult.data) {
+          data = fbResult.data as any;
+          error = null;
+        }
+      }
+
+      if (error) {
+        throw new ErroFerramenta(`Erro ao listar negócios do CRM: ${error.message}`);
+      }
 
       return {
         total: (data || []).length,
@@ -126,7 +155,7 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
 
       const primeiroEstagio = pipe.estagios[0];
 
-      const { data: negocio, error } = await db
+      let { data: negocio, error } = await db
         .from('crm_negocios')
         .insert({
           agencia_id: ctx.agenciaId,
@@ -149,14 +178,83 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
           data_proximo_followup: args.data_proximo_followup ? String(args.data_proximo_followup) : null,
           origem: (args.origem as any) || 'manual',
           prioridade: (args.prioridade as any) || 'media',
-          responsavel_id: ctx.membroId,
+          responsavel_id: ctx.membroId || null,
           status: 'aberto',
           ultimo_contato_em: new Date().toISOString(),
         })
         .select()
         .single();
 
-      if (error || !negocio) throw new Error(error?.message || 'Falha ao criar negócio.');
+      // Se falhar porque as novas colunas ainda não foram migradas no Supabase (código 42703 ou mensagem "column")
+      if (error && (error.message.includes('column') || (error as any).code === '42703')) {
+        const tagsExtras: string[] = [];
+        if (args.cidade) tagsExtras.push(`cidade:${args.cidade}`);
+        if (args.nicho) tagsExtras.push(`nicho:${args.nicho}`);
+        if (args.score_qualificacao !== undefined) tagsExtras.push(`score:${args.score_qualificacao}`);
+        if (args.tipo_perfil) tagsExtras.push(`perfil:${args.tipo_perfil}`);
+
+        const retry = await db
+          .from('crm_negocios')
+          .insert({
+            agencia_id: ctx.agenciaId,
+            cliente_id: clienteId,
+            pipeline_id: pipe.id,
+            estagio_id: primeiroEstagio.id,
+            titulo: String(args.titulo).trim(),
+            nome_contato: String(args.nome_contato).trim(),
+            telefone: args.telefone ? String(args.telefone).trim() : null,
+            email: args.email ? String(args.email).trim().toLowerCase() : null,
+            valor: Number(args.valor) || 0,
+            empresa: args.empresa ? String(args.empresa).trim() : null,
+            origem: (args.origem as any) || 'manual',
+            prioridade: (args.prioridade as any) || 'media',
+            responsavel_id: ctx.membroId || null,
+            status: 'aberto',
+            tags: tagsExtras,
+            ultimo_contato_em: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (!retry.error && retry.data) {
+          negocio = retry.data;
+          error = null;
+        }
+      }
+
+      // Se falhar por chave estrangeira do membro
+      if (error && (error as any).code === '23503') {
+        const retrySemMembro = await db
+          .from('crm_negocios')
+          .insert({
+            agencia_id: ctx.agenciaId,
+            cliente_id: clienteId,
+            pipeline_id: pipe.id,
+            estagio_id: primeiroEstagio.id,
+            titulo: String(args.titulo).trim(),
+            nome_contato: String(args.nome_contato).trim(),
+            telefone: args.telefone ? String(args.telefone).trim() : null,
+            email: args.email ? String(args.email).trim().toLowerCase() : null,
+            valor: Number(args.valor) || 0,
+            empresa: args.empresa ? String(args.empresa).trim() : null,
+            origem: (args.origem as any) || 'manual',
+            prioridade: (args.prioridade as any) || 'media',
+            responsavel_id: null,
+            status: 'aberto',
+            ultimo_contato_em: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (!retrySemMembro.error && retrySemMembro.data) {
+          negocio = retrySemMembro.data;
+          error = null;
+        }
+      }
+
+      if (error || !negocio) {
+        throw new ErroFerramenta(`Falha ao criar negócio no CRM: ${error?.message || 'Erro de gravação'}`);
+      }
 
       await db.from('crm_atividades').insert({
         negocio_id: negocio.id,
@@ -232,12 +330,12 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         .select()
         .single();
 
-      if (error) throw new Error(error.message);
+      if (error) throw new ErroFerramenta(`Falha ao mover negócio: ${error.message}`);
 
       await db.from('crm_atividades').insert({
         negocio_id: args.negocio_id,
         agencia_id: ctx.agenciaId,
-        membro_id: ctx.membroId,
+        membro_id: ctx.membroId || null,
         tipo: tipoAtividade,
         descricao: desc,
       });
@@ -267,14 +365,14 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         .insert({
           negocio_id: args.negocio_id,
           agencia_id: ctx.agenciaId,
-          membro_id: ctx.membroId,
+          membro_id: ctx.membroId || null,
           tipo: args.tipo || 'nota',
           descricao: String(args.texto).trim(),
         })
         .select()
         .single();
 
-      if (error) throw new Error(error.message);
+      if (error) throw new ErroFerramenta(`Falha ao registrar anotação: ${error.message}`);
 
       await db
         .from('crm_negocios')
@@ -317,7 +415,7 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         .eq('pipeline_id', pipelineId)
         .order('ordem', { ascending: true });
 
-      if (error) throw new Error(error.message);
+      if (error) throw new ErroFerramenta(`Falha ao listar estágios: ${error.message}`);
 
       return {
         pipeline_id: pipelineId,
@@ -362,13 +460,25 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         .select()
         .single();
 
-      if (negErr || !negocio) throw new Error(negErr?.message || 'Negócio não encontrado.');
+      // Se falhar apenas porque a coluna data_proximo_followup não foi criada no banco
+      if (negErr && (negErr.message.includes('column') || (negErr as any).code === '42703')) {
+        await db
+          .from('crm_negocios')
+          .update({
+            ultimo_contato_em: new Date().toISOString(),
+            atualizado_em: new Date().toISOString(),
+          })
+          .eq('id', args.negocio_id)
+          .eq('agencia_id', ctx.agenciaId);
+      } else if (negErr) {
+        throw new ErroFerramenta(`Erro ao agendar follow-up: ${negErr.message}`);
+      }
 
-      // 2. Insere a tarefa de follow-up
+      // 2. Insere a tarefa de follow-up na tabela crm_tarefas
       await db.from('crm_tarefas').insert({
         negocio_id: args.negocio_id,
         agencia_id: ctx.agenciaId,
-        responsavel_id: ctx.membroId,
+        responsavel_id: ctx.membroId || null,
         titulo: motivo,
         tipo,
         prazo: dataHora,
@@ -379,7 +489,7 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
       await db.from('crm_atividades').insert({
         negocio_id: args.negocio_id,
         agencia_id: ctx.agenciaId,
-        membro_id: ctx.membroId,
+        membro_id: ctx.membroId || null,
         tipo: 'tarefa',
         descricao: `⏱ Follow-up agendado para ${dataHora}: ${motivo}`,
       });
@@ -433,8 +543,39 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         query = query.is('cliente_id', null);
       }
 
-      const { data, error } = await query;
-      if (error) throw new Error(error.message);
+      let { data, error } = await query;
+
+      // Fallback: se a coluna data_proximo_followup não existir na tabela crm_negocios, consulta crm_tarefas
+      if (error && (error.message.includes('column') || (error as any).code === '42703')) {
+        const { data: tarefas, error: tarErr } = await db
+          .from('crm_tarefas')
+          .select(`
+            id, negocio_id, titulo, tipo, prazo,
+            negocio:crm_negocios(id, titulo, nome_contato, telefone, empresa, estagio:crm_estagios(id, nome, cor))
+          `)
+          .eq('agencia_id', ctx.agenciaId)
+          .eq('concluida', false)
+          .lte('prazo', dataLimite)
+          .order('prazo', { ascending: true })
+          .limit(limite);
+
+        if (!tarErr && tarefas) {
+          data = tarefas.map((t: any) => ({
+            id: t.negocio?.id || t.negocio_id,
+            titulo: t.negocio?.titulo || t.titulo,
+            nome_contato: t.negocio?.nome_contato || 'Lead',
+            telefone: t.negocio?.telefone || null,
+            empresa: t.negocio?.empresa || null,
+            data_proximo_followup: t.prazo,
+            estagio: t.negocio?.estagio || null,
+          })) as any;
+          error = null;
+        }
+      }
+
+      if (error) {
+        throw new ErroFerramenta(`Erro ao listar follow-ups pendentes: ${error.message}`);
+      }
 
       return {
         total: (data || []).length,

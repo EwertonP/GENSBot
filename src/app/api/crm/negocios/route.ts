@@ -188,7 +188,7 @@ export async function POST(req: Request) {
 
     const cleanInsta = instagram_username ? instagram_username.replace(/^@/, '').trim() : null;
 
-    const { data: negocio, error } = await serviceSupabase
+    let { data: negocio, error } = await serviceSupabase
       .from('crm_negocios')
       .insert({
         agencia_id: membro.agencia_id,
@@ -222,6 +222,47 @@ export async function POST(req: Request) {
       })
       .select(SELECT_NEGOCIO)
       .single();
+
+    // Fallback gracioso se a migration ainda não foi rodada no banco
+    if (error && (error.message.includes('column') || (error as any).code === '42703')) {
+      const tagsExtras: string[] = Array.isArray(tags) ? [...tags] : [];
+      if (cidade) tagsExtras.push(`cidade:${cidade}`);
+      if (nicho) tagsExtras.push(`nicho:${nicho}`);
+      if (score_qualificacao !== undefined && score_qualificacao !== null) tagsExtras.push(`score:${score_qualificacao}`);
+      if (tipo_perfil) tagsExtras.push(`perfil:${tipo_perfil}`);
+
+      const retry = await serviceSupabase
+        .from('crm_negocios')
+        .insert({
+          agencia_id: membro.agencia_id,
+          cliente_id: clienteIdFinal || null,
+          pipeline_id,
+          estagio_id: estagioId,
+          titulo: titulo.trim(),
+          valor: Number(valor) || 0,
+          status: 'aberto',
+          nome_contato: nomeContatoFinal,
+          telefone: telefoneFinal || null,
+          email: emailFinal || null,
+          instagram_username: cleanInsta,
+          empresa: empresaFinal || null,
+          cargo: cargo ? cargo.trim() : null,
+          origem,
+          prioridade,
+          tags: tagsExtras,
+          responsavel_id: responsavel_id || user.id,
+          previsao_fechamento: previsao_fechamento || null,
+          probabilidade: probabilidade ? Number(probabilidade) : null,
+          ultimo_contato_em: new Date().toISOString(),
+        })
+        .select(SELECT_NEGOCIO)
+        .single();
+
+      if (!retry.error && retry.data) {
+        negocio = retry.data;
+        error = null;
+      }
+    }
 
     if (error || !negocio) {
       return traduzirErroBanco(error || { message: 'Falha ao criar negócio' }, 'POST /api/crm/negocios');
