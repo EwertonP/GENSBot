@@ -13,6 +13,7 @@ import { ehUuid } from '@/lib/clientes';
 import { normalizarCoResponsaveis } from '@/lib/conteudo';
 import { responsavelAutomatico } from '@/lib/responsavel-entrega';
 import { arquivarEntregas } from '@/lib/entregas-arquivadas-server';
+import { ignorarPaginasNotion } from '@/lib/notion-ignoradas';
 
 function extrairColunaInexistente(error: { code?: string; message?: string } | null | undefined): string | null {
   if (!error?.message) return null;
@@ -503,6 +504,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (paraExcluir?.status === 'publicado') {
     await arquivarEntregas(serviceSupabase, [paraExcluir]);
   }
+  // Veio do Notion? Lembra a página para a sincronização diária não recriar a demanda.
+  if (paraExcluir) await ignorarPaginasNotion(serviceSupabase, [paraExcluir]);
 
   let { error } = await supabase.from('conteudo_items').delete().eq('id', id);
 

@@ -5,6 +5,8 @@
  * respeita o papel: membro só enxerga e mexe no que é dele; master vê a agência.
  */
 import { supabase as db } from '../supabase';
+import { arquivarEntregas } from '../entregas-arquivadas-server';
+import { ignorarPaginasNotion } from '../notion-ignoradas';
 import type { ContextoMcp } from './oauth';
 import type { StatusConteudo } from '../conteudo';
 import { ehResponsavel, normalizarCoResponsaveis } from '../conteudo';
@@ -525,6 +527,48 @@ export const FERRAMENTAS: Ferramenta[] = [
         if (alvo) await updateNotionPageStatus(atual.notion_page_id, alvo).catch(() => {});
       }
       return { demanda_id: id, titulo: atual.titulo, de: atual.status, para: etapa, mudou: true };
+    },
+  },
+  {
+    name: 'excluir_demandas',
+    title: 'Excluir demandas',
+    description:
+      'Exclui demandas de vez (até 50 por chamada). Exige confirmar: true. Demandas vindas do Notion não voltam na sincronização diária; publicadas ficam registradas nas entregas arquivadas. Use listar_demandas antes para conferir os ids.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        demanda_ids: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 50 },
+        confirmar: { type: 'boolean', description: 'Precisa ser true. Não dá para desfazer.' },
+      },
+      required: ['demanda_ids', 'confirmar'],
+      additionalProperties: false,
+    },
+    somenteLeitura: false,
+    async executar(args, ctx) {
+      if (args.confirmar !== true) throw new ErroFerramenta('Confirme com confirmar: true. A exclusão não pode ser desfeita.');
+      const bruto = Array.isArray(args.demanda_ids) ? args.demanda_ids : [];
+      const ids = [...new Set(bruto.map((x) => String(x)))];
+      if (ids.length === 0 || ids.length > 50) throw new ErroFerramenta('Informe de 1 a 50 demandas.');
+      if (ids.some((i) => !UUID_RE.test(i))) throw new ErroFerramenta('Todos os ids precisam ser válidos.');
+      for (const i of ids) await demandaAcessivel(ctx, i);
+
+      const { data: itens, error: erroLeitura } = await db.from('conteudo_items').select('*').in('id', ids).eq('agencia_id', ctx.agenciaId);
+      if (erroLeitura) throw new Error(erroLeitura.message);
+      const lista = itens || [];
+
+      const publicadas = lista.filter((i) => i.status === 'publicado');
+      if (publicadas.length && !(await arquivarEntregas(db, publicadas))) {
+        throw new ErroFerramenta('Não foi possível arquivar as entregas publicadas; nada foi excluído.');
+      }
+      await ignorarPaginasNotion(db, lista);
+
+      const { error } = await db.from('conteudo_items').delete().in('id', ids).eq('agencia_id', ctx.agenciaId);
+      if (error) throw new Error(error.message);
+      return {
+        excluidas: lista.length,
+        titulos: lista.map((i) => i.titulo),
+        notion_nao_volta: lista.filter((i) => i.notion_page_id).length,
+      };
     },
   },
   {
