@@ -351,14 +351,14 @@ export const TEMPLATES_FUNIS: TemplateFunil[] = [
     descricao: 'Esteira comercial autônoma e prospecção da Agência GENS.',
     nichoSugerido: 'Marketing, Agência, B2B, Prospecção SDR, Consultoria',
     estagios: [
-      { nome: '1. Minerado & Auditado', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
-      { nome: '2. Abordagem Enviada', cor: '#8b5cf6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
-      { nome: '3. Em Qualificação', cor: '#f59e0b', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
-      { nome: '4. Follow-up Agendado', cor: '#f97316', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
-      { nome: '5. Reunião Agendada', cor: '#6366f1', ordem: 4, tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
-      { nome: '6. Proposta Apresentada', cor: '#ec4899', ordem: 5, tipo_conclusao: 'aberto', dias_limite_estagnado: 4 },
-      { nome: '7. Cliente Ganho', cor: '#00DC94', ordem: 6, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
-      { nome: '8. Perdido / Desqualificado', cor: '#ef4444', ordem: 7, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
+      { nome: 'Novo Prospect', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'A Iniciar', cor: '#06b6d4', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'Primeiro Contato', cor: '#8b5cf6', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'Acompanhamento', cor: '#f59e0b', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
+      { nome: 'Proposta para Reunião', cor: '#6366f1', ordem: 4, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
+      { nome: 'Follow-up', cor: '#ec4899', ordem: 5, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'Fechamento', cor: '#00DC94', ordem: 6, tipo_conclusao: 'ganho', dias_limite_estagnado: 0 },
+      { nome: 'Perda', cor: '#ef4444', ordem: 7, tipo_conclusao: 'perdido', dias_limite_estagnado: 0 },
     ],
   },
   {
@@ -407,10 +407,26 @@ export async function garantirPipelinePadrao(
     ? (query as any).order('ordem', { ascending: true })
     : query;
 
+  const ehAgencia = !clienteId;
+
   const { data: pipelines, error } = await queryExec;
   if (!error && pipelines && pipelines.length > 0) {
     // Ordena os estágios
     const pipe = pipelines[0];
+    if (ehAgencia && pipe.estagios && Array.isArray(pipe.estagios)) {
+      const temEtapaAntiga = pipe.estagios.some((e: any) => /minerado|abordagem enviada/i.test(e.nome));
+      const temAIniciar = pipe.estagios.some((e: any) => /a iniciar/i.test(e.nome));
+      if (temEtapaAntiga || !temAIniciar) {
+        await sincronizarEstagiosFunilAgencia(pipe.id, pipe.estagios);
+        const { data: estagiosAtualizados } = await (supabase.from('crm_estagios') as any)
+          .select('*')
+          .eq('pipeline_id', pipe.id)
+          .order('ordem', { ascending: true });
+        if (estagiosAtualizados) {
+          pipe.estagios = estagiosAtualizados;
+        }
+      }
+    }
     if (pipe.estagios) {
       pipe.estagios.sort((a: any, b: any) => a.ordem - b.ordem);
     }
@@ -418,7 +434,6 @@ export async function garantirPipelinePadrao(
   }
 
   // 2. Se não existir, seleciona o template adequado pelo nicho
-  const ehAgencia = !clienteId;
   const nichoNorm = (nichoCliente || '').toLowerCase();
 
   let templateEscolhido = TEMPLATES_FUNIS.find((t) => t.id === 'comercial_geral')!;
@@ -496,6 +511,83 @@ export async function garantirPipelinePadrao(
     ...novoPipe,
     estagios: estagiosCriados || [],
   };
+}
+
+/**
+ * Sincroniza e migra com segurança os estágios de um funil da agência para o padrão oficial de 8 etapas.
+ * Preserva todos os negócios existentes, remapeando-os para os estágios corretos sem perda de dados.
+ */
+export async function sincronizarEstagiosFunilAgencia(
+  pipelineId: string,
+  estagiosAtuais: any[]
+): Promise<void> {
+  try {
+    const correspondencias = [
+      { regex: /minerado|novo prospect/i, novoNome: 'Novo Prospect', ordem: 0, cor: '#3b82f6', tipo: 'aberto' as const },
+      { regex: /a iniciar/i, novoNome: 'A Iniciar', ordem: 1, cor: '#06b6d4', tipo: 'aberto' as const },
+      { regex: /abordagem|primeiro contato/i, novoNome: 'Primeiro Contato', ordem: 2, cor: '#8b5cf6', tipo: 'aberto' as const },
+      { regex: /qualifica|acompanhamento/i, novoNome: 'Acompanhamento', ordem: 3, cor: '#f59e0b', tipo: 'aberto' as const },
+      { regex: /proposta|reuni/i, novoNome: 'Proposta para Reunião', ordem: 4, cor: '#6366f1', tipo: 'aberto' as const },
+      { regex: /follow/i, novoNome: 'Follow-up', ordem: 5, cor: '#ec4899', tipo: 'aberto' as const },
+      { regex: /ganho|fechamento/i, novoNome: 'Fechamento', ordem: 6, cor: '#00DC94', tipo: 'ganho' as const },
+      { regex: /perdid|desqualificad|perda/i, novoNome: 'Perda', ordem: 7, cor: '#ef4444', tipo: 'perdido' as const },
+    ];
+
+    const estagiosUsados = new Set<string>();
+
+    for (const c of correspondencias) {
+      const est = estagiosAtuais.find((e) => !estagiosUsados.has(e.id) && c.regex.test(e.nome));
+      if (est) {
+        estagiosUsados.add(est.id);
+        const updateOp = (supabase.from('crm_estagios') as any).update({
+          nome: c.novoNome,
+          ordem: c.ordem,
+          cor: c.cor,
+          tipo_conclusao: c.tipo,
+        });
+        if (typeof updateOp?.eq === 'function') {
+          await updateOp.eq('id', est.id);
+        }
+      } else {
+        const insertOp = (supabase.from('crm_estagios') as any).insert({
+          pipeline_id: pipelineId,
+          nome: c.novoNome,
+          ordem: c.ordem,
+          cor: c.cor,
+          tipo_conclusao: c.tipo,
+          dias_limite_estagnado: c.tipo === 'aberto' ? 2 : 0,
+        });
+        if (typeof insertOp?.then === 'function') {
+          await insertOp;
+        }
+      }
+    }
+
+    // Se existirem estágios antigos extras (ex: antigas etapas 5 e 6 que foram unificadas), migra negócios e remove
+    const estagiosExtras = estagiosAtuais.filter((e) => !estagiosUsados.has(e.id));
+    if (estagiosExtras.length > 0) {
+      const selectProp = (supabase.from('crm_estagios') as any)
+        .select('id')
+        .eq('pipeline_id', pipelineId)
+        .eq('nome', 'Proposta para Reunião');
+      const { data: propStage } = typeof selectProp?.maybeSingle === 'function'
+        ? await selectProp.maybeSingle()
+        : { data: null };
+
+      for (const extra of estagiosExtras) {
+        if (propStage?.id) {
+          const updNeg = (supabase.from('crm_negocios') as any)
+            .update({ estagio_id: propStage.id })
+            .eq('estagio_id', extra.id);
+          if (typeof updNeg?.then === 'function') await updNeg;
+        }
+        const delOp = (supabase.from('crm_estagios') as any).delete().eq('id', extra.id);
+        if (typeof delOp?.then === 'function') await delOp;
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao sincronizar estágios do funil da agência:', err);
+  }
 }
 
 /**
