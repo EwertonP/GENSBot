@@ -61,6 +61,27 @@ export const TELAS = {
     icon: CheckSquare,
     grupo: 'operacao',
   },
+  crm: {
+    label: 'CRM de Vendas',
+    titulo: 'CRM de Vendas',
+    subtitulo: 'Funis de negociação, gestão de oportunidades e acompanhamento de leads.',
+    icon: Target,
+    grupo: 'comercial',
+  },
+  documentos: {
+    label: 'Propostas & Contratos',
+    titulo: 'Propostas & Contratos',
+    subtitulo: 'Biblioteca de 20 modelos, envio de propostas e contratos com assinatura digital.',
+    icon: FileSignature,
+    grupo: 'comercial',
+  },
+  forms: {
+    label: 'Formulários',
+    titulo: 'Construtor de Formulários',
+    subtitulo: 'Formulários conversacionais estilo Typeform para captação e qualificação de leads.',
+    icon: FileQuestion,
+    grupo: 'comercial',
+  },
   clientes: {
     label: 'Clientes',
     titulo: 'Clientes',
@@ -124,27 +145,6 @@ export const TELAS = {
     icon: Link2,
     grupo: 'instagram',
   },
-  crm: {
-    label: 'CRM de Vendas',
-    titulo: 'CRM de Vendas',
-    subtitulo: 'Funis de negociação, gestão de oportunidades e acompanhamento de leads.',
-    icon: Target,
-    grupo: 'comercial',
-  },
-  forms: {
-    label: 'Formulários',
-    titulo: 'Construtor de Formulários',
-    subtitulo: 'Formulários conversacionais estilo Typeform para captação e qualificação de leads.',
-    icon: FileQuestion,
-    grupo: 'comercial',
-  },
-  documentos: {
-    label: 'Propostas & Contratos',
-    titulo: 'Propostas & Contratos',
-    subtitulo: 'Biblioteca de 20 modelos, envio de propostas e contratos com assinatura digital.',
-    icon: FileSignature,
-    grupo: 'comercial',
-  },
 } as const;
 
 export type AbaId = keyof typeof TELAS;
@@ -155,13 +155,13 @@ export function isAbaId(v: string | null | undefined): v is AbaId {
   return !!v && v in TELAS;
 }
 
-export type GrupoMenuId = 'operacao' | 'gestao' | 'instagram' | 'comercial';
+export type GrupoMenuId = 'operacao' | 'comercial' | 'gestao' | 'instagram';
 
 export const GRUPOS_MENU: { id: GrupoMenuId; label: string }[] = [
   { id: 'operacao', label: 'Operação' },
+  { id: 'comercial', label: 'Comercial' },
   { id: 'gestao', label: 'Gestão' },
   { id: 'instagram', label: 'Instagram' },
-  { id: 'comercial', label: 'Comercial' },
 ];
 
 /**
