@@ -581,12 +581,7 @@ export async function sincronizarEstagiosFunilAgencia(
       ? await selectNovoProspect.maybeSingle()
       : { data: null };
 
-    if (estagioIniciar?.id && estagioNovoProspect?.id) {
-      const updNeg = (supabase.from('crm_negocios') as any)
-        .update({ estagio_id: estagioIniciar.id })
-        .eq('estagio_id', estagioNovoProspect.id);
-      if (typeof updNeg?.then === 'function') await updNeg;
-    }
+    // Leads em "Novo Prospect" permanecem preservados em sua coluna respectiva conforme solicitado.
 
     // Se existirem estágios antigos extras (ex: antigas etapas 5 e 6 que foram unificadas), migra negócios e remove
     const estagiosExtras = estagiosAtuais.filter((e) => !estagiosUsados.has(e.id));
