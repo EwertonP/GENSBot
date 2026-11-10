@@ -351,8 +351,8 @@ export const TEMPLATES_FUNIS: TemplateFunil[] = [
     descricao: 'Esteira comercial autônoma e prospecção da Agência GENS.',
     nichoSugerido: 'Marketing, Agência, B2B, Prospecção SDR, Consultoria',
     estagios: [
-      { nome: 'Novo Prospect', cor: '#3b82f6', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
-      { nome: 'A Iniciar', cor: '#06b6d4', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'A Iniciar', cor: '#06b6d4', ordem: 0, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
+      { nome: 'Novo Prospect', cor: '#3b82f6', ordem: 1, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
       { nome: 'Primeiro Contato', cor: '#8b5cf6', ordem: 2, tipo_conclusao: 'aberto', dias_limite_estagnado: 2 },
       { nome: 'Acompanhamento', cor: '#f59e0b', ordem: 3, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
       { nome: 'Proposta para Reunião', cor: '#6366f1', ordem: 4, tipo_conclusao: 'aberto', dias_limite_estagnado: 3 },
@@ -414,9 +414,10 @@ export async function garantirPipelinePadrao(
     // Ordena os estágios
     const pipe = pipelines[0];
     if (ehAgencia && pipe.estagios && Array.isArray(pipe.estagios)) {
+      const primeiroNome = pipe.estagios[0]?.nome || '';
       const temEtapaAntiga = pipe.estagios.some((e: any) => /minerado|abordagem enviada/i.test(e.nome));
-      const temAIniciar = pipe.estagios.some((e: any) => /a iniciar/i.test(e.nome));
-      if (temEtapaAntiga || !temAIniciar) {
+      const precisaSincronizar = primeiroNome !== 'A Iniciar' || temEtapaAntiga;
+      if (precisaSincronizar) {
         await sincronizarEstagiosFunilAgencia(pipe.id, pipe.estagios);
         const { data: estagiosAtualizados } = await (supabase.from('crm_estagios') as any)
           .select('*')
@@ -523,8 +524,8 @@ export async function sincronizarEstagiosFunilAgencia(
 ): Promise<void> {
   try {
     const correspondencias = [
-      { regex: /minerado|novo prospect/i, novoNome: 'Novo Prospect', ordem: 0, cor: '#3b82f6', tipo: 'aberto' as const },
-      { regex: /a iniciar/i, novoNome: 'A Iniciar', ordem: 1, cor: '#06b6d4', tipo: 'aberto' as const },
+      { regex: /a iniciar/i, novoNome: 'A Iniciar', ordem: 0, cor: '#06b6d4', tipo: 'aberto' as const },
+      { regex: /minerado|novo prospect/i, novoNome: 'Novo Prospect', ordem: 1, cor: '#3b82f6', tipo: 'aberto' as const },
       { regex: /abordagem|primeiro contato/i, novoNome: 'Primeiro Contato', ordem: 2, cor: '#8b5cf6', tipo: 'aberto' as const },
       { regex: /qualifica|acompanhamento/i, novoNome: 'Acompanhamento', ordem: 3, cor: '#f59e0b', tipo: 'aberto' as const },
       { regex: /proposta|reuni/i, novoNome: 'Proposta para Reunião', ordem: 4, cor: '#6366f1', tipo: 'aberto' as const },
@@ -561,6 +562,30 @@ export async function sincronizarEstagiosFunilAgencia(
           await insertOp;
         }
       }
+    }
+
+    // Garante que leads recém-importados e não iniciados estejam no primeiro estágio ("A Iniciar")
+    const selectIniciar = (supabase.from('crm_estagios') as any)
+      .select('id')
+      .eq('pipeline_id', pipelineId)
+      .eq('nome', 'A Iniciar');
+    const { data: estagioIniciar } = typeof selectIniciar?.maybeSingle === 'function'
+      ? await selectIniciar.maybeSingle()
+      : { data: null };
+
+    const selectNovoProspect = (supabase.from('crm_estagios') as any)
+      .select('id')
+      .eq('pipeline_id', pipelineId)
+      .eq('nome', 'Novo Prospect');
+    const { data: estagioNovoProspect } = typeof selectNovoProspect?.maybeSingle === 'function'
+      ? await selectNovoProspect.maybeSingle()
+      : { data: null };
+
+    if (estagioIniciar?.id && estagioNovoProspect?.id) {
+      const updNeg = (supabase.from('crm_negocios') as any)
+        .update({ estagio_id: estagioIniciar.id })
+        .eq('estagio_id', estagioNovoProspect.id);
+      if (typeof updNeg?.then === 'function') await updNeg;
     }
 
     // Se existirem estágios antigos extras (ex: antigas etapas 5 e 6 que foram unificadas), migra negócios e remove

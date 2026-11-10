@@ -1,11 +1,11 @@
--- Migration: Reestruturação do Funil de Prospecção SDR (8 Etapas com 'A Iniciar')
+-- Migration: Reestruturação do Funil de Prospecção SDR (8 Etapas com 'A Iniciar' em primeiro)
 -- Atualiza as etapas do pipeline padrão da agência ('Prospecção Agência') sem perda de dados
 
 DO $$
 DECLARE
   r_pipe RECORD;
-  v_stage_novo_id uuid;
   v_stage_iniciar_id uuid;
+  v_stage_novo_id uuid;
   v_stage_contato_id uuid;
   v_stage_acomp_id uuid;
   v_stage_prop_id uuid;
@@ -18,34 +18,41 @@ BEGIN
   FOR r_pipe IN 
     SELECT id FROM public.crm_pipelines WHERE cliente_id IS NULL AND ativo = true
   LOOP
-    -- 1. Renomeia ou cria 'Novo Prospect' (ordem 0)
-    SELECT id INTO v_stage_novo_id FROM public.crm_estagios 
-    WHERE pipeline_id = r_pipe.id AND (nome ILIKE '%minerado%' OR nome ILIKE '%novo prospect%')
-    LIMIT 1;
-
-    IF v_stage_novo_id IS NOT NULL THEN
-      UPDATE public.crm_estagios 
-      SET nome = 'Novo Prospect', cor = '#3b82f6', ordem = 0, tipo_conclusao = 'aberto', dias_limite_estagnado = 2
-      WHERE id = v_stage_novo_id;
-    ELSE
-      INSERT INTO public.crm_estagios (pipeline_id, nome, cor, ordem, tipo_conclusao, dias_limite_estagnado)
-      VALUES (r_pipe.id, 'Novo Prospect', '#3b82f6', 0, 'aberto', 2)
-      RETURNING id INTO v_stage_novo_id;
-    END IF;
-
-    -- 2. Cria ou garante 'A Iniciar' (ordem 1)
+    -- 1. Cria ou garante 'A Iniciar' em primeiro (ordem 0)
     SELECT id INTO v_stage_iniciar_id FROM public.crm_estagios 
     WHERE pipeline_id = r_pipe.id AND nome ILIKE '%a iniciar%'
     LIMIT 1;
 
     IF v_stage_iniciar_id IS NOT NULL THEN
       UPDATE public.crm_estagios 
-      SET nome = 'A Iniciar', cor = '#06b6d4', ordem = 1, tipo_conclusao = 'aberto', dias_limite_estagnado = 2
+      SET nome = 'A Iniciar', cor = '#06b6d4', ordem = 0, tipo_conclusao = 'aberto', dias_limite_estagnado = 2
       WHERE id = v_stage_iniciar_id;
     ELSE
       INSERT INTO public.crm_estagios (pipeline_id, nome, cor, ordem, tipo_conclusao, dias_limite_estagnado)
-      VALUES (r_pipe.id, 'A Iniciar', '#06b6d4', 1, 'aberto', 2)
+      VALUES (r_pipe.id, 'A Iniciar', '#06b6d4', 0, 'aberto', 2)
       RETURNING id INTO v_stage_iniciar_id;
+    END IF;
+
+    -- 2. Renomeia ou cria 'Novo Prospect' em segundo (ordem 1)
+    SELECT id INTO v_stage_novo_id FROM public.crm_estagios 
+    WHERE pipeline_id = r_pipe.id AND (nome ILIKE '%minerado%' OR nome ILIKE '%novo prospect%')
+    LIMIT 1;
+
+    IF v_stage_novo_id IS NOT NULL THEN
+      UPDATE public.crm_estagios 
+      SET nome = 'Novo Prospect', cor = '#3b82f6', ordem = 1, tipo_conclusao = 'aberto', dias_limite_estagnado = 2
+      WHERE id = v_stage_novo_id;
+    ELSE
+      INSERT INTO public.crm_estagios (pipeline_id, nome, cor, ordem, tipo_conclusao, dias_limite_estagnado)
+      VALUES (r_pipe.id, 'Novo Prospect', '#3b82f6', 1, 'aberto', 2)
+      RETURNING id INTO v_stage_novo_id;
+    END IF;
+
+    -- Move os leads não iniciados de 'Novo Prospect' para 'A Iniciar'
+    IF v_stage_iniciar_id IS NOT NULL AND v_stage_novo_id IS NOT NULL THEN
+      UPDATE public.crm_negocios 
+      SET estagio_id = v_stage_iniciar_id 
+      WHERE estagio_id = v_stage_novo_id;
     END IF;
 
     -- 3. Renomeia ou cria 'Primeiro Contato' (ordem 2)
