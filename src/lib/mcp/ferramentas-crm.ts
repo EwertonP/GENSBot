@@ -32,8 +32,8 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
           id, titulo, valor, status, nome_contato, telefone, email, instagram_username, empresa,
           cargo, origem, prioridade, tags, tipo_perfil, cidade, bairro, nicho, dor_principal,
           url_site, score_qualificacao, data_proximo_followup, ultimo_contato_em, criado_em,
-          estagio:crm_estagios(id, nome, cor, tipo_conclusao),
-          responsavel:membros(id, nome)
+          estagio:crm_estagios!estagio_id(id, nome, cor, tipo_conclusao),
+          responsavel:membros!responsavel_id(id, nome)
         `)
         .eq('agencia_id', ctx.agenciaId)
         .order('ordem_no_estagio', { ascending: true })
@@ -79,15 +79,15 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
 
       let { data, error } = await query;
 
-      // Fallback gracioso caso a migration de novas colunas ainda não tenha sido aplicada no Supabase
-      if (error && (error.message.includes('column') || (error as any).code === '42703')) {
+      // Fallback gracioso caso a migration de novas colunas ou relações ainda não tenha sido aplicada no Supabase
+      if (error && (error.message.includes('column') || (error as any).code === '42703' || (error as any).code === 'PGRST200' || (error as any).code === 'PGRST201')) {
         let fallbackQuery = db
           .from('crm_negocios')
           .select(`
             id, titulo, valor, status, nome_contato, telefone, email, instagram_username, empresa,
             cargo, origem, prioridade, tags, ultimo_contato_em, criado_em,
-            estagio:crm_estagios(id, nome, cor, tipo_conclusao),
-            responsavel:membros(id, nome)
+            estagio:crm_estagios!estagio_id(id, nome, cor, tipo_conclusao),
+            responsavel:membros!responsavel_id(id, nome)
           `)
           .eq('agencia_id', ctx.agenciaId)
           .order('ordem_no_estagio', { ascending: true })
@@ -102,11 +102,25 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
         if (!fbResult.error && fbResult.data) {
           data = fbResult.data as any;
           error = null;
+        } else {
+          // Segundo fallback: consulta plana sem joins se houver restrição de relação
+          const flatResult = await db
+            .from('crm_negocios')
+            .select('*')
+            .eq('agencia_id', ctx.agenciaId)
+            .order('criado_em', { ascending: false });
+          if (!flatResult.error && flatResult.data) {
+            data = flatResult.data as any;
+            error = null;
+          }
         }
       }
 
       if (error) {
-        throw new ErroFerramenta(`Erro ao listar negócios do CRM: ${error.message}`);
+        throw new ErroFerramenta(
+          `Erro ao listar negócios do CRM: ${error.message}. ` +
+          `Dica: certifique-se de que a migration "20261012_crm_sistema_completo.sql" e "20261109_crm_qualificacao_sdr.sql" foram executadas no banco de dados.`
+        );
       }
 
       return {
@@ -253,7 +267,10 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
       }
 
       if (error || !negocio) {
-        throw new ErroFerramenta(`Falha ao criar negócio no CRM: ${error?.message || 'Erro de gravação'}`);
+        throw new ErroFerramenta(
+          `Falha ao criar negócio no CRM: ${error?.message || 'Erro de gravação'}. ` +
+          `Dica: certifique-se de que as migrations "20261012_crm_sistema_completo.sql" e "20261109_crm_qualificacao_sdr.sql" foram executadas no Supabase.`
+        );
       }
 
       await db.from('crm_atividades').insert({
@@ -528,7 +545,7 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
           id, titulo, valor, status, nome_contato, telefone, email, empresa,
           nicho, cidade, bairro, dor_principal, url_site, score_qualificacao,
           data_proximo_followup, ultimo_contato_em,
-          estagio:crm_estagios(id, nome, cor)
+          estagio:crm_estagios!estagio_id(id, nome, cor)
         `)
         .eq('agencia_id', ctx.agenciaId)
         .eq('status', 'aberto')
@@ -546,12 +563,12 @@ export const FERRAMENTAS_CRM: Ferramenta[] = [
       let { data, error } = await query;
 
       // Fallback: se a coluna data_proximo_followup não existir na tabela crm_negocios, consulta crm_tarefas
-      if (error && (error.message.includes('column') || (error as any).code === '42703')) {
+      if (error && (error.message.includes('column') || (error as any).code === '42703' || (error as any).code === 'PGRST200')) {
         const { data: tarefas, error: tarErr } = await db
           .from('crm_tarefas')
           .select(`
             id, negocio_id, titulo, tipo, prazo,
-            negocio:crm_negocios(id, titulo, nome_contato, telefone, empresa, estagio:crm_estagios(id, nome, cor))
+            negocio:crm_negocios!negocio_id(id, titulo, nome_contato, telefone, empresa, estagio:crm_estagios!estagio_id(id, nome, cor))
           `)
           .eq('agencia_id', ctx.agenciaId)
           .eq('concluida', false)

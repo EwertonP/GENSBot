@@ -301,7 +301,8 @@ export default function CrmTab({
   }, [pipelines, pipelineAtivoId]);
 
   const estagios = useMemo(() => {
-    return pipelineAtivo?.estagios || [];
+    if (!pipelineAtivo?.estagios) return [];
+    return [...pipelineAtivo.estagios].sort((a, b) => a.ordem - b.ordem);
   }, [pipelineAtivo]);
 
   // Cidades e Nichos presentes para filtros dinâmicos
@@ -741,144 +742,171 @@ export default function CrmTab({
         </div>
       </div>
 
-      {/* ──────────────── Banner de Meta Comercial do Mês com Barra de Progresso ──────────────── */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border shadow-xs">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Target className="w-4 h-4" />
+      {/* ──────────────── Painéis Executivos (Pipeline Value, Deal Activity, Conversão & Metas) ──────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Painel 1: Pipeline Value */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs flex flex-col justify-between hover:border-border transition-all">
+          <div className="flex items-center justify-between pb-3 border-b border-border/50">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-primary" />
+              <h3 className="font-display font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+                Pipeline Value
+              </h3>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-foreground">Metas Comerciais do Mês</h3>
-                {dadosMetas.metaBatida && (
-                  <Badge variant="success" className="text-[10px] py-0 px-2">
-                    🎉 Meta Batida!
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Acompanhe o ritmo de conversão de novos clientes e receita ganha no mês atual.
-              </p>
-            </div>
+            <Tip label="Volume financeiro total sob negociação no funil vs receita já convertida neste ciclo.">
+              <span className="text-[11px] font-mono text-muted-foreground/70 cursor-help px-1.5 py-0.5 rounded-full bg-muted/60">
+                ⓘ
+              </span>
+            </Tip>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setFormMetaClientes(metaNovosClientes);
-              setFormMetaReceita(metaReceita);
-              setModalMetaAberto(true);
-            }}
-            className="h-8 rounded-full text-xs font-semibold border-border hover:bg-muted"
-          >
-            <Settings className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
-            Ajustar Metas
-          </Button>
+          <div className="grid grid-cols-2 gap-4 pt-3.5">
+            <div>
+              <p className="text-[11px] font-medium text-muted-foreground">Volume em Negociação</p>
+              <p className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight mt-0.5">
+                {formatarMoeda(metricas?.valorTotalAberto || 0)}
+              </p>
+              <div className="flex items-center gap-1 mt-1.5">
+                <span className="inline-flex items-center text-[10px] font-semibold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+                  ↑ {metricas?.negociosAbertos || 0} ativas
+                </span>
+              </div>
+            </div>
+
+            <div className="border-l border-border/40 pl-4">
+              <p className="text-[11px] font-medium text-muted-foreground">Receita Ganha</p>
+              <p className="text-xl sm:text-2xl font-bold font-display text-emerald-600 dark:text-emerald-400 tracking-tight mt-0.5">
+                {formatarMoeda(metricas?.valorTotalGanho || 0)}
+              </p>
+              <div className="flex items-center gap-1 mt-1.5">
+                <span className="inline-flex items-center text-[10px] font-medium text-muted-foreground">
+                  {metricas?.negociosGanhos || 0} negócios ganhos
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          {/* Progresso: Novos Clientes */}
-          <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border/60">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-foreground flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-primary" />
-                Novos Clientes Ganhos
-              </span>
-              <span className="font-mono text-xs font-bold text-foreground">
-                {dadosMetas.totalGanhosMes} de {metaNovosClientes} ({dadosMetas.pctClientes}%)
-              </span>
+        {/* Painel 2: Deal Activity */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs flex flex-col justify-between hover:border-border transition-all">
+          <div className="flex items-center justify-between pb-3 border-b border-border/50">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              <h3 className="font-display font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+                Deal Activity
+              </h3>
             </div>
-            <div className="w-full h-2 rounded-full bg-border overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-500"
-                style={{ width: `${dadosMetas.pctClientes}%` }}
-              />
-            </div>
+            <Tip label="Ritmo da prospecção comercial: oportunidades em aberto e leads que exigem atenção imediata.">
+              <span className="text-[11px] font-mono text-muted-foreground/70 cursor-help px-1.5 py-0.5 rounded-full bg-muted/60">
+                ⓘ
+              </span>
+            </Tip>
           </div>
 
-          {/* Progresso: Nova Receita Mensal */}
-          <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border/60">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-foreground flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-                Nova Receita Ganha no Mês
-              </span>
-              <span className="font-mono text-xs font-bold text-foreground">
-                {formatarMoeda(dadosMetas.valorGanhosMes)} de {formatarMoeda(metaReceita)} ({dadosMetas.pctReceita}%)
-              </span>
+          <div className="grid grid-cols-2 gap-4 pt-3.5">
+            <div>
+              <p className="text-[11px] font-medium text-muted-foreground">Oportunidades em Aberto</p>
+              <p className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight mt-0.5">
+                {metricas?.negociosAbertos || 0}
+              </p>
+              <div className="flex items-center gap-1 mt-1.5">
+                <span className="text-[10px] text-muted-foreground">
+                  Cadência SDR ativa
+                </span>
+              </div>
             </div>
-            <div className="w-full h-2 rounded-full bg-border overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                style={{ width: `${dadosMetas.pctReceita}%` }}
-              />
+
+            <div className="border-l border-border/40 pl-4">
+              <p className="text-[11px] font-medium text-muted-foreground">Atenção Comercial</p>
+              <p className={`text-xl sm:text-2xl font-bold font-display tracking-tight mt-0.5 ${totalEstagnados > 0 ? 'text-amber-500' : 'text-foreground'}`}>
+                {totalEstagnados}
+              </p>
+              <div className="flex items-center gap-1 mt-1.5">
+                {totalEstagnados > 0 ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
+                    <AlertTriangle className="w-3 h-3" /> sem contato &gt; 7d
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-emerald-500 font-medium">
+                    Tudo em dia
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Painel 3: Conversion & Metas */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs flex flex-col justify-between hover:border-border transition-all">
+          <div className="flex items-center justify-between pb-3 border-b border-border/50">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <h3 className="font-display font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+                Conversion & Metas
+              </h3>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFormMetaClientes(metaNovosClientes);
+                setFormMetaReceita(metaReceita);
+                setModalMetaAberto(true);
+              }}
+              className="h-6 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-full"
+            >
+              <Settings className="w-3 h-3 mr-1" />
+              Metas
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-3.5">
+            <div>
+              <p className="text-[11px] font-medium text-muted-foreground">Win Rate Geral</p>
+              <p className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight mt-0.5">
+                {(metricas?.taxaConversao || 0).toFixed(1)}%
+              </p>
+              <div className="flex items-center gap-1 mt-1.5">
+                <span className="text-[10px] text-muted-foreground">
+                  {metricas?.negociosGanhos || 0}G / {metricas?.negociosPerdidos || 0}P
+                </span>
+              </div>
+            </div>
+
+            <div className="border-l border-border/40 pl-4 space-y-2">
+              <div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground font-medium">Meta Clientes</span>
+                  <span className="font-mono text-[10px] font-bold text-foreground">
+                    {dadosMetas.totalGanhosMes}/{metaNovosClientes}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-border overflow-hidden mt-1">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(dadosMetas.pctClientes, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground font-medium">Meta Receita</span>
+                  <span className="font-mono text-[10px] font-bold text-foreground">
+                    {dadosMetas.pctReceita}%
+                  </span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-border overflow-hidden mt-1">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(dadosMetas.pctReceita, 100)}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* ──────────────── Métricas Resumo do Funil ──────────────── */}
-      {metricas && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-          {/* Card 1: Em Aberto */}
-          <div className="p-4 rounded-xl bg-card border border-border shadow-xs space-y-1">
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-xs font-medium uppercase tracking-wider">Em Negociação</span>
-              <DollarSign className="w-4 h-4 text-primary" />
-            </div>
-            <div className="text-xl font-bold font-display text-foreground">
-              {formatarMoeda(metricas.valorTotalAberto)}
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              {metricas.negociosAbertos} oportunidades ativas
-            </div>
-          </div>
-
-          {/* Card 2: Receita Ganha */}
-          <div className="p-4 rounded-xl bg-card border border-border shadow-xs space-y-1">
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-xs font-medium uppercase tracking-wider">Negócios Ganhos</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            </div>
-            <div className="text-xl font-bold font-display text-emerald-600 dark:text-emerald-400">
-              {formatarMoeda(metricas.valorTotalGanho)}
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              {metricas.negociosGanhos} convertidos
-            </div>
-          </div>
-
-          {/* Card 3: Taxa de Conversão */}
-          <div className="p-4 rounded-xl bg-card border border-border shadow-xs space-y-1">
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-xs font-medium uppercase tracking-wider">Conversão Geral</span>
-              <TrendingUp className="w-4 h-4 text-blue-500" />
-            </div>
-            <div className="text-xl font-bold font-display text-foreground">
-              {metricas.taxaConversao.toFixed(1)}%
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              {metricas.negociosGanhos} ganhos vs {metricas.negociosPerdidos} perdidos
-            </div>
-          </div>
-
-          {/* Card 4: Alerta Estagnação */}
-          <div className="p-4 rounded-xl bg-card border border-border shadow-xs space-y-1">
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-xs font-medium uppercase tracking-wider">Atenção Comercial</span>
-              <AlertTriangle className={`w-4 h-4 ${totalEstagnados > 0 ? 'text-amber-500' : 'text-muted-foreground'}`} />
-            </div>
-            <div className={`text-xl font-bold font-display ${totalEstagnados > 0 ? 'text-amber-500' : 'text-foreground'}`}>
-              {totalEstagnados}
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              sem contato &gt; 7 dias
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ──────────────── Barra de Filtros & Busca ──────────────── */}
       <FilterBar

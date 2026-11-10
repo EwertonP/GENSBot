@@ -10,17 +10,13 @@ import {
   formatarMoeda,
   calcularDiasSemContato,
   gerarLinkWhatsApp,
-  formatarMensagemWhatsApp,
   calcularTierScore,
   formatarFollowupRelativo,
 } from '@/lib/crm';
 import type { CrmEstagio, CrmNegocio } from '@/types/crm';
 import {
-  MessageSquare,
-  AlertTriangle,
   Building,
   User,
-  ExternalLink,
   Zap,
   FileText,
   Target,
@@ -32,6 +28,13 @@ import {
   MapPin,
   Clock,
   Flame,
+  Stethoscope,
+  HeartPulse,
+  Scale,
+  Building2,
+  Briefcase,
+  GripVertical,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface CrmKanbanProps {
@@ -56,12 +59,46 @@ const ORIGEM_CONFIG: Record<string, { label: string; icon: React.ElementType; co
   outros: { label: 'Outros', icon: User, color: 'bg-muted text-muted-foreground border-border' },
 };
 
-const PRIORIDADE_CONFIG: Record<string, { label: string; color: string }> = {
-  urgente: { label: 'Urgente', color: 'bg-destructive/15 text-destructive border-destructive/30' },
-  alta: { label: 'Alta', color: 'bg-amber-500/15 text-amber-500 border-amber-500/30' },
-  media: { label: 'Média', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  baixa: { label: 'Baixa', color: 'bg-muted text-muted-foreground border-border' },
+const PRIORIDADE_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
+  urgente: { label: 'Urgente', color: 'bg-destructive/15 text-destructive border-destructive/30', dot: 'bg-destructive' },
+  alta: { label: 'Alta', color: 'bg-amber-500/15 text-amber-500 border-amber-500/30', dot: 'bg-amber-500' },
+  media: { label: 'Média', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', dot: 'bg-blue-500' },
+  baixa: { label: 'Baixa', color: 'bg-muted text-muted-foreground border-border', dot: 'bg-muted-foreground' },
 };
+
+function obterIconeNicho(nicho?: string | null) {
+  const n = (nicho || '').toLowerCase();
+  if (n.includes('cardio') || n.includes('coraç')) return HeartPulse;
+  if (
+    n.includes('medic') ||
+    n.includes('saude') ||
+    n.includes('saúde') ||
+    n.includes('clinic') ||
+    n.includes('clínic') ||
+    n.includes('derma') ||
+    n.includes('odonto') ||
+    n.includes('estet')
+  ) {
+    return Stethoscope;
+  }
+  if (n.includes('advog') || n.includes('direit') || n.includes('jurid') || n.includes('juríd')) {
+    return Scale;
+  }
+  if (
+    n.includes('imob') ||
+    n.includes('corret') ||
+    n.includes('imovel') ||
+    n.includes('imóvel') ||
+    n.includes('constru') ||
+    n.includes('arquit')
+  ) {
+    return Building2;
+  }
+  if (n.includes('market') || n.includes('agenc') || n.includes('agênc') || n.includes('b2b') || n.includes('consult')) {
+    return Briefcase;
+  }
+  return Target;
+}
 
 export default function CrmKanban({
   estagios,
@@ -146,24 +183,24 @@ export default function CrmKanban({
                     onMoverNegocio(negocioId, estagio.id);
                   }
                 }}
-                className={`w-[85vw] sm:w-[320px] max-w-80 snap-start shrink-0 flex flex-col gap-3 p-3.5 rounded-3xl border transition-all duration-200 min-h-[520px] ${
+                className={`w-[88vw] sm:w-[330px] max-w-[340px] snap-start shrink-0 flex flex-col gap-3 p-3.5 rounded-3xl border transition-all duration-200 min-h-[540px] ${
                   isOver
-                    ? 'bg-lime/10 border-primary ring-2 ring-primary/20 shadow-md'
-                    : 'bg-accent/25 border-border'
+                    ? 'bg-primary/10 border-primary ring-2 ring-primary/20 shadow-md'
+                    : 'bg-accent/20 border-border/80 shadow-2xs'
                 }`}
               >
-                {/* Cabeçalho da Coluna */}
-                <div className="flex flex-col gap-1 px-1">
+                {/* Cabeçalho da Coluna (Inspirado na Referência Deals Pipeline) */}
+                <div className="flex flex-col gap-1.5 px-1 pb-1">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        className="size-2.5 rounded-full shrink-0 shadow-2xs"
                         style={{ backgroundColor: estagio.cor || '#3b82f6' }}
                       />
-                      <span className="text-xs font-bold font-display text-foreground truncate max-w-[170px]">
+                      <span className="text-xs font-bold font-display text-foreground truncate max-w-[160px]">
                         {estagio.nome}
                       </span>
-                      <span className="text-[11px] font-mono font-bold bg-accent text-muted-foreground px-2 py-0.5 rounded-full border border-border">
+                      <span className="text-[11px] font-mono font-bold bg-card border border-border text-foreground px-2 py-0.5 rounded-full shadow-2xs shrink-0">
                         {cardsDaColuna.length}
                       </span>
                     </div>
@@ -173,22 +210,22 @@ export default function CrmKanban({
                         <button
                           type="button"
                           onClick={() => onNovoNegocioNoEstagio(estagio.id)}
-                          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                          className="size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card border border-transparent hover:border-border transition-all grid place-items-center cursor-pointer shadow-2xs"
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="size-3.5" />
                         </button>
                       </Tip>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground px-0.5">
-                    <span>Total</span>
-                    <span className="font-bold text-foreground">{formatarMoeda(valorTotalColuna)}</span>
+                  <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground px-0.5 pt-0.5 border-t border-border/40">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/70">Subtotal</span>
+                    <span className="font-bold text-foreground text-xs">{formatarMoeda(valorTotalColuna)}</span>
                   </div>
                 </div>
 
                 {/* Lista de Cards da Coluna */}
-                <div className="flex flex-col gap-2.5 flex-1">
+                <div className="flex flex-col gap-3 flex-1">
                   {cardsDaColuna.map((negocio) => {
                     const isDragging = draggingNegocioId === negocio.id;
                     const isOverCard = draggingOverNegocioId === negocio.id;
@@ -198,13 +235,13 @@ export default function CrmKanban({
                       estagio.tipo_conclusao === 'aberto' &&
                       limiteEstagnado > 0 &&
                       diasSemContato >= limiteEstagnado;
-                    const isEtapaDocumentos = /proposta|orçamento|orcamento|contrato/i.test(estagio.nome);
 
                     const origemMeta = ORIGEM_CONFIG[negocio.origem] || ORIGEM_CONFIG.manual;
                     const OrigemIcon = origemMeta.icon;
                     const prioridadeMeta = PRIORIDADE_CONFIG[negocio.prioridade] || PRIORIDADE_CONFIG.media;
                     const tierMeta = calcularTierScore(negocio.score_qualificacao);
                     const followupRelativo = formatarFollowupRelativo(negocio.data_proximo_followup);
+                    const NichoIcon = obterIconeNicho(negocio.nicho);
 
                     return (
                       <Card
@@ -258,60 +295,90 @@ export default function CrmKanban({
                         }}
                         className={`group p-3.5 rounded-2xl border bg-card shadow-2xs hover:shadow-md hover:border-border-strong transition-all duration-200 flex flex-col gap-2.5 cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           isDragging ? 'opacity-40 scale-[0.98]' : ''
-                        } ${isOverCard ? 'border-primary ring-2 ring-primary/20' : 'border-border/80 hover:border-foreground/30'}`}
+                        } ${isOverCard ? 'border-primary ring-2 ring-primary/20' : 'border-border/80 hover:border-foreground/25'}`}
                       >
-                        {/* Topo do Card: Origem, Prioridade, Tier Score e Valor */}
-                        <div className="flex items-center justify-between gap-1 flex-wrap">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${origemMeta.color}`}
-                            >
-                              <OrigemIcon className="w-2.5 h-2.5" />
-                              <span>{origemMeta.label}</span>
+                        {/* Topo do Card: Código #LEAD, Tier ICP, Prioridade e Handle */}
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <span className="font-mono text-[10px] font-bold text-muted-foreground tracking-wider">
+                              #{negocio.id.slice(0, 4).toUpperCase()}
                             </span>
 
                             {/* Badge Tier Score ICP */}
                             {tierMeta && (
                               <span
-                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border ${tierMeta.badgeClass}`}
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${tierMeta.badgeClass}`}
                                 title={`Score ICP: ${negocio.score_qualificacao}/10 (${tierMeta.descricao})`}
                               >
                                 <span>{tierMeta.emoji}</span>
                                 <span>Tier {tierMeta.tier}</span>
-                                <span className="opacity-80 font-mono text-[9px]">{negocio.score_qualificacao}</span>
                               </span>
                             )}
 
-                            {negocio.prioridade !== 'media' && (
+                            {/* Prioridade com pontinho */}
+                            {negocio.prioridade && negocio.prioridade !== 'media' && (
                               <span
-                                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${prioridadeMeta.color}`}
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold border ${prioridadeMeta.color}`}
                               >
-                                {prioridadeMeta.label}
+                                <span className={`size-1 rounded-full ${prioridadeMeta.dot} animate-pulse`} />
+                                <span>{prioridadeMeta.label}</span>
                               </span>
                             )}
                           </div>
 
-                          <span className="font-mono font-bold text-xs text-foreground shrink-0">
-                            {formatarMoeda(negocio.valor)}
-                          </span>
+                          <div className="flex items-center gap-1 shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
+                            <GripVertical className="size-3.5" />
+                          </div>
                         </div>
 
-                        {/* Título & Empresa */}
+                        {/* Hero Visual do Card (Inspirado no visual dos cards da Esteira de Demandas) */}
+                        <div className="relative aspect-[16/7] w-full rounded-xl overflow-hidden border border-border/70 bg-gradient-to-br from-accent/50 via-card to-muted/40 p-2.5 flex flex-col justify-between shrink-0 group-hover:border-foreground/25 transition-all">
+                          {/* Topo do Hero: Nicho Badge + Instagram */}
+                          <div className="flex items-center justify-between gap-1 w-full min-w-0">
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-card/90 backdrop-blur-xs border border-border/70 text-[10px] font-semibold text-foreground shadow-2xs truncate">
+                              <NichoIcon className="size-3 text-primary shrink-0" />
+                              <span className="truncate max-w-[120px]">{negocio.nicho || 'Geral'}</span>
+                            </div>
+                            {negocio.instagram_username && (
+                              <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1 bg-card/90 backdrop-blur-xs px-1.5 py-0.5 rounded-md border border-border/60 shrink-0">
+                                <Zap className="size-2.5 text-pink-500 shrink-0" />
+                                <span className="truncate max-w-[90px]">@{negocio.instagram_username.replace(/^@/, '')}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Base do Hero: Cidade/Localização + Valor em destaque */}
+                          <div className="flex items-end justify-between gap-1 w-full min-w-0">
+                            {negocio.cidade ? (
+                              <div className="flex items-center gap-1 text-[10px] font-medium text-foreground bg-card/90 backdrop-blur-xs px-2 py-0.5 rounded-md border border-border/70 shadow-2xs truncate">
+                                <MapPin className="size-2.5 text-primary shrink-0" />
+                                <span className="truncate max-w-[120px] font-semibold">{negocio.cidade}{negocio.bairro ? ` · ${negocio.bairro}` : ''}</span>
+                              </div>
+                            ) : (
+                              <div />
+                            )}
+                            <span className="text-xs font-mono font-bold text-foreground bg-card/95 backdrop-blur-xs px-2 py-0.5 rounded-md border border-border/80 shadow-2xs shrink-0">
+                              {formatarMoeda(negocio.valor)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Título & Empresa em Sora */}
                         <div className="flex flex-col gap-0.5">
-                          <h4 className="font-semibold text-xs text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                          <h4 className="font-bold text-sm font-display text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
                             {negocio.titulo}
                           </h4>
-                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
                             {negocio.tipo_perfil === 'empresa' ? (
-                              <Building className="w-3 h-3 shrink-0 text-muted-foreground" />
+                              <Building className="size-3.5 shrink-0 text-muted-foreground" />
                             ) : (
-                              <User className="w-3 h-3 shrink-0 text-muted-foreground" />
+                              <User className="size-3.5 shrink-0 text-muted-foreground" />
                             )}
-                            <span className="truncate">{negocio.nome_contato}</span>
+                            <span className="truncate font-medium text-foreground/90">{negocio.nome_contato}</span>
                             {negocio.empresa && (
                               <>
-                                <span className="text-border">•</span>
-                                <span className="truncate text-muted-foreground/90 font-medium">
+                                <span className="text-border select-none">·</span>
+                                <span className="truncate text-muted-foreground font-normal">
                                   {negocio.empresa}
                                 </span>
                               </>
@@ -319,70 +386,64 @@ export default function CrmKanban({
                           </div>
                         </div>
 
-                        {/* Localização & Nicho */}
-                        {(negocio.cidade || negocio.nicho) && (
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground flex-wrap">
-                            {negocio.cidade && (
-                              <span className="inline-flex items-center gap-1 truncate max-w-[140px]">
-                                <MapPin className="w-2.5 h-2.5 text-primary shrink-0" />
-                                <span className="truncate">{negocio.cidade}{negocio.bairro ? ` (${negocio.bairro})` : ''}</span>
-                              </span>
-                            )}
-                            {negocio.cidade && negocio.nicho && <span className="text-border">•</span>}
-                            {negocio.nicho && (
-                              <span className="font-medium text-foreground/80 truncate max-w-[130px]">
-                                {negocio.nicho}
-                              </span>
-                            )}
+                        {/* Grade de Metadados Estruturados (Inspirada no Deals Pipeline) */}
+                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50 text-[11px]">
+                          <div className="flex items-center gap-1.5 text-muted-foreground truncate min-w-0">
+                            <OrigemIcon className="size-3 text-muted-foreground shrink-0" />
+                            <span className="truncate">{origemMeta.label}</span>
                           </div>
-                        )}
 
-                        {/* Dor Principal Identificada */}
+                          {followupRelativo ? (
+                            <div
+                              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold border truncate min-w-0 ${
+                                followupRelativo.atrasado
+                                  ? 'bg-rose-500/10 border-rose-500/25 text-rose-500 dark:text-rose-400'
+                                  : followupRelativo.hoje
+                                  ? 'bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400'
+                                  : 'bg-muted/50 border-border text-muted-foreground'
+                              }`}
+                            >
+                              <Clock className="size-2.5 shrink-0" />
+                              <span className="truncate">{followupRelativo.texto}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60 truncate min-w-0">
+                              <Clock className="size-2.5 shrink-0" />
+                              <span className="truncate">Sem follow-up</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Preview de Gargalo / Dor Principal (Estilo Briefing da Esteira) */}
                         {negocio.dor_principal && (
-                          <div className="px-2 py-1 rounded-lg bg-accent/40 border border-border/70 text-[10px] text-muted-foreground line-clamp-2 italic leading-relaxed">
-                            <span className="font-semibold text-foreground not-italic mr-1">Gargalo:</span>
-                            {negocio.dor_principal}
-                          </div>
-                        )}
-
-                        {/* Follow-up Agendado */}
-                        {followupRelativo && (
-                          <div
-                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium border ${
-                              followupRelativo.atrasado
-                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-500 dark:text-rose-400 font-semibold'
-                                : followupRelativo.hoje
-                                ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold'
-                                : 'bg-muted/50 border-border text-muted-foreground'
-                            }`}
-                          >
-                            <Clock className="w-3 h-3 shrink-0" />
-                            <span className="truncate">{followupRelativo.texto}</span>
+                          <div className="text-[11px] text-muted-foreground/90 line-clamp-2 bg-accent/40 rounded-xl px-2.5 py-1.5 border border-border/50 leading-relaxed font-normal">
+                            <span className="font-semibold text-foreground/80 not-italic mr-1.5">Gargalo:</span>
+                            <span>{negocio.dor_principal}</span>
                           </div>
                         )}
 
                         {/* Alerta de Estagnação (se aplicável) */}
                         {estagnado && !followupRelativo && (
-                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-medium">
-                            <AlertTriangle className="w-3 h-3 shrink-0" />
+                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-medium">
+                            <AlertTriangle className="size-3 shrink-0" />
                             <span>{diasSemContato}d sem contato registrado</span>
                           </div>
                         )}
 
-                        {/* Rodapé: Responsável, Link do Site e Botão de WhatsApp */}
-                        <div className="flex items-center justify-between pt-1 border-t border-border/50 text-[11px]">
-                          <div className="flex items-center gap-1.5">
+                        {/* Rodapé: Responsável à esquerda, Ações e WhatsApp à direita */}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs mt-auto">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <Avatar
                               nome={negocio.responsavel?.nome || 'Não atribuído'}
-                              size="sm"
-                              className="w-5 h-5 text-[9px]"
+                              size="xs"
+                              className="size-5 text-[9px]"
                             />
-                            <span className="text-muted-foreground text-[10px] truncate max-w-[90px]">
+                            <span className="text-[11px] font-medium text-muted-foreground truncate max-w-[90px]">
                               {negocio.responsavel?.nome ? negocio.responsavel.nome.split(' ')[0] : 'Sem resp.'}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             {negocio.url_site && (
                               <Tip label={`Abrir site: ${negocio.url_site}`}>
                                 <button
@@ -394,22 +455,13 @@ export default function CrmKanban({
                                       : `https://${negocio.url_site}`;
                                     window.open(url, '_blank');
                                   }}
-                                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                                 >
-                                  <Globe className="w-3.5 h-3.5" />
+                                  <Globe className="size-3.5" />
                                 </button>
                               </Tip>
                             )}
 
-                            {isEtapaDocumentos && (
-                              <Tip label="Etapa comercial com proposta / contrato vinculados">
-                                <span className="p-1 rounded-md bg-primary/10 text-primary">
-                                  <FileText className="w-3.5 h-3.5" />
-                                </span>
-                              </Tip>
-                            )}
-
-                            {/* Botão Rápido de WhatsApp */}
                             {negocio.telefone && (
                               <Tip label={`Chamar ${negocio.nome_contato.split(' ')[0]} no WhatsApp`}>
                                 <button
@@ -420,9 +472,10 @@ export default function CrmKanban({
                                     const link = gerarLinkWhatsApp(negocio.telefone!, msg);
                                     if (link) window.open(link, '_blank');
                                   }}
-                                  className="p-1 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors"
+                                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors text-[11px] font-semibold border border-emerald-500/25"
                                 >
-                                  <MessageSquare className="w-3.5 h-3.5" />
+                                  <MessageCircle className="size-3.5" />
+                                  <span>WhatsApp</span>
                                 </button>
                               </Tip>
                             )}
@@ -433,8 +486,8 @@ export default function CrmKanban({
                   })}
 
                   {cardsDaColuna.length === 0 && (
-                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border border-dashed border-border rounded-xl text-muted-foreground/60">
-                      <span className="text-xs">Nenhum card aqui</span>
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border border-dashed border-border rounded-xl text-muted-foreground/60 min-h-[120px]">
+                      <span className="text-xs">Nenhum card nesta etapa</span>
                     </div>
                   )}
                 </div>

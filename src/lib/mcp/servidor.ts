@@ -102,8 +102,12 @@ async function chamarFerramenta(params: Record<string, unknown> | undefined, ctx
       isError: false,
     };
   } catch (e) {
-    // Erro de validação vai para o modelo corrigir; erro inesperado não vaza detalhe interno.
-    const mensagem = e instanceof ErroFerramenta ? e.message : 'Erro interno ao executar a ferramenta. Tente de novo.';
+    const mensagem =
+      e instanceof ErroFerramenta
+        ? e.message
+        : e instanceof Error
+        ? `Erro ao executar a ferramenta "${nome}": ${e.message}`
+        : 'Erro interno ao executar a ferramenta. Tente de novo.';
     if (!(e instanceof ErroFerramenta)) console.error(`MCP ${nome}:`, e);
     await auditar(ctx, nome, args, false, e instanceof Error ? e.message : String(e));
     return { content: [{ type: 'text', text: mensagem }], isError: true };
