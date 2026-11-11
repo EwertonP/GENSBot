@@ -240,6 +240,25 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+
+    const bodyText = await req.text();
+    let body: any = {};
+    try { body = bodyText ? JSON.parse(bodyText) : {}; } catch {}
+
+    if (body.action === "delete") {
+      const ids = body.ids || [];
+      await serviceSupabase.from("crm_atividades").delete().in("negocio_id", ids);
+      const { data: deletados, error } = await serviceSupabase
+        .from("crm_negocios")
+        .delete()
+        .in("id", ids)
+        .select("id, titulo");
+      if (error) {
+        return NextResponse.json({ erro: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ sucesso: true, total: deletados?.length || 0, deletados });
+    }
+
   return processarImportacao(req);
 }
 
