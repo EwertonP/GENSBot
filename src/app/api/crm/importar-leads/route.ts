@@ -242,3 +242,35 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   return processarImportacao(req);
 }
+
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const key = searchParams.get("key");
+    if (key !== IMPORT_KEY) {
+      return NextResponse.json({ erro: "Chave inválida" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const ids = body.ids || [];
+    if (!ids.length) {
+      return NextResponse.json({ erro: "Nenhum ID fornecido" }, { status: 400 });
+    }
+
+    await serviceSupabase.from("crm_atividades").delete().in("negocio_id", ids);
+    const { data: deletados, error } = await serviceSupabase
+      .from("crm_negocios")
+      .delete()
+      .in("id", ids)
+      .select("id, titulo");
+
+    if (error) {
+      return NextResponse.json({ erro: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ sucesso: true, total: deletados?.length || 0, deletados });
+  } catch (err: any) {
+    return NextResponse.json({ erro: err.message }, { status: 500 });
+  }
+}
