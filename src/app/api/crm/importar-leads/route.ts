@@ -17,23 +17,36 @@ async function processarImportacao(req: Request) {
   }
 
   try {
-    // 1. Busca dinamicamente o estágio "Novo Prospect" no pipeline de prospecção da agência
-    const { data: estagio, error: erroEstagio } = await serviceSupabase
+    // 1. Busca dinamicamente o estágio "A Iniciar" no pipeline de prospecção da agência
+    let { data: estagio, error: erroEstagio } = await serviceSupabase
       .from('crm_estagios')
       .select('id, nome, ordem, pipeline_id')
       .eq('pipeline_id', PIPELINE_ID)
-      .ilike('nome', 'Novo Prospect')
+      .ilike('nome', '%A Iniciar%')
       .maybeSingle();
 
-    if (erroEstagio || !estagio) {
+    if (!estagio) {
+      const { data: estagioFallback, error: erroFallback } = await serviceSupabase
+        .from('crm_estagios')
+        .select('id, nome, ordem, pipeline_id')
+        .eq('pipeline_id', PIPELINE_ID)
+        .ilike('nome', '%Novo Prospect%')
+        .maybeSingle();
+
+      estagio = estagioFallback;
+      if (erroFallback) erroEstagio = erroFallback;
+    }
+
+    if (!estagio) {
       return NextResponse.json({
-        erro: 'Estágio "Novo Prospect" não encontrado no pipeline.',
+        erro: 'Estágio de entrada ("A Iniciar" / "Novo Prospect") não encontrado no pipeline.',
         detalhe: erroEstagio?.message
       }, { status: 404 });
     }
 
     let inseridos = 0;
     let atualizados = 0;
+    const erros: any[] = [];
     const cidadesContagem: Record<string, number> = {
       'João Pessoa': 0,
       'Campina Grande': 0,
@@ -49,100 +62,150 @@ async function processarImportacao(req: Request) {
       // Normaliza telefone para busca e armazenamento
       const telDigitos = lead.telefone.replace(/\D/g, '');
 
-      // Verifica se já existe por telefone ou título exato
-      const { data: existente } = await serviceSupabase
+      // Verifica se já existe por título exato ou pelos últimos 8 dígitos do telefone
+      let { data: existente } = await serviceSupabase
         .from('crm_negocios')
         .select('id, titulo, estagio_id')
         .eq('agencia_id', AGENCIA_ID)
         .eq('pipeline_id', PIPELINE_ID)
-        .or(`telefone.ilike.%${telDigitos}%,titulo.eq."${lead.titulo.replace(/"/g, '')}"`)
+        .eq('titulo', lead.titulo)
         .maybeSingle();
 
-      if (existente) {
-        // Atualiza para garantir estágio Novo Prospect e dados ICP 360 completos
-        const { error: erroUpd } = await serviceSupabase
+      if (!existente && telDigitos.length >= 8) {
+        const { data: existenteTel } = await serviceSupabase
           .from('crm_negocios')
-          .update({
-            estagio_id: estagio.id,
-            status: 'aberto',
-            valor: lead.valor,
-            nome_contato: lead.nome_contato,
-            telefone: lead.telefone,
-            empresa: lead.empresa,
-            tipo_perfil: lead.tipo_perfil,
-            cidade: lead.cidade,
-            bairro: lead.bairro,
-            nicho: lead.nicho,
-            dor_principal: lead.dor_principal,
-            url_site: lead.url_site,
-            score_qualificacao: lead.score_qualificacao,
-            prioridade: lead.prioridade,
-            tags: lead.tags,
-            responsavel_id: RESPONSAVEL_ID,
-            ordem_no_estagio: i + 1,
-            ultimo_contato_em: new Date().toISOString()
-          })
+          .select('id, titulo, estagio_id')
+          .eq('agencia_id', AGENCIA_ID)
+          .eq('pipeline_id', PIPELINE_ID)
+          .ilike('telefone', `%${telDigitos.slice(-8)}%`)
+          .maybeSingle();
+        existente = existenteTel;
+      }
+
+      const tagsCompletas = Array.from(new Set([
+        ...(lead.tags || []),
+        `cidade:${lead.cidade}`,
+        `bairro:${lead.bairro}`,
+        `nicho:${lead.nicho}`,
+        `score:${lead.score_qualificacao}`,
+        `tier:${lead.tier}`,
+        `perfil:${lead.tipo_perfil}`
+      ]));
+
+      const payloadCompleto = {
+        agencia_id: AGENCIA_ID,
+        pipeline_id: PIPELINE_ID,
+        estagio_id: estagio.id,
+        cliente_id: null,
+        titulo: lead.titulo,
+        valor: lead.valor,
+        status: 'aberto',
+        nome_contato: lead.nome_contato,
+        telefone: lead.telefone,
+        email: lead.email,
+        empresa: lead.empresa,
+        cargo: lead.tipo_perfil === 'profissional' ? 'Especialista / Titular' : 'Diretoria / Gestão',
+        tipo_perfil: lead.tipo_perfil,
+        cidade: lead.cidade,
+        bairro: lead.bairro,
+        nicho: lead.nicho,
+        dor_principal: lead.dor_principal,
+        url_site: lead.url_site,
+        score_qualificacao: lead.score_qualificacao,
+        origem: 'manual',
+        prioridade: lead.prioridade,
+        tags: tagsCompletas,
+        responsavel_id: RESPONSAVEL_ID,
+        ordem_no_estagio: i + 1,
+        ultimo_contato_em: new Date().toISOString()
+      };
+
+      const payloadBase = {
+        agencia_id: AGENCIA_ID,
+        pipeline_id: PIPELINE_ID,
+        estagio_id: estagio.id,
+        cliente_id: null,
+        titulo: lead.titulo,
+        valor: lead.valor,
+        status: 'aberto',
+        nome_contato: lead.nome_contato,
+        telefone: lead.telefone,
+        email: lead.email,
+        empresa: lead.empresa,
+        cargo: lead.tipo_perfil === 'profissional' ? 'Especialista / Titular' : 'Diretoria / Gestão',
+        origem: 'manual',
+        prioridade: lead.prioridade,
+        tags: tagsCompletas,
+        responsavel_id: RESPONSAVEL_ID,
+        ordem_no_estagio: i + 1,
+        ultimo_contato_em: new Date().toISOString()
+      };
+
+      if (existente) {
+        // Tenta atualizar com colunas específicas
+        let { error: erroUpd } = await serviceSupabase
+          .from('crm_negocios')
+          .update(payloadCompleto)
           .eq('id', existente.id);
+
+        // Se falhar por coluna ausente no Postgres, usa payloadBase com dados em tags
+        if (erroUpd && (erroUpd.message?.includes('column') || (erroUpd as any).code === '42703')) {
+          const resRetry = await serviceSupabase
+            .from('crm_negocios')
+            .update(payloadBase)
+            .eq('id', existente.id);
+          erroUpd = resRetry.error;
+        }
 
         if (!erroUpd) {
           atualizados++;
           processados.push({ id: existente.id, titulo: lead.titulo, acao: 'atualizado', cidade: lead.cidade });
+        } else {
+          erros.push({ lead: lead.titulo, operacao: 'update', erro: erroUpd });
         }
       } else {
-        // Insere novo registro completo na coluna Novo Prospect
-        const { data: novo, error: erroIns } = await serviceSupabase
+        // Tenta inserir com colunas dedicadas
+        let { data: novo, error: erroIns } = await serviceSupabase
           .from('crm_negocios')
-          .insert({
-            agencia_id: AGENCIA_ID,
-            pipeline_id: PIPELINE_ID,
-            estagio_id: estagio.id,
-            cliente_id: null, // Prospecção interna da agência
-            titulo: lead.titulo,
-            valor: lead.valor,
-            status: 'aberto',
-            nome_contato: lead.nome_contato,
-            telefone: lead.telefone,
-            email: lead.email,
-            empresa: lead.empresa,
-            cargo: lead.tipo_perfil === 'profissional' ? 'Especialista / Titular' : 'Diretoria / Gestão',
-            tipo_perfil: lead.tipo_perfil,
-            cidade: lead.cidade,
-            bairro: lead.bairro,
-            nicho: lead.nicho,
-            dor_principal: lead.dor_principal,
-            url_site: lead.url_site,
-            score_qualificacao: lead.score_qualificacao,
-            origem: 'manual',
-            prioridade: lead.prioridade,
-            tags: lead.tags,
-            responsavel_id: RESPONSAVEL_ID,
-            ordem_no_estagio: i + 1,
-            ultimo_contato_em: new Date().toISOString()
-          })
+          .insert(payloadCompleto)
           .select('id, titulo')
           .single();
+
+        // Fallback se colunas dedicadas não estiverem migradas no banco
+        if (erroIns && (erroIns.message?.includes('column') || (erroIns as any).code === '42703')) {
+          const resRetry = await serviceSupabase
+            .from('crm_negocios')
+            .insert(payloadBase)
+            .select('id, titulo')
+            .single();
+          novo = resRetry.data;
+          erroIns = resRetry.error;
+        }
 
         if (!erroIns && novo) {
           inseridos++;
           processados.push({ id: novo.id, titulo: lead.titulo, acao: 'inserido', cidade: lead.cidade });
 
-          // Registra a atividade inicial na timeline
+          // Registra a atividade completa com histórico e diagnóstico na timeline
           await serviceSupabase.from('crm_atividades').insert({
             negocio_id: novo.id,
             agencia_id: AGENCIA_ID,
             membro_id: RESPONSAVEL_ID,
             tipo: 'criacao',
-            descricao: `Lead minerado e qualificado adicionado no estágio "Novo Prospect" — Score ${lead.score_qualificacao}/10 (Tier ${lead.tier}) — ICP ${lead.nicho} em ${lead.cidade}.`,
+            descricao: `Lead minerado e qualificado adicionado no estágio "${estagio.nome}"\n\n• Contato: ${lead.nome_contato}\n• Empresa: ${lead.empresa}\n• Nicho: ${lead.nicho} | ${lead.cidade} (${lead.bairro})\n• Score ICP: ${lead.score_qualificacao}/10 (Tier ${lead.tier})\n• Site: ${lead.url_site}\n• Diagnóstico Técnico / Dor: ${lead.dor_principal}\n• WhatsApp: https://wa.me/${telDigitos}`,
             dados_extras: {
               cidade: lead.cidade,
+              bairro: lead.bairro,
               nicho: lead.nicho,
               score: lead.score_qualificacao,
               tier: lead.tier,
-              dor_principal: lead.dor_principal
+              dor_principal: lead.dor_principal,
+              url_site: lead.url_site,
+              tipo_perfil: lead.tipo_perfil
             }
           });
-        } else if (erroIns) {
-          console.error(`Erro ao inserir lead ${lead.titulo}:`, erroIns);
+        } else {
+          erros.push({ lead: lead.titulo, operacao: 'insert', erro: erroIns });
         }
       }
     }
@@ -160,8 +223,10 @@ async function processarImportacao(req: Request) {
         inseridos,
         atualizados,
         total_processados: inseridos + atualizados,
+        total_erros: erros.length,
         distribuicao_cidades: cidadesContagem
       },
+      erros: erros.length > 0 ? erros : undefined,
       detalhes: processados
     });
   } catch (err: any) {
