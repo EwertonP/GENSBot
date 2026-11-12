@@ -42,6 +42,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { OnboardingBar } from '@/components/onboarding-bar';
 import { FeedPreviewGrid } from '@/components/feed-preview-grid';
+import { AprovacaoGrid } from '@/components/aprovacao/aprovacao-grid';
 import {
   STATUS_LABELS,
   COLUNAS_KANBAN,
@@ -205,7 +206,7 @@ export default function EsteiraTab({
   const [responsavelFiltro, setResponsavelFiltro] = useState<string>('all');
   const [etiquetaFiltro, setEtiquetaFiltro] = useState<string>('all');
   const [busca, setBusca] = useState('');
-  const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'feed'>('kanban');
+  const [viewMode, setViewMode] = useState<'kanban' | 'aprovacao' | 'list' | 'feed'>('kanban');
   const [mesSelecionado, setMesSelecionado] = useState<string>(() => new Date().toISOString().slice(0, 7));
   const [ocultarPublicados, setOcultarPublicados] = useState(true);
   const [mostrarArquivados, setMostrarArquivados] = useState(false);
@@ -776,7 +777,7 @@ export default function EsteiraTab({
         etiquetas={etiquetasLista.map((e) => ({ id: e.id, nome: e.nome }))}
         etiquetaSelecionada={etiquetaFiltro}
         onEtiqueta={setEtiquetaFiltro}
-        modo={viewMode}
+        modo={viewMode === 'aprovacao' ? 'kanban' : viewMode}
         onModo={setViewMode}
         mostrarPublicados={!ocultarPublicados}
         onMostrarPublicados={(v) => setOcultarPublicados(!v)}
@@ -799,7 +800,7 @@ export default function EsteiraTab({
           </div>
           <div className="md:hidden">
             <BotaoFiltros
-              quantidade={contarFiltros({ clienteSelecionado, clienteTravado: !!clienteFiltroId, responsavel: responsavelFiltro, modo: viewMode, etiqueta: etiquetaFiltro })}
+              quantidade={contarFiltros({ clienteSelecionado, clienteTravado: !!clienteFiltroId, responsavel: responsavelFiltro, modo: viewMode === 'aprovacao' ? 'kanban' : viewMode, etiqueta: etiquetaFiltro })}
               onClick={() => setFiltrosMobileAberto(true)}
             />
           </div>
@@ -883,18 +884,31 @@ export default function EsteiraTab({
             />
           )}
 
-          {/* Alternador Kanban / Lista / Feed 3x3 (Pill Tab em Verde GENS) */}
+          {/* Alternador Kanban / Aprovação / Lista / Feed 3x3 */}
           <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border">
             <Tip label={"Visualização em Kanban"}><button
               type="button"
               onClick={() => setViewMode('kanban')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-ui cursor-pointer ${
+              className={`p-1.5 rounded-lg text-xs font-bold transition-ui cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'kanban'
                   ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
                   : 'text-muted-foreground hover:text-foreground'
               }`} aria-label={"Visualização em Kanban"}
             >
               <Columns3 className="w-4 h-4" />
+              <span className="hidden lg:inline text-xs">Kanban</span>
+            </button></Tip>
+            <Tip label={"Galeria de Aprovação de Posts"}><button
+              type="button"
+              onClick={() => setViewMode('aprovacao')}
+              className={`p-1.5 rounded-lg text-xs font-bold transition-ui cursor-pointer flex items-center gap-1.5 ${
+                viewMode === 'aprovacao'
+                  ? 'bg-primary/20 text-primary border border-primary/30 shadow-2xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`} aria-label={"Galeria de Aprovação de Posts"}
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs">Aprovação</span>
             </button></Tip>
             <Tip label={"Visualização em Lista"}><button
               type="button"
@@ -1156,6 +1170,16 @@ export default function EsteiraTab({
             icon: Plus,
             onClick: handleAbrirModalNovo,
           }}
+        />
+      ) : viewMode === 'aprovacao' ? (
+        <AprovacaoGrid
+          items={itemsFiltrados}
+          onAbrirItem={handleAbrirModalEditar}
+          onCopiarLink={(token) => {
+            if (token) handleCopiarLinkAprovacao(token);
+          }}
+          onEnviarWhatsApp={(it, reenviar) => handleEnviarParaAprovacao(it, reenviar)}
+          enviandoId={enviandoAprovacaoId}
         />
       ) : viewMode === 'kanban' ? (
         <>

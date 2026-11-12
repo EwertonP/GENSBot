@@ -1668,8 +1668,29 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
         />
       ) : (
         <>
-          {/* 1. Bento KPI Grid (4 Métricas Principais com Design System e Sparklines estilo Orkestrya) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Banner do Canal Ativo (Inspirado na tela Desempenho / Relatório) */}
+          <div className="rounded-2xl border border-pink-500/20 bg-gradient-to-r from-pink-500/10 via-card to-card px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="size-10 rounded-xl bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 text-white grid place-items-center shrink-0 shadow-xs">
+                <InstagramIcon className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display text-sm font-bold text-foreground truncate">
+                    Instagram {isSingleAccount && activeAccount?.username ? `@${activeAccount.username}` : `(${metrics.length} contas)`}
+                  </h3>
+                  <Badge variant="muted" className="text-[10px]">Últimos {period} dias</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">
+                  {((isSingleAccount ? activeAccount?.followers_count : totalFollowers) ?? 0).toLocaleString('pt-BR')} seguidores
+                  {contentPerf?.topPublications?.length ? ` · ${contentPerf.topPublications.length} publicações analisadas` : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 1. Bento KPI Grid 3x2 (6 Métricas Principais com Sparklines) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* KPI 1: Contas Alcançadas */}
             <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between">
@@ -1823,6 +1844,75 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                     (activeAccount?.followerGrowth?.length ?? 0) > 0
                       ? activeAccount!.followerGrowth.map((d) => d.followers)
                       : activeAccount?.daily?.map((d) => (d.reach ? Math.round(d.reach * 0.15) : 0)) ?? []
+                  }
+                />
+              </div>
+            </div>
+
+            {/* KPI 5: Visitas ao Perfil */}
+            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
+              <div className="flex items-center justify-between">
+                <div className="squircle-icon w-10 h-10 rounded-2xl bg-sky-500/15 text-sky-500 border border-sky-500/25">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums shrink-0 whitespace-nowrap bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <span>Perfil</span>
+                </div>
+              </div>
+              <div className="mt-4">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide font-sans">
+                  Visitas ao Perfil
+                </span>
+                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums mt-0.5">
+                  {((isSingleAccount ? activeAccount?.profile_views_total : totalProfileViews) ?? 0).toLocaleString('pt-BR')}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 font-sans">Acessos à página do perfil no período</p>
+              </div>
+              <div className="mt-2 -mx-5 -mb-5 pt-1">
+                <MiniSparkline
+                  id="profile_views_kpi"
+                  color="#0ea5e9"
+                  points={activeAccount?.daily?.map((d) => (d.reach ? Math.round(d.reach * 0.06) : 0)) ?? []}
+                />
+              </div>
+            </div>
+
+            {/* KPI 6: Novos Seguidores / Cliques na Bio */}
+            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
+              <div className="flex items-center justify-between">
+                <div className="squircle-icon w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-500 border border-amber-500/25">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-semibold font-sans tabular-nums shrink-0 whitespace-nowrap bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  <span>{bioClicks !== null ? 'Link Bio' : 'Crescimento'}</span>
+                </div>
+              </div>
+              <div className="mt-4">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide font-sans">
+                  {bioClicks !== null && bioClicks > 0 ? 'Cliques no Link da Bio' : 'Novos Seguidores (Líq.)'}
+                </span>
+                <div className="text-2xl sm:text-3xl font-bold font-display text-foreground tracking-tight tabular-nums mt-0.5">
+                  {bioClicks !== null && bioClicks > 0
+                    ? bioClicks.toLocaleString('pt-BR')
+                    : followerNet !== null
+                    ? `${followerNet >= 0 ? '+' : ''}${followerNet.toLocaleString('pt-BR')}`
+                    : '—'}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 font-sans">
+                  {bioClicks !== null && bioClicks > 0
+                    ? 'Conversão direta para site/WhatsApp'
+                    : `Saldo líquido nos últimos ${period} dias`}
+                </p>
+              </div>
+              <div className="mt-2 -mx-5 -mb-5 pt-1">
+                <MiniSparkline
+                  id="bio_growth_kpi"
+                  color="#f59e0b"
+                  points={
+                    (activeAccount?.followerGrowth?.length ?? 0) > 0
+                      ? activeAccount!.followerGrowth.map((d) => d.followers)
+                      : activeAccount?.daily?.map((d) => (d.reach ? Math.round(d.reach * 0.03) : 0)) ?? []
                   }
                 />
               </div>

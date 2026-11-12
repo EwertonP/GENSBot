@@ -462,6 +462,20 @@ export default function CrmKanban({
                               </Tip>
                             )}
 
+                            <Tip label="Registrar contato / nota na timeline">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onAbrirNegocio(negocio);
+                                }}
+                                className="flex items-center gap-1 px-2 py-1 rounded-full bg-accent/80 hover:bg-accent text-foreground transition-colors text-[10px] font-semibold border border-border/70"
+                              >
+                                <Phone className="size-3" />
+                                <span>Registrar contato</span>
+                              </button>
+                            </Tip>
+
                             {negocio.telefone && (
                               <Tip label={`Chamar ${negocio.nome_contato.split(' ')[0]} no WhatsApp`}>
                                 <button
@@ -472,9 +486,9 @@ export default function CrmKanban({
                                     const link = gerarLinkWhatsApp(negocio.telefone!, msg);
                                     if (link) window.open(link, '_blank');
                                   }}
-                                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors text-[11px] font-semibold border border-emerald-500/25"
+                                  className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors text-[10px] font-semibold border border-emerald-500/25"
                                 >
-                                  <MessageCircle className="size-3.5" />
+                                  <MessageCircle className="size-3" />
                                   <span>WhatsApp</span>
                                 </button>
                               </Tip>
@@ -489,6 +503,16 @@ export default function CrmKanban({
                     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border border-dashed border-border rounded-xl text-muted-foreground/60 min-h-[120px]">
                       <span className="text-xs">Nenhum card nesta etapa</span>
                     </div>
+                  )}
+
+                  {onNovoNegocioNoEstagio && (
+                    <button
+                      type="button"
+                      onClick={() => onNovoNegocioNoEstagio(estagio.id)}
+                      className="mt-1 flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-border/80 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:border-foreground/30 hover:bg-card/60 transition-colors cursor-pointer"
+                    >
+                      <Plus className="size-3.5" /> Nova oportunidade
+                    </button>
                   )}
                 </div>
               </div>
