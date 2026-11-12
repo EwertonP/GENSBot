@@ -3,9 +3,10 @@ import { Tip } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Briefcase, Plus, Search, ShieldAlert } from 'lucide-react';
+import { Archive, ArrowUpRight, Briefcase, Layers, Plus, Search, ShieldAlert } from 'lucide-react';
 import { Instagram as InstagramGlyph } from '@/components/instagram-icon';
 import { Card } from '@/components/ui/card';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -148,6 +149,9 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
   }, [clientes, busca, mostrarArquivados, contaPorId]);
 
   const arquivadosCount = clientes.filter((c) => !c.ativo).length;
+  const clientesAtivos = clientes.filter((c) => c.ativo);
+  const comInstagramCount = clientesAtivos.filter((c) => Boolean(c.instagram_account_id && contaPorId.has(c.instagram_account_id))).length;
+  const demandaMensalTotal = clientesAtivos.reduce((acc, c) => acc + (c.posts_mes ?? 0) + (c.reels_mes ?? 0), 0);
 
   async function criarAPartirDasContas() {
     if (contasLivres.length === 0) return;
@@ -212,6 +216,50 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
   // ------------------------------------------------------------ lista ---
   return (
     <div className="animate-fade-in flex flex-col gap-6">
+      <HeroGradientPanel
+        eyebrow="Carteira da agência"
+        title="Gestão de Clientes & Contas"
+        actions={
+          <Button onClick={abrirNovo} className="rounded-xl shadow-xs">
+            <Plus className="w-4 h-4" />
+            Novo cliente
+          </Button>
+        }
+      >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <HeroKpiCard
+            icon={Briefcase}
+            iconTone="primary"
+            label="Clientes Ativos"
+            value={clientesAtivos.length}
+            hint="Em operação na agência"
+          />
+          <HeroKpiCard
+            icon={InstagramGlyph}
+            iconTone="rose"
+            label="Com Instagram"
+            value={comInstagramCount}
+            hint={`de ${clientesAtivos.length} ativos conectados`}
+          />
+          <HeroKpiCard
+            icon={Layers}
+            iconTone="emerald"
+            label="Demanda Mensal"
+            value={demandaMensalTotal}
+            hint="Posts e reels contratados/mês"
+          />
+          <HeroKpiCard
+            icon={Archive}
+            iconTone="sky"
+            label="Arquivados"
+            value={arquivadosCount}
+            hint={mostrarArquivados ? 'Exibindo na lista' : 'Ocultos da lista'}
+            onClick={arquivadosCount > 0 ? () => setMostrarArquivados((v) => !v) : undefined}
+            active={mostrarArquivados && arquivadosCount > 0}
+          />
+        </div>
+      </HeroGradientPanel>
+
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -220,7 +268,7 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
             placeholder="Buscar por nome, nicho ou @…"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="pl-10"
+            className="pl-10 rounded-xl"
           />
         </div>
         {arquivadosCount > 0 && (
@@ -229,10 +277,6 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
             Mostrar arquivados ({arquivadosCount})
           </label>
         )}
-        <Button className="sm:ml-auto" onClick={abrirNovo}>
-          <Plus className="w-4 h-4" />
-          Novo cliente
-        </Button>
       </div>
 
       {!carregando && contasLivres.length > 0 && (
@@ -292,11 +336,16 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                     setSelecionadoId(c.id);
                   }
                 }}
-                className={`group flex flex-col justify-between gap-4 p-5 bg-card hover:bg-card/95 border border-border hover:border-foreground/20 rounded-2xl shadow-2xs hover:shadow-sm transition-ui duration-200 ${
-                  c.ativo ? '' : 'opacity-60 bg-muted/30'
+                className={`group relative overflow-hidden flex flex-col justify-between gap-4 p-5 bg-card hover:bg-card/95 border border-border hover:border-primary/35 rounded-2xl shadow-2xs hover:shadow-sm transition-ui duration-200 ${
+                  c.ativo ? '' : 'opacity-65 bg-muted/30'
                 }`}
               >
-                <div className="flex items-start gap-3.5">
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 top-0 h-1"
+                  style={{ backgroundColor: c.cor || 'var(--primary)' }}
+                />
+                <div className="flex items-start gap-3.5 pt-0.5">
                   <div className="relative">
                     <ClienteAvatar nome={c.nome} cor={c.cor} fotoUrl={conta?.profile_picture_url} tamanho="md" className="ring-2 ring-background shadow-2xs" />
                     {c.ativo && (
@@ -334,11 +383,25 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                     ) : (
                       <p className="text-xs text-muted-foreground italic mt-0.5">Sem nicho definido</p>
                     )}
+                    {(posts > 0 || reels > 0) && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        {posts > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-muted/70 text-foreground/80 tabular-nums">
+                            {posts} posts/mês
+                          </span>
+                        )}
+                        {reels > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-muted/70 text-foreground/80 tabular-nums">
+                            {reels} reels/mês
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {!c.ativo && <Badge variant="muted" className="text-xs">Arquivado</Badge>}
                 </div>
 
-                <div className="flex items-center justify-between gap-2 border-t border-border pt-3 text-xs">
+                <div className="flex items-center justify-between gap-2 border-t border-border/80 pt-3 text-xs">
                   <span className="flex min-w-0 items-center gap-1.5 font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
                     <InstagramGlyph className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
                     <span className="truncate">
@@ -353,12 +416,13 @@ export default function ClientesTab({ showToast, onAbrirConta }: ClientesTabProp
                         e.stopPropagation();
                         onAbrirConta('publish', conta.instagram_user_id);
                       }}
-                      className="h-7 text-xs font-bold px-2.5 rounded-xl bg-primary/15 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-ui shrink-0 cursor-pointer shadow-2xs font-display"
+                      className="h-7 text-xs font-bold px-2.5 rounded-xl bg-primary/12 text-primary border border-primary/25 hover:bg-primary hover:text-primary-foreground transition-ui shrink-0 cursor-pointer shadow-2xs font-display gap-1"
                     >
-                      🎯 Operar Painel
+                      <span>Operar Painel</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
                     </Button>
                   ) : (
-                    <span className="text-xs text-muted-foreground font-mono">Sem conta</span>
+                    <span className="text-xs text-muted-foreground font-medium">Sem conta</span>
                   )}
                 </div>
               </Card>

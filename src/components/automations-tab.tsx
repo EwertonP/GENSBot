@@ -15,8 +15,12 @@ import {
   ChevronLeft,
   Users,
   X,
+  Workflow,
+  Zap,
+  Hash,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import AutomationTable from '@/components/automation-table';
@@ -130,21 +134,46 @@ export default function AutomationsTab(props: AutomationsTabProps) {
               {!isEditing ? (
                 /* Screen 1: List of Automations (Full Width) */
                 <div className="flex flex-col gap-6 max-w-6xl mx-auto animate-fade-in">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      {automations.length} {automations.length === 1 ? 'fluxo configurado' : 'fluxos configurados'}
-                    </span>
-                    <Button
-                      onClick={() => {
-                        resetForm();
-                        setIsEditing(true);
-                      }}
-                      className="rounded-full shadow-md w-full sm:w-auto h-11 sm:h-9"
-                    >
-                      <Plus className="w-4 h-4 mr-1.5" />
-                      Criar Novo Fluxo
-                    </Button>
-                  </div>
+                  <HeroGradientPanel
+                    eyebrow="Engenharia de Direct & Comentários"
+                    title="Fluxos de Automação"
+                    actions={
+                      <Button
+                        onClick={() => {
+                          resetForm();
+                          setIsEditing(true);
+                        }}
+                        className="rounded-xl shadow-xs w-full sm:w-auto h-10 sm:h-9"
+                      >
+                        <Plus className="w-4 h-4 mr-1.5" />
+                        Criar Novo Fluxo
+                      </Button>
+                    }
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <HeroKpiCard
+                        icon={Workflow}
+                        iconTone="primary"
+                        label="Fluxos Configurados"
+                        value={automations.length}
+                        hint="Automações desta conta"
+                      />
+                      <HeroKpiCard
+                        icon={Zap}
+                        iconTone="emerald"
+                        label="Fluxos Ativos"
+                        value={automations.filter((a) => a.active).length}
+                        hint={`${automations.filter((a) => !a.active).length} pausado(s)`}
+                      />
+                      <HeroKpiCard
+                        icon={Hash}
+                        iconTone="amber"
+                        label="Palavras-chave"
+                        value={automations.reduce((acc, a) => acc + (a.keywords?.length ?? 0), 0)}
+                        hint="Gatilhos monitorados"
+                      />
+                    </div>
+                  </HeroGradientPanel>
 
                   <AutomationTable
                     automations={automations}
@@ -218,7 +247,7 @@ export default function AutomationsTab(props: AutomationsTabProps) {
                                 checked={form.active}
                                 onCheckedChange={(checked) => setForm(prev => ({ ...prev, active: checked }))}
                               />
-                              <span className={`text-xs font-bold font-mono ${form.active ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              <span className={`text-xs font-bold font-sans ${form.active ? 'text-foreground' : 'text-muted-foreground'}`}>
                                 {form.active ? '🟢 Ativa' : '⚪ Pausada'}
                               </span>
                             </label>

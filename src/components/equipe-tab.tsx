@@ -24,6 +24,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
 import { Badge } from '@/components/ui/badge';
@@ -332,33 +333,21 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
 
   const pendentes = membros.filter((m) => !m.ativo);
   const ativos = membros.filter((m) => m.ativo);
+  const mastersCount = ativos.filter((m) => m.papel === 'master').length;
+  const totalDemandasEquipe = membros.reduce((acc, m) => acc + (m.total_demandas || 0), 0);
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in max-w-6xl mx-auto pb-12">
-      {/* Header com Ação de Criar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-        <div className="hidden">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest font-mono">
-            Administração · Multi-membros
-          </span>
-          <h2 className="text-xl sm:text-2xl font-bold font-display text-foreground tracking-tight flex items-center gap-2.5 mt-0.5">
-            <span>Equipe & Sócios da Agência</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 font-mono font-bold">
-              {ativos.length} ativos
-            </span>
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Cadastre membros da equipe, altere fotos de perfil e gerencie níveis de acesso.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          {subAba === 'membros' && (
-            <>
+      <HeroGradientPanel
+        eyebrow="Administração · Multi-membros"
+        title="Equipe & Sócios da Agência"
+        actions={
+          subAba === 'membros' ? (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <Button
                 onClick={handleCopiarLinkCadastro}
                 variant="outline"
-                className="rounded-xl shadow-xs text-xs w-full sm:w-auto h-11 sm:h-9"
+                className="rounded-xl shadow-2xs bg-card/90 text-xs w-full sm:w-auto h-10 sm:h-9"
                 title="Copiar link para enviar a novos membros se cadastrarem"
               >
                 <Sparkles className="w-3.5 h-3.5 mr-1.5 text-primary" />
@@ -368,19 +357,16 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
               <Button
                 onClick={abrirModalCriar}
                 variant="primary"
-                className="rounded-xl shadow-xs text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 w-full sm:w-auto h-11 sm:h-9"
+                className="rounded-xl shadow-xs text-xs font-bold w-full sm:w-auto h-10 sm:h-9"
               >
                 <UserPlus className="w-4 h-4 mr-1.5" />
                 Cadastrar Membro
               </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Navegação entre Membros & Produtividade */}
-      <div className="flex items-center gap-2 border-b border-border pb-3">
-        <div className="inline-flex rounded-xl bg-muted/60 p-1 border border-border/40">
+            </div>
+          ) : undefined
+        }
+      >
+        <div className="inline-flex rounded-xl bg-card/80 backdrop-blur-xs p-1 border border-border/60 self-start">
           <SegmentedItem
             active={subAba === 'membros'}
             group="equipe-sub-aba"
@@ -398,7 +384,40 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             Produtividade & Entregas
           </SegmentedItem>
         </div>
-      </div>
+
+        {subAba === 'membros' && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <HeroKpiCard
+              icon={Users2}
+              iconTone="primary"
+              label="Membros Ativos"
+              value={ativos.length}
+              hint={`de ${membros.length} cadastrados`}
+            />
+            <HeroKpiCard
+              icon={ShieldCheck}
+              iconTone="amber"
+              label="Sócios Master"
+              value={mastersCount}
+              hint="Acesso administrativo total"
+            />
+            <HeroKpiCard
+              icon={Clock}
+              iconTone={pendentes.length > 0 ? 'rose' : 'sky'}
+              label="Aprovações Pendentes"
+              value={pendentes.length}
+              hint={pendentes.length > 0 ? 'Aguardando liberação' : 'Tudo em dia'}
+            />
+            <HeroKpiCard
+              icon={Layers}
+              iconTone="emerald"
+              label="Demandas Atribuídas"
+              value={totalDemandasEquipe}
+              hint="Total vinculado à equipe"
+            />
+          </div>
+        )}
+      </HeroGradientPanel>
 
       {subAba === 'produtividade' ? (
         <PainelProdutividade showToast={showToast} />
@@ -466,26 +485,32 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
             return (
               <Card
                 key={membro.id}
-                className={`p-5 rounded-2xl border transition-ui flex flex-col justify-between gap-4 bg-card shadow-2xs hover:shadow-xs ${
+                className={`relative overflow-hidden p-5 rounded-2xl border transition-ui flex flex-col justify-between gap-4 bg-card shadow-2xs hover:shadow-sm ${
                   !membro.ativo
-                    ? 'opacity-70 border-dashed border-border'
+                    ? 'opacity-70 border-dashed border-border bg-muted/20'
                     : isMaster
-                    ? 'border-brand-text bg-card'
-                    : 'border-border'
+                    ? 'border-primary/35 hover:border-primary/60'
+                    : 'border-border hover:border-foreground/20'
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
+                <span
+                  aria-hidden="true"
+                  className={`absolute inset-x-0 top-0 h-1 ${
+                    !membro.ativo ? 'bg-muted-foreground/30' : isMaster ? 'bg-primary' : 'bg-border'
+                  }`}
+                />
+                <div className="flex items-start justify-between gap-3 pt-0.5">
                   <div className="flex items-center gap-3 min-w-0">
                     <ClienteAvatar
                       nome={membro.nome}
                       fotoUrl={membro.foto_url}
                       cor="#014130"
                       tamanho="md"
-                      className="shrink-0 ring-2 ring-brand-text"
+                      className="shrink-0 ring-2 ring-background shadow-2xs"
                     />
 
                     <div className="min-w-0 leading-tight">
-                      <h4 className="text-sm font-bold text-foreground truncate flex items-center gap-1.5">
+                      <h4 className="text-sm font-bold font-display text-foreground truncate flex items-center gap-1.5">
                         <span>{membro.nome}</span>
                         {isMaster && <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />}
                       </h4>
@@ -494,32 +519,30 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                   </div>
 
                   <Badge
-                    variant={isMaster ? 'info' : 'muted'}
-                    className={`text-xs font-bold uppercase tracking-wider flex-shrink-0 ${
-                      isMaster ? 'bg-primary/15 text-primary border-primary/30' : ''
-                    }`}
+                    variant={isMaster ? 'brand' : 'muted'}
+                    className="text-[11px] font-bold flex-shrink-0"
                   >
                     {isMaster ? 'Sócio Master' : 'Colaborador'}
                   </Badge>
                 </div>
 
-                <div className="flex flex-col gap-2 pt-1 border-t border-border">
+                <div className="flex flex-col gap-2.5 rounded-xl bg-muted/40 border border-border/60 p-3">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <Briefcase className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span>{membro.cargo || (isMaster ? 'Sócio / Diretor' : 'Especialista')}</span>
+                    <span className="text-foreground/90 font-medium flex items-center gap-1.5 min-w-0 truncate">
+                      <Briefcase className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate">{membro.cargo || (isMaster ? 'Sócio / Diretor' : 'Especialista')}</span>
                     </span>
 
-                    <span className="text-muted-foreground font-mono text-xs flex items-center gap-1">
+                    <span className="text-muted-foreground font-sans tabular-nums text-xs flex items-center gap-1 shrink-0 font-semibold">
                       <Layers className="w-3 h-3" />
                       <span>{membro.total_demandas || 0} demandas</span>
                     </span>
                   </div>
 
                   {/* Setor / Squad e Permissões */}
-                  <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     {membro.setor ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary px-2 py-0.5 rounded-md bg-primary/10">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary px-2 py-0.5 rounded-full bg-primary/12">
                         {membro.setor}
                       </span>
                     ) : (
@@ -528,11 +551,11 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
 
                     <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                       {isMaster ? (
-                        <span className="text-primary font-medium flex items-center gap-1">
+                        <span className="text-primary font-semibold flex items-center gap-1">
                           <Shield className="w-3 h-3" /> Acesso total
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1 font-medium">
                           <Lock className="w-3 h-3" /> {membro.modulos_permitidos?.length || 6} módulos
                         </span>
                       )}
@@ -541,7 +564,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
 
                   {/* Informações de Tempo de Casa e Aniversário */}
                   {(membro.data_inicio || membro.data_nascimento) && (
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/50">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 border-t border-border/60">
                       {membro.data_inicio && (
                         <span className="flex items-center gap-1" title="Tempo de casa">
                           <Clock className="w-3 h-3 text-muted-foreground" />
@@ -558,7 +581,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/80">
                   <div className="flex items-center gap-1.5">
                     <span
                       className={`w-2 h-2 rounded-full ${
@@ -609,7 +632,7 @@ export default function EquipeTab({ showToast }: EquipeTabProps) {
       >
         <form onSubmit={handleSalvar} className="p-6 flex flex-col gap-4">
           <div>
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Gestão de Equipe
             </span>
             <h3 className="text-lg font-bold font-display text-foreground mt-0.5">

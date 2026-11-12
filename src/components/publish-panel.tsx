@@ -82,6 +82,7 @@ import {
   Download,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -1116,53 +1117,119 @@ export default function PublishPanel({
     return p.status === filtroStatus;
   });
 
+  const agendadasCount = posts.filter((p) => p.status === 'scheduled' || p.status === 'publishing').length;
+  const publicadasCount = posts.filter((p) => p.status === 'published').length;
+  const falhasCount = posts.filter((p) => p.status === 'failed').length;
+
+  function irParaFila(statusFiltro?: typeof filtroStatus) {
+    if (statusFiltro) setFiltroStatus(statusFiltro);
+    document.getElementById('fila-agendamentos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   return (
     <div className="flex flex-col gap-8 animate-fade-in pb-12">
-      {/* 1. Barra de Conta de Publicação */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4 border-b border-border pb-4 max-md:border-0 max-md:pb-0">
-        {/* Identificação da Conta Vinculada */}
-        {workspace?.tipo === 'cliente' ? (
-          <div className="flex items-center gap-2.5 bg-accent/60 px-3 py-1.5 rounded-2xl border border-border self-start sm:self-auto shadow-2xs">
-            <span className="text-xs font-bold text-muted-foreground">Publicando em:</span>
-            {workspace.instagramUsername ? (
-              <div className="flex items-center gap-2">
-                <ClienteAvatar
-                  nome={workspace.nome}
-                  cor={workspace.cor}
-                  fotoUrl={workspace.fotoUrl}
-                  tamanho="xs"
-                />
-                <Badge variant="brand" className="text-xs font-mono font-bold flex items-center gap-1">
-                  <Instagram className="w-3 h-3 inline" />
-                  @{workspace.instagramUsername}
-                </Badge>
-                <span className="text-[11px] text-muted-foreground font-medium hidden md:inline">
-                  (Bloqueado para {workspace.nome})
-                </span>
+      {/* 1. Hero Gradient: Conta + Visão Geral da Esteira de Agendamentos */}
+      <HeroGradientPanel
+        eyebrow="Estúdio & Esteira de Publicação"
+        title="Agendamentos & Fila do Instagram"
+        actions={
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Identificação da Conta Vinculada */}
+            {workspace?.tipo === 'cliente' ? (
+              <div className="flex items-center gap-2.5 bg-card/90 backdrop-blur-xs px-3 py-1.5 rounded-2xl border border-border/70 shadow-2xs">
+                <span className="text-xs font-bold text-muted-foreground">Publicando em:</span>
+                {workspace.instagramUsername ? (
+                  <div className="flex items-center gap-2">
+                    <ClienteAvatar
+                      nome={workspace.nome}
+                      cor={workspace.cor}
+                      fotoUrl={workspace.fotoUrl}
+                      tamanho="xs"
+                    />
+                    <Badge variant="brand" className="text-xs font-bold flex items-center gap-1">
+                      <Instagram className="w-3 h-3 inline" />
+                      @{workspace.instagramUsername}
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground font-medium hidden md:inline">
+                      ({workspace.nome})
+                    </span>
+                  </div>
+                ) : (
+                  <Badge variant="warning" className="text-xs">
+                    Cliente sem Instagram conectado
+                  </Badge>
+                )}
               </div>
             ) : (
-              <Badge variant="warning" className="text-xs">
-                Cliente sem Instagram conectado
-              </Badge>
+              <div className="flex items-center gap-2.5 bg-card/90 backdrop-blur-xs p-1.5 rounded-2xl border border-border/70 shadow-2xs max-md:w-full">
+                <span className="text-xs font-bold text-muted-foreground px-2 max-md:sr-only">Conta:</span>
+                <Select
+                  value={targetAccount}
+                  onChange={(e) => setTargetAccount(e.target.value)}
+                  className="h-8 max-md:h-11 max-md:w-full max-md:text-sm text-xs font-bold bg-card border border-input rounded-xl px-3 text-foreground shadow-2xs focus:outline-none"
+                >
+                  {accounts.map((acc) => (
+                    <option key={acc.instagram_user_id} value={acc.instagram_user_id}>
+                      @{acc.instagram_username || acc.instagram_user_id}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5 bg-accent/60 p-1.5 rounded-2xl border border-border self-start sm:self-auto shadow-2xs max-md:w-full max-md:self-stretch">
-            <span className="text-xs font-bold text-muted-foreground px-2 max-md:sr-only">Conta da Agência:</span>
-            <Select
-              value={targetAccount}
-              onChange={(e) => setTargetAccount(e.target.value)}
-              className="h-8 max-md:h-11 max-md:w-full max-md:text-sm text-xs font-bold bg-card border border-input rounded-xl px-3 text-foreground shadow-2xs focus:outline-none"
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => irParaFila()}
+              className="rounded-xl bg-card/90 backdrop-blur-xs shadow-2xs text-xs font-semibold"
             >
-              {accounts.map((acc) => (
-                <option key={acc.instagram_user_id} value={acc.instagram_user_id}>
-                  @{acc.instagram_username || acc.instagram_user_id}
-                </option>
-              ))}
-            </Select>
+              <CalendarIcon className="w-3.5 h-3.5 text-primary" />
+              Ver Fila ({posts.length})
+            </Button>
           </div>
-        )}
-      </div>
+        }
+      >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <HeroKpiCard
+            icon={Clock}
+            iconTone="amber"
+            label="Agendadas na Fila"
+            value={agendadasCount}
+            hint="Aguardando horário"
+            onClick={() => irParaFila('scheduled')}
+            active={filtroStatus === 'scheduled'}
+          />
+          <HeroKpiCard
+            icon={CheckCircle2}
+            iconTone="emerald"
+            label="Publicadas"
+            value={publicadasCount}
+            hint="Entregues no Instagram"
+            onClick={() => irParaFila('published')}
+            active={filtroStatus === 'published'}
+          />
+          <HeroKpiCard
+            icon={XCircle}
+            iconTone={falhasCount > 0 ? 'rose' : 'sky'}
+            valueTone={falhasCount > 0 ? 'danger' : 'default'}
+            label="Com Falha"
+            value={falhasCount}
+            hint={falhasCount > 0 ? 'Clique para revisar' : 'Sem erros na fila'}
+            onClick={() => irParaFila('failed')}
+            active={filtroStatus === 'failed'}
+          />
+          <HeroKpiCard
+            icon={Layers}
+            iconTone="primary"
+            label="Total na Esteira"
+            value={posts.length}
+            hint="Todas as publicações"
+            onClick={() => irParaFila('all')}
+            active={filtroStatus === 'all'}
+          />
+        </div>
+      </HeroGradientPanel>
 
       {/* 2. Grid do Estúdio: Composer (Esquerda) + Live Preview (Direita) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1652,7 +1719,7 @@ export default function PublishPanel({
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-foreground">Legenda do Instagram</label>
-              <span className={`text-xs font-mono transition-colors ${caption.length > 2200 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+              <span className={`text-xs font-sans tabular-nums transition-colors ${caption.length > 2200 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
                 {caption.length}/2.200 caracteres
               </span>
             </div>
@@ -2350,7 +2417,7 @@ export default function PublishPanel({
       </div>
 
       {/* 3. Lista e Histórico de Publicações Agendadas */}
-      <Card padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5">
+      <Card id="fila-agendamentos" padding="lg" className="rounded-3xl border border-border bg-card shadow-2xs flex flex-col gap-5 scroll-mt-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
           <div>
             <h4 className="font-bold font-display text-foreground text-base tracking-tight">
@@ -2442,7 +2509,7 @@ export default function PublishPanel({
                   {/* Topo do Card: Conta + Status + Ações Rápidas */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs font-mono font-bold bg-accent text-foreground px-2 py-0.5 rounded-md border border-border truncate">
+                      <span className="text-xs font-sans font-bold bg-accent text-foreground px-2 py-0.5 rounded-md border border-border truncate">
                         @{accounts.find((a) => a.instagram_user_id === post.instagram_user_id)?.instagram_username || 'instagram'}
                       </span>
                       <Badge variant={meta.variant} className="text-[11px] sm:text-xs font-bold shrink-0">

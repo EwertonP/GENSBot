@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 
 interface HeroGradientPanelProps {
   eyebrow?: React.ReactNode;
-  title: React.ReactNode;
+  title?: React.ReactNode;
   subtitle?: React.ReactNode;
   badge?: React.ReactNode;
   badgeIcon?: LucideIcon;
@@ -81,9 +81,11 @@ interface HeroKpiCardProps {
   label: string;
   value: React.ReactNode;
   hint?: React.ReactNode;
-  icon?: LucideIcon;
+  icon?: React.ComponentType<{ className?: string }>;
   iconTone?: keyof typeof ICON_TONES;
   valueTone?: keyof typeof VALUE_TONES;
+  onClick?: () => void;
+  active?: boolean;
   className?: string;
 }
 
@@ -97,13 +99,20 @@ export function HeroKpiCard({
   icon: Icon,
   iconTone = 'primary',
   valueTone = 'default',
+  onClick,
+  active = false,
   className = '',
 }: HeroKpiCardProps) {
+  const Tag = onClick ? 'button' : 'div';
   return (
-    <div
-      className={`rounded-2xl border border-border/70 bg-card/90 backdrop-blur-xs p-4 flex flex-col justify-between gap-2 shadow-2xs ${className}`}
+    <Tag
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      className={`rounded-2xl border bg-card/90 backdrop-blur-xs p-4 flex flex-col justify-between gap-2 shadow-2xs text-left transition-ui ${
+        active ? 'border-primary ring-1 ring-primary/30' : 'border-border/70'
+      } ${onClick ? 'cursor-pointer hover:border-primary/50 hover:shadow-xs' : ''} ${className}`}
     >
-      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground w-full">
         {Icon && (
           <span className={`grid size-7 place-items-center rounded-xl shrink-0 ${ICON_TONES[iconTone]}`}>
             <Icon className="size-3.5" />
@@ -117,6 +126,6 @@ export function HeroKpiCard({
       </div>
 
       {hint && <div className="text-[11px] text-muted-foreground">{hint}</div>}
-    </div>
+    </Tag>
   );
 }

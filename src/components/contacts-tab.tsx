@@ -3,9 +3,10 @@ import { DataTable, DataTablePagination } from '@/components/ui/data-table';
 import { Select } from '@/components/ui/select';
 
 import { useEffect, useState } from 'react';
-import { FileText, Trash2, Info, Search, Users, StickyNote } from 'lucide-react';
+import { FileText, Trash2, Info, Search, Users, StickyNote, Mail, Phone, Tag } from 'lucide-react';
 import { tagColorClasses } from '@/lib/tag-colors';
 import { Card } from '@/components/ui/card';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -192,9 +193,59 @@ export default function ContactsTab({ withAccount, showToast, accountKey, readOn
   };
 
   const filtrando = !!(search || tagFilter);
+  const comEmailCount = contacts.filter((c) => Boolean(c.email)).length;
+  const comTelefoneCount = contacts.filter((c) => Boolean(c.phone)).length;
 
   return (
-    <Card padding="lg" className="rounded-2xl shadow-sm flex flex-col gap-4 text-foreground">
+    <div className="flex flex-col gap-6 animate-fade-in">
+      <HeroGradientPanel
+        eyebrow="Base Captada pelas Automações"
+        title="Audiência & Leads"
+        actions={
+          <div className="flex items-center gap-2">
+            {readOnly && <Badge variant="muted">Somente leitura</Badge>}
+            <Tip label={filtrando ? 'Exporta todos os contatos deste filtro, com as respostas das perguntas' : 'Exporta toda a audiência, com as respostas das perguntas'}>
+              <Button variant="outline" size="sm" onClick={exportAll} loading={exporting} disabled={total === 0} className="rounded-xl bg-card/90 backdrop-blur-xs shadow-2xs h-9">
+                <FileText className="w-3.5 h-3.5" />
+                Exportar CSV
+              </Button>
+            </Tip>
+          </div>
+        }
+      >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <HeroKpiCard
+            icon={Users}
+            iconTone="primary"
+            label="Total na Audiência"
+            value={total}
+            hint={filtrando ? 'Neste filtro atual' : 'Contatos captados'}
+          />
+          <HeroKpiCard
+            icon={Mail}
+            iconTone="sky"
+            label="Com E-mail"
+            value={comEmailCount}
+            hint={`Nesta página (${contacts.length} exibidos)`}
+          />
+          <HeroKpiCard
+            icon={Phone}
+            iconTone="emerald"
+            label="Com Telefone"
+            value={comTelefoneCount}
+            hint={`Nesta página (${contacts.length} exibidos)`}
+          />
+          <HeroKpiCard
+            icon={Tag}
+            iconTone="amber"
+            label="Tags Mapeadas"
+            value={allTags.length}
+            hint="Etiquetas de segmentação"
+          />
+        </div>
+      </HeroGradientPanel>
+
+      <Card padding="lg" className="rounded-2xl shadow-2xs flex flex-col gap-4 text-foreground">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-xl">
           <div className="relative flex-1">
@@ -342,6 +393,7 @@ export default function ContactsTab({ withAccount, showToast, accountKey, readOn
         showToast={showToast}
         readOnly={readOnly}
       />
-    </Card>
+      </Card>
+    </div>
   );
 }

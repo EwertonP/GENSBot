@@ -132,7 +132,7 @@ export default function AutomationTable({
             cell: (auto) => (
               <div className="flex gap-1 flex-wrap items-center">
                 {auto.keywords.slice(0, 2).map((kw) => (
-                  <Badge key={kw} variant="muted" className="font-mono">
+                  <Badge key={kw} variant="muted" className="font-sans font-semibold">
                     {kw}
                   </Badge>
                 ))}

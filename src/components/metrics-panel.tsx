@@ -28,6 +28,7 @@ import {
 import { DataTable } from '@/components/ui/data-table';
 import { IconButton } from '@/components/ui/icon-button';
 import { Card } from '@/components/ui/card';
+import { HeroGradientPanel } from '@/components/ui/hero-gradient-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
@@ -1668,31 +1669,28 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
         />
       ) : (
         <>
-          {/* Banner do Canal Ativo (Inspirado na tela Desempenho / Relatório) */}
-          <div className="rounded-2xl border border-pink-500/20 bg-gradient-to-r from-pink-500/10 via-card to-card px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="size-10 rounded-xl bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 text-white grid place-items-center shrink-0 shadow-xs">
-                <InstagramIcon className="size-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-display text-sm font-bold text-foreground truncate">
-                    Instagram {isSingleAccount && activeAccount?.username ? `@${activeAccount.username}` : `(${metrics.length} contas)`}
-                  </h3>
-                  <Badge variant="muted" className="text-[10px]">Últimos {period} dias</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground truncate">
-                  {((isSingleAccount ? activeAccount?.followers_count : totalFollowers) ?? 0).toLocaleString('pt-BR')} seguidores
-                  {contentPerf?.topPublications?.length ? ` · ${contentPerf.topPublications.length} publicações analisadas` : ''}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 1. Bento KPI Grid 3x2 (6 Métricas Principais com Sparklines) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Hero Gradient do Canal Ativo + Bento KPI Grid 3x2 */}
+          <HeroGradientPanel
+            eyebrow="Painel Oficial de Insights da Meta"
+            title={
+              <span className="inline-flex items-center gap-2.5">
+                <span className="size-8 rounded-xl bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 text-white grid place-items-center shrink-0 shadow-xs">
+                  <InstagramIcon className="size-4" />
+                </span>
+                <span className="truncate">
+                  Instagram {isSingleAccount && activeAccount?.username ? `@${activeAccount.username}` : `(${metrics.length} contas)`}
+                </span>
+              </span>
+            }
+            subtitle={`${((isSingleAccount ? activeAccount?.followers_count : totalFollowers) ?? 0).toLocaleString('pt-BR')} seguidores${
+              contentPerf?.topPublications?.length ? ` · ${contentPerf.topPublications.length} publicações analisadas` : ''
+            }`}
+            badge={`Últimos ${period} dias`}
+          >
+            {/* 1. Bento KPI Grid 3x2 (6 Métricas Principais com Sparklines) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {/* KPI 1: Contas Alcançadas */}
-            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
+            <div className="rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xs p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-primary/40 hover:shadow-sm transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-1/15 text-chart-1 border border-chart-1/25">
                   <TrendingUp className="w-5 h-5" />
@@ -1727,7 +1725,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </div>
 
             {/* KPI 2: Visualizações Totais (Métrica Universal v22+/v25) */}
-            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
+            <div className="rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xs p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-primary/40 hover:shadow-sm transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-2/15 text-chart-2 border border-chart-2/25">
                   <Eye className="w-5 h-5" />
@@ -1762,7 +1760,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </div>
 
             {/* KPI 3: Interações & Engajamento */}
-            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
+            <div className="rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xs p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-primary/40 hover:shadow-sm transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-3/15 text-chart-3 border border-chart-3/25">
                   <Heart className="w-5 h-5" />
@@ -1795,7 +1793,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </div>
 
             {/* KPI 4: Base de Seguidores & Comunidade */}
-            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
+            <div className="rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xs p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-primary/40 hover:shadow-sm transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div className="squircle-icon w-10 h-10 rounded-2xl bg-chart-4/15 text-chart-4 border border-chart-4/25">
                   <Users className="w-5 h-5" />
@@ -1850,7 +1848,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </div>
 
             {/* KPI 5: Visitas ao Perfil */}
-            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
+            <div className="rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xs p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-primary/40 hover:shadow-sm transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div className="squircle-icon w-10 h-10 rounded-2xl bg-sky-500/15 text-sky-500 border border-sky-500/25">
                   <Eye className="w-5 h-5" />
@@ -1879,7 +1877,7 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
             </div>
 
             {/* KPI 6: Novos Seguidores / Cliques na Bio */}
-            <div className="rounded-card border border-border bg-card p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-foreground/20 hover:shadow-md transition-all duration-300">
+            <div className="rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xs p-5 shadow-2xs flex flex-col justify-between overflow-hidden relative group hover:border-primary/40 hover:shadow-sm transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div className="squircle-icon w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-500 border border-amber-500/25">
                   <Sparkles className="w-5 h-5" />
@@ -1917,7 +1915,8 @@ export default function MetricsPanel({ selectedAccountId, withAccount }: Metrics
                 />
               </div>
             </div>
-          </div>
+            </div>
+          </HeroGradientPanel>
 
           {/* 2. Gráfico Bézier Suave de Alcance Diário */}
           {activeAccount && (

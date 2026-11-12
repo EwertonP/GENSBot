@@ -19,6 +19,7 @@ import {
   User,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Avatar } from '@/components/ui/avatar';
@@ -200,100 +201,49 @@ export function PainelProdutividade({ showToast }: PainelProdutividadeProps) {
       </div>
 
       {/* Cards de Métricas Principais (KPIs) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Entregue */}
-        <Card className="p-4 rounded-2xl border border-border shadow-2xs bg-card flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-muted-foreground">Demandas Entregues</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-foreground tabular-nums">
-                {resumo?.total_entregues ?? 0}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                de {resumo?.total_demandas ?? 0} criadas
-              </span>
-            </div>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="text-[11px] font-bold text-success tabular-nums">
-                {resumo?.taxa_entrega ?? 0}%
-              </span>
-              <span className="text-[11px] text-muted-foreground">taxa de conclusão</span>
-            </div>
-          </div>
-          <div className="size-11 rounded-xl bg-success/10 text-success flex items-center justify-center shrink-0">
-            <CheckCircle2 className="size-6" />
-          </div>
-        </Card>
-
-        {/* Membro Destaque */}
-        <Card className="p-4 rounded-2xl border border-border shadow-2xs bg-card flex items-center justify-between">
-          <div className="flex flex-col min-w-0 pr-2">
-            <span className="text-xs font-medium text-muted-foreground">Maior Entregador</span>
-            {resumo?.top_produtor ? (
-              <>
-                <span className="text-base font-bold text-foreground truncate mt-1">
-                  {resumo.top_produtor.nome}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  <span className="font-bold text-primary tabular-nums">
-                    {resumo.top_produtor.total_entregues}
-                  </span>{' '}
-                  peças publicadas
-                </span>
-              </>
-            ) : (
-              <span className="text-xs text-muted-foreground mt-2">—</span>
-            )}
-          </div>
-          <div className="size-11 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-            <Flame className="size-6" />
-          </div>
-        </Card>
-
-        {/* Cliente com Mais Entregas */}
-        <Card className="p-4 rounded-2xl border border-border shadow-2xs bg-card flex items-center justify-between">
-          <div className="flex flex-col min-w-0 pr-2">
-            <span className="text-xs font-medium text-muted-foreground">Cliente Mais Atendido</span>
-            {resumo?.top_cliente ? (
-              <>
-                <span className="text-base font-bold text-foreground truncate mt-1">
-                  {resumo.top_cliente.nome}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  <span className="font-bold text-success tabular-nums">
-                    {resumo.top_cliente.total_entregues}
-                  </span>{' '}
-                  peças entregues
-                </span>
-              </>
-            ) : (
-              <span className="text-xs text-muted-foreground mt-2">—</span>
-            )}
-          </div>
-          <div className="size-11 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
-            <TrendingUp className="size-6" />
-          </div>
-        </Card>
-
-        {/* Em Andamento */}
-        <Card className="p-4 rounded-2xl border border-border shadow-2xs bg-card flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-muted-foreground">Ainda em Produção</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-foreground tabular-nums">
-                {resumo?.total_em_andamento ?? 0}
-              </span>
-              <span className="text-xs text-muted-foreground">demandas</span>
-            </div>
-            <span className="text-[11px] text-muted-foreground mt-1">
-              copy, arte, revisão ou gravação
-            </span>
-          </div>
-          <div className="size-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Clock className="size-6" />
-          </div>
-        </Card>
-      </div>
+      <HeroGradientPanel
+        eyebrow="Desempenho Operacional"
+        title="Produtividade & Entregas"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <HeroKpiCard
+            icon={CheckCircle2}
+            iconTone="emerald"
+            label="Demandas Entregues"
+            value={resumo?.total_entregues ?? 0}
+            hint={`de ${resumo?.total_demandas ?? 0} criadas (${resumo?.taxa_entrega ?? 0}% conclusão)`}
+          />
+          <HeroKpiCard
+            icon={Flame}
+            iconTone="amber"
+            label="Maior Entregador"
+            value={<span className="text-lg sm:text-xl truncate block">{resumo?.top_produtor?.nome ?? '—'}</span>}
+            hint={
+              resumo?.top_produtor
+                ? `${resumo.top_produtor.total_entregues} peças publicadas`
+                : 'Sem entregas no período'
+            }
+          />
+          <HeroKpiCard
+            icon={TrendingUp}
+            iconTone="sky"
+            label="Cliente Mais Atendido"
+            value={<span className="text-lg sm:text-xl truncate block">{resumo?.top_cliente?.nome ?? '—'}</span>}
+            hint={
+              resumo?.top_cliente
+                ? `${resumo.top_cliente.total_entregues} peças entregues`
+                : 'Sem entregas no período'
+            }
+          />
+          <HeroKpiCard
+            icon={Clock}
+            iconTone="primary"
+            label="Ainda em Produção"
+            value={resumo?.total_em_andamento ?? 0}
+            hint="Copy, arte, revisão ou gravação"
+          />
+        </div>
+      </HeroGradientPanel>
 
       {/* Entregas sem responsável: não contam para ninguém até alguém assumir */}
       {!carregando && semResponsavel.length > 0 && (

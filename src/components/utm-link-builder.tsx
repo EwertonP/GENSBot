@@ -27,6 +27,7 @@ import { ClienteAvatar } from '@/components/cliente-avatar';
 import type { UtmLink } from '@/types/utm-link';
 import { buildUtmUrl } from '@/lib/utm';
 import { Card } from '@/components/ui/card';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -247,53 +248,35 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
-      {/* 1. KPIs Rápidos */}
-      <div className="flex flex-col gap-4">
-        {/* Top KPI Cards */}
+      {/* 1. Hero Gradient: KPIs Rápidos */}
+      <HeroGradientPanel
+        eyebrow="Rastreamento de Campanhas"
+        title="Construtor de Links UTM & QR Codes"
+      >
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card className="p-4 rounded-2xl border border-border bg-card shadow-2xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Total de Cliques
-              </p>
-              <h3 className="text-2xl font-bold font-display text-foreground mt-0.5 font-mono">
-                {totalCliques}
-              </h3>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-lime/40 flex items-center justify-center text-foreground">
-              <MousePointerClick className="w-5 h-5" />
-            </div>
-          </Card>
-
-          <Card className="p-4 rounded-2xl border border-border bg-card shadow-2xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Links Criados
-              </p>
-              <h3 className="text-2xl font-bold font-display text-foreground mt-0.5 font-mono">
-                {links.length}
-              </h3>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-foreground">
-              <Link2 className="w-5 h-5" />
-            </div>
-          </Card>
-
-          <Card className="p-4 rounded-2xl border border-border bg-card shadow-2xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Canal Principal
-              </p>
-              <h3 className="text-sm font-bold font-display text-foreground mt-1 truncate">
-                {links[0]?.utm_source || 'Instagram'} ({links[0]?.utm_medium || 'Bio'})
-              </h3>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-foreground">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-          </Card>
+          <HeroKpiCard
+            icon={MousePointerClick}
+            iconTone="emerald"
+            label="Total de Cliques"
+            value={totalCliques}
+            hint="Acessos contabilizados"
+          />
+          <HeroKpiCard
+            icon={Link2}
+            iconTone="primary"
+            label="Links Criados"
+            value={links.length}
+            hint="Campanhas rastreáveis"
+          />
+          <HeroKpiCard
+            icon={TrendingUp}
+            iconTone="sky"
+            label="Canal Principal"
+            value={<span className="text-lg sm:text-xl truncate block">{`${links[0]?.utm_source || 'Instagram'} (${links[0]?.utm_medium || 'Bio'})`}</span>}
+            hint="Origem com maior uso"
+          />
         </div>
-      </div>
+      </HeroGradientPanel>
 
       {/* 2. Layout em 2 Colunas: Construtor + Live Preview com QR Code */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -475,7 +458,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
         {/* Live Preview Card com QR Code */}
         <Card className="lg:col-span-5 p-6 rounded-2xl border border-border bg-card shadow-2xs flex flex-col gap-4 sticky top-6">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Preview em Tempo Real
             </span>
             <Badge variant="success" className="text-xs font-bold">
