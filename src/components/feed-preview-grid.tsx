@@ -31,6 +31,8 @@ import type { Cliente } from '@/lib/clientes';
 import { confirmDialog } from '@/components/ui/dialog';
 import { Sheet } from '@/components/ui/sheet';
 
+import { obterLinkAprovacaoPublico } from '@/lib/conteudo';
+
 interface FeedPreviewGridProps {
   cliente: Cliente;
   items: ConteudoItem[];
@@ -66,8 +68,8 @@ export function FeedPreviewGrid({
     })
     .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
 
-  const linkPublico = typeof window !== 'undefined' && cliente.token_aprovacao_mes
-    ? `${window.location.origin}/aprovacao/feed/${cliente.token_aprovacao_mes}`
+  const linkPublico = cliente.token_aprovacao_mes
+    ? obterLinkAprovacaoPublico(cliente.token_aprovacao_mes, 'feed')
     : '';
 
   function handleCopiarLink() {

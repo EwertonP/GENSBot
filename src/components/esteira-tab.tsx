@@ -59,6 +59,7 @@ import {
   type ArquivoConteudo,
   type PrefillAgendamento,
   compararPorData,
+  obterLinkAprovacaoPublico,
 } from '@/lib/conteudo';
 import { detectarGatilhosDaLegenda } from '@/lib/publish-automation';
 import type { Cliente } from '@/lib/clientes';
@@ -673,10 +674,14 @@ export default function EsteiraTab({
     showToast(`Demanda "${item.titulo}" enviada para Agendamentos!`, 'success');
   }
 
-  function handleCopiarLinkAprovacao(token: string) {
-    const link = `${window.location.origin}/aprovacao/${token}`;
+  function handleCopiarLinkAprovacao(token?: string | null) {
+    if (!token) {
+      showToast('Esta demanda ainda não possui link de aprovação.', 'error');
+      return;
+    }
+    const link = obterLinkAprovacaoPublico(token);
     navigator.clipboard.writeText(link);
-    showToast('Link de aprovação copiado!', 'success');
+    showToast('Link de aprovação copiado! Pronto para colar no WhatsApp com prévia visual.', 'success');
   }
 
   // Abre o modal no modo "novo" (cliente do filtro atual, ou o primeiro)
@@ -1134,7 +1139,7 @@ export default function EsteiraTab({
                 size="sm"
                 onClick={() => {
                   const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
-                  const url = `${window.location.origin}/aprovacao/feed/${token}`;
+                  const url = obterLinkAprovacaoPublico(token, 'feed');
                   navigator.clipboard.writeText(url);
                   showToast('Link da grade do feed copiado para o WhatsApp!', 'success');
                 }}
@@ -1150,7 +1155,7 @@ export default function EsteiraTab({
                 size="sm"
                 onClick={() => {
                   const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
-                  const url = `${window.location.origin}/aprovacao/mes/${token}?mes=${mesSelecionado}`;
+                  const url = `${obterLinkAprovacaoPublico(token, 'mes')}?mes=${mesSelecionado}`;
                   navigator.clipboard.writeText(url);
                   showToast(`Link de ${mesSelecionado.split('-').reverse().join('/')} copiado!`, 'success');
                 }}
@@ -1166,7 +1171,7 @@ export default function EsteiraTab({
                 size="sm"
                 onClick={() => {
                   const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
-                  const url = `${window.location.origin}/aprovacao/feed/${token}`;
+                  const url = obterLinkAprovacaoPublico(token, 'feed');
                   const msg = `Olá ${clienteAtivo.nome}! Segue a prévia visual completa do seu feed deste mês no Instagram para conferência e aprovação:\n\n${url}`;
                   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
                 }}

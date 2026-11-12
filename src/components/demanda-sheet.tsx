@@ -450,10 +450,10 @@ export function DemandaSheet({
     }
   }
 
-  function handleCopiarLinkDemanda() {
+  function handleCopiarLinkPainelInterno() {
     if (!item) return;
     const url = `${window.location.origin}/?tab=esteira&item=${item.id}`;
-    copiarTexto(url, 'Link da demanda copiado!', 'Não foi possível copiar o link.');
+    copiarTexto(url, 'Link interno do painel copiado!', 'Não foi possível copiar o link.');
   }
 
   const carregarTempos = useCallback(async () => {
@@ -1108,12 +1108,18 @@ export function DemandaSheet({
 
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {editando && (
-                <Tip label="Link aprovação">
+                <Tip label="Copiar link de aprovação com prévia para o WhatsApp">
                   <button
                     type="button"
-                    onClick={() => onCopiarLinkAprovacao(item.token_aprovacao)}
+                    onClick={() => {
+                      if (item?.token_aprovacao) {
+                        onCopiarLinkAprovacao(item.token_aprovacao);
+                      } else {
+                        showToast('Esta demanda ainda não possui link de aprovação.', 'error');
+                      }
+                    }}
                     className="size-8 sm:size-auto sm:px-2.5 sm:py-1.5 rounded-xl bg-accent/60 hover:bg-accent border border-border text-foreground font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors text-xs shadow-2xs shrink-0 !min-w-0"
-                    aria-label="Copiar link de aprovação do cliente"
+                    aria-label="Copiar link de aprovação do cliente para WhatsApp"
                   >
                     <Share2 className="w-3.5 h-3.5 text-brand-text" />
                     <span className="hidden sm:inline">Link aprovação</span>
@@ -1145,13 +1151,26 @@ export function DemandaSheet({
                   </Menu.Trigger>
                   <Menu.Portal>
                     <Menu.Positioner side="bottom" align="end" sideOffset={6} className="z-[80]">
-                      <Menu.Popup className="min-w-56 rounded-2xl border border-border-strong bg-popover p-1.5 text-popover-foreground shadow-xl outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0">
+                      <Menu.Popup className="min-w-64 rounded-2xl border border-border-strong bg-popover p-1.5 text-popover-foreground shadow-xl outline-none origin-[var(--transform-origin)] transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0">
                         <Menu.Item
-                          onClick={handleCopiarLinkDemanda}
+                          onClick={() => {
+                            if (item?.token_aprovacao) {
+                              onCopiarLinkAprovacao(item.token_aprovacao);
+                            } else {
+                              showToast('Esta demanda ainda não possui link de aprovação.', 'error');
+                            }
+                          }}
+                          className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent font-medium text-brand-text"
+                        >
+                          <Share2 className="size-3.5 text-brand-text" />
+                          <span className="flex-1">Copiar link de aprovação (WhatsApp)</span>
+                        </Menu.Item>
+                        <Menu.Item
+                          onClick={handleCopiarLinkPainelInterno}
                           className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs cursor-pointer outline-none data-highlighted:bg-accent"
                         >
                           <ExternalLink className="size-3.5 text-muted-foreground" />
-                          <span className="flex-1">Copiar link da demanda</span>
+                          <span className="flex-1">Copiar link interno da esteira</span>
                         </Menu.Item>
                         <Menu.Item
                           onClick={() => copiarTexto(item.id, 'ID da demanda copiado.', 'Não foi possível copiar o ID.')}

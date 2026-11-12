@@ -380,6 +380,42 @@ export function formatarTimecode(segundos: number): string {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
+/**
+ * Retorna a URL pública canônica para links de aprovação (post individual, feed ou mês).
+ * Sempre garante uma URL pública acessível (ex: https://allingens.vercel.app ou NEXT_PUBLIC_APP_URL),
+ * mesmo em ambiente local (localhost / 127.0.0.1), para que os crawlers do WhatsApp e Facebook
+ * consigam baixar as metatags OpenGraph e renderizar o card de prévia visual com foto e detalhes.
+ */
+export function obterLinkAprovacaoPublico(
+  caminhoOuToken: string,
+  tipo: 'post' | 'feed' | 'mes' = 'post',
+  urlOrigem?: string
+): string {
+  let base =
+    urlOrigem ||
+    (typeof window !== 'undefined' ? window.location.origin : '') ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'https://allingens.vercel.app';
+
+  if (!base || base.includes('localhost') || base.includes('127.0.0.1')) {
+    base =
+      process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')
+        ? process.env.NEXT_PUBLIC_APP_URL
+        : 'https://allingens.vercel.app';
+  }
+
+  const baseLimpa = base.replace(/\/$/, '');
+  const slug = (caminhoOuToken || '').trim();
+
+  if (tipo === 'feed') {
+    return `${baseLimpa}/aprovacao/feed/${slug}`;
+  }
+  if (tipo === 'mes') {
+    return `${baseLimpa}/aprovacao/mes/${slug}`;
+  }
+  return `${baseLimpa}/aprovacao/${slug}`;
+}
+
 /** Gera a mensagem de aprovação e o magic link */
 export function gerarMensagemAprovacao(params: {
   nomeCliente: string;
@@ -387,11 +423,7 @@ export function gerarMensagemAprovacao(params: {
   token: string;
   urlOrigem?: string;
 }): { texto: string; linkAprovacao: string } {
-  let base = params.urlOrigem || (typeof window !== 'undefined' ? window.location.origin : 'https://allingens.vercel.app');
-  if (!base || (typeof window === 'undefined' && (base.includes('localhost') || base.includes('127.0.0.1')))) {
-    base = 'https://allingens.vercel.app';
-  }
-  const linkAprovacao = `${base.replace(/\/$/, '')}/aprovacao/${params.token}`;
+  const linkAprovacao = obterLinkAprovacaoPublico(params.token, 'post', params.urlOrigem);
   const texto =
     `Olá! 👋 Aqui é da Agência GENS.\n\n` +
     `Preparamos a nova publicação "${params.tituloPost || 'Conteúdo do Mês'}" para a sua aprovação:\n\n` +
