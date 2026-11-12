@@ -154,7 +154,7 @@ export default function CrmAiConfigModal({
             <div>
               <h3 className="font-display text-base font-bold text-foreground flex items-center gap-2">
                 <span>Agente de IA SDR & Qualificador</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                <span className="text-[10px] font-sans tabular-nums px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                   Multi-LLM
                 </span>
               </h3>
@@ -236,14 +236,14 @@ export default function CrmAiConfigModal({
                     <Key className="w-3.5 h-3.5 text-primary" />
                     <span>Chave de API ({provedor.toUpperCase()})</span>
                   </span>
-                  <span className="text-[10px] text-muted-foreground font-mono">BYOK - Pague direto no provedor</span>
+                  <span className="text-[10px] text-muted-foreground font-sans tabular-nums">BYOK - Pague direto no provedor</span>
                 </label>
                 <Input
                   type="password"
                   placeholder="Insira sua chave (ex: sk-... ou AIzaSy...)"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="h-8 font-mono text-xs"
+                  className="h-8 font-sans tabular-nums text-xs"
                 />
               </div>
             </div>

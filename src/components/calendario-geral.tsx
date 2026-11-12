@@ -1,6 +1,7 @@
 'use client';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { DatePicker } from '@/components/ui/date-picker';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -297,7 +298,40 @@ export default function CalendarioGeral({
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
-      {/* 1. Header do Calendário (Estilo Manageko & Datewise) */}
+      {/* 0. Painel Hero Gradient do Calendário */}
+      <HeroGradientPanel
+        eyebrow="Cronograma Editorial"
+        title="Calendário de Publicações"
+        badge={`${itemsFiltrados.length} ${itemsFiltrados.length === 1 ? 'postagem' : 'postagens'} no mês`}
+        badgeIcon={CalendarIcon}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <HeroKpiCard
+            label="Agendadas / Prontas"
+            icon={CalendarIcon}
+            iconTone="sky"
+            value={itemsFiltrados.filter((it) => it.status === 'agendamento' || it.status === 'pronto_publicar' || it.status === 'revisao_agendamento').length}
+            hint="Postagens com data definida"
+          />
+          <HeroKpiCard
+            label="Aguardando Aprovação"
+            icon={Clock}
+            iconTone="amber"
+            value={itemsFiltrados.filter((it) => it.status === 'revisao_cliente').length}
+            hint="Pendentes de OK do cliente"
+          />
+          <HeroKpiCard
+            label="Publicadas"
+            icon={CheckCircle2}
+            iconTone="emerald"
+            valueTone="success"
+            value={itemsFiltrados.filter((it) => it.status === 'publicado').length}
+            hint="Entregues no período"
+          />
+        </div>
+      </HeroGradientPanel>
+
+      {/* 1. Header do Calendário */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="hidden">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest font-mono">

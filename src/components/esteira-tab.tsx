@@ -41,6 +41,7 @@ import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import { OnboardingBar } from '@/components/onboarding-bar';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { FeedPreviewGrid } from '@/components/feed-preview-grid';
 import { AprovacaoGrid } from '@/components/aprovacao/aprovacao-grid';
 import {
@@ -785,6 +786,46 @@ export default function EsteiraTab({
         sincronizando={sincronizandoNotion}
         onSincronizar={sincronizarNotion}
       />
+
+      {/* 0. Painel Hero Gradient da Esteira de Produção */}
+      <HeroGradientPanel
+        eyebrow="Operação de Conteúdo"
+        title={clienteAtivo ? `Esteira · ${clienteAtivo.nome}` : 'Demandas & Aprovação'}
+        badge={`${itemsFiltrados.length} ${itemsFiltrados.length === 1 ? 'demanda' : 'demandas'} na visão`}
+        badgeIcon={Layers}
+      >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <HeroKpiCard
+            label="Em Produção"
+            icon={Sparkles}
+            iconTone="violet"
+            value={itemsFiltrados.filter((it) => {
+              const c = mapearStatusParaColunaKanban(it.status);
+              return c === 'planejamento' || c === 'criacao_arte' || c === 'revisao_interna';
+            }).length}
+          />
+          <HeroKpiCard
+            label="Aguardando Cliente"
+            icon={Clock}
+            iconTone="amber"
+            value={itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === 'revisao_cliente').length}
+          />
+          <HeroKpiCard
+            label="Prontas / Agendadas"
+            icon={Calendar}
+            iconTone="sky"
+            value={itemsFiltrados.filter((it) => mapearStatusParaColunaKanban(it.status) === 'agendamento').length}
+          />
+          <HeroKpiCard
+            label="Publicadas"
+            icon={CheckCircle2}
+            iconTone="emerald"
+            valueTone="success"
+            value={totalPublicados}
+          />
+        </div>
+      </HeroGradientPanel>
+
       {/* 1. Header de Ações & Filtros em Linha Única */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">

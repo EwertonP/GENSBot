@@ -26,6 +26,7 @@ import {
 import type { Form } from '@/types/form';
 import FormBuilder from './forms/form-builder';
 import { Card } from '@/components/ui/card';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -265,9 +266,58 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
     );
   }
 
+  const totalPublicados = useMemo(() => formsFiltrados.filter((f) => f.publicado).length, [formsFiltrados]);
+  const totalRespostas = useMemo(
+    () => formsFiltrados.reduce((acc, f) => acc + (Number((f as any).total_respostas ?? (f as any).respostas_count ?? 0) || 0), 0),
+    [formsFiltrados]
+  );
+
   return (
     <div className="flex flex-col gap-6 animate-fade-in max-w-6xl mx-auto pb-12 font-sans">
-      {/* Barra de Filtro, Contagem & Ação */}
+      <HeroGradientPanel
+        eyebrow="Captação & Qualificação"
+        title="Formulários Conversacionais"
+        badge={`${totalPublicados} publicado(s)`}
+        badgeIcon={FileQuestion}
+        actions={
+          <Button
+            type="button"
+            variant="primary"
+            onClick={abrirNovoModal}
+            className="rounded-full h-9 text-xs font-semibold shadow-xs shrink-0"
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            <span>Novo Formulário</span>
+          </Button>
+        }
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <HeroKpiCard
+            label="Total de Formulários"
+            icon={FileText}
+            iconTone="primary"
+            value={formsFiltrados.length}
+            hint="Modelos ativos no workspace"
+          />
+          <HeroKpiCard
+            label="Formulários Publicados"
+            icon={Sparkles}
+            iconTone="emerald"
+            valueTone="success"
+            value={totalPublicados}
+            hint="Links abertos para captação"
+          />
+          <HeroKpiCard
+            label="Respostas Captadas"
+            icon={Users}
+            iconTone="sky"
+            value={totalRespostas}
+            hint="Leads enviados para o funil"
+          />
+        </div>
+      </HeroGradientPanel>
+
+      {/* Barra de Filtro & Contagem */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 max-w-md">
           <div className="relative flex-1">
@@ -277,23 +327,13 @@ export default function FormsTab({ clientes = [], clienteSelecionado = 'all' }: 
               placeholder="Buscar por título, cliente ou link..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="pl-9 h-10 text-xs rounded-xl"
+              className="pl-9 h-10 text-xs rounded-full"
             />
           </div>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-accent border border-border text-foreground font-mono font-bold shrink-0">
+          <span className="text-xs px-3 py-1 rounded-full bg-accent border border-border text-foreground font-sans tabular-nums font-semibold shrink-0">
             {formsFiltrados.length} {formsFiltrados.length === 1 ? 'formulário' : 'formulários'}
           </span>
         </div>
-
-        <Button
-          type="button"
-          variant="primary"
-          onClick={abrirNovoModal}
-          className="self-start sm:self-auto shrink-0 shadow-xs"
-        >
-          <Plus className="w-4 h-4 mr-1.5" />
-          <span>Novo Formulário</span>
-        </Button>
       </div>
 
       {/* Grid de Formulários */}

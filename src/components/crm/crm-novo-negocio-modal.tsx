@@ -337,7 +337,7 @@ export default function CrmNovoNegocioModal({
                   placeholder="ex: 8.5"
                   value={scoreQualificacao}
                   onChange={(e) => setScoreQualificacao(e.target.value)}
-                  className="font-mono"
+                  className="font-sans tabular-nums"
                 />
               </div>
 

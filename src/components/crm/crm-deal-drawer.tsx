@@ -470,7 +470,7 @@ export default function CrmDealDrawer({
                 className="w-3 h-3 rounded-full shrink-0"
                 style={{ backgroundColor: negocio?.estagio?.cor || '#3b82f6' }}
               />
-              <span className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-wider">
+              <span className="text-xs font-sans tabular-nums font-bold text-muted-foreground uppercase tracking-wider">
                 {negocio?.estagio?.nome || 'Oportunidade'}
               </span>
               {negocio?.status === 'ganho' && (
@@ -524,7 +524,7 @@ export default function CrmDealDrawer({
                   {/* Menu suspenso de templates rápidos */}
                   <div className="hidden group-hover:flex group-focus-within:flex flex-col absolute right-0 top-full pt-1.5 z-50 w-64">
                     <div className="bg-popover border border-border rounded-xl shadow-lg p-1.5 flex flex-col gap-1 text-xs">
-                      <div className="px-2 py-1 text-[10px] font-mono font-bold text-muted-foreground uppercase border-b border-border/50">
+                      <div className="px-2 py-1 text-[10px] font-sans tabular-nums font-bold text-muted-foreground uppercase border-b border-border/50">
                         Mensagens Rápidas
                       </div>
                       <button
@@ -604,13 +604,13 @@ export default function CrmDealDrawer({
               className="text-lg font-bold font-display bg-transparent border-0 focus:ring-0 p-0 text-foreground w-full focus:outline-none"
             />
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-xs font-mono text-muted-foreground">R$</span>
+              <span className="text-xs font-sans tabular-nums text-muted-foreground">R$</span>
               <input
                 type="number"
                 value={valor}
                 onChange={(e) => setValor(e.target.value)}
                 placeholder="0.00"
-                className="w-28 text-right font-mono font-bold text-base bg-accent/40 border border-border rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-primary"
+                className="w-28 text-right font-sans tabular-nums font-bold text-base bg-accent/40 border border-border rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-primary"
               />
             </div>
           </div>
@@ -641,7 +641,7 @@ export default function CrmDealDrawer({
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 flex flex-col gap-6 overscroll-contain">
           {/* Dados do Contato & Lead */}
           <div className="flex flex-col gap-3 bg-card p-4 rounded-xl border border-border">
-            <h4 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-wider">
+            <h4 className="text-xs font-bold font-sans tabular-nums text-muted-foreground uppercase tracking-wider">
               Dados do Contato
             </h4>
 
@@ -661,7 +661,7 @@ export default function CrmDealDrawer({
                   value={telefone}
                   onChange={(e) => setTelefone(e.target.value)}
                   placeholder="(DDD) 99999-9999"
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs font-sans tabular-nums"
                 />
               </div>
 
@@ -755,7 +755,7 @@ export default function CrmDealDrawer({
               <label className="text-[11px] text-muted-foreground">Tags & Interesses</label>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {tags.map((t) => (
-                  <Badge key={t} variant="muted" className="text-[11px] gap-1 pr-1.5 font-mono">
+                  <Badge key={t} variant="muted" className="text-[11px] gap-1 pr-1.5 font-sans tabular-nums">
                     <span>{t}</span>
                     <button
                       type="button"
@@ -790,7 +790,7 @@ export default function CrmDealDrawer({
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-primary shrink-0" />
-                <h4 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-wider">
+                <h4 className="text-xs font-bold font-sans tabular-nums text-muted-foreground uppercase tracking-wider">
                   Diagnóstico & Auditoria ICP
                 </h4>
               </div>
@@ -822,9 +822,9 @@ export default function CrmDealDrawer({
                     value={scoreQualificacao}
                     onChange={(e) => setScoreQualificacao(e.target.value)}
                     placeholder="ex: 8.5"
-                    className="h-8 text-xs font-mono font-bold"
+                    className="h-8 text-xs font-sans tabular-nums font-bold"
                   />
-                  <span className="text-[11px] text-muted-foreground font-mono">/ 10</span>
+                  <span className="text-[11px] text-muted-foreground font-sans tabular-nums">/ 10</span>
                 </div>
               </div>
 
@@ -875,7 +875,7 @@ export default function CrmDealDrawer({
                     value={urlSite}
                     onChange={(e) => setUrlSite(e.target.value)}
                     placeholder="https://exemplo.com.br"
-                    className="h-8 text-xs font-mono"
+                    className="h-8 text-xs font-sans tabular-nums"
                   />
                   {urlSite && (
                     <Tip label="Abrir site em nova aba">
@@ -918,7 +918,7 @@ export default function CrmDealDrawer({
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-                <h4 className="text-xs font-bold font-mono text-muted-foreground uppercase tracking-wider">
+                <h4 className="text-xs font-bold font-sans tabular-nums text-muted-foreground uppercase tracking-wider">
                   Próximo Follow-up
                 </h4>
               </div>
@@ -947,7 +947,7 @@ export default function CrmDealDrawer({
                 type="datetime-local"
                 value={dataProximoFollowup}
                 onChange={(e) => setDataProximoFollowup(e.target.value)}
-                className="h-8 text-xs font-mono max-w-xs"
+                className="h-8 text-xs font-sans tabular-nums max-w-xs"
               />
 
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1059,7 +1059,7 @@ export default function CrmDealDrawer({
                           <span className="font-semibold text-foreground">
                             {atv.membro?.nome || 'Sistema'}
                           </span>
-                          <span className="font-mono">
+                          <span className="font-sans tabular-nums">
                             {new Date(atv.criado_em).toLocaleString('pt-BR', {
                               dateStyle: 'short',
                               timeStyle: 'short',
@@ -1097,7 +1097,7 @@ export default function CrmDealDrawer({
                       type="date"
                       value={novaTarefaPrazo}
                       onChange={(e) => setNovaTarefaPrazo(e.target.value)}
-                      className="text-xs w-36 h-8 font-mono"
+                      className="text-xs w-36 h-8 font-sans tabular-nums"
                     />
                     <Button
                       size="sm"
@@ -1136,7 +1136,7 @@ export default function CrmDealDrawer({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-2 font-sans tabular-nums text-[11px] text-muted-foreground">
                         <Calendar className="w-3 h-3" />
                         <span>{new Date(tar.prazo).toLocaleDateString('pt-BR')}</span>
                       </div>

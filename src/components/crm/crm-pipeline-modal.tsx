@@ -354,7 +354,7 @@ export default function CrmPipelineModal({
                           copia[idx].dias_limite_estagnado = parseInt(e.target.value, 10) || 0;
                           setEstagios(copia);
                         }}
-                        className="w-12 h-7 text-xs text-center p-0 font-mono"
+                        className="w-12 h-7 text-xs text-center p-0 font-sans tabular-nums"
                       />
                       <span className="text-[10px] text-muted-foreground">dias</span>
                     </div>

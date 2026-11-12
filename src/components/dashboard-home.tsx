@@ -46,6 +46,7 @@ import type { MembroEquipe } from '@/components/equipe-tab';
 import type { TarefaRotina } from '@/app/api/rotina/route';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/ui/stat-card';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { ExecutiveKPIGrid } from '@/components/dashboard/executive-kpi-grid';
 import { PerformanceAreaChart } from '@/components/dashboard/performance-area-chart';
 import { TransformationPipeline } from '@/components/dashboard/transformation-pipeline';
@@ -532,86 +533,80 @@ export default function DashboardHome({
 
       {homeMode === 'demandas' ? (
         <div className="flex flex-col gap-6 animate-fade-in">
-          {/* Saudação & Ações Rápidas Operacionais */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-card border border-border shadow-2xs">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono bg-accent px-2 py-0.5 rounded-md border border-border">
-                  Centro Operacional
-                </span>
-                <span className="text-xs text-muted-foreground font-mono">✳</span>
-              </div>
-              <h3 className="text-2xl font-bold font-display text-foreground tracking-tight mt-1">
-                Olá, {saudacaoNome}! 👋
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Você tem {demandasAtivas.length} {demandasAtivas.length === 1 ? 'demanda em andamento' : 'demandas em andamento'} e {tarefasFiltradas.length} {tarefasFiltradas.length === 1 ? 'afazer pendente' : 'afazeres pendentes'} na rotina interna.
-              </p>
-            </div>
+          {/* Saudação & KPIs Operacionais no padrão Hero Gradient */}
+          <HeroGradientPanel
+            eyebrow="Centro Operacional"
+            title={`Olá, ${saudacaoNome}! 👋`}
+            subtitle={`Você tem ${demandasAtivas.length} ${demandasAtivas.length === 1 ? 'demanda em andamento' : 'demandas em andamento'} e ${tarefasFiltradas.length} ${tarefasFiltradas.length === 1 ? 'afazer pendente' : 'afazeres pendentes'} na rotina interna.`}
+            actions={
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigateTab?.('rotina')}
+                  className="rounded-full text-xs h-9 font-semibold"
+                >
+                  <CheckSquare className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                  Rotina da Agência
+                </Button>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onNavigateTab?.('rotina')}
-                className="rounded-xl text-xs h-9 font-semibold"
-              >
-                <CheckSquare className="w-3.5 h-3.5 mr-1.5 text-primary" />
-                Rotina da Agência
-              </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigateTab?.('esteira')}
+                  className="rounded-full text-xs h-9 font-semibold"
+                >
+                  <Layers className="w-3.5 h-3.5 mr-1.5" />
+                  Esteira Completa
+                </Button>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onNavigateTab?.('esteira')}
-                className="rounded-xl text-xs h-9 font-semibold"
-              >
-                <Layers className="w-3.5 h-3.5 mr-1.5" />
-                Esteira Completa
-              </Button>
-
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                onClick={() => (onNovaDemanda ? onNovaDemanda() : onNavigateTab?.('esteira'))}
-                className="rounded-xl text-xs h-9 font-semibold"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1.5" />
-                Nova Demanda
-              </Button>
-            </div>
-          </div>
-
-          {/* KPIs operacionais (Stat Cards) */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              label="Demandas ativas"
-              icon={Layers}
-              value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : demandasAtivas.length}
-              sentence="em produção ou esperando aprovação"
-            />
-            <StatCard
-              label="Entregas da semana"
-              icon={Calendar}
-              value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : entregasSemana.length}
-              sentence="posts programados de segunda a domingo"
-            />
-            <StatCard
-              label="Rotina pendente"
-              icon={CheckSquare}
-              value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : tarefasFiltradas.length}
-              sentence="tarefas internas ainda abertas"
-            />
-            <StatCard
-              label="Publicadas no mês"
-              icon={CheckCircle2}
-              value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : demandasConcluidasMes.length}
-              sentence="conteúdos entregues e publicados"
-            />
-          </section>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => (onNovaDemanda ? onNovaDemanda() : onNavigateTab?.('esteira'))}
+                  className="rounded-full text-xs h-9 font-semibold"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                  Nova Demanda
+                </Button>
+              </>
+            }
+          >
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <HeroKpiCard
+                label="Demandas ativas"
+                icon={Layers}
+                iconTone="primary"
+                value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : demandasAtivas.length}
+                hint="em produção ou esperando aprovação"
+              />
+              <HeroKpiCard
+                label="Entregas da semana"
+                icon={Calendar}
+                iconTone="sky"
+                value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : entregasSemana.length}
+                hint="posts programados de segunda a domingo"
+              />
+              <HeroKpiCard
+                label="Rotina pendente"
+                icon={CheckSquare}
+                iconTone="amber"
+                value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : tarefasFiltradas.length}
+                hint="tarefas internas ainda abertas"
+              />
+              <HeroKpiCard
+                label="Publicadas no mês"
+                icon={CheckCircle2}
+                iconTone="emerald"
+                valueTone="success"
+                value={carregandoOperacional ? <span className="inline-block w-8 h-7 rounded-lg bg-accent animate-pulse" /> : demandasConcluidasMes.length}
+                hint="conteúdos entregues e publicados"
+              />
+            </section>
+          </HeroGradientPanel>
 
           {/* Seção Minha Semana (Grade 7 Dias Seg a Dom) */}
           <div className="p-5 rounded-3xl bg-card border border-border shadow-2xs flex flex-col gap-4">

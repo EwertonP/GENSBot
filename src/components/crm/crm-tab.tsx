@@ -8,6 +8,7 @@ import { FilterBar, type FiltroSelect } from '@/components/ui/filter-bar';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Tip } from '@/components/ui/tooltip';
+import { HeroGradientPanel } from '@/components/ui/hero-gradient-panel';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import CrmKanban from './crm-kanban';
 import CrmTabela from './crm-tabela';
@@ -743,9 +744,15 @@ export default function CrmTab({
       </div>
 
       {/* ──────────────── Painéis Executivos (Pipeline Value, Deal Activity, Conversão & Metas) ──────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Painel 1: Pipeline Value */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs flex flex-col justify-between hover:border-border transition-all">
+      <HeroGradientPanel
+        eyebrow="Gestão Comercial"
+        title={pipelineAtivo?.nome || 'Funil de Prospecção'}
+        badge={`${metricas?.negociosAbertos || 0} oportunidades ativas`}
+        badgeIcon={Target}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Painel 1: Pipeline Value */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-card/90 backdrop-blur-xs border border-border/70 shadow-2xs flex flex-col justify-between hover:border-border transition-all">
           <div className="flex items-center justify-between pb-3 border-b border-border/50">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-primary" />
@@ -754,7 +761,7 @@ export default function CrmTab({
               </h3>
             </div>
             <Tip label="Volume financeiro total sob negociação no funil vs receita já convertida neste ciclo.">
-              <span className="text-[11px] font-mono text-muted-foreground/70 cursor-help px-1.5 py-0.5 rounded-full bg-muted/60">
+              <span className="text-[11px] font-sans tabular-nums text-muted-foreground/70 cursor-help px-1.5 py-0.5 rounded-full bg-muted/60">
                 ⓘ
               </span>
             </Tip>
@@ -788,7 +795,7 @@ export default function CrmTab({
         </div>
 
         {/* Painel 2: Deal Activity */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs flex flex-col justify-between hover:border-border transition-all">
+        <div className="p-4 sm:p-5 rounded-2xl bg-card/90 backdrop-blur-xs border border-border/70 shadow-2xs flex flex-col justify-between hover:border-border transition-all">
           <div className="flex items-center justify-between pb-3 border-b border-border/50">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-500" />
@@ -797,7 +804,7 @@ export default function CrmTab({
               </h3>
             </div>
             <Tip label="Ritmo da prospecção comercial: oportunidades em aberto e leads que exigem atenção imediata.">
-              <span className="text-[11px] font-mono text-muted-foreground/70 cursor-help px-1.5 py-0.5 rounded-full bg-muted/60">
+              <span className="text-[11px] font-sans tabular-nums text-muted-foreground/70 cursor-help px-1.5 py-0.5 rounded-full bg-muted/60">
                 ⓘ
               </span>
             </Tip>
@@ -837,7 +844,7 @@ export default function CrmTab({
         </div>
 
         {/* Painel 3: Conversion & Metas */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/70 shadow-xs flex flex-col justify-between hover:border-border transition-all">
+        <div className="p-4 sm:p-5 rounded-2xl bg-card/90 backdrop-blur-xs border border-border/70 shadow-2xs flex flex-col justify-between hover:border-border transition-all">
           <div className="flex items-center justify-between pb-3 border-b border-border/50">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -877,7 +884,7 @@ export default function CrmTab({
               <div>
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-muted-foreground font-medium">Meta Clientes</span>
-                  <span className="font-mono text-[10px] font-bold text-foreground">
+                  <span className="font-sans tabular-nums text-[10px] font-bold text-foreground">
                     {dadosMetas.totalGanhosMes}/{metaNovosClientes}
                   </span>
                 </div>
@@ -892,7 +899,7 @@ export default function CrmTab({
               <div>
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-muted-foreground font-medium">Meta Receita</span>
-                  <span className="font-mono text-[10px] font-bold text-foreground">
+                  <span className="font-sans tabular-nums text-[10px] font-bold text-foreground">
                     {dadosMetas.pctReceita}%
                   </span>
                 </div>
@@ -906,7 +913,8 @@ export default function CrmTab({
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </HeroGradientPanel>
 
       {/* ──────────────── Barra de Filtros & Busca ──────────────── */}
       <FilterBar

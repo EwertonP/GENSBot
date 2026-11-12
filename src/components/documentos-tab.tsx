@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import {
   FileText,
   FileSignature,
@@ -588,68 +589,22 @@ export function DocumentosTab() {
         </div>
       )}
 
-      {/* Banner de KPIs Rápidos */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="bg-card text-card-foreground rounded-2xl p-4 border border-border shadow-xs">
-          <span className="text-xs text-muted-foreground block mb-1">Propostas Ativas</span>
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-foreground">{kpis.ativas}</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
-              <Send className="w-4 h-4" />
-            </div>
-          </div>
+      {/* Banner Hero Gradient de KPIs Rápidos */}
+      <HeroGradientPanel
+        eyebrow="Jurídico & Fechamento"
+        title="Propostas & Contratos"
+        badge={`${kpis.assinados} contrato(s) assinado(s)`}
+        badgeIcon={ShieldCheck}
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <HeroKpiCard label="Propostas Ativas" icon={Send} iconTone="sky" value={kpis.ativas} />
+          <HeroKpiCard label="Aguardando Cliente" icon={FileSignature} iconTone="amber" valueTone="warning" value={kpis.aguardandoCliente} />
+          <HeroKpiCard label="Sua Assinatura" icon={PenTool} iconTone="primary" valueTone="primary" value={kpis.suaAssinatura} />
+          <HeroKpiCard label="Contratos Assinados" icon={ShieldCheck} iconTone="emerald" valueTone="success" value={kpis.assinados} />
+          <HeroKpiCard label="Rascunhos" icon={FileText} iconTone="violet" value={kpis.rascunhos} />
+          <HeroKpiCard label="Renovam em 30d" icon={Clock} iconTone="rose" value={kpis.renovando} />
         </div>
-
-        <div className="bg-card text-card-foreground rounded-2xl p-4 border border-border shadow-xs">
-          <span className="text-xs text-muted-foreground block mb-1">Aguardando Cliente</span>
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{kpis.aguardandoCliente}</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <FileSignature className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card text-card-foreground rounded-2xl p-4 border border-border shadow-xs">
-          <span className="text-xs text-muted-foreground block mb-1">Sua Assinatura</span>
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-primary">{kpis.suaAssinatura}</span>
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <PenTool className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card text-card-foreground rounded-2xl p-4 border border-border shadow-xs">
-          <span className="text-xs text-muted-foreground block mb-1">Contratos Assinados</span>
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{kpis.assinados}</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card text-card-foreground rounded-2xl p-4 border border-border shadow-xs">
-          <span className="text-xs text-muted-foreground block mb-1">Rascunhos</span>
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-muted-foreground">{kpis.rascunhos}</span>
-            <div className="w-8 h-8 rounded-xl bg-muted text-muted-foreground flex items-center justify-center">
-              <FileText className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card text-card-foreground rounded-2xl p-4 border border-border shadow-xs">
-          <span className="text-xs text-muted-foreground block mb-1">Renovam em 30d</span>
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-foreground">{kpis.renovando}</span>
-            <div className="w-8 h-8 rounded-xl bg-muted text-foreground flex items-center justify-center">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
-      </div>
+      </HeroGradientPanel>
 
       {/* Navegação por SubAbas & Ações Principais */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-border pb-3 gap-3">

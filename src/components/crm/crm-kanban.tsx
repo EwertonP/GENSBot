@@ -144,7 +144,7 @@ export default function CrmKanban({
               />
               <span className="truncate max-w-[130px]">{est.nome}</span>
               <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-sans tabular-nums font-bold ${
                   isActive ? 'bg-background/20 text-background' : 'bg-accent text-foreground'
                 }`}
               >
@@ -200,7 +200,7 @@ export default function CrmKanban({
                       <span className="text-xs font-bold font-display text-foreground truncate max-w-[160px]">
                         {estagio.nome}
                       </span>
-                      <span className="text-[11px] font-mono font-bold bg-card border border-border text-foreground px-2 py-0.5 rounded-full shadow-2xs shrink-0">
+                      <span className="text-[11px] font-sans tabular-nums font-bold bg-card border border-border text-foreground px-2 py-0.5 rounded-full shadow-2xs shrink-0">
                         {cardsDaColuna.length}
                       </span>
                     </div>
@@ -218,7 +218,7 @@ export default function CrmKanban({
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground px-0.5 pt-0.5 border-t border-border/40">
+                  <div className="flex items-center justify-between text-[11px] font-sans tabular-nums text-muted-foreground px-0.5 pt-0.5 border-t border-border/40">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/70">Subtotal</span>
                     <span className="font-bold text-foreground text-xs">{formatarMoeda(valorTotalColuna)}</span>
                   </div>
@@ -340,7 +340,7 @@ export default function CrmKanban({
                               <span className="truncate max-w-[120px]">{negocio.nicho || 'Geral'}</span>
                             </div>
                             {negocio.instagram_username && (
-                              <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1 bg-card/90 backdrop-blur-xs px-1.5 py-0.5 rounded-md border border-border/60 shrink-0">
+                              <span className="text-[10px] font-sans tabular-nums text-muted-foreground flex items-center gap-1 bg-card/90 backdrop-blur-xs px-1.5 py-0.5 rounded-md border border-border/60 shrink-0">
                                 <Zap className="size-2.5 text-pink-500 shrink-0" />
                                 <span className="truncate max-w-[90px]">@{negocio.instagram_username.replace(/^@/, '')}</span>
                               </span>
@@ -357,7 +357,7 @@ export default function CrmKanban({
                             ) : (
                               <div />
                             )}
-                            <span className="text-xs font-mono font-bold text-foreground bg-card/95 backdrop-blur-xs px-2 py-0.5 rounded-md border border-border/80 shadow-2xs shrink-0">
+                            <span className="text-xs font-sans tabular-nums font-bold text-foreground bg-card/95 backdrop-blur-xs px-2 py-0.5 rounded-md border border-border/80 shadow-2xs shrink-0">
                               {formatarMoeda(negocio.valor)}
                             </span>
                           </div>

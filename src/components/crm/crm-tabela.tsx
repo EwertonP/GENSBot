@@ -85,10 +85,10 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
     <div className="flex flex-col gap-3 w-full min-w-0 max-w-full">
       {/* Botão de Exportação */}
       <div className="flex items-center justify-between px-1">
-        <span className="text-xs text-muted-foreground font-mono">
+        <span className="text-xs text-muted-foreground font-sans tabular-nums">
           Exibindo {negocios.length} oportunidade(s)
         </span>
-        <Button variant="outline" size="sm" onClick={exportarCsv} className="gap-1.5 h-8 text-xs font-mono">
+        <Button variant="outline" size="sm" onClick={exportarCsv} className="gap-1.5 h-8 text-xs font-sans tabular-nums">
           <Download className="w-3.5 h-3.5" />
           <span>Exportar CSV</span>
         </Button>
@@ -99,7 +99,7 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
         <div className="overflow-x-auto w-full min-w-0">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-border bg-accent/40 font-mono text-muted-foreground font-bold">
+              <tr className="border-b border-border bg-accent/40 font-sans tabular-nums text-muted-foreground font-bold">
                 <th className="py-2.5 px-3">Oportunidade / Lead</th>
                 <th className="py-2.5 px-3">Qualificação ICP</th>
                 <th className="py-2.5 px-3">Contato / Local</th>
@@ -149,13 +149,13 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
                     <td className="py-3 px-3">
                       {(() => {
                         const tier = calcularTierScore(negocio.score_qualificacao);
-                        if (!tier) return <span className="text-muted-foreground/60 font-mono text-[11px]">—</span>;
+                        if (!tier) return <span className="text-muted-foreground/60 font-sans tabular-nums text-[11px]">—</span>;
                         return (
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${tier.badgeClass}`}>
                               <span>{tier.emoji}</span>
                               <span>Tier {tier.tier}</span>
-                              <span className="opacity-80 font-mono">{negocio.score_qualificacao}</span>
+                              <span className="opacity-80 font-sans tabular-nums">{negocio.score_qualificacao}</span>
                             </span>
                           </div>
                         );
@@ -173,7 +173,7 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
                           </span>
                         )}
                         {negocio.telefone && (
-                          <span className="text-[10px] font-mono text-muted-foreground truncate">
+                          <span className="text-[10px] font-sans tabular-nums text-muted-foreground truncate">
                             {negocio.telefone}
                           </span>
                         )}
@@ -181,7 +181,7 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
                     </td>
 
                     {/* Valor */}
-                    <td className="py-3 px-3 font-mono font-bold text-foreground shrink-0">
+                    <td className="py-3 px-3 font-sans tabular-nums font-bold text-foreground shrink-0">
                       {formatarMoeda(negocio.valor)}
                     </td>
 
@@ -210,7 +210,7 @@ export default function CrmTabela({ negocios, estagios, onAbrirNegocio }: CrmTab
                         if (!fu) {
                           return (
                             <span
-                              className={`font-mono text-[10px] ${
+                              className={`font-sans tabular-nums text-[10px] ${
                                 estagnado ? 'text-amber-500 font-bold' : 'text-muted-foreground/60'
                               }`}
                             >
