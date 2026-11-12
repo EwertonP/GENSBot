@@ -4,6 +4,13 @@ import { contextoDocumentos } from '@/lib/documentos-server';
 import { gerarTokenPublico } from '@/lib/documentos-modelos';
 import { respostaErro } from '@/lib/clientes-server';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function normalizarUuidOuNull(valor: unknown): string | null {
+  if (typeof valor !== 'string') return null;
+  const v = valor.trim();
+  return UUID_REGEX.test(v) ? v : null;
+}
+
 export async function GET(req: Request) {
   const auth = await contextoDocumentos();
   if (!auth.ok) return auth.response;
@@ -70,9 +77,9 @@ export async function POST(req: Request) {
 
     const payload = {
       agencia_id: membro.agencia_id,
-      modelo_id: body.modelo_id || null,
-      cliente_id: body.cliente_id || null,
-      lead_id: body.lead_id || null,
+      modelo_id: normalizarUuidOuNull(body.modelo_id),
+      cliente_id: normalizarUuidOuNull(body.cliente_id),
+      lead_id: normalizarUuidOuNull(body.lead_id),
       titulo: body.titulo.trim(),
       status: body.status || 'rascunho',
       valor_mensal: Number(body.valor_mensal) || 0,

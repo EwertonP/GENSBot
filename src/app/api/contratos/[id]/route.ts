@@ -3,6 +3,13 @@ import { supabase as db } from '@/lib/supabase';
 import { contextoDocumentos } from '@/lib/documentos-server';
 import { respostaErro } from '@/lib/clientes-server';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function normalizarUuidOuNull(valor: unknown): string | null {
+  if (typeof valor !== 'string') return null;
+  const v = valor.trim();
+  return UUID_REGEX.test(v) ? v : null;
+}
+
 const CONTRATOS_SELECT = `
   id, agencia_id, proposta_id, modelo_id, cliente_id, lead_id, titulo, status,
   valor_mensal, dia_vencimento, data_inicio, data_termino, renovacao_automatica,
@@ -69,8 +76,8 @@ export async function PUT(
     if (body.renovacao_automatica !== undefined) dadosAtualizar.renovacao_automatica = body.renovacao_automatica;
     if (body.conteudo_html !== undefined) dadosAtualizar.conteudo_html = body.conteudo_html;
     if (body.itens !== undefined) dadosAtualizar.itens = body.itens;
-    if (body.cliente_id !== undefined) dadosAtualizar.cliente_id = body.cliente_id || null;
-    if (body.lead_id !== undefined) dadosAtualizar.lead_id = body.lead_id || null;
+    if (body.cliente_id !== undefined) dadosAtualizar.cliente_id = normalizarUuidOuNull(body.cliente_id);
+    if (body.lead_id !== undefined) dadosAtualizar.lead_id = normalizarUuidOuNull(body.lead_id);
 
     const { data, error } = await db
       .from('contratos')

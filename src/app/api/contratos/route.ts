@@ -5,6 +5,13 @@ import { gerarTokenPublico } from '@/lib/documentos-modelos';
 import { respostaErro } from '@/lib/clientes-server';
 import { registrarEventoContrato } from '@/lib/contrato-assinatura';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function normalizarUuidOuNull(valor: unknown): string | null {
+  if (typeof valor !== 'string') return null;
+  const v = valor.trim();
+  return UUID_REGEX.test(v) ? v : null;
+}
+
 const CONTRATOS_SELECT = `
   id, agencia_id, proposta_id, modelo_id, cliente_id, lead_id, titulo, status,
   valor_mensal, dia_vencimento, data_inicio, data_termino, renovacao_automatica,
@@ -84,10 +91,10 @@ export async function POST(req: Request) {
 
     const payload = {
       agencia_id: membro.agencia_id,
-      proposta_id: body.proposta_id || null,
-      modelo_id: body.modelo_id || null,
-      cliente_id: body.cliente_id || null,
-      lead_id: body.lead_id || null,
+      proposta_id: normalizarUuidOuNull(body.proposta_id),
+      modelo_id: normalizarUuidOuNull(body.modelo_id),
+      cliente_id: normalizarUuidOuNull(body.cliente_id),
+      lead_id: normalizarUuidOuNull(body.lead_id),
       titulo: body.titulo.trim(),
       status: body.status || 'rascunho',
       valor_mensal: Number(body.valor_mensal) || 0,
@@ -109,7 +116,7 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error('Erro ao criar contrato:', error);
-      return respostaErro('Não foi possível salvar o contrato.', 500);
+      return respostaErro(error.message || 'Não foi possível salvar o contrato.', 500);
     }
 
     // Registra evento de criação
