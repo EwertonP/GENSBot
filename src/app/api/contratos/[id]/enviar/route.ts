@@ -77,13 +77,33 @@ export async function POST(
       ip
     );
 
-    // 5. Prepara URLs e texto de compartilhamento (WhatsApp)
+    // 5. Prepara URLs e texto de compartilhamento (WhatsApp) garantindo domínio público canônico
     const host = req.headers.get('host') || '';
     const protocol = host.includes('localhost') ? 'http' : 'https';
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : '');
-    const linkPublico = `${baseUrl}/contrato/${contrato.token_publico}`;
+    let baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '') ||
+      (host ? `${protocol}://${host}` : 'https://allingens.vercel.app');
 
-    const textoWhatsapp = `Olá! Segue o link para conferência e assinatura eletrônica do contrato:\n\n📄 *${contrato.titulo}*\n\nAcesse com segurança e assine direto pelo link abaixo:\n🔗 ${linkPublico}\n\n_(Este link é seguro e tem validade de 15 dias)_`;
+    if (!baseUrl || baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+      baseUrl = process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')
+        ? process.env.NEXT_PUBLIC_APP_URL
+        : 'https://allingens.vercel.app';
+    }
+
+    const linkPublico = `${baseUrl.replace(/\/$/, '')}/contrato/${contrato.token_publico}`;
+
+    const textoWhatsapp = [
+      `Olá! 👋 Aqui é da Agência GENS.`,
+      ``,
+      `Preparamos o seu contrato de prestação de serviços para conferência e assinatura digital:`,
+      `📄 *${contrato.titulo}*`,
+      ``,
+      `👉 Acesse com segurança e assine com 1 clique:`,
+      `${linkPublico}`,
+      ``,
+      `_(Documento com certificação digital jurídica nos termos da MP 2.200-2/2001 e Lei 14.063/2020)_`,
+    ].join('\n');
 
     return NextResponse.json({
       ok: true,

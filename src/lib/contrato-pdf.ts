@@ -41,7 +41,7 @@ function sanitizarTexto(texto: string): string {
  * Converte HTML simples gerado pelo editor para blocos estruturados.
  */
 interface BlocoTexto {
-  tipo: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'hr';
+  tipo: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'tr' | 'hr';
   texto: string;
 }
 
@@ -55,8 +55,8 @@ function extrairBlocosHtml(html: string): BlocoTexto[] {
 
   const blocos: BlocoTexto[] = [];
 
-  // Regex para tags de bloco comuns
-  const regexTags = /<(h1|h2|h3|p|li|hr)[^>]*>([\s\S]*?)<\/\1>|<(hr)[^>]*\/?>/gi;
+  // Regex para tags de bloco comuns, incluindo linhas de tabela (tr)
+  const regexTags = /<(h1|h2|h3|p|li|tr|hr)[^>]*>([\s\S]*?)<\/\1>|<(hr)[^>]*\/?>/gi;
   let match;
   let achouAlgum = false;
 
@@ -65,9 +65,14 @@ function extrairBlocosHtml(html: string): BlocoTexto[] {
     const tag = (match[1] || match[3] || '').toLowerCase() as BlocoTexto['tipo'];
     const conteudoBruto = match[2] || '';
 
+    let textoTratado = conteudoBruto;
+    if (tag === 'tr') {
+      textoTratado = textoTratado.replace(/<\/(td|th)>\s*<(td|th)[^>]*>/gi, ' • ');
+    }
+
     // Remove tags internas (ex: strong, span, em) e decodifica entidades básicas
     const textoLimpo = sanitizarTexto(
-      conteudoBruto
+      textoTratado
         .replace(/<br\s*\/?>/gi, '\n')
         .replace(/<[^>]+>/g, '')
         .replace(/&nbsp;/g, ' ')
@@ -257,6 +262,13 @@ export async function gerarPdfContrato(dados: DadosPdfContrato): Promise<{ buffe
       lineHeight = 13.5;
       espacoDepois = 6;
       indent = 14;
+    } else if (bloco.tipo === 'tr') {
+      fontSize = 9;
+      font = fontRegular;
+      lineHeight = 13;
+      espacoDepois = 5;
+      indent = 12;
+      cor = rgb(0.2, 0.2, 0.2);
     }
 
     const larguraTexto = contentWidth - indent;
@@ -269,8 +281,8 @@ export async function gerarPdfContrato(dados: DadosPdfContrato): Promise<{ buffe
         checarEspaco(lineHeight);
         const linha = linhasEnvelopadas[i];
 
-        if (bloco.tipo === 'li' && i === 0) {
-          currentPage.drawText('•', {
+        if ((bloco.tipo === 'li' || bloco.tipo === 'tr') && i === 0) {
+          currentPage.drawText(bloco.tipo === 'tr' ? '-' : '•', {
             x: marginX + 4,
             y: cursorY,
             size: fontSize,

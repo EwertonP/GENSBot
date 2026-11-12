@@ -62,6 +62,18 @@ import type {
 
 type SubAba = 'propostas' | 'contratos' | 'modelos';
 
+// Helper para garantir links canônicos públicos seguros para compartilhamento e prévia no WhatsApp
+function obterLinkPublicoCanonica(caminho: string): string {
+  let base = typeof window !== 'undefined' ? window.location.origin : '';
+  if (!base || base.includes('localhost') || base.includes('127.0.0.1')) {
+    base =
+      process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')
+        ? process.env.NEXT_PUBLIC_APP_URL
+        : 'https://allingens.vercel.app';
+  }
+  return `${base.replace(/\/$/, '')}${caminho}`;
+}
+
 export function DocumentosTab() {
   const [subAba, setSubAba] = useState<SubAba>('propostas');
   const [carregando, setCarregando] = useState(true);
@@ -737,7 +749,7 @@ export function DocumentosTab() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {propostasFiltradas.map((p) => {
-                const linkPublico = `${typeof window !== 'undefined' ? window.location.origin : ''}/proposta/${p.token_publico}`;
+                const linkPublico = obterLinkPublicoCanonica(`/proposta/${p.token_publico}`);
                 const clienteNome = p.cliente?.nome || p.lead?.empresa || p.lead?.nome_contato || 'Cliente não vinculado';
                 const telefone = p.lead?.telefone;
 
@@ -901,7 +913,7 @@ export function DocumentosTab() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {contratosFiltrados.map((c) => {
-                const linkAssinatura = `${typeof window !== 'undefined' ? window.location.origin : ''}/contrato/${c.token_publico}`;
+                const linkAssinatura = obterLinkPublicoCanonica(`/contrato/${c.token_publico}`);
                 const clienteNome = c.cliente?.nome || c.lead?.empresa || c.lead?.nome_contato || 'Cliente não vinculado';
                 const telefone = c.lead?.telefone;
                 const assinado = c.status === 'assinado';
@@ -949,7 +961,7 @@ export function DocumentosTab() {
                         {c.titulo}
                       </h4>
 
-                      <div className="flex items-center gap-4 text-xs mb-4 text-muted-foreground">
+                      <div className="flex items-center gap-4 text-xs mb-3 text-muted-foreground">
                         <div>
                           <span className="text-[10px] text-muted-foreground block">Fee Mensal</span>
                           <span className="font-semibold text-foreground">
@@ -970,6 +982,21 @@ export function DocumentosTab() {
                               {c.data_termino ? new Date(c.data_termino).toLocaleDateString('pt-BR') : 'Indeterminado'}
                             </span>
                           </div>
+                        )}
+                      </div>
+
+                      {/* Rastreamento de Visualização do Link */}
+                      <div className="mb-3.5">
+                        {c.visualizado_em ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold border border-emerald-500/20">
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Visualizado pelo cliente em {new Date(c.visualizado_em).toLocaleDateString('pt-BR')}</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground text-[11px] font-medium border border-border">
+                            <Eye className="w-3.5 h-3.5 opacity-50" />
+                            <span>Link não aberto pelo cliente ainda</span>
+                          </span>
                         )}
                       </div>
 
