@@ -27,8 +27,6 @@ import {
   Edit2,
   Plus,
   List,
-  PanelRightClose,
-  PanelRightOpen,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/components/ui/toast';
@@ -161,8 +159,6 @@ export default function CalendarioGeral({
   const [clienteFiltro, setClienteFiltro] = useState('all');
   const [responsavelFiltro, setResponsavelFiltro] = useState('all');
   const [statusFiltro, setStatusFiltro] = useState<StatusFiltroCalendario>('todos');
-  const [painelLateralAberto, setPainelLateralAberto] = useState(true);
-  const [abaLateral, setAbaLateral] = useState<'prontas' | 'sem_data'>('prontas');
   const [itemModal, setItemModal] = useState<ConteudoItem | null>(null);
   const [busca, setBusca] = useState('');
   const [arrastandoId, setArrastandoId] = useState<string | null>(null);
@@ -244,18 +240,8 @@ export default function CalendarioGeral({
     return itemsBaseFiltrados.filter((item) => matchStatusFiltro(item.status, statusFiltro));
   }, [itemsBaseFiltrados, statusFiltro]);
 
-  const itensProntosLateral = useMemo(
-    () => itemsBaseFiltrados.filter((it) => matchStatusFiltro(it.status, 'prontos')),
-    [itemsBaseFiltrados]
-  );
-
-  const itensSemDataLateral = useMemo(
-    () => itemsBaseFiltrados.filter((it) => !it.data_programada && !it.prazo),
-    [itemsBaseFiltrados]
-  );
-
   /**
-   * Muda a data de um post (arrastar no calendário, da lateral ou "Mudar data"
+   * Muda a data de um post (arrastar no calendário ou "Mudar data"
    * no detalhe). Mantém o horário (ou define 10:00 se não tinha data), atualiza
    * na hora e oferece Desfazer.
    */
@@ -409,27 +395,6 @@ export default function CalendarioGeral({
         title="Calendário de Publicações"
         badge={`${itemsBaseFiltrados.length} ${itemsBaseFiltrados.length === 1 ? 'postagem' : 'postagens'} no mês`}
         badgeIcon={CalendarIcon}
-        actions={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setPainelLateralAberto((v) => !v)}
-            className="rounded-xl bg-card/90 backdrop-blur-xs shadow-2xs text-xs h-9 hidden xl:inline-flex"
-          >
-            {painelLateralAberto ? (
-              <>
-                <PanelRightClose className="w-3.5 h-3.5 text-primary" />
-                Ocultar Esteira
-              </>
-            ) : (
-              <>
-                <PanelRightOpen className="w-3.5 h-3.5 text-primary" />
-                Esteira do Mês ({itensProntosLateral.length + itensSemDataLateral.length})
-              </>
-            )}
-          </Button>
-        }
       >
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <HeroKpiCard
@@ -597,10 +562,6 @@ export default function CalendarioGeral({
           </span>
         </div>
       </div>
-
-      {/* 3. Área Principal Split-View (Calendário + Esteira Lateral) */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
-        <div className={painelLateralAberto ? 'xl:col-span-9 min-w-0' : 'xl:col-span-12 min-w-0'}>
 
       {/* 3. Grade do Calendário (Mês / Semana / Dia / Linha do Tempo) */}
       {viewMode === 'linha_tempo' ? (
@@ -833,36 +794,24 @@ export default function CalendarioGeral({
                 {diasExibicao.map((d) => {
                   const semHora = d.itens.filter((it) => getHoraNumero(it.data_programada) === null);
                   return (
-                    <div key={`all-${d.dataStr}`} className="p-1.5 border-r border-border last:border-r-0 flex flex-col gap-1">
-                      {semHora.map((item) => {
-                        const statusMeta = getStatusPillMeta(item.status);
-                        const capaUrl = item.arquivos?.[0]?.url;
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            draggable
-                            onDragStart={(e) => {
-                              setArrastandoId(item.id);
-                              e.dataTransfer.setData('text/plain', item.id);
-                              e.dataTransfer.effectAllowed = 'move';
-                            }}
-                            onDragEnd={() => {
-                              setArrastandoId(null);
-                              setDiaAlvo(null);
-                            }}
-                            onClick={() => setItemModal(item)}
-                            className={`text-left p-1.5 rounded-xl border transition-ui flex items-center gap-2 cursor-pointer ${statusMeta.cardTint}`}
-                          >
-                            {capaUrl && (
-                              <img src={capaUrl} alt="" className="w-7 aspect-[4/5] rounded object-contain bg-muted/50 shrink-0" />
-                            )}
-                            <span className="text-[11px] font-display font-semibold text-foreground truncate">
-                              {item.titulo || item.cliente?.nome || 'Post'}
-                            </span>
-                          </button>
-                        );
-                      })}
+                    <div key={`all-${d.dataStr}`} className="p-1.5 border-r border-border last:border-r-0 flex flex-col gap-1.5">
+                      {semHora.map((item) => (
+                        <CardPostCalendario
+                          key={item.id}
+                          item={item}
+                          arrastando={arrastandoId === item.id}
+                          onDragStart={(e) => {
+                            setArrastandoId(item.id);
+                            e.dataTransfer.setData('text/plain', item.id);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onDragEnd={() => {
+                            setArrastandoId(null);
+                            setDiaAlvo(null);
+                          }}
+                          onClick={() => setItemModal(item)}
+                        />
+                      ))}
                     </div>
                   );
                 })}
@@ -938,59 +887,24 @@ export default function CalendarioGeral({
                             </div>
                           )}
 
-                          {itensHora.map((item) => {
-                            const horaFormatada = horaLocal(item.data_programada);
-                            const capaUrl = item.arquivos?.[0]?.url;
-                            const statusMeta = getStatusPillMeta(item.status);
-
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                draggable
-                                onDragStart={(e) => {
-                                  setArrastandoId(item.id);
-                                  e.dataTransfer.setData('text/plain', item.id);
-                                  e.dataTransfer.effectAllowed = 'move';
-                                }}
-                                onDragEnd={() => {
-                                  setArrastandoId(null);
-                                  setDiaAlvo(null);
-                                }}
-                                onClick={() => setItemModal(item)}
-                                className={`${arrastandoId === item.id ? 'opacity-50 ' : ''}relative overflow-hidden text-left p-2 rounded-xl border transition-ui flex items-start gap-2 cursor-pointer group/card shadow-2xs ${statusMeta.cardTint}`}
-                              >
-                                <span aria-hidden="true" className={`absolute inset-y-1.5 left-1 w-1 rounded-full ${statusMeta.barColor}`} />
-
-                                <div className="pl-2 flex items-start gap-2 min-w-0 flex-1">
-                                  {capaUrl ? (
-                                    <div className="w-9 aspect-[4/5] rounded-md overflow-hidden border border-border/70 bg-card/80 shrink-0 flex items-center justify-center">
-                                      <img src={capaUrl} alt="" className="w-full h-full object-contain" />
-                                    </div>
-                                  ) : null}
-
-                                  <div className="min-w-0 flex-1 flex flex-col gap-1">
-                                    <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground tabular-nums font-semibold">
-                                      <span className="truncate">{item.cliente?.nome}</span>
-                                      <span className="shrink-0">{horaFormatada || horaLabel}</span>
-                                    </div>
-                                    <p className="font-display text-xs font-bold text-foreground line-clamp-2 leading-tight group-hover/card:text-primary transition-colors">
-                                      {item.titulo || item.tipo}
-                                    </p>
-                                    <div className="flex items-center justify-between gap-1 pt-0.5">
-                                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.pill}`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
-                                        {statusMeta.label}
-                                      </span>
-                                      {item.responsavel && (
-                                        <Avatar nome={item.responsavel.nome} size="xs" className="shrink-0" />
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </button>
-                            );
-                          })}
+                          {itensHora.map((item) => (
+                            <CardPostCalendario
+                              key={item.id}
+                              item={item}
+                              fallbackHora={horaLabel}
+                              arrastando={arrastandoId === item.id}
+                              onDragStart={(e) => {
+                                setArrastandoId(item.id);
+                                e.dataTransfer.setData('text/plain', item.id);
+                                e.dataTransfer.effectAllowed = 'move';
+                              }}
+                              onDragEnd={() => {
+                                setArrastandoId(null);
+                                setDiaAlvo(null);
+                              }}
+                              onClick={() => setItemModal(item)}
+                            />
+                          ))}
 
                           {/* Botão rápido de agendar no slot vazio */}
                           {onIrParaAgendamento && itensHora.length === 0 && (
@@ -1097,91 +1011,28 @@ export default function CalendarioGeral({
                     </div>
                   </div>
 
-                  {/* Lista de Event Blocks no Dia (Miniatura Completa à Esquerda) */}
+                  {/* Lista de Event Blocks no Dia (Mesmo Card Unificado da Semana) */}
                   <div className="flex flex-col gap-1.5 mt-2 flex-1">
-                    {d.itens.slice(0, 3).map((item) => {
-                      const horaFormatada = horaLocal(item.data_programada);
-                      const capaUrl = item.arquivos?.[0]?.url;
-                      const statusMeta = getStatusPillMeta(item.status);
-                      const corCliente = item.cliente?.cor || 'var(--primary)';
-
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          draggable
-                          onDragStart={(e) => {
-                            setArrastandoId(item.id);
-                            e.dataTransfer.setData('text/plain', item.id);
-                            e.dataTransfer.effectAllowed = 'move';
-                          }}
-                          onDragEnd={() => {
-                            setArrastandoId(null);
-                            setDiaAlvo(null);
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setItemModal(item);
-                          }}
-                          style={{ borderLeftColor: corCliente }}
-                          aria-label={`${item.cliente?.nome || ''}: ${item.titulo || item.tipo}. Abrir detalhes (arraste para mudar o dia)`}
-                          className={`${arrastandoId === item.id ? 'opacity-50 ' : ''}relative overflow-hidden text-left p-1.5 rounded-xl border border-l-[3px] shadow-2xs hover:shadow-xs transition-ui flex items-start gap-2 cursor-pointer group ${statusMeta.cardTint}`}
-                        >
-                          {/* Miniatura completa à esquerda sem cortes */}
-                          {capaUrl ? (
-                            <div className="w-10 aspect-[4/5] rounded-lg overflow-hidden border border-border/70 bg-muted/50 shrink-0 flex items-center justify-center">
-                              <img src={capaUrl} alt="" className="w-full h-full object-contain" />
-                            </div>
-                          ) : (
-                            <div className="w-10 aspect-[4/5] rounded-lg border border-dashed border-border/80 bg-muted/30 shrink-0 flex items-center justify-center text-muted-foreground">
-                              {item.tipo === 'reel' ? (
-                                <Video className="w-3.5 h-3.5" />
-                              ) : item.tipo === 'story' ? (
-                                <Smartphone className="w-3.5 h-3.5" />
-                              ) : (
-                                <ImageIcon className="w-3.5 h-3.5" />
-                              )}
-                            </div>
-                          )}
-
-                          <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                            <div className="flex items-center justify-between gap-1">
-                              <div className="flex items-center gap-1 min-w-0">
-                                <ClienteAvatar
-                                  nome={item.cliente?.nome || 'Cliente'}
-                                  cor={item.cliente?.cor}
-                                  fotoUrl={item.cliente?.foto_url}
-                                  tamanho="xs"
-                                  className="shrink-0"
-                                />
-                                <span className="text-[11px] font-semibold text-muted-foreground truncate">
-                                  {item.cliente?.nome}
-                                </span>
-                              </div>
-                              {horaFormatada && (
-                                <span className="text-[10px] font-sans tabular-nums text-muted-foreground font-semibold shrink-0">
-                                  {horaFormatada}
-                                </span>
-                              )}
-                            </div>
-
-                            <span className="text-xs font-display font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                              {item.titulo || item.tipo}
-                            </span>
-
-                            <div className="flex items-center justify-between gap-1 mt-0.5 flex-wrap">
-                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.pill}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
-                                {statusMeta.label}
-                              </span>
-                              {item.responsavel && (
-                                <Avatar nome={item.responsavel.nome} size="xs" className="shrink-0" />
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                    {d.itens.slice(0, 3).map((item) => (
+                      <CardPostCalendario
+                        key={item.id}
+                        item={item}
+                        arrastando={arrastandoId === item.id}
+                        onDragStart={(e) => {
+                          setArrastandoId(item.id);
+                          e.dataTransfer.setData('text/plain', item.id);
+                          e.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragEnd={() => {
+                          setArrastandoId(null);
+                          setDiaAlvo(null);
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setItemModal(item);
+                        }}
+                      />
+                    ))}
 
                     {d.itens.length > 3 && (
                       <button
@@ -1222,193 +1073,21 @@ export default function CalendarioGeral({
                 Nenhuma publicação agendada para este dia.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {diasExibicao[0]?.itens.map((item) => {
-                  const horaFormatada = horaLocal(item.data_programada);
-                  const capaUrl = item.arquivos?.[0]?.url;
-                  const statusMeta = getStatusPillMeta(item.status);
-                  const corCliente = item.cliente?.cor || 'var(--primary)';
-
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => setItemModal(item)}
-                      style={{ borderLeftColor: corCliente }}
-                      className="p-3.5 rounded-2xl border border-border border-l-4 bg-card hover:border-primary/50 transition-ui shadow-2xs flex items-start gap-3.5 cursor-pointer group"
-                    >
-                      {/* Miniatura completa à esquerda sem cortes */}
-                      {capaUrl ? (
-                        <div className="w-20 aspect-[4/5] rounded-xl overflow-hidden border border-border bg-muted/50 shrink-0 flex items-center justify-center">
-                          <img src={capaUrl} alt="" className="w-full h-full object-contain" />
-                        </div>
-                      ) : (
-                        <div className="w-20 aspect-[4/5] rounded-xl border border-dashed border-border bg-muted/30 shrink-0 flex items-center justify-center text-muted-foreground">
-                          {item.tipo === 'reel' ? (
-                            <Video className="w-5 h-5" />
-                          ) : item.tipo === 'story' ? (
-                            <Smartphone className="w-5 h-5" />
-                          ) : (
-                            <ImageIcon className="w-5 h-5" />
-                          )}
-                        </div>
-                      )}
-
-                      <div className="min-w-0 flex-1 flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <ClienteAvatar
-                              nome={item.cliente?.nome || 'Cliente'}
-                              cor={item.cliente?.cor}
-                              fotoUrl={item.cliente?.foto_url}
-                              tamanho="xs"
-                            />
-                            <p className="text-xs font-bold text-foreground truncate">{item.cliente?.nome}</p>
-                          </div>
-                          {horaFormatada && (
-                            <span className="text-xs font-sans tabular-nums text-muted-foreground flex items-center gap-1 shrink-0">
-                              <Clock className="w-3 h-3" /> {horaFormatada}
-                            </span>
-                          )}
-                        </div>
-
-                        <h4 className="font-display text-sm font-bold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                          {item.titulo || 'Publicação sem título'}
-                        </h4>
-
-                        {item.legenda && (
-                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                            {item.legenda}
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${statusMeta.pill}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
-                            {statusMeta.label}
-                          </span>
-                          {getFormatBadge(item.tipo)}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {diasExibicao[0]?.itens.map((item) => (
+                  <CardPostCalendario
+                    key={item.id}
+                    item={item}
+                    draggable={false}
+                    onClick={() => setItemModal(item)}
+                  />
+                ))}
               </div>
             )}
           </div>
         )}
       </Card>
       )}
-        </div>
-
-        {/* Painel Lateral: Esteira do Mês (Prontas & Sem Data) */}
-        {painelLateralAberto && (
-          <aside className="xl:col-span-3 flex flex-col gap-3">
-            <Card padding="none" className="rounded-3xl border border-border bg-card shadow-2xs overflow-hidden sticky top-20">
-              <div className="p-4 border-b border-border bg-muted/25 flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <h3 className="font-display text-sm font-bold text-foreground">Esteira do Mês</h3>
-                    <p className="text-[11px] text-muted-foreground">Arraste para qualquer dia da grade</p>
-                  </div>
-                  <Badge variant="muted" className="tabular-nums text-[11px]">
-                    {abaLateral === 'prontas' ? itensProntosLateral.length : itensSemDataLateral.length}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-1 bg-accent/60 p-1 rounded-xl border border-border">
-                  <button
-                    type="button"
-                    onClick={() => setAbaLateral('prontas')}
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition-ui cursor-pointer ${
-                      abaLateral === 'prontas'
-                        ? 'bg-card text-foreground shadow-2xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Prontas ({itensProntosLateral.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAbaLateral('sem_data')}
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition-ui cursor-pointer ${
-                      abaLateral === 'sem_data'
-                        ? 'bg-card text-foreground shadow-2xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Sem data ({itensSemDataLateral.length})
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-3 flex flex-col gap-2 max-h-[560px] overflow-y-auto">
-                {(abaLateral === 'prontas' ? itensProntosLateral : itensSemDataLateral).length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-8">
-                    {abaLateral === 'prontas'
-                      ? 'Nenhuma postagem pronta neste filtro.'
-                      : 'Todas as demandas já têm data definida.'}
-                  </p>
-                ) : (
-                  (abaLateral === 'prontas' ? itensProntosLateral : itensSemDataLateral).map((item) => {
-                    const capaUrl = item.arquivos?.[0]?.url;
-                    const statusMeta = getStatusPillMeta(item.status);
-                    const corCliente = item.cliente?.cor || 'var(--primary)';
-
-                    return (
-                      <div
-                        key={item.id}
-                        draggable
-                        onDragStart={(e) => {
-                          setArrastandoId(item.id);
-                          e.dataTransfer.setData('text/plain', item.id);
-                          e.dataTransfer.effectAllowed = 'move';
-                        }}
-                        onDragEnd={() => {
-                          setArrastandoId(null);
-                          setDiaAlvo(null);
-                        }}
-                        onClick={() => setItemModal(item)}
-                        style={{ borderLeftColor: corCliente }}
-                        className="p-2 rounded-xl border border-border border-l-[3px] bg-card hover:border-primary/40 hover:shadow-2xs transition-ui flex items-start gap-2.5 cursor-grab active:cursor-grabbing group"
-                      >
-                        {capaUrl ? (
-                          <div className="w-10 aspect-[4/5] rounded-lg overflow-hidden border border-border/70 bg-muted/50 shrink-0 flex items-center justify-center">
-                            <img src={capaUrl} alt="" className="w-full h-full object-contain" />
-                          </div>
-                        ) : (
-                          <div className="w-10 aspect-[4/5] rounded-lg border border-dashed border-border bg-muted/30 shrink-0 flex items-center justify-center text-muted-foreground">
-                            <ImageIcon className="w-3.5 h-3.5" />
-                          </div>
-                        )}
-
-                        <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                          <span className="text-[11px] font-semibold text-muted-foreground truncate">
-                            {item.cliente?.nome || 'Cliente'}
-                          </span>
-                          <p className="font-display text-xs font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                            {item.titulo || 'Postagem sem título'}
-                          </p>
-                          <div className="flex items-center justify-between gap-1 mt-0.5">
-                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.pill}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
-                              {statusMeta.label}
-                            </span>
-                            {item.data_programada && (
-                              <span className="text-[10px] text-muted-foreground tabular-nums">
-                                {dataLocal(item.data_programada)?.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </Card>
-          </aside>
-        )}
-      </div>
 
       {/* 4. Modal 2 Colunas de Detalhes da Demanda (Trello Style) */}
       <Sheet open={!!itemModal} onClose={() => setItemModal(null)} className="max-w-4xl w-full p-0">
@@ -1634,6 +1313,79 @@ export default function CalendarioGeral({
 }
 
 /** No celular a grade de 7 colunas não cabe: os dias com post viram uma agenda em lista. */
+function CardPostCalendario({
+  item,
+  fallbackHora,
+  arrastando = false,
+  draggable = true,
+  onDragStart,
+  onDragEnd,
+  onClick,
+}: {
+  item: ConteudoItem;
+  fallbackHora?: string;
+  arrastando?: boolean;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent<HTMLButtonElement>) => void;
+  onDragEnd?: () => void;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+  const horaFormatada = horaLocal(item.data_programada) || fallbackHora;
+  const capaUrl = item.arquivos?.[0]?.url;
+  const statusMeta = getStatusPillMeta(item.status);
+
+  return (
+    <button
+      type="button"
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onClick={onClick}
+      aria-label={`${item.cliente?.nome || ''}: ${item.titulo || item.tipo}. Abrir detalhes`}
+      className={`${arrastando ? 'opacity-50 ' : ''}w-full relative overflow-hidden text-left p-2 rounded-xl border transition-ui flex items-start gap-2 cursor-pointer group/card shadow-2xs ${statusMeta.cardTint}`}
+    >
+      <span aria-hidden="true" className={`absolute inset-y-1.5 left-1 w-1 rounded-full ${statusMeta.barColor}`} />
+
+      <div className="pl-2 flex items-start gap-2 min-w-0 flex-1">
+        {capaUrl ? (
+          <div className="w-9 aspect-[4/5] rounded-md overflow-hidden border border-border/70 bg-card/80 shrink-0 flex items-center justify-center">
+            <img src={capaUrl} alt="" className="w-full h-full object-contain" />
+          </div>
+        ) : (
+          <div className="w-9 aspect-[4/5] rounded-md border border-dashed border-border/80 bg-card/50 shrink-0 flex items-center justify-center text-muted-foreground">
+            {item.tipo === 'reel' ? (
+              <Video className="w-3.5 h-3.5" />
+            ) : item.tipo === 'story' ? (
+              <Smartphone className="w-3.5 h-3.5" />
+            ) : (
+              <ImageIcon className="w-3.5 h-3.5" />
+            )}
+          </div>
+        )}
+
+        <div className="min-w-0 flex-1 flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground tabular-nums font-semibold">
+            <span className="truncate">{item.cliente?.nome}</span>
+            {horaFormatada && <span className="shrink-0">{horaFormatada}</span>}
+          </div>
+          <p className="font-display text-xs font-bold text-foreground line-clamp-2 leading-tight group-hover/card:text-primary transition-colors">
+            {item.titulo || item.tipo}
+          </p>
+          <div className="flex items-center justify-between gap-1 pt-0.5">
+            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.pill}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
+              {statusMeta.label}
+            </span>
+            {item.responsavel && (
+              <Avatar nome={item.responsavel.nome} size="xs" className="shrink-0" />
+            )}
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 function AgendaCelular({ dias, onAbrir }: { dias: DiaCalendario[]; onAbrir: (item: ConteudoItem) => void }) {
   const comPosts = dias.filter((d) => d.dia !== null && d.itens.length > 0);
   if (comPosts.length === 0) {
