@@ -37,6 +37,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Sheet } from '@/components/ui/sheet';
 import { ClienteAvatar } from '@/components/cliente-avatar';
+import { Avatar } from '@/components/ui/avatar';
 import { STATUS_LABELS, type ConteudoItem, type StatusConteudo, type PrefillAgendamento, gerarLinkWhatsAppAprovacao, ehResponsavel, paraInputData, deInputData, dataLocal, horaLocal } from '@/lib/conteudo';
 import type { Cliente } from '@/lib/clientes';
 import type { MembroEquipe } from '@/components/equipe-tab';
@@ -79,32 +80,49 @@ function matchStatusFiltro(status: string, filtro: StatusFiltroCalendario): bool
   );
 }
 
+const HORAS_GRADE = Array.from({ length: 16 }, (_, i) => i + 7); // 07:00 às 22:00
+
+function getHoraNumero(dataIso?: string | null): number | null {
+  if (!dataIso) return null;
+  const dt = dataLocal(dataIso);
+  if (!dt) return null;
+  return dt.getHours();
+}
+
 function getStatusPillMeta(status: string) {
   if (status === 'publicado') {
     return {
       label: 'Publicado',
       dot: 'bg-emerald-500',
-      pill: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border-emerald-500/25',
+      barColor: 'bg-emerald-500',
+      cardTint: 'bg-emerald-500/8 border-emerald-500/25 hover:bg-emerald-500/14',
+      pill: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
     };
   }
   if (status === 'agendamento' || status === 'pronto_publicar' || status === 'revisao_agendamento') {
     return {
       label: status === 'agendamento' ? 'Agendado' : 'Pronto',
       dot: 'bg-sky-500',
-      pill: 'bg-sky-500/12 text-sky-700 dark:text-sky-300 border-sky-500/25',
+      barColor: 'bg-sky-500',
+      cardTint: 'bg-sky-500/8 border-sky-500/25 hover:bg-sky-500/14',
+      pill: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30',
     };
   }
   if (status === 'revisao_cliente') {
     return {
       label: 'Aprovação',
       dot: 'bg-amber-500',
-      pill: 'bg-amber-500/12 text-amber-700 dark:text-amber-300 border-amber-500/25',
+      barColor: 'bg-amber-500',
+      cardTint: 'bg-amber-500/8 border-amber-500/25 hover:bg-amber-500/14',
+      pill: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
     };
   }
   return {
     label: STATUS_LABELS[status as StatusConteudo]?.label || 'Produção',
-    dot: 'bg-slate-400',
-    pill: 'bg-muted text-muted-foreground border-border',
+    dot: 'bg-violet-500',
+    barColor: 'bg-violet-500',
+    cardTint: 'bg-violet-500/8 border-violet-500/25 hover:bg-violet-500/14',
+    pill: 'bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30',
   };
 }
 
@@ -125,7 +143,7 @@ export default function CalendarioGeral({
   const [diaSelecionado, setDiaSelecionado] = useState(hoje.getDate());
   const [viewMode, setViewMode] = useState<'mes' | 'semana' | 'dia' | 'linha_tempo'>('mes');
 
-  function agendarParaData(dataYmd: string) {
+  function agendarParaData(dataYmd: string, hora = '10:00') {
     if (!onIrParaAgendamento) return;
     onIrParaAgendamento({
       conteudoId: '',
@@ -134,7 +152,7 @@ export default function CalendarioGeral({
       kind: 'post',
       mediaUrls: [],
       caption: '',
-      scheduledAt: `${dataYmd}T10:00`,
+      scheduledAt: `${dataYmd}T${hora}`,
       titulo: '',
     });
   }
@@ -241,11 +259,15 @@ export default function CalendarioGeral({
    * no detalhe). Mantém o horário (ou define 10:00 se não tinha data), atualiza
    * na hora e oferece Desfazer.
    */
-  async function reagendar(item: ConteudoItem, novaData: string) {
+  async function reagendar(item: ConteudoItem, novaData: string, novaHora?: string) {
     const campo: 'data_programada' | 'prazo' = item.data_programada || !item.prazo ? 'data_programada' : 'prazo';
     const anterior = item[campo] ?? null;
-    if (anterior && paraInputData(anterior) === novaData) return;
-    const novoValor = anterior ? deInputData(novaData, anterior)! : `${novaData}T10:00:00`;
+    if (!novaHora && anterior && paraInputData(anterior) === novaData) return;
+    const novoValor = novaHora
+      ? `${novaData}T${novaHora}:00`
+      : anterior
+      ? deInputData(novaData, anterior)!
+      : `${novaData}T10:00:00`;
 
     const aplicar = (valor: string | null) =>
       setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, [campo]: valor } : it)));
@@ -767,6 +789,229 @@ export default function CalendarioGeral({
               })
           )}
         </div>
+      ) : viewMode === 'semana' ? (
+        /* Modo Semana: Grade Horária Real (07:00 às 22:00) inspirada nas referências */
+        <Card padding="none" className="rounded-3xl border border-border overflow-hidden shadow-xs bg-card">
+          <AgendaCelular dias={diasExibicao} onAbrir={setItemModal} />
+          <div className="hidden sm:flex flex-col overflow-x-auto">
+            {/* Cabeçalho da Semana: Eixo + 7 Dias */}
+            <div className="grid grid-cols-[64px_repeat(7,minmax(130px,1fr))] border-b border-border bg-muted/30">
+              <div className="py-3 px-2 text-[11px] font-semibold text-muted-foreground text-center border-r border-border flex items-center justify-center">
+                Horário
+              </div>
+              {diasExibicao.map((d) => {
+                const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+                const eHoje = d.dataStr === hojeStr;
+                return (
+                  <div
+                    key={d.dataStr}
+                    className={`py-2.5 px-2 text-center border-r border-border last:border-r-0 flex flex-col items-center gap-1 ${
+                      eHoje ? 'bg-primary/5' : ''
+                    }`}
+                  >
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {d.nomeDia}
+                    </span>
+                    <span
+                      className={`font-display text-sm font-bold tabular-nums px-2.5 py-0.5 rounded-full ${
+                        eHoje ? 'bg-primary text-primary-foreground shadow-2xs' : 'text-foreground'
+                      }`}
+                    >
+                      {d.dia}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Faixa superior: Sem horário definido */}
+            {diasExibicao.some((d) => d.itens.some((it) => getHoraNumero(it.data_programada) === null)) && (
+              <div className="grid grid-cols-[64px_repeat(7,minmax(130px,1fr))] border-b border-border bg-muted/15">
+                <div className="p-2 text-[10px] font-semibold text-muted-foreground text-center border-r border-border flex items-center justify-center">
+                  Dia todo
+                </div>
+                {diasExibicao.map((d) => {
+                  const semHora = d.itens.filter((it) => getHoraNumero(it.data_programada) === null);
+                  return (
+                    <div key={`all-${d.dataStr}`} className="p-1.5 border-r border-border last:border-r-0 flex flex-col gap-1">
+                      {semHora.map((item) => {
+                        const statusMeta = getStatusPillMeta(item.status);
+                        const capaUrl = item.arquivos?.[0]?.url;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            draggable
+                            onDragStart={(e) => {
+                              setArrastandoId(item.id);
+                              e.dataTransfer.setData('text/plain', item.id);
+                              e.dataTransfer.effectAllowed = 'move';
+                            }}
+                            onDragEnd={() => {
+                              setArrastandoId(null);
+                              setDiaAlvo(null);
+                            }}
+                            onClick={() => setItemModal(item)}
+                            className={`text-left p-1.5 rounded-xl border transition-ui flex items-center gap-2 cursor-pointer ${statusMeta.cardTint}`}
+                          >
+                            {capaUrl && (
+                              <img src={capaUrl} alt="" className="w-7 aspect-[4/5] rounded object-contain bg-muted/50 shrink-0" />
+                            )}
+                            <span className="text-[11px] font-display font-semibold text-foreground truncate">
+                              {item.titulo || item.cliente?.nome || 'Post'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Linhas de Horário (07:00 às 22:00) */}
+            <div className="divide-y divide-border/70">
+              {HORAS_GRADE.map((hora) => {
+                const horaLabel = `${String(hora).padStart(2, '0')}:00`;
+                const horaAtual = hoje.getHours();
+                const minutoAtual = hoje.getMinutes();
+                const mostrarLinhaAgora = hora === horaAtual;
+
+                return (
+                  <div
+                    key={hora}
+                    className="grid grid-cols-[64px_repeat(7,minmax(130px,1fr))] min-h-[78px] relative"
+                  >
+                    {/* Coluna da Hora */}
+                    <div className="px-2 py-2 text-[11px] font-semibold text-muted-foreground tabular-nums text-right border-r border-border bg-muted/15">
+                      {horaLabel}
+                    </div>
+
+                    {/* 7 Dias neste Horário */}
+                    {diasExibicao.map((d) => {
+                      const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+                      const eHoje = d.dataStr === hojeStr;
+                      const slotKey = `${d.dataStr}@${horaLabel}`;
+                      const itensHora = d.itens.filter((it) => {
+                        const h = getHoraNumero(it.data_programada);
+                        if (h === null) return false;
+                        if (hora === 7 && h < 7) return true;
+                        if (hora === 22 && h > 22) return true;
+                        return h === hora;
+                      });
+
+                      return (
+                        <div
+                          key={slotKey}
+                          onDragOver={(e) => {
+                            if (!arrastandoId) return;
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                            if (diaAlvo !== slotKey) setDiaAlvo(slotKey);
+                          }}
+                          onDragLeave={() => diaAlvo === slotKey && setDiaAlvo(null)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const id = e.dataTransfer.getData('text/plain') || arrastandoId;
+                            const it = items.find((x) => x.id === id);
+                            setArrastandoId(null);
+                            setDiaAlvo(null);
+                            if (it) reagendar(it, d.dataStr, horaLabel);
+                          }}
+                          className={`group relative p-1.5 border-r border-border last:border-r-0 flex flex-col gap-1.5 transition-colors ${
+                            diaAlvo === slotKey
+                              ? 'bg-primary/15 ring-2 ring-inset ring-primary/50'
+                              : eHoje
+                              ? 'bg-primary/[0.03]'
+                              : 'hover:bg-accent/20'
+                          }`}
+                        >
+                          {/* Linha do Horário Atual */}
+                          {eHoje && mostrarLinhaAgora && (
+                            <div
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
+                              style={{ top: `${Math.min(90, Math.round((minutoAtual / 60) * 100))}%` }}
+                            >
+                              <span className="size-2 rounded-full bg-primary -ml-1 shadow-xs" />
+                              <span className="h-[2px] flex-1 bg-primary/80" />
+                            </div>
+                          )}
+
+                          {itensHora.map((item) => {
+                            const horaFormatada = horaLocal(item.data_programada);
+                            const capaUrl = item.arquivos?.[0]?.url;
+                            const statusMeta = getStatusPillMeta(item.status);
+
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                draggable
+                                onDragStart={(e) => {
+                                  setArrastandoId(item.id);
+                                  e.dataTransfer.setData('text/plain', item.id);
+                                  e.dataTransfer.effectAllowed = 'move';
+                                }}
+                                onDragEnd={() => {
+                                  setArrastandoId(null);
+                                  setDiaAlvo(null);
+                                }}
+                                onClick={() => setItemModal(item)}
+                                className={`${arrastandoId === item.id ? 'opacity-50 ' : ''}relative overflow-hidden text-left p-2 rounded-xl border transition-ui flex items-start gap-2 cursor-pointer group/card shadow-2xs ${statusMeta.cardTint}`}
+                              >
+                                <span aria-hidden="true" className={`absolute inset-y-1.5 left-1 w-1 rounded-full ${statusMeta.barColor}`} />
+
+                                <div className="pl-2 flex items-start gap-2 min-w-0 flex-1">
+                                  {capaUrl ? (
+                                    <div className="w-9 aspect-[4/5] rounded-md overflow-hidden border border-border/70 bg-card/80 shrink-0 flex items-center justify-center">
+                                      <img src={capaUrl} alt="" className="w-full h-full object-contain" />
+                                    </div>
+                                  ) : null}
+
+                                  <div className="min-w-0 flex-1 flex flex-col gap-1">
+                                    <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground tabular-nums font-semibold">
+                                      <span className="truncate">{item.cliente?.nome}</span>
+                                      <span className="shrink-0">{horaFormatada || horaLabel}</span>
+                                    </div>
+                                    <p className="font-display text-xs font-bold text-foreground line-clamp-2 leading-tight group-hover/card:text-primary transition-colors">
+                                      {item.titulo || item.tipo}
+                                    </p>
+                                    <div className="flex items-center justify-between gap-1 pt-0.5">
+                                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.pill}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
+                                        {statusMeta.label}
+                                      </span>
+                                      {item.responsavel && (
+                                        <Avatar nome={item.responsavel.nome} size="xs" className="shrink-0" />
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+
+                          {/* Botão rápido de agendar no slot vazio */}
+                          {onIrParaAgendamento && itensHora.length === 0 && (
+                            <button
+                              type="button"
+                              onClick={() => agendarParaData(d.dataStr, horaLabel)}
+                              className="opacity-0 group-hover:opacity-100 focus:opacity-100 m-auto px-2 py-1 rounded-lg bg-primary/12 text-primary hover:bg-primary hover:text-primary-foreground text-[11px] font-semibold inline-flex items-center gap-1 transition-all cursor-pointer"
+                            >
+                              <Plus className="w-3 h-3" />
+                              {horaLabel}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
       ) : (
       <Card padding="none" className="rounded-3xl border border-border overflow-hidden shadow-xs bg-card">
         {viewMode !== 'dia' && (
@@ -781,7 +1026,7 @@ export default function CalendarioGeral({
           </div>
         )}
 
-        {/* Células em modo Mês ou Semana */}
+        {/* Células em modo Mês */}
         {viewMode !== 'dia' ? (
           <>
           <AgendaCelular dias={diasExibicao} onAbrir={setItemModal} />
@@ -813,7 +1058,7 @@ export default function CalendarioGeral({
                     setDiaAlvo(null);
                     if (it) reagendar(it, d.dataStr);
                   }}
-                  className={`group p-2 ${viewMode === 'semana' ? 'min-h-[220px]' : 'min-h-[130px]'} flex flex-col justify-between transition-colors cursor-pointer ${
+                  className={`group p-2 min-h-[130px] flex flex-col justify-between transition-colors cursor-pointer ${
                     diaAlvo === d.dataStr
                       ? 'bg-brand-soft ring-2 ring-inset ring-brand-ring'
                       : temChoque ? 'bg-warning/5' : eHoje ? 'bg-primary/10' : 'hover:bg-accent/20'
@@ -854,7 +1099,7 @@ export default function CalendarioGeral({
 
                   {/* Lista de Event Blocks no Dia (Miniatura Completa à Esquerda) */}
                   <div className="flex flex-col gap-1.5 mt-2 flex-1">
-                    {d.itens.slice(0, viewMode === 'semana' ? 6 : 3).map((item) => {
+                    {d.itens.slice(0, 3).map((item) => {
                       const horaFormatada = horaLocal(item.data_programada);
                       const capaUrl = item.arquivos?.[0]?.url;
                       const statusMeta = getStatusPillMeta(item.status);
@@ -880,7 +1125,7 @@ export default function CalendarioGeral({
                           }}
                           style={{ borderLeftColor: corCliente }}
                           aria-label={`${item.cliente?.nome || ''}: ${item.titulo || item.tipo}. Abrir detalhes (arraste para mudar o dia)`}
-                          className={`${arrastandoId === item.id ? 'opacity-50 ' : ''}text-left p-1.5 rounded-xl border border-border border-l-[3px] bg-card/95 hover:bg-card text-foreground shadow-2xs hover:shadow-xs transition-ui flex items-start gap-2 cursor-pointer group`}
+                          className={`${arrastandoId === item.id ? 'opacity-50 ' : ''}relative overflow-hidden text-left p-1.5 rounded-xl border border-l-[3px] shadow-2xs hover:shadow-xs transition-ui flex items-start gap-2 cursor-pointer group ${statusMeta.cardTint}`}
                         >
                           {/* Miniatura completa à esquerda sem cortes */}
                           {capaUrl ? (
@@ -924,18 +1169,21 @@ export default function CalendarioGeral({
                               {item.titulo || item.tipo}
                             </span>
 
-                            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                            <div className="flex items-center justify-between gap-1 mt-0.5 flex-wrap">
                               <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.pill}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
                                 {statusMeta.label}
                               </span>
+                              {item.responsavel && (
+                                <Avatar nome={item.responsavel.nome} size="xs" className="shrink-0" />
+                              )}
                             </div>
                           </div>
                         </button>
                       );
                     })}
 
-                    {d.itens.length > (viewMode === 'semana' ? 6 : 3) && (
+                    {d.itens.length > 3 && (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -945,7 +1193,7 @@ export default function CalendarioGeral({
                         }}
                         className="text-xs font-semibold text-muted-foreground hover:text-foreground text-center pt-0.5 cursor-pointer"
                       >
-                        +{d.itens.length - (viewMode === 'semana' ? 6 : 3)} outros · ver o dia
+                        +{d.itens.length - 3} outros · ver o dia
                       </button>
                     )}
                   </div>
