@@ -1391,35 +1391,21 @@ export default function EsteiraTab({
                     // Progresso da Demanda na Esteira
                     const progresso = calcularProgressoDemanda(item, colStatus);
 
-                    // Data Visual da Postagem
+                    // Data Formatada da Demanda
                     const dataRef = item.data_programada || item.prazo;
-                    let dataBadge = null;
+                    let dataFormatadaInfo: { texto: string; eHoje: boolean; atrasada: boolean } | null = null;
                     if (dataRef) {
                       const dt = dataLocal(dataRef);
-                      const hoje = new Date();
-                      const eHoje = dt && dt.toDateString() === hoje.toDateString();
-                      const atrasada = dt && dt.getTime() < hoje.getTime() && !item.concluida && colStatus !== 'publicado';
-                      const labelData = dt
-                        ? `${dt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}${
-                            !ehDataSemHora(dataRef) ? ` · ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''
-                          }`
-                        : '';
-
-                      dataBadge = (
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[11px] font-semibold tabular-nums border ${
-                            atrasada
-                              ? 'bg-destructive/10 text-destructive border-destructive/30'
-                              : eHoje
-                              ? 'bg-primary/10 text-primary border-primary/25 font-bold'
-                              : 'bg-accent/60 text-muted-foreground border-border/80'
-                          }`}
-                          title={atrasada ? 'Prazo em atraso' : eHoje ? 'Programado para hoje' : 'Data de publicação'}
-                        >
-                          <Calendar className="size-3 shrink-0" />
-                          <span>{labelData}</span>
-                        </span>
-                      );
+                      if (dt) {
+                        const hoje = new Date();
+                        const eHoje = dt.toDateString() === hoje.toDateString();
+                        const atrasada = dt.getTime() < hoje.getTime() && !item.concluida && colStatus !== 'publicado';
+                        const hora = !ehDataSemHora(dataRef)
+                          ? ` às ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                          : '';
+                        const texto = `${dt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}${hora}`;
+                        dataFormatadaInfo = { texto, eHoje, atrasada };
+                      }
                     }
 
                     // Checklist
@@ -1491,9 +1477,9 @@ export default function EsteiraTab({
                           <div className="absolute -top-1.5 left-2 right-2 h-1 bg-primary rounded-full shadow-xs animate-pulse pointer-events-none z-10" />
                         )}
 
-                        {/* Topo do Card: Pílulas de Formato/Categoria à Esquerda + Data Visual e Ações à Direita */}
-                        <div className="flex items-center justify-between gap-1.5">
-                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                        {/* Topo do Card: Concluir + Pílula de Formato à Esquerda | Ações Discretas à Direita */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             {/* Círculo de Concluir */}
                             <button
                               type="button"
@@ -1557,13 +1543,11 @@ export default function EsteiraTab({
                             )}
                           </div>
 
-                          {/* Lado Direito: Data Visual + Menu de Etapas e Opções */}
+                          {/* Lado Direito: Ações do Card (Mover Etapa e Opções `···`) */}
                           <div
                             onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-1 shrink-0"
                           >
-                            {dataBadge}
-
                             <MoverEtapaMenu
                               etapas={ETAPAS_PIPELINE.map((et) => ({ status: et.status, label: et.label }))}
                               atual={colStatus}
@@ -1636,7 +1620,7 @@ export default function EsteiraTab({
                         )}
 
                         {/* Identificação do Cliente */}
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center min-w-0">
                           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/60 border border-border/80 text-xs text-foreground max-w-full min-w-0 shadow-2xs">
                             <ClienteAvatar
                               nome={item.cliente?.nome || 'Cliente'}
@@ -1679,6 +1663,25 @@ export default function EsteiraTab({
                           <div className="text-xs text-muted-foreground/90 line-clamp-1 bg-accent/40 rounded-lg px-2.5 py-1 border border-border/50 font-normal">
                             <span className="font-semibold text-foreground/70 not-italic mr-1.5">Nota:</span>
                             <span>{item.briefing}</span>
+                          </div>
+                        )}
+
+                        {/* Data Programada da Demanda (Empilhada em Linha Dedicada com Respiro) */}
+                        {dataFormatadaInfo && (
+                          <div className="flex items-center">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-mono tabular-nums ${
+                                dataFormatadaInfo.atrasada
+                                  ? 'bg-destructive/10 text-destructive border-destructive/25 font-bold'
+                                  : dataFormatadaInfo.eHoje
+                                  ? 'bg-primary/10 text-primary border-primary/25 font-bold'
+                                  : 'bg-accent/50 text-muted-foreground border-border/70 font-medium'
+                              }`}
+                              title={dataFormatadaInfo.atrasada ? 'Prazo em atraso' : dataFormatadaInfo.eHoje ? 'Programado para hoje' : 'Data de publicação / prazo'}
+                            >
+                              <Calendar className="size-3 text-primary shrink-0" />
+                              <span>{dataFormatadaInfo.texto}</span>
+                            </span>
                           </div>
                         )}
 
@@ -1749,20 +1752,6 @@ export default function EsteiraTab({
                           </div>
                         )}
 
-                        {/* Status Contextual: Agendado ou Publicado */}
-                        {(colStatus === 'agendamento' || item.status === 'agendamento' || item.status === 'pronto_publicar') &&
-                          (item.data_programada || item.scheduled_post_id) && (
-                            <div className="p-2 rounded-xl bg-primary/10 border border-primary/25 flex items-center justify-between gap-2 text-xs text-primary font-medium">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <Calendar className="size-3.5 shrink-0" />
-                                <span className="truncate font-mono">
-                                  {dataLocal(item.data_programada!).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                  {!ehDataSemHora(item.data_programada!) && ` às ${new Date(item.data_programada!).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
                         {/* Rodapé do Card: Avatares à esquerda, Ações Rápidas (Copiar Link + Comentários) à direita */}
                         <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/70 mt-auto">
                           {/* Avatares dos Responsáveis */}
@@ -1819,7 +1808,7 @@ export default function EsteiraTab({
                           </div>
                         </div>
 
-                        {/* Botão de Ação Rápida no Rodapé (quando aplicável) */}
+                        {/* Botão de Ação Rápida no Rodapé (quando aplicável) - Empilhado com Respiro Limpo */}
                         {(() => {
                           const isPublicado = colStatus === 'publicado' || item.status === 'publicado';
                           const isAgendadoCol = colStatus === 'agendamento' || item.status === 'agendamento' || item.status === 'pronto_publicar';
@@ -1827,9 +1816,9 @@ export default function EsteiraTab({
 
                           if (isPublicado) {
                             return (
-                              <div className="flex items-center justify-end pt-1">
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-success-soft text-success border border-success-ring">
-                                  <CheckCircle2 className="size-3" />
+                              <div className="pt-2 border-t border-border/50 flex items-center justify-center">
+                                <span className="w-full text-center inline-flex items-center justify-center gap-1.5 text-xs font-bold py-1.5 rounded-xl bg-success-soft text-success border border-success-ring">
+                                  <CheckCircle2 className="size-3.5" />
                                   <span>Publicado</span>
                                 </span>
                               </div>
@@ -1838,7 +1827,7 @@ export default function EsteiraTab({
 
                           if (isAgendadoCol) {
                             return (
-                              <div className="flex items-center justify-end pt-1">
+                              <div className="pt-2 border-t border-border/50">
                                 <Tip label={isAgendadoComData ? 'Ver ou reagendar' : 'Levar para Agendamento do Instagram'}>
                                   <button
                                     type="button"
@@ -1846,7 +1835,7 @@ export default function EsteiraTab({
                                       e.stopPropagation();
                                       handleLevarParaAgendamento(item);
                                     }}
-                                    className={`w-full text-xs font-semibold px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1.5 transition-ui cursor-pointer shadow-2xs ${
+                                    className={`w-full text-xs font-semibold px-2.5 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-ui cursor-pointer shadow-2xs ${
                                       isAgendadoComData
                                         ? 'bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30'
                                         : 'bg-primary hover:bg-primary/90 text-primary-foreground border border-primary/40'
@@ -1866,7 +1855,7 @@ export default function EsteiraTab({
                           // Se estiver em revisão ou etapa de criação, permite disparar aprovação
                           if (item.status === 'revisao_interna' || item.status === 'revisao_cliente' || item.status === 'criacao_arte') {
                             return (
-                              <div className="flex items-center justify-end pt-1">
+                              <div className="pt-2 border-t border-border/50">
                                 <Tip
                                   label={
                                     reenviar
@@ -1881,7 +1870,7 @@ export default function EsteiraTab({
                                       e.stopPropagation();
                                       handleEnviarParaAprovacao(item, reenviar);
                                     }}
-                                    className={`w-full text-xs font-semibold px-2.5 py-1.5 rounded-xl flex items-center justify-center gap-1.5 border transition-ui cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
+                                    className={`w-full text-xs font-semibold px-2.5 py-2 rounded-xl flex items-center justify-center gap-1.5 border transition-ui cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
                                       reenviar
                                         ? 'bg-brand-soft hover:bg-brand-soft/80 text-brand-text border-brand-ring'
                                         : 'bg-lime hover:bg-lime/90 text-lime-foreground font-bold border-foreground/15 active:scale-[0.98]'
