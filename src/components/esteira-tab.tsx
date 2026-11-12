@@ -15,6 +15,7 @@ import {
   Clock,
   ExternalLink,
   Share2,
+  Link2,
   Calendar,
   Check,
   CheckCircle2,
@@ -81,6 +82,30 @@ export function formatarDataCurta(dataStr?: string | null): string {
   } catch {
     return '';
   }
+}
+
+/**
+ * Progresso visual em % por etapa do pipeline (estilo Kanban moderno):
+ * Planejamento ~20% -> Criação ~40% -> Revisão ~55% -> Aprovação ~70% -> Agendamento ~85% -> Publicado/Concluído 100%
+ */
+export function calcularProgressoDemanda(item: ConteudoItem, colStatus: StatusConteudo): { pct: number; corBarra: string } {
+  if (item.concluida || colStatus === 'publicado' || item.status === 'publicado') {
+    return { pct: 100, corBarra: 'bg-emerald-500' };
+  }
+  const statusEfetivo = colStatus || item.status;
+  if (statusEfetivo === 'agendamento' || statusEfetivo === 'pronto_publicar' || statusEfetivo === 'revisao_agendamento') {
+    return { pct: 85, corBarra: 'bg-sky-500' };
+  }
+  if (statusEfetivo === 'revisao_cliente') {
+    return { pct: 70, corBarra: 'bg-amber-500' };
+  }
+  if (statusEfetivo === 'revisao_interna' || statusEfetivo === 'revisao_arte') {
+    return { pct: 55, corBarra: 'bg-violet-500' };
+  }
+  if (statusEfetivo === 'criacao_arte' || statusEfetivo === 'copy' || statusEfetivo === 'em_edicao' || statusEfetivo === 'em_gravacao') {
+    return { pct: 40, corBarra: 'bg-blue-500' };
+  }
+  return { pct: 20, corBarra: 'bg-primary' };
 }
 
 const COLUNA_CONFIG: Record<
@@ -1343,18 +1368,63 @@ export default function EsteiraTab({
                     const isDragging = draggingItemId === item.id;
                     const isOverItem = draggingOverItemId === item.id;
 
-                    // Formato visual
+                    // Formato visual estilizado em tons pastel (estilo Kanban moderno)
                     const formatoPill = {
-                      post: { label: 'Carrossel', emoji: '🖼️', cls: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/25' },
-                      reel: { label: 'Reels', emoji: '🎬', cls: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25' },
-                      story: { label: 'Story', emoji: '⚡', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25' },
-                      avulso: { label: 'Avulso', emoji: '📌', cls: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25' },
-                    }[item.tipo] || { label: item.tipo, emoji: '📌', cls: 'bg-accent text-muted-foreground border-border' };
+                      post: {
+                        label: (item.arquivos?.length || 0) > 1 ? 'Carrossel' : 'Feed',
+                        cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border-emerald-200/70 dark:border-emerald-800/50',
+                      },
+                      reel: {
+                        label: 'Reels',
+                        cls: 'bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-400 border-violet-200/70 dark:border-violet-800/50',
+                      },
+                      story: {
+                        label: 'Story',
+                        cls: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border-amber-200/70 dark:border-amber-800/50',
+                      },
+                      avulso: {
+                        label: 'Avulso',
+                        cls: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border-sky-200/70 dark:border-sky-800/50',
+                      },
+                    }[item.tipo] || { label: item.tipo, cls: 'bg-accent text-foreground/80 border-border' };
 
-                    // Checklist e Progresso
+                    // Progresso da Demanda na Esteira
+                    const progresso = calcularProgressoDemanda(item, colStatus);
+
+                    // Data Visual da Postagem
+                    const dataRef = item.data_programada || item.prazo;
+                    let dataBadge = null;
+                    if (dataRef) {
+                      const dt = dataLocal(dataRef);
+                      const hoje = new Date();
+                      const eHoje = dt && dt.toDateString() === hoje.toDateString();
+                      const atrasada = dt && dt.getTime() < hoje.getTime() && !item.concluida && colStatus !== 'publicado';
+                      const labelData = dt
+                        ? `${dt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}${
+                            !ehDataSemHora(dataRef) ? ` · ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''
+                          }`
+                        : '';
+
+                      dataBadge = (
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[11px] font-semibold tabular-nums border ${
+                            atrasada
+                              ? 'bg-destructive/10 text-destructive border-destructive/30'
+                              : eHoje
+                              ? 'bg-primary/10 text-primary border-primary/25 font-bold'
+                              : 'bg-accent/60 text-muted-foreground border-border/80'
+                          }`}
+                          title={atrasada ? 'Prazo em atraso' : eHoje ? 'Programado para hoje' : 'Data de publicação'}
+                        >
+                          <Calendar className="size-3 shrink-0" />
+                          <span>{labelData}</span>
+                        </span>
+                      );
+                    }
+
+                    // Checklist
                     const checklistTotal = item.checklist?.length || 0;
                     const checklistConcluidos = item.checklist?.filter((c) => c.concluido).length || 0;
-                    const checklistPct = checklistTotal > 0 ? Math.round((checklistConcluidos / checklistTotal) * 100) : 0;
 
                     // Capa / Thumbnail
                     const capaUrl = (item.tipo === 'reel' && item.cover_url) || item.arquivos?.[0]?.url || (item as any).midia_url || null;
@@ -1421,7 +1491,7 @@ export default function EsteiraTab({
                           <div className="absolute -top-1.5 left-2 right-2 h-1 bg-primary rounded-full shadow-xs animate-pulse pointer-events-none z-10" />
                         )}
 
-                        {/* Topo do Card: Concluir + Formato + Prioridade + Indicadores + Ações Rápidas */}
+                        {/* Topo do Card: Pílulas de Formato/Categoria à Esquerda + Data Visual e Ações à Direita */}
                         <div className="flex items-center justify-between gap-1.5">
                           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                             {/* Círculo de Concluir */}
@@ -1443,17 +1513,23 @@ export default function EsteiraTab({
 
                             {/* Pílula de Formato */}
                             <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${formatoPill.cls}`}
+                              className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${formatoPill.cls}`}
                             >
-                              <span>{formatoPill.emoji}</span>
-                              <span>{formatoPill.label}</span>
+                              {formatoPill.label}
                             </span>
+
+                            {/* Segunda Tag de Categoria (se houver) */}
+                            {(item as any).categoria && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200/70 dark:border-sky-800/50">
+                                {(item as any).categoria}
+                              </span>
+                            )}
 
                             {/* Pílula de Prioridade (se alta/urgente/baixa) */}
                             {item.prioridade && item.prioridade !== 'media' && PRIORIDADE_CONFIG[item.prioridade] && (
                               <Tip label={`Prioridade ${PRIORIDADE_CONFIG[item.prioridade].label}`}>
                                 <span
-                                  className={`px-1.5 py-0.5 rounded-md text-[11px] font-medium border flex items-center gap-1 ${
+                                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-medium border flex items-center gap-1 ${
                                     PRIORIDADE_CONFIG[item.prioridade].bg
                                   } ${PRIORIDADE_CONFIG[item.prioridade].text} ${
                                     PRIORIDADE_CONFIG[item.prioridade].border
@@ -1465,7 +1541,6 @@ export default function EsteiraTab({
                               </Tip>
                             )}
 
-                            {/* Indicador de Pedido de Informação Pendente */}
                             {item.pedido_informacao && (
                               <Tip label={`Aguardando cliente: ${item.pedido_informacao}`}>
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-warning-soft text-warning border border-warning-ring">
@@ -1475,7 +1550,6 @@ export default function EsteiraTab({
                               </Tip>
                             )}
 
-                            {/* Indicador de Visibilidade do Portal */}
                             {item.visivel_cliente === false && (
                               <Tip label="Oculta no portal do cliente">
                                 <EyeOff className="size-3 text-muted-foreground/60 shrink-0" />
@@ -1483,11 +1557,13 @@ export default function EsteiraTab({
                             )}
                           </div>
 
-                          {/* Menu de Ações no Card: Mover etapa e Opções `···` */}
+                          {/* Lado Direito: Data Visual + Menu de Etapas e Opções */}
                           <div
                             onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-1 shrink-0"
                           >
+                            {dataBadge}
+
                             <MoverEtapaMenu
                               etapas={ETAPAS_PIPELINE.map((et) => ({ status: et.status, label: et.label }))}
                               atual={colStatus}
@@ -1497,7 +1573,7 @@ export default function EsteiraTab({
                             <Menu.Root>
                               <Menu.Trigger
                                 aria-label="Mais opções"
-                                className="grid place-items-center size-7 rounded-lg border border-border/80 bg-card/90 text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors shadow-2xs"
+                                className="grid place-items-center size-6.5 rounded-lg border border-border/80 bg-card/90 text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-colors shadow-2xs"
                               >
                                 <MoreHorizontal className="size-3.5" />
                               </Menu.Trigger>
@@ -1559,21 +1635,17 @@ export default function EsteiraTab({
                           </div>
                         )}
 
-                        {/* Identificação do Cliente & Serviço (Pílula Unificada Estilo Orkestrya) */}
-                        <div className="flex items-center justify-between gap-2 min-w-0">
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/60 border border-border/80 text-xs text-foreground max-w-full min-w-0 shadow-2xs">
+                        {/* Identificação do Cliente */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/60 border border-border/80 text-xs text-foreground max-w-full min-w-0 shadow-2xs">
                             <ClienteAvatar
                               nome={item.cliente?.nome || 'Cliente'}
                               cor={item.cliente?.cor}
                               fotoUrl={item.cliente?.foto_url}
                               tamanho="xs"
                             />
-                            <span className="font-semibold text-foreground truncate">
+                            <span className="font-semibold text-foreground truncate text-[11px]">
                               {item.cliente?.nome || 'Cliente'}
-                            </span>
-                            <span className="text-muted-foreground/60 select-none">·</span>
-                            <span className="text-muted-foreground text-[11px] font-medium truncate">
-                              {(item as any).categoria || formatoPill.label}
                             </span>
                           </div>
                         </div>
@@ -1602,7 +1674,7 @@ export default function EsteiraTab({
                           </div>
                         )}
 
-                        {/* Preview de Briefing / Nota (Inspiração NovaBoard Img 4) */}
+                        {/* Preview de Briefing / Nota */}
                         {item.briefing && item.briefing.trim().length > 0 && (
                           <div className="text-xs text-muted-foreground/90 line-clamp-1 bg-accent/40 rounded-lg px-2.5 py-1 border border-border/50 font-normal">
                             <span className="font-semibold text-foreground/70 not-italic mr-1.5">Nota:</span>
@@ -1610,31 +1682,28 @@ export default function EsteiraTab({
                           </div>
                         )}
 
-                        {/* Barra de Progresso do Checklist (Inspiração NovaBoard Img 4) */}
-                        {checklistTotal > 0 && (
-                          <div className="flex flex-col gap-1 pt-0.5">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground font-medium flex items-center gap-1.5 text-[11px]">
-                                <CheckSquare className="size-3 text-primary" />
-                                <span>Progresso</span>
-                              </span>
-                              <span className="text-[11px] font-mono font-bold text-foreground tabular-nums">
-                                {checklistPct}%{' '}
-                                <span className="text-muted-foreground font-normal">
+                        {/* Barra de Progresso Visual da Demanda (Inspirada no Kanban da Referência) */}
+                        <div className="flex flex-col gap-1 pt-0.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground font-semibold text-[11px] tracking-wide">
+                              Progress
+                            </span>
+                            <span className="text-[11px] font-mono font-bold text-foreground tabular-nums">
+                              {progresso.pct}%
+                              {checklistTotal > 0 && (
+                                <span className="text-muted-foreground font-normal ml-1">
                                   ({checklistConcluidos}/{checklistTotal})
                                 </span>
-                              </span>
-                            </div>
-                            <div className="h-1.5 w-full bg-accent rounded-full overflow-hidden border border-border/40">
-                              <div
-                                className={`h-full rounded-full transition-all duration-300 ${
-                                  checklistPct === 100 ? 'bg-success' : 'bg-primary'
-                                }`}
-                                style={{ width: `${checklistPct}%` }}
-                              />
-                            </div>
+                              )}
+                            </span>
                           </div>
-                        )}
+                          <div className="h-1.5 w-full bg-accent/70 dark:bg-accent/40 rounded-full overflow-hidden border border-border/40">
+                            <div
+                              className={`h-full rounded-full transition-all duration-300 ${progresso.corBarra}`}
+                              style={{ width: `${progresso.pct}%` }}
+                            />
+                          </div>
+                        </div>
 
                         {/* Status Contextual: Ajustes Pendentes */}
                         {temAjustesPendentes && (
@@ -1694,7 +1763,7 @@ export default function EsteiraTab({
                             </div>
                           )}
 
-                        {/* Rodapé do Card: Avatares à esquerda, Metadados e Ações à direita */}
+                        {/* Rodapé do Card: Avatares à esquerda, Ações Rápidas (Copiar Link + Comentários) à direita */}
                         <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/70 mt-auto">
                           {/* Avatares dos Responsáveis */}
                           <div className="flex items-center gap-1.5 min-w-0">
@@ -1706,35 +1775,44 @@ export default function EsteiraTab({
                             )}
                           </div>
 
-                          {/* Metadados Compactos (Linear Img 2 & NovaBoard Img 4) */}
-                          <div className="flex items-center gap-2.5 text-xs text-muted-foreground shrink-0 font-mono">
+                          {/* Ações Rápidas no Rodapé: Copiar Link de Aprovação, Comentários e Anexos */}
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1.5 shrink-0"
+                          >
+                            {/* Atalho de Copiar Link de Aprovação */}
+                            <Tip label="Copiar link de aprovação">
+                              <button
+                                type="button"
+                                onClick={() => handleCopiarLinkAprovacao(item.token_aprovacao)}
+                                className="size-7 rounded-lg border border-border/70 bg-accent/40 hover:bg-accent hover:text-foreground text-muted-foreground flex items-center justify-center transition-ui cursor-pointer shadow-2xs"
+                                aria-label="Copiar link de aprovação"
+                              >
+                                <Link2 className="size-3.5" />
+                              </button>
+                            </Tip>
+
+                            {/* Comentários */}
+                            <Tip label={`${item.comentarios_revisao?.length || 0} comentários`}>
+                              <button
+                                type="button"
+                                onClick={() => handleAbrirModalEditar(item)}
+                                className={`h-7 px-2 rounded-lg border border-border/70 bg-accent/40 hover:bg-accent text-xs font-mono font-semibold flex items-center gap-1 transition-ui cursor-pointer shadow-2xs ${
+                                  temAjustesPendentes ? 'text-destructive border-destructive/30 bg-destructive/10' : 'text-muted-foreground hover:text-foreground'
+                                }`}
+                                aria-label="Abrir comentários da demanda"
+                              >
+                                <MessageSquare className="size-3.5" />
+                                <span className="tabular-nums">{item.comentarios_revisao?.length || 0}</span>
+                              </button>
+                            </Tip>
+
+                            {/* Anexos */}
                             {item.arquivos?.length > 0 && (
                               <Tip label={`${item.arquivos.length} ${item.tipo === 'reel' ? 'vídeo' : 'mídias'}`}>
-                                <span className="flex items-center gap-0.5 hover:text-foreground transition-colors">
+                                <span className="h-7 px-1.5 rounded-lg border border-border/50 bg-accent/20 text-muted-foreground flex items-center gap-0.5 text-xs font-mono tabular-nums">
                                   <Paperclip className="size-3" />
-                                  <span className="tabular-nums">{item.arquivos.length}</span>
-                                </span>
-                              </Tip>
-                            )}
-
-                            {(item.comentarios_revisao?.length || 0) > 0 && (
-                              <Tip label={`${item.comentarios_revisao.length} comentários`}>
-                                <span
-                                  className={`flex items-center gap-0.5 transition-colors ${
-                                    temAjustesPendentes ? 'text-destructive font-semibold' : 'hover:text-foreground'
-                                  }`}
-                                >
-                                  <MessageSquare className="size-3" />
-                                  <span className="tabular-nums">{item.comentarios_revisao.length}</span>
-                                </span>
-                              </Tip>
-                            )}
-
-                            {item.prazo && (
-                              <Tip label={`Prazo: ${dataLocal(item.prazo).toLocaleDateString('pt-BR')}`}>
-                                <span className="flex items-center gap-0.5 hover:text-foreground transition-colors">
-                                  <Clock className="size-3" />
-                                  <span className="tabular-nums">{formatarDataCurta(item.prazo)}</span>
+                                  <span>{item.arquivos.length}</span>
                                 </span>
                               </Tip>
                             )}
