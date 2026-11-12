@@ -21,7 +21,11 @@ import {
   Mail,
   Megaphone,
   Search,
+  LayoutGrid,
+  List,
+  Pencil,
 } from 'lucide-react';
+import { SegmentedItem } from '@/components/ui/segmented';
 import { Instagram } from '@/components/instagram-icon';
 import { ClienteAvatar } from '@/components/cliente-avatar';
 import type { UtmLink } from '@/types/utm-link';
@@ -67,6 +71,43 @@ const LINKS_POR_PAGINA = 25;
 
 function Vazio() {
   return <span className="text-muted-foreground">—</span>;
+}
+
+function getCanalMeta(source?: string | null, medium?: string | null) {
+  const s = (source || '').toLowerCase();
+  if (s.includes('instagram')) {
+    return {
+      label: `${source} / ${medium || 'geral'}`,
+      pillClass: 'bg-pink-500/12 text-pink-600 dark:text-pink-300 border-pink-500/25',
+      barClass: 'bg-gradient-to-r from-amber-500 via-pink-500 to-purple-500',
+    };
+  }
+  if (s.includes('whatsapp')) {
+    return {
+      label: `${source} / ${medium || 'chat'}`,
+      pillClass: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-300 border-emerald-500/25',
+      barClass: 'bg-emerald-500',
+    };
+  }
+  if (s.includes('facebook') || s.includes('meta') || s.includes('ads')) {
+    return {
+      label: `${source} / ${medium || 'cpc'}`,
+      pillClass: 'bg-sky-500/12 text-sky-600 dark:text-sky-300 border-sky-500/25',
+      barClass: 'bg-sky-500',
+    };
+  }
+  if (s.includes('email')) {
+    return {
+      label: `${source} / ${medium || 'newsletter'}`,
+      pillClass: 'bg-violet-500/12 text-violet-600 dark:text-violet-300 border-violet-500/25',
+      barClass: 'bg-violet-500',
+    };
+  }
+  return {
+    label: `${source || 'link'} / ${medium || 'geral'}`,
+    pillClass: 'bg-primary/12 text-primary border-primary/25',
+    barClass: 'bg-primary',
+  };
 }
 
 export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
@@ -227,6 +268,7 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
   const [busca, setBusca] = useState('');
   const [filtroCliente, setFiltroCliente] = useState('');
   const [pagina, setPagina] = useState(1);
+  const [viewMode, setViewMode] = useState<'tabela' | 'cards'>('tabela');
 
   const clientesDosLinks = useMemo(
     () => Array.from(new Set(links.map((l) => l.cliente?.nome).filter((n): n is string => !!n))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
@@ -527,26 +569,69 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
         </Card>
       </div>
 
-      {/* 3. Links cadastrados, no padrão de tabela da Audiência */}
-      <Card padding="lg" className="rounded-2xl shadow-sm flex flex-col gap-4 text-foreground">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* 3. Links cadastrados: Tabela Reformulada ou Cards Visuais */}
+      <Card padding="lg" className="rounded-2xl shadow-2xs flex flex-col gap-4 text-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-title font-bold text-foreground">Links cadastrados</h3>
-            <p className="text-sm text-muted-foreground mt-0.5">Do mais clicado para o menos clicado. Clique num link para editar.</p>
+            <h3 className="font-display text-base sm:text-lg font-bold text-foreground tracking-tight">
+              Links Rastreados
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Ordenados do mais clicado para o menos clicado · clique em qualquer link para editar no construtor.
+            </p>
           </div>
-          <Badge variant="muted" className="tabular-nums">
-            {links.length} link{links.length !== 1 ? 's' : ''}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="muted" className="tabular-nums">
+              {links.length} link{links.length !== 1 ? 's' : ''}
+            </Badge>
+            <div className="inline-flex rounded-xl bg-muted/60 p-1 border border-border/60">
+              <SegmentedItem
+                type="button"
+                active={viewMode === 'tabela'}
+                group="utm-view-mode"
+                onClick={() => setViewMode('tabela')}
+              >
+                <List className="w-3.5 h-3.5" />
+                Tabela
+              </SegmentedItem>
+              <SegmentedItem
+                type="button"
+                active={viewMode === 'cards'}
+                group="utm-view-mode"
+                onClick={() => setViewMode('cards')}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Cards
+              </SegmentedItem>
+            </div>
+          </div>
         </div>
 
         {links.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px] max-w-sm">
               <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <Input value={busca} onChange={(e) => { setBusca(e.target.value); setPagina(1); }} placeholder="Buscar por nome, campanha ou destino" aria-label="Buscar links" className="pl-9" />
+              <Input
+                value={busca}
+                onChange={(e) => {
+                  setBusca(e.target.value);
+                  setPagina(1);
+                }}
+                placeholder="Buscar por nome, campanha ou destino"
+                aria-label="Buscar links"
+                className="pl-9 rounded-xl"
+              />
             </div>
             {clientesDosLinks.length > 1 && (
-              <Select value={filtroCliente} onChange={(e) => { setFiltroCliente(e.target.value); setPagina(1); }} aria-label="Filtrar por cliente" className="max-w-[220px]">
+              <Select
+                value={filtroCliente}
+                onChange={(e) => {
+                  setFiltroCliente(e.target.value);
+                  setPagina(1);
+                }}
+                aria-label="Filtrar por cliente"
+                className="max-w-[220px] rounded-xl"
+              >
                 <option value="">Todos os clientes</option>
                 {clientesDosLinks.map((nome) => (
                   <option key={nome} value={nome}>
@@ -558,90 +643,358 @@ export default function UtmLinkBuilder({ withAccount }: UtmLinkBuilderProps) {
           </div>
         )}
 
-        <DataTable
-          rows={linksPagina}
-          loading={loading}
-          getRowId={(l) => l.id || l.generated_url}
-          onRowClick={startEdit}
-          empty={
+        {viewMode === 'cards' && !loading ? (
+          linksPagina.length === 0 ? (
             links.length === 0 ? (
-              <EmptyState size="compact" icon={Link2} title="Nenhum link UTM cadastrado" description="Crie o primeiro link acima para começar a rastrear acessos." />
+              <EmptyState
+                size="compact"
+                icon={Link2}
+                title="Nenhum link UTM cadastrado"
+                description="Crie o primeiro link acima para começar a rastrear acessos."
+              />
             ) : (
-              <EmptyState size="compact" icon={Search} title="Nenhum link encontrado" description="Nenhum link bate com essa busca ou cliente." action={{ label: 'Limpar filtros', onClick: () => { setBusca(''); setFiltroCliente(''); } }} />
+              <EmptyState
+                size="compact"
+                icon={Search}
+                title="Nenhum link encontrado"
+                description="Nenhum link bate com essa busca ou cliente."
+                action={{
+                  label: 'Limpar filtros',
+                  onClick: () => {
+                    setBusca('');
+                    setFiltroCliente('');
+                  },
+                }}
+              />
             )
-          }
-          columns={[
-            {
-              id: 'nome',
-              header: 'Link',
-              mobile: 'primary',
-              cell: (l) => (
-                <div className="min-w-0 sm:min-w-[180px]">
-                  <button type="button" onClick={(e) => { e.stopPropagation(); startEdit(l); }} className="font-semibold text-foreground truncate block max-w-[240px] text-left hover:underline cursor-pointer">
-                    {l.name || 'Sem nome'}
-                  </button>
-                  {l.utm_campaign && <span className="text-xs text-muted-foreground font-mono truncate block max-w-[240px]">{l.utm_campaign}</span>}
-                </div>
-              ),
-            },
-            {
-              id: 'cliente',
-              header: 'Cliente',
-              cell: (l) =>
-                l.cliente?.nome ? (
-                  <span className="flex items-center gap-1.5 whitespace-nowrap">
-                    <ClienteAvatar nome={l.cliente.nome} cor={l.cliente.cor} fotoUrl={l.cliente.foto_url} tamanho="xs" />
-                    <span className="truncate max-w-[160px]">{l.cliente.nome}</span>
-                  </span>
-                ) : (
-                  <Vazio />
-                ),
-            },
-            { id: 'canal', header: 'Canal', className: 'text-muted-foreground whitespace-nowrap', cell: (l) => `${l.utm_source || 'link'} / ${l.utm_medium || 'geral'}` },
-            {
-              id: 'curto',
-              header: 'Link curto',
-              cell: (l) =>
-                l.short_code ? (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); handleCopyText(urlCurta(l), l.id || ''); }}
-                    className="inline-flex items-center gap-1 font-mono text-brand-text hover:underline cursor-pointer whitespace-nowrap"
-                    aria-label={`Copiar link curto /r/${l.short_code}`}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {linksPagina.map((l) => {
+                const canal = getCanalMeta(l.utm_source, l.utm_medium);
+                const clicks = l.click_count || 0;
+                const sharePct = totalCliques > 0 ? Math.round((clicks / totalCliques) * 100) : 0;
+                const fullCopied = copiedId === `${l.id}-full`;
+                const shortCopied = copiedId === l.id;
+
+                return (
+                  <div
+                    key={l.id || l.generated_url}
+                    onClick={() => startEdit(l)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        startEdit(l);
+                      }
+                    }}
+                    className="group relative overflow-hidden rounded-2xl border border-border bg-card hover:border-primary/40 p-4 flex flex-col justify-between gap-3 shadow-2xs hover:shadow-sm transition-ui cursor-pointer"
                   >
-                    /r/{l.short_code}
-                    {copiedId === l.id ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                ) : (
-                  <Vazio />
+                    <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 ${canal.barClass}`} />
+
+                    <div className="flex items-start justify-between gap-2 pt-0.5">
+                      <div className="min-w-0">
+                        <h4 className="font-display text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                          {l.name || 'Sem nome'}
+                        </h4>
+                        {l.utm_campaign && (
+                          <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">{l.utm_campaign}</p>
+                        )}
+                      </div>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border shrink-0 ${canal.pillClass}`}
+                      >
+                        {canal.label}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-2 rounded-xl bg-muted/35 border border-border/60 p-3 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        {l.cliente?.nome ? (
+                          <span className="flex items-center gap-1.5 min-w-0 font-medium text-foreground">
+                            <ClienteAvatar
+                              nome={l.cliente.nome}
+                              cor={l.cliente.cor}
+                              fotoUrl={l.cliente.foto_url}
+                              tamanho="xs"
+                            />
+                            <span className="truncate">{l.cliente.nome}</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground italic">Sem cliente</span>
+                        )}
+                        <span className="font-display font-bold text-sm tabular-nums text-foreground shrink-0">
+                          {clicks.toLocaleString('pt-BR')} cliques
+                        </span>
+                      </div>
+
+                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${canal.barClass}`}
+                          style={{ width: `${Math.max(clicks > 0 ? 6 : 0, sharePct)}%` }}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-0.5">
+                        {l.short_code ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyText(urlCurta(l), l.id || '');
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-mono text-xs font-semibold transition-ui cursor-pointer"
+                          >
+                            <span>/r/{l.short_code}</span>
+                            {shortCopied ? (
+                              <span className="font-sans text-[10px] font-bold text-success">Copiado!</span>
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">Sem código curto</span>
+                        )}
+
+                        <a
+                          href={l.generated_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground truncate max-w-[160px]"
+                          title={l.base_url}
+                        >
+                          <span className="truncate">{l.base_url.replace(/^https?:\/\//, '')}</span>
+                          <ExternalLink className="w-3 h-3 shrink-0" />
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-1 pt-1 border-t border-border/70">
+                      <IconButton
+                        label={fullCopied ? 'URL UTM copiada!' : 'Copiar URL UTM completa'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyText(l.generated_url, `${l.id}-full`);
+                        }}
+                      >
+                        {fullCopied ? <Check className="text-success" /> : <Copy />}
+                      </IconButton>
+                      {l.short_code && (
+                        <IconButton
+                          label="QR Code do link curto"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQrLink({ url: urlCurta(l), name: `qr-${l.short_code}` });
+                          }}
+                        >
+                          <QrCode />
+                        </IconButton>
+                      )}
+                      <IconButton
+                        label="Editar link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEdit(l);
+                        }}
+                      >
+                        <Pencil />
+                      </IconButton>
+                      <IconButton
+                        label="Excluir link"
+                        tone="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (l.id) handleDelete(l.id);
+                        }}
+                      >
+                        <Trash2 />
+                      </IconButton>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          <DataTable
+            rows={linksPagina}
+            loading={loading}
+            getRowId={(l) => l.id || l.generated_url}
+            onRowClick={startEdit}
+            empty={
+              links.length === 0 ? (
+                <EmptyState
+                  size="compact"
+                  icon={Link2}
+                  title="Nenhum link UTM cadastrado"
+                  description="Crie o primeiro link acima para começar a rastrear acessos."
+                />
+              ) : (
+                <EmptyState
+                  size="compact"
+                  icon={Search}
+                  title="Nenhum link encontrado"
+                  description="Nenhum link bate com essa busca ou cliente."
+                  action={{
+                    label: 'Limpar filtros',
+                    onClick: () => {
+                      setBusca('');
+                      setFiltroCliente('');
+                    },
+                  }}
+                />
+              )
+            }
+            columns={[
+              {
+                id: 'nome',
+                header: 'Campanha & Canal',
+                mobile: 'primary',
+                cell: (l) => {
+                  const canal = getCanalMeta(l.utm_source, l.utm_medium);
+                  return (
+                    <div className="min-w-0 sm:min-w-[210px] flex flex-col gap-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEdit(l);
+                          }}
+                          className="font-display font-bold text-foreground truncate max-w-[220px] text-left hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {l.name || 'Sem nome'}
+                        </button>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${canal.pillClass}`}
+                        >
+                          {canal.label}
+                        </span>
+                      </div>
+                      {l.utm_campaign && (
+                        <span className="text-xs text-muted-foreground font-mono truncate max-w-[260px]">
+                          {l.utm_campaign}
+                        </span>
+                      )}
+                    </div>
+                  );
+                },
+              },
+              {
+                id: 'cliente',
+                header: 'Cliente',
+                cell: (l) =>
+                  l.cliente?.nome ? (
+                    <span className="flex items-center gap-1.5 whitespace-nowrap font-medium">
+                      <ClienteAvatar nome={l.cliente.nome} cor={l.cliente.cor} fotoUrl={l.cliente.foto_url} tamanho="xs" />
+                      <span className="truncate max-w-[150px]">{l.cliente.nome}</span>
+                    </span>
+                  ) : (
+                    <Vazio />
+                  ),
+              },
+              {
+                id: 'curto',
+                header: 'Link Curto',
+                cell: (l) =>
+                  l.short_code ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyText(urlCurta(l), l.id || '');
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-mono text-xs font-semibold transition-ui cursor-pointer whitespace-nowrap"
+                      aria-label={`Copiar link curto /r/${l.short_code}`}
+                    >
+                      <span>/r/{l.short_code}</span>
+                      {copiedId === l.id ? (
+                        <span className="font-sans text-[11px] font-bold text-success inline-flex items-center gap-0.5">
+                          <Check className="w-3 h-3" /> Copiado
+                        </span>
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
+                  ) : (
+                    <Vazio />
+                  ),
+              },
+              {
+                id: 'destino',
+                header: 'Destino',
+                mobile: 'hidden',
+                className: 'text-muted-foreground max-w-[220px]',
+                cell: (l) => (
+                  <a
+                    href={l.generated_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 hover:text-foreground hover:underline truncate max-w-[210px]"
+                    title={l.generated_url}
+                  >
+                    <span className="truncate">{l.base_url.replace(/^https?:\/\//, '')}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
                 ),
-            },
-            {
-              id: 'destino',
-              header: 'Destino',
-              mobile: 'hidden',
-              className: 'text-muted-foreground max-w-[240px] truncate',
-              cell: (l) => (
-                <a href={l.generated_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="hover:text-foreground hover:underline">
-                  {l.base_url}
-                </a>
-              ),
-            },
-            { id: 'cliques', header: 'Cliques', align: 'right', className: 'font-semibold text-foreground tabular-nums', cell: (l) => (l.click_count || 0).toLocaleString('pt-BR') },
-          ]}
-          actions={(l) => (
-            <>
-              {l.short_code && (
-                <IconButton label="QR Code do link curto" onClick={() => setQrLink({ url: urlCurta(l), name: `qr-${l.short_code}` })}>
-                  <QrCode />
-                </IconButton>
-              )}
-              <IconButton label="Excluir link" tone="destructive" onClick={() => l.id && handleDelete(l.id)}>
-                <Trash2 />
-              </IconButton>
-            </>
-          )}
-        />
+              },
+              {
+                id: 'cliques',
+                header: 'Cliques',
+                align: 'right',
+                cell: (l) => {
+                  const clicks = l.click_count || 0;
+                  const sharePct = totalCliques > 0 ? Math.round((clicks / totalCliques) * 100) : 0;
+                  const canal = getCanalMeta(l.utm_source, l.utm_medium);
+                  return (
+                    <div className="flex flex-col items-end gap-1 min-w-[90px]">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-display font-bold text-foreground tabular-nums">
+                          {clicks.toLocaleString('pt-BR')}
+                        </span>
+                        {totalCliques > 0 && (
+                          <span className="text-[11px] text-muted-foreground tabular-nums">({sharePct}%)</span>
+                        )}
+                      </div>
+                      <div className="h-1 w-20 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${canal.barClass}`}
+                          style={{ width: `${Math.max(clicks > 0 ? 6 : 0, sharePct)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                },
+              },
+            ]}
+            actions={(l) => {
+              const fullCopied = copiedId === `${l.id}-full`;
+              return (
+                <>
+                  <IconButton
+                    label={fullCopied ? 'URL UTM copiada!' : 'Copiar URL UTM completa'}
+                    onClick={() => handleCopyText(l.generated_url, `${l.id}-full`)}
+                  >
+                    {fullCopied ? <Check className="text-success" /> : <Copy />}
+                  </IconButton>
+                  {l.short_code && (
+                    <IconButton label="QR Code do link curto" onClick={() => setQrLink({ url: urlCurta(l), name: `qr-${l.short_code}` })}>
+                      <QrCode />
+                    </IconButton>
+                  )}
+                  <IconButton label="Editar link" onClick={() => startEdit(l)}>
+                    <Pencil />
+                  </IconButton>
+                  <IconButton label="Excluir link" tone="destructive" onClick={() => l.id && handleDelete(l.id)}>
+                    <Trash2 />
+                  </IconButton>
+                </>
+              );
+            }}
+          />
+        )}
 
         <DataTablePagination page={paginaAtual} totalPages={totalPaginas} onPage={setPagina} />
       </Card>

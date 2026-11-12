@@ -19,8 +19,13 @@ import {
   User,
   Repeat,
   Rocket,
+  LayoutGrid,
+  List,
+  Check,
+  X,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -176,6 +181,10 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
     return mapa;
   }, [tarefas]);
 
+  const [somenteAtrasadas, setSomenteAtrasadas] = useState(false);
+  const [viewMode, setViewMode] = useState<'kanban' | 'lista'>('kanban');
+  const [composerAberto, setComposerAberto] = useState(false);
+
   const cards = useMemo<QuadroCard[]>(() => {
     const termo = busca.trim().toLowerCase();
     const lista: QuadroCard[] = [];
@@ -209,11 +218,16 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
     return lista.sort(compararCards);
   }, [tarefas, demandas, busca, clienteFiltro, tipoFiltro]);
 
+  const cardsVisiveis = useMemo(
+    () => (somenteAtrasadas ? cards.filter((c) => c.atrasado && c.coluna !== 'concluido') : cards),
+    [cards, somenteAtrasadas]
+  );
+
   const porColuna = useMemo(() => {
     const grupos: Record<StatusTarefa, QuadroCard[]> = { a_fazer: [], fazendo: [], aguardando: [], concluido: [] };
-    for (const c of cards) grupos[c.coluna].push(c);
+    for (const c of cardsVisiveis) grupos[c.coluna].push(c);
     return grupos;
-  }, [cards]);
+  }, [cardsVisiveis]);
 
   const resumo = useMemo(() => {
     const abertos = cards.filter((c) => c.coluna !== 'concluido');
@@ -418,48 +432,98 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
     alvo === 'all' ? 'Trabalho da equipe' : verDe && verDe !== eu?.id ? `Trabalho de ${nomeMembro(verDe) || 'membro'}` : 'Meu trabalho';
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-in pb-12">
-      {/* Toolbar & Contadores de Rotina */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-accent border border-border text-xs font-bold font-display text-foreground">
-            {titulo}
-          </span>
-        </div>
+    <div className="flex flex-col gap-6 animate-fade-in pb-12">
+      {/* 1. Hero Gradient: Resumo + Ações + Alternador de Visão */}
+      <HeroGradientPanel
+        eyebrow="Operação Diária"
+        title={titulo}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-xl bg-card/85 backdrop-blur-xs p-1 border border-border/60">
+              <SegmentedItem
+                type="button"
+                active={viewMode === 'kanban'}
+                group="rotina-view-mode"
+                onClick={() => setViewMode('kanban')}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Quadro
+              </SegmentedItem>
+              <SegmentedItem
+                type="button"
+                active={viewMode === 'lista'}
+                group="rotina-view-mode"
+                onClick={() => setViewMode('lista')}
+              >
+                <List className="w-3.5 h-3.5" />
+                Lista de Foco
+              </SegmentedItem>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <button
-            type="button"
-            onClick={() => setRecorrentesAberto(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-card hover:bg-accent text-foreground font-semibold cursor-pointer"
-          >
-            <Repeat className="w-3.5 h-3.5 text-primary" /> Recorrentes
-          </button>
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-card font-mono">
-            <Layers className="w-3.5 h-3.5 text-muted-foreground" /> {resumo.abertos} em aberto
-          </span>
-          {resumo.atrasados > 0 && (
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-destructive-soft text-destructive font-mono font-bold">
-              <AlertCircle className="w-3.5 h-3.5" /> {resumo.atrasados} atrasado{resumo.atrasados > 1 ? 's' : ''}
-            </span>
-          )}
-          {resumo.aguardando > 0 && (
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-warning-soft text-warning font-mono">
-              <Hourglass className="w-3.5 h-3.5" /> {resumo.aguardando} aguardando
-            </span>
-          )}
-          {resumo.minutos > 0 && (
-            <Tip label={"Soma das estimativas das tarefas em aberto"}><span
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-card font-mono"
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setRecorrentesAberto(true)}
+              className="rounded-xl bg-card/90 backdrop-blur-xs shadow-2xs h-9"
             >
-              <Timer className="w-3.5 h-3.5 text-muted-foreground" /> ~{formatarEstimativa(resumo.minutos)}
-            </span></Tip>
-          )}
-        </div>
-      </div>
+              <Repeat className="w-3.5 h-3.5 text-primary" />
+              Recorrentes
+            </Button>
 
-      {/* Quick add */}
-      <Card className="p-4 rounded-2xl border border-border bg-card shadow-2xs">
+            <Button
+              type="button"
+              variant={composerAberto ? 'secondary' : 'primary'}
+              size="sm"
+              onClick={() => setComposerAberto((v) => !v)}
+              className="rounded-xl shadow-xs h-9"
+            >
+              {composerAberto ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {composerAberto ? 'Fechar' : 'Nova Tarefa'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <HeroKpiCard
+            icon={Layers}
+            iconTone="primary"
+            label="Em Aberto"
+            value={resumo.abertos}
+            hint={somenteAtrasadas ? 'Clique para mostrar todas' : 'Tarefas e demandas ativas'}
+            onClick={() => setSomenteAtrasadas(false)}
+            active={!somenteAtrasadas}
+          />
+          <HeroKpiCard
+            icon={AlertCircle}
+            iconTone="rose"
+            valueTone={resumo.atrasados > 0 ? 'danger' : 'default'}
+            label="Atrasadas"
+            value={resumo.atrasados}
+            hint={resumo.atrasados > 0 ? 'Clique para focar atrasadas' : 'Nenhum atraso'}
+            onClick={resumo.atrasados > 0 ? () => setSomenteAtrasadas((v) => !v) : undefined}
+            active={somenteAtrasadas}
+          />
+          <HeroKpiCard
+            icon={Hourglass}
+            iconTone="amber"
+            label="Aguardando Retorno"
+            value={resumo.aguardando}
+            hint="Dependendo de terceiros"
+          />
+          <HeroKpiCard
+            icon={Timer}
+            iconTone="sky"
+            label="Carga Estimada"
+            value={resumo.minutos > 0 ? `~${formatarEstimativa(resumo.minutos)}` : '0m'}
+            hint="Soma das tarefas em aberto"
+          />
+        </div>
+      </HeroGradientPanel>
+
+      {/* Quick add (expansível sob demanda para manter a tela limpa) */}
+      {composerAberto && (
+      <Card className="p-4 rounded-2xl border border-primary/30 bg-card shadow-sm animate-fade-in">
         <form onSubmit={handleCriarTarefa} className="flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <div
@@ -594,6 +658,7 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
           </div>
         </form>
       </Card>
+      )}
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2">
@@ -652,23 +717,123 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
         </Select>
       </div>
 
-      {/* Quadro */}
+      {/* Quadro Kanban ou Lista de Foco */}
       {carregando ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {COLUNAS_ROTINA.map((c) => (
             <Card key={c.id} className="h-64 animate-pulse rounded-2xl" />
           ))}
         </div>
-      ) : cards.length === 0 && !busca && tipoFiltro === 'todos' && clienteFiltro === 'all' ? (
+      ) : cardsVisiveis.length === 0 && !busca && tipoFiltro === 'todos' && clienteFiltro === 'all' ? (
         <EmptyState
           icon={CheckSquare}
-          title="Quadro vazio"
-          description="Nenhuma demanda atribuída e nenhuma tarefa por aqui. Adicione um afazer acima."
+          title={somenteAtrasadas ? 'Nenhuma tarefa atrasada' : 'Quadro vazio'}
+          description={
+            somenteAtrasadas
+              ? 'Tudo em dia por aqui! Clique para voltar a ver todas as tarefas.'
+              : 'Nenhuma demanda atribuída e nenhuma tarefa por aqui. Clique em Nova Tarefa acima.'
+          }
+          action={
+            somenteAtrasadas
+              ? { label: 'Ver todas', onClick: () => setSomenteAtrasadas(false) }
+              : { label: 'Nova Tarefa', icon: Plus, onClick: () => setComposerAberto(true) }
+          }
         />
+      ) : viewMode === 'lista' ? (
+        <Card padding="none" className="rounded-2xl border border-border bg-card shadow-2xs overflow-hidden">
+          <div className="divide-y divide-border/70">
+            {cardsVisiveis.map((card) => {
+              const concluida = card.coluna === 'concluido';
+              const tituloItem = card.kind === 'tarefa' ? card.tarefa.titulo : card.demanda.titulo || 'Demanda sem título';
+              const clienteItem = card.kind === 'tarefa' ? card.tarefa.cliente : card.demanda.cliente;
+              const colInfo = COLUNAS_ROTINA.find((c) => c.id === card.coluna);
+
+              return (
+                <div
+                  key={`${card.kind}:${card.id}`}
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 hover:bg-accent/25 transition-colors ${
+                    concluida ? 'opacity-60' : ''
+                  }`}
+                >
+                  <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => moverCard(card, concluida ? 'a_fazer' : 'concluido')}
+                      aria-label={concluida ? 'Reabrir item' : 'Concluir item'}
+                      className={`mt-0.5 sm:mt-0 size-5 rounded-md border flex items-center justify-center shrink-0 transition-ui cursor-pointer ${
+                        concluida
+                          ? 'bg-emerald-500 border-emerald-500 text-white'
+                          : 'border-border-strong hover:border-primary bg-card'
+                      }`}
+                    >
+                      {concluida && <Check className="w-3.5 h-3.5" />}
+                    </button>
+
+                    <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          card.kind === 'tarefa' ? setEditando(card.tarefa) : onAbrirDemanda?.(card.demanda.id)
+                        }
+                        className={`text-left font-display text-sm font-semibold text-foreground hover:text-primary transition-colors truncate block max-w-full cursor-pointer ${
+                          concluida ? 'line-through text-muted-foreground' : ''
+                        }`}
+                      >
+                        {tituloItem}
+                      </button>
+
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <Badge variant={card.kind === 'demanda' ? 'info' : 'muted'} className="text-[11px]">
+                          {card.kind === 'demanda'
+                            ? `Demanda · ${card.demanda.tipo}`
+                            : TIPO_TAREFA_LABELS[card.tarefa.tipo] || 'Interno'}
+                        </Badge>
+                        {colInfo && (
+                          <span className="px-2 py-0.5 rounded-full bg-muted/70 text-foreground/80 text-[11px] font-medium">
+                            {colInfo.label}
+                          </span>
+                        )}
+                        {clienteItem && (
+                          <span className="flex items-center gap-1 font-medium text-foreground">
+                            <ClienteAvatar nome={clienteItem.nome} cor={clienteItem.cor} tamanho="xs" />
+                            <span className="truncate max-w-[140px]">{clienteItem.nome}</span>
+                          </span>
+                        )}
+                        <PrazoChip prazo={card.prazo} atrasado={card.atrasado} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                    <MoverEtapaMenu etapas={etapasMenu} atual={card.coluna} onMover={(d) => moverCard(card, d)} />
+                    {card.kind === 'tarefa' && (
+                      <button
+                        type="button"
+                        onClick={() => handleExcluir(card.tarefa)}
+                        className="grid place-items-center size-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                        aria-label="Excluir tarefa"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
           {COLUNAS_ROTINA.map((coluna) => {
             const itens = porColuna[coluna.id];
+            const barColor =
+              coluna.id === 'a_fazer'
+                ? 'bg-slate-400'
+                : coluna.id === 'fazendo'
+                ? 'bg-primary'
+                : coluna.id === 'aguardando'
+                ? 'bg-amber-500'
+                : 'bg-emerald-500';
             return (
               <section
                 key={coluna.id}
@@ -690,16 +855,19 @@ export default function RotinaTab({ showToast, onAbrirDemanda }: RotinaTabProps)
                   const card = cards.find((c) => `${c.kind}:${c.id}` === chave);
                   if (card) moverCard(card, coluna.id);
                 }}
-                className={`flex flex-col gap-2 rounded-2xl border p-2.5 min-h-40 transition-colors ${
-                  colunaSobre === coluna.id ? 'border-primary bg-accent/50' : 'border-border bg-accent/20'
+                className={`relative overflow-hidden flex flex-col gap-2.5 rounded-2xl border p-3 min-h-44 transition-colors ${
+                  colunaSobre === coluna.id ? 'border-primary bg-accent/50' : 'border-border bg-card/60'
                 }`}
               >
-                <header className="flex items-center justify-between gap-2 px-1 pt-0.5">
-                  <div className="flex items-baseline gap-2">
-                    <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">{coluna.label}</h3>
-                    <span className="text-xs font-mono text-muted-foreground">{itens.length}</span>
+                <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 ${barColor}`} />
+                <header className="flex items-center justify-between gap-2 px-0.5 pt-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display text-xs font-bold text-foreground uppercase tracking-wide">{coluna.label}</h3>
+                    <span className="px-2 py-0.5 rounded-full bg-muted text-foreground text-[11px] font-semibold tabular-nums">
+                      {itens.length}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground truncate">{coluna.descricao}</span>
+                  <span className="text-[11px] text-muted-foreground truncate">{coluna.descricao}</span>
                 </header>
 
                 {itens.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Nada aqui.</p>}
@@ -772,7 +940,7 @@ function inicioDrag(e: React.DragEvent, chave: string) {
 function PrazoChip({ prazo, atrasado }: { prazo: string | null; atrasado: boolean }) {
   if (!prazo) return null;
   return (
-    <span className={`flex items-center gap-1 font-mono ${atrasado ? 'text-destructive font-bold' : ''}`}>
+    <span className={`flex items-center gap-1 font-sans tabular-nums ${atrasado ? 'text-destructive font-bold' : ''}`}>
       <Clock className="w-3 h-3" /> {formatarData(prazo)}
       {atrasado && <span className="sr-only">(atrasado)</span>}
     </span>
@@ -861,7 +1029,7 @@ function TarefaCard({
         ) : null}
         <PrazoChip prazo={t.prazo} atrasado={card.atrasado} />
         {t.estimativa_min ? (
-          <span className="flex items-center gap-1 font-mono">
+          <span className="flex items-center gap-1 font-sans tabular-nums">
             <Timer className="w-3 h-3" /> {formatarEstimativa(t.estimativa_min)}
           </span>
         ) : null}
@@ -949,7 +1117,7 @@ function DemandaCard({
         <Badge variant={etapa?.variant || 'muted'} className="text-xs">
           Demanda · {etapa?.label}
         </Badge>
-        <span className="uppercase font-mono text-xs">{d.tipo}</span>
+        <span className="uppercase font-sans font-semibold text-xs">{d.tipo}</span>
         {d.cliente && (
           <span className="flex items-center gap-1 font-medium text-foreground">
             <ClienteAvatar nome={d.cliente.nome} cor={d.cliente.cor} tamanho="xs" />
@@ -963,7 +1131,7 @@ function DemandaCard({
           </span>
         )}
         {sub && (
-          <Tip label={"Sub-tarefas concluídas / total"}><span className="flex items-center gap-1 font-mono">
+          <Tip label={"Sub-tarefas concluídas / total"}><span className="flex items-center gap-1 font-sans tabular-nums">
             <CheckSquare className="w-3 h-3" /> {sub.total - sub.abertas}/{sub.total}
           </span></Tip>
         )}

@@ -25,6 +25,8 @@ import {
   Paperclip,
   Share2,
   Edit2,
+  Plus,
+  List,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/components/ui/toast';
@@ -72,7 +74,21 @@ export default function CalendarioGeral({
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mesIndex, setMesIndex] = useState(hoje.getMonth());
   const [diaSelecionado, setDiaSelecionado] = useState(hoje.getDate());
-  const [viewMode, setViewMode] = useState<'mes' | 'semana' | 'dia'>('mes');
+  const [viewMode, setViewMode] = useState<'mes' | 'semana' | 'dia' | 'linha_tempo'>('mes');
+
+  function agendarParaData(dataYmd: string) {
+    if (!onIrParaAgendamento) return;
+    onIrParaAgendamento({
+      conteudoId: '',
+      clienteNome: '',
+      instagramUserId: null,
+      kind: 'post',
+      mediaUrls: [],
+      caption: '',
+      scheduledAt: `${dataYmd}T10:00`,
+      titulo: '',
+    });
+  }
 
   // Filtros
   const [clienteFiltro, setClienteFiltro] = useState('all');
@@ -346,42 +362,47 @@ export default function CalendarioGeral({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto max-md:w-full max-md:flex-col max-md:items-stretch">
-          {/* Alternador de Modo de Exibição (Pill Tabs Verde GENS) */}
-          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border max-md:grid max-md:grid-cols-3">
-            <button
-              type="button"
-              onClick={() => setViewMode('mes')}
-              className={`px-3 py-1 max-md:h-10 max-md:text-sm rounded-lg text-xs font-bold transition-ui cursor-pointer ${
-                viewMode === 'mes'
-                  ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Mês
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('semana')}
-              className={`px-3 py-1 max-md:h-10 max-md:text-sm rounded-lg text-xs font-bold transition-ui cursor-pointer ${
-                viewMode === 'semana'
-                  ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Semana
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('dia')}
-              className={`px-3 py-1 max-md:h-10 max-md:text-sm rounded-lg text-xs font-bold transition-ui cursor-pointer ${
-                viewMode === 'dia'
-                  ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Dia
-            </button>
+          {/* Alternador de Modo de Exibição */}
+          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border max-md:grid max-md:grid-cols-2">
+            {(
+              [
+                { id: 'mes', label: 'Mês' },
+                { id: 'semana', label: 'Semana' },
+                { id: 'dia', label: 'Dia' },
+                { id: 'linha_tempo', label: 'Linha do Tempo' },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setViewMode(opt.id)}
+                className={`px-3 py-1 max-md:h-10 max-md:text-sm rounded-lg text-xs font-bold transition-ui cursor-pointer inline-flex items-center justify-center gap-1.5 ${
+                  viewMode === opt.id
+                    ? 'bg-secondary text-secondary-foreground border border-primary/40 shadow-2xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {opt.id === 'linha_tempo' && <List className="w-3.5 h-3.5" />}
+                {opt.label}
+              </button>
+            ))}
           </div>
+
+          {onIrParaAgendamento && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() =>
+                agendarParaData(
+                  `${ano}-${String(mesIndex + 1).padStart(2, '0')}-${String(diaSelecionado).padStart(2, '0')}`
+                )
+              }
+              className="rounded-xl shadow-xs h-9"
+            >
+              <Plus className="w-4 h-4" />
+              Agendar post
+            </Button>
+          )}
 
           {/* Navegação de Mês & Botão Hoje */}
           <div className="flex items-center gap-1.5 bg-accent/60 p-1 rounded-xl border border-border shadow-2xs max-md:w-full max-md:justify-between">
@@ -435,10 +456,197 @@ export default function CalendarioGeral({
         </span>
       </div>
 
-      {/* 3. Grade do Calendário (Mês / Semana / Dia) */}
+      {/* 3. Grade do Calendário (Mês / Semana / Dia / Linha do Tempo) */}
+      {viewMode === 'linha_tempo' ? (
+        <div className="flex flex-col gap-4">
+          {diasDoCalendario.filter((d) => d.dia && d.itens.length > 0).length === 0 ? (
+            <Card padding="lg" className="rounded-3xl border border-border bg-card text-center py-12 flex flex-col items-center gap-3">
+              <CalendarIcon className="w-8 h-8 text-muted-foreground" />
+              <div>
+                <p className="font-display text-sm font-bold text-foreground">Nenhuma postagem neste mês</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Agende ou programe uma demanda para acompanhar a linha do tempo cronológica por aqui.
+                </p>
+              </div>
+              {onIrParaAgendamento && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() =>
+                    agendarParaData(
+                      `${ano}-${String(mesIndex + 1).padStart(2, '0')}-${String(diaSelecionado).padStart(2, '0')}`
+                    )
+                  }
+                  className="rounded-xl"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agendar primeira postagem
+                </Button>
+              )}
+            </Card>
+          ) : (
+            diasDoCalendario
+              .filter((d) => d.dia && d.itens.length > 0)
+              .map((d) => {
+                const dataObj = new Date(ano, mesIndex, d.dia!);
+                const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'long' });
+                const eHoje =
+                  d.dia === hoje.getDate() &&
+                  mesIndex === hoje.getMonth() &&
+                  ano === hoje.getFullYear();
+
+                return (
+                  <Card key={d.dataStr} padding="none" className="rounded-2xl border border-border bg-card shadow-2xs overflow-hidden">
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-border/80 bg-muted/30">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`size-8 rounded-xl font-display font-bold text-sm flex items-center justify-center tabular-nums ${
+                            eHoje ? 'bg-primary text-primary-foreground shadow-2xs' : 'bg-card border border-border text-foreground'
+                          }`}
+                        >
+                          {d.dia}
+                        </span>
+                        <div>
+                          <p className="font-display text-sm font-bold text-foreground capitalize">
+                            {diaSemana}
+                            {eHoje && (
+                              <span className="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/15 text-primary">
+                                Hoje
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground tabular-nums">
+                            {d.itens.length} {d.itens.length === 1 ? 'postagem programada' : 'postagens programadas'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {onIrParaAgendamento && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => agendarParaData(d.dataStr)}
+                          className="rounded-xl text-xs h-8"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Agendar neste dia
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="divide-y divide-border/70">
+                      {d.itens.map((item) => {
+                        const statusInfo = STATUS_LABELS[item.status as StatusConteudo] || { label: item.status };
+                        const horaFormatada = horaLocal(item.data_programada);
+                        const capaUrl = item.arquivos?.[0]?.url;
+
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => setItemModal(item)}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 hover:bg-accent/25 transition-colors cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              {capaUrl ? (
+                                <img
+                                  src={capaUrl}
+                                  alt=""
+                                  className="w-12 aspect-[4/5] rounded-xl object-cover border border-border shrink-0 bg-muted"
+                                />
+                              ) : (
+                                <div className="w-12 aspect-[4/5] rounded-xl border border-dashed border-border bg-muted/40 flex items-center justify-center shrink-0 text-muted-foreground">
+                                  <ImageIcon className="w-4 h-4" />
+                                </div>
+                              )}
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {item.cliente && (
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                      <ClienteAvatar nome={item.cliente.nome} cor={item.cliente.cor} tamanho="xs" />
+                                      <span>{item.cliente.nome}</span>
+                                    </span>
+                                  )}
+                                  {getFormatBadge(item.tipo)}
+                                  <Badge variant="muted" className="text-[11px]">
+                                    {statusInfo.label}
+                                  </Badge>
+                                </div>
+
+                                <p className="font-display text-sm font-bold text-foreground truncate mt-1">
+                                  {item.titulo || 'Postagem sem título'}
+                                </p>
+
+                                <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-muted-foreground tabular-nums">
+                                  <span className="inline-flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {horaFormatada || 'Sem horário'}
+                                  </span>
+                                  {item.responsavel && (
+                                    <span className="inline-flex items-center gap-1">
+                                      <User className="w-3 h-3" />
+                                      {item.responsavel.nome}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                              {onAbrirDemanda && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAbrirDemanda(item.id);
+                                  }}
+                                  className="rounded-xl text-xs h-8"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  Demanda
+                                </Button>
+                              )}
+                              {onIrParaAgendamento && (
+                                <Button
+                                  type="button"
+                                  variant="primary"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onIrParaAgendamento({
+                                      conteudoId: item.id,
+                                      clienteNome: item.cliente?.nome || 'Cliente',
+                                      instagramUserId: (item.cliente as any)?.instagram_accounts?.instagram_username || null,
+                                      kind: item.tipo === 'reel' ? 'reels' : item.tipo === 'story' ? 'story' : 'post',
+                                      mediaUrls: item.arquivos?.map((a) => a.url) || [],
+                                      caption: item.legenda || '',
+                                      scheduledAt: item.data_programada || `${d.dataStr}T10:00`,
+                                      titulo: item.titulo || 'Publicação',
+                                    });
+                                  }}
+                                  className="rounded-xl text-xs h-8"
+                                >
+                                  <Send className="w-3.5 h-3.5" />
+                                  Agendar
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                );
+              })
+          )}
+        </div>
+      ) : (
       <Card padding="none" className="rounded-3xl border border-border overflow-hidden shadow-xs bg-card">
         {viewMode !== 'dia' && (
-          <div className="hidden sm:grid grid-cols-7 border-b border-border bg-muted/40 text-center py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground font-mono">
+          <div className="hidden sm:grid grid-cols-7 border-b border-border bg-muted/40 text-center py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground font-sans">
             <span>Dom</span>
             <span>Seg</span>
             <span>Ter</span>
@@ -481,15 +689,15 @@ export default function CalendarioGeral({
                     setDiaAlvo(null);
                     if (it) reagendar(it, d.dataStr);
                   }}
-                  className={`p-2 ${viewMode === 'semana' ? 'min-h-[220px]' : 'min-h-[130px]'} flex flex-col justify-between transition-colors cursor-pointer ${
+                  className={`group p-2 ${viewMode === 'semana' ? 'min-h-[220px]' : 'min-h-[130px]'} flex flex-col justify-between transition-colors cursor-pointer ${
                     diaAlvo === d.dataStr
                       ? 'bg-brand-soft ring-2 ring-inset ring-brand-ring'
                       : temChoque ? 'bg-warning/5' : eHoje ? 'bg-primary/10' : 'hover:bg-accent/20'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-1">
                     <span
-                      className={`text-xs font-bold font-mono ${
+                      className={`text-xs font-bold font-sans tabular-nums ${
                         eHoje
                           ? 'w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold shadow-2xs'
                           : 'text-foreground'
@@ -498,11 +706,26 @@ export default function CalendarioGeral({
                       {d.dia}
                     </span>
 
-                    {d.itens.length > 0 && (
-                      <span className="text-xs font-mono text-muted-foreground font-bold bg-accent px-1.5 py-0.2 rounded-md border border-border">
-                        {d.itens.length} {d.itens.length === 1 ? 'post' : 'posts'}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {onIrParaAgendamento && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            agendarParaData(d.dataStr);
+                          }}
+                          title="Agendar postagem neste dia"
+                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 size-5 rounded-md bg-primary/15 text-primary hover:bg-primary hover:text-primary-foreground flex items-center justify-center transition-all cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      )}
+                      {d.itens.length > 0 && (
+                        <span className="text-[11px] font-sans tabular-nums text-muted-foreground font-bold bg-accent px-1.5 py-0.5 rounded-md border border-border">
+                          {d.itens.length} {d.itens.length === 1 ? 'post' : 'posts'}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Lista de Event Blocks no Dia */}
@@ -598,7 +821,7 @@ export default function CalendarioGeral({
                   {diasExibicao[0]?.dia} de {nomeMes} {diasExibicao[0]?.nomeDia ? `(${diasExibicao[0]?.nomeDia})` : ''}
                 </h3>
               </div>
-              <span className="text-xs font-mono font-bold px-3 py-1 rounded-xl bg-accent text-foreground">
+              <span className="text-xs font-sans tabular-nums font-bold px-3 py-1 rounded-xl bg-accent text-foreground">
                 {diasExibicao[0]?.itens.length || 0} publicações agendadas
               </span>
             </div>
@@ -671,6 +894,7 @@ export default function CalendarioGeral({
           </div>
         )}
       </Card>
+      )}
 
       {/* 4. Modal 2 Colunas de Detalhes da Demanda (Trello Style) */}
       <Sheet open={!!itemModal} onClose={() => setItemModal(null)} className="max-w-4xl w-full p-0">
