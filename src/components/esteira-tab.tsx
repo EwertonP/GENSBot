@@ -1478,14 +1478,17 @@ export default function EsteiraTab({
 
                         {/* Capa da Demanda no Kanban (Proporção real Instagram 4:5 — 1080×1350) */}
                         {capaUrl && (
-                          <div className="relative aspect-[4/5] w-full bg-black/60 rounded-xl overflow-hidden border border-border/60 shrink-0">
+                          <div
+                            className="relative aspect-[4/5] w-full bg-black/60 rounded-xl overflow-hidden border border-border/60 shrink-0"
+                            style={{ aspectRatio: '4 / 5' }}
+                          >
                             {item.tipo === 'reel' && capaUrl.match(/\.(mp4|mov|webm)/i) ? (
-                              <video src={capaUrl} className="w-full h-full object-contain" muted />
+                              <video src={capaUrl} className="absolute inset-0 w-full h-full object-contain" muted />
                             ) : (
                               <img
                                 src={capaUrl}
                                 alt=""
-                                className="w-full h-full object-contain group-hover:scale-102 transition-transform duration-300"
+                                className="absolute inset-0 w-full h-full object-contain group-hover:scale-102 transition-transform duration-300"
                               />
                             )}
                           </div>
