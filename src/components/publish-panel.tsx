@@ -51,7 +51,6 @@ import {
   Heart,
   MessageCircle,
   Bookmark,
-  Share2,
   ChevronLeft,
   ChevronRight,
   Layers,
@@ -70,16 +69,16 @@ import {
   AlertTriangle,
   ArrowLeft,
   User,
+  Users,
+  AtSign,
+  MoreHorizontal,
+  Eye,
   Pencil,
   Save,
-  Music,
   MapPin,
   ImagePlus,
   Radio,
-  Play,
-  Pause,
   Smartphone,
-  Download,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { HeroGradientPanel, HeroKpiCard } from '@/components/ui/hero-gradient-panel';
@@ -98,9 +97,6 @@ import { confirmDialog } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/toast';
 import { CollaboratorsTagsInput, type CollaboratorTag } from '@/components/collaborators-tags-input';
 import { LocationPicker } from '@/components/location-picker';
-import { AudioPickerModal } from '@/components/audio-picker-modal';
-import { PublishAppKitModal } from '@/components/publish-app-kit-modal';
-import type { TrendingTrack } from '@/app/api/instagram/trending-audios/route';
 import { Instagram } from '@/components/instagram-icon';
 import type { WorkspaceContexto } from '@/types/workspace';
 import { ClienteAvatar } from '@/components/cliente-avatar';
@@ -202,7 +198,7 @@ function MetricsInline({
   );
 }
 
-/** Mockup de Celular Fiel ao Instagram (Feed 4:5, Reels 9:16 e Stories) */
+/** Prévia Editorial Realista do Instagram (Feed 4:5, Reels 9:16 e Stories) */
 function InstagramPhoneMockup({
   kind,
   username,
@@ -212,8 +208,8 @@ function InstagramPhoneMockup({
   caption,
   automationKeyword,
   locationName,
-  audioName,
   collaborators,
+  userTags,
   coverUrl,
 }: {
   kind: PostKind;
@@ -224,11 +220,12 @@ function InstagramPhoneMockup({
   caption: string;
   automationKeyword?: string | null;
   locationName?: string | null;
-  audioName?: string | null;
   collaborators?: { username: string }[];
+  userTags?: { username: string }[];
   coverUrl?: string | null;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [captionExpanded, setCaptionExpanded] = useState(false);
 
   useEffect(() => {
     if (currentIndex >= previewUrls.length) {
@@ -237,62 +234,78 @@ function InstagramPhoneMockup({
   }, [previewUrls.length, currentIndex]);
 
   const activeUrl = previewUrls[currentIndex] || previewUrls[0] || null;
+  const isVertical = kind === 'story' || kind === 'reels' || (isVideo && !isCarousel);
 
   return (
-    <div className="w-full max-w-[340px] mx-auto bg-card rounded-[38px] border-4 border-foreground/15 shadow-2xl overflow-hidden flex flex-col select-none relative">
-      {/* Top Notch do Celular */}
-      <div className="bg-card px-6 pt-3 pb-2 flex items-center justify-between border-b border-border">
-        <span className="text-[10px] font-bold text-foreground font-mono">9:41</span>
-        <div className="w-16 h-3.5 bg-foreground/90 rounded-full" />
-        <div className="flex items-center gap-1 text-[10px] text-foreground">
-          <span>5G</span>
-          <div className="w-3.5 h-2 rounded-xs border border-foreground/80 bg-foreground/60" />
-        </div>
-      </div>
-
-      {/* Header do Post no Instagram */}
-      <div className="p-3 flex items-center justify-between bg-card border-b border-border">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#00DC94] via-[#018B61] to-[#014130] p-0.5 shadow-2xs shrink-0">
-            <div className="w-full h-full rounded-full bg-card flex items-center justify-center font-bold text-[10px] text-foreground">
-              {username[1]?.toUpperCase() || 'G'}
-            </div>
+    <div className="w-full max-w-[360px] mx-auto bg-card rounded-3xl border border-border shadow-xl overflow-hidden flex flex-col select-none">
+      {/* Header do Post (Feed / Reels) ou Barra de Story */}
+      {kind === 'story' ? (
+        <div className="px-4 pt-3 pb-2 bg-[#0d120a] text-white flex flex-col gap-2">
+          <div className="flex items-center gap-1">
+            <span className="h-0.5 flex-1 rounded-full bg-white/90" />
+            <span className="h-0.5 flex-1 rounded-full bg-white/30" />
           </div>
-          <div className="flex flex-col min-w-0 text-left">
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-xs font-bold text-foreground leading-none truncate">{username}</span>
-              {collaborators && collaborators.length > 0 && (
-                <span className="text-[10px] text-muted-foreground truncate">
-                  e {collaborators.map((c) => `@${c.username}`).join(', ')}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#00DC94] via-[#018B61] to-[#014130] p-0.5 shrink-0">
+                <div className="w-full h-full rounded-full bg-[#0d120a] flex items-center justify-center font-bold text-[10px] text-white">
+                  {username.replace(/^@/, '')[0]?.toUpperCase() || 'G'}
+                </div>
+              </div>
+              <span className="text-xs font-bold truncate">{username}</span>
+              <span className="text-[10px] text-white/60">Agora</span>
+            </div>
+            <MoreHorizontal className="w-4 h-4 text-white/80 shrink-0" />
+          </div>
+        </div>
+      ) : (
+        <div className="px-3.5 py-3 flex items-center justify-between bg-card border-b border-border/80">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00DC94] via-[#018B61] to-[#014130] p-[2px] shrink-0">
+              <div className="w-full h-full rounded-full bg-card flex items-center justify-center font-bold text-[11px] text-foreground">
+                {username.replace(/^@/, '')[0]?.toUpperCase() || 'G'}
+              </div>
+            </div>
+            <div className="flex flex-col min-w-0 text-left">
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="text-xs font-bold text-foreground leading-none truncate">{username}</span>
+                {collaborators && collaborators.length > 0 && (
+                  <span className="text-[11px] text-muted-foreground truncate">
+                    e <strong className="font-semibold text-foreground">{collaborators.map((c) => `@${c.username}`).join(', ')}</strong>
+                  </span>
+                )}
+              </div>
+              {locationName ? (
+                <span className="text-[11px] text-muted-foreground mt-0.5 truncate flex items-center gap-1">
+                  <MapPin className="w-2.5 h-2.5 shrink-0 text-primary" />
+                  {locationName}
+                </span>
+              ) : (
+                <span className="text-[10px] text-muted-foreground mt-0.5">
+                  {kind === 'reels' ? 'Reels · Áudio original' : isCarousel ? 'Carrossel no Feed' : 'Publicação no Feed'}
                 </span>
               )}
             </div>
-            {locationName ? (
-              <span className="text-[10px] text-foreground/90 font-medium mt-0.5 truncate flex items-center gap-0.5">
-                <MapPin className="w-2.5 h-2.5 shrink-0 text-primary" />
-                {locationName}
-              </span>
-            ) : audioName ? (
-              <span className="text-[9px] text-muted-foreground mt-0.5 truncate flex items-center gap-0.5">
-                <Music className="w-2.5 h-2.5 shrink-0 text-primary" />
-                {audioName}
-              </span>
-            ) : (
-              <span className="text-[9px] text-muted-foreground mt-0.5">Áudio original</span>
-            )}
           </div>
+          <MoreHorizontal className="w-4 h-4 text-muted-foreground shrink-0 ml-1" />
         </div>
-        <span className="text-xs font-bold text-muted-foreground tracking-widest shrink-0 ml-1">•••</span>
-      </div>
+      )}
 
       {/* Área da Mídia */}
       <div className={`relative w-full bg-[#0d120a] overflow-hidden flex items-center justify-center ${
-        kind === 'story' || kind === 'reels' || (isVideo && !isCarousel) ? 'aspect-[9/16]' : 'aspect-[4/5]'
+        isVertical ? 'aspect-[9/16]' : 'aspect-[4/5]'
       }`}>
         {previewUrls.length === 0 ? (
-          <div className="p-8 text-center flex flex-col items-center gap-2 text-muted-foreground">
-            <ImageIcon className="w-8 h-8 opacity-30" />
-            <p className="text-xs font-medium">Faça upload da foto ou vídeo para ver a prévia real</p>
+          <div className="p-8 text-center flex flex-col items-center gap-2.5 text-white/60">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center">
+              <ImageIcon className="w-6 h-6 text-white/70" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-white/90">Nenhuma mídia anexada</p>
+              <p className="text-[11px] text-white/60 max-w-[200px]">
+                Adicione foto ou vídeo à esquerda para visualizar a prévia em tempo real.
+              </p>
+            </div>
           </div>
         ) : isVideo ? (
           <video src={activeUrl || ''} className="w-full h-full object-cover" controls muted />
@@ -302,28 +315,32 @@ function InstagramPhoneMockup({
 
         {/* Indicador de Capa Customizada no Reels */}
         {kind === 'reels' && coverUrl && (
-          <div className="absolute top-2 left-2 bg-black/75 backdrop-blur-md border border-white/20 rounded-lg px-2 py-0.5 flex items-center gap-1 text-[9px] text-white font-medium">
-            <ImagePlus className="w-2.5 h-2.5 text-primary" />
-            <span>Capa Personalizada</span>
+          <div className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md border border-white/20 rounded-lg px-2 py-1 flex items-center gap-1 text-[10px] text-white font-semibold">
+            <ImagePlus className="w-3 h-3 text-primary" />
+            <span>Capa personalizada</span>
           </div>
         )}
 
-        {/* Sticker de Música no Instagram Stories */}
-        {kind === 'story' && audioName && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/75 dark:bg-black/85 backdrop-blur-md border border-white/20 rounded-full px-3 py-1 flex items-center gap-1.5 shadow-lg max-w-[85%] z-10 animate-in fade-in duration-200">
-            <Music className="w-3 h-3 text-primary shrink-0 animate-pulse" />
-            <span className="text-[10px] font-bold text-white truncate">{audioName}</span>
+        {/* Indicador de Marcações (user_tags) */}
+        {userTags && userTags.length > 0 && (
+          <div className="absolute bottom-2.5 left-2.5 bg-black/80 backdrop-blur-md border border-white/15 rounded-full px-2.5 py-1 flex items-center gap-1.5 text-[10px] text-white font-medium shadow-md max-w-[85%]">
+            <AtSign className="w-3 h-3 text-primary shrink-0" />
+            <span className="truncate">
+              {userTags.length === 1
+                ? `@${userTags[0].username}`
+                : `${userTags.length} perfis marcados`}
+            </span>
           </div>
         )}
 
         {/* Banner de Comentários / Automação no mockup */}
         {automationKeyword && (
-          <div className="absolute bottom-2 left-2 right-2 bg-black/85 backdrop-blur-md border border-primary/50 rounded-xl px-2.5 py-1.5 flex items-center justify-between shadow-lg animate-in fade-in duration-200">
+          <div className="absolute bottom-2.5 right-2.5 left-2.5 bg-black/85 backdrop-blur-md border border-primary/50 rounded-xl px-2.5 py-1.5 flex items-center justify-between shadow-lg">
             <div className="flex items-center gap-1.5 text-[10px] text-white">
               <Zap className="w-3 h-3 text-primary shrink-0" />
-              <span>Comente <strong className="text-primary font-mono font-bold">"{automationKeyword}"</strong></span>
+              <span>Comente <strong className="text-primary font-mono font-bold">&quot;{automationKeyword}&quot;</strong></span>
             </div>
-            <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold font-mono">⚡ DM Ativa</span>
+            <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold font-mono">DM Ativa</span>
           </div>
         )}
 
@@ -334,7 +351,8 @@ function InstagramPhoneMockup({
               <button
                 type="button"
                 onClick={() => setCurrentIndex((c) => c - 1)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center backdrop-blur-md shadow-md active:scale-95"
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center backdrop-blur-md shadow-md hover:bg-black/80 transition-ui cursor-pointer"
+                aria-label="Slide anterior"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -343,12 +361,12 @@ function InstagramPhoneMockup({
               <button
                 type="button"
                 onClick={() => setCurrentIndex((c) => c + 1)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center backdrop-blur-md shadow-md active:scale-95"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center backdrop-blur-md shadow-md hover:bg-black/80 transition-ui cursor-pointer"
+                aria-label="Próximo slide"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             )}
-            {/* Indicador de Bolinhas do Instagram */}
             <div className="absolute top-3 right-3 bg-black/70 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full backdrop-blur-md">
               {currentIndex + 1}/{previewUrls.length}
             </div>
@@ -356,36 +374,52 @@ function InstagramPhoneMockup({
         )}
       </div>
 
-      {/* Ações do Instagram */}
-      <div className="px-3.5 py-2.5 flex items-center justify-between bg-card text-foreground">
-        <div className="flex items-center gap-3.5">
-          <Heart className="w-5 h-5 hover:text-destructive cursor-pointer transition-colors" />
-          <MessageCircle className="w-5 h-5 cursor-pointer" />
-          <Share2 className="w-5 h-5 cursor-pointer" />
-        </div>
-        {isCarousel && previewUrls.length > 1 && (
-          <div className="flex items-center gap-1">
-            {previewUrls.map((_, i) => (
-              <span
-                key={i}
-                className={`h-1.5 rounded-full transition-ui ${
-                  currentIndex === i ? 'w-3 bg-foreground' : 'w-1 bg-muted-foreground/40'
-                }`}
-              />
-            ))}
+      {/* Ações e Legenda (apenas Feed / Reels) */}
+      {kind !== 'story' && (
+        <>
+          <div className="px-3.5 py-2.5 flex items-center justify-between bg-card text-foreground">
+            <div className="flex items-center gap-3.5">
+              <Heart className="w-5 h-5 hover:text-destructive cursor-pointer transition-colors" />
+              <MessageCircle className="w-5 h-5 cursor-pointer" />
+              <Send className="w-5 h-5 cursor-pointer" />
+            </div>
+            {isCarousel && previewUrls.length > 1 && (
+              <div className="flex items-center gap-1">
+                {previewUrls.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 rounded-full transition-ui ${
+                      currentIndex === i ? 'w-3 bg-primary' : 'w-1.5 bg-muted-foreground/35'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+            <Bookmark className="w-5 h-5 cursor-pointer" />
           </div>
-        )}
-        <Bookmark className="w-5 h-5 cursor-pointer" />
-      </div>
 
-      {/* Legenda com expansão visual */}
-      <div className="px-3.5 pb-4 bg-card flex flex-col gap-1">
-        <p className="text-xs text-foreground leading-relaxed line-clamp-3">
-          <strong className="mr-1.5">{username}</strong>
-          {caption || 'Sua legenda formatada aparecerá aqui com hashtags e quebras de linha...'}
-        </p>
-        <span className="text-[10px] text-muted-foreground uppercase font-semibold mt-1">Há alguns minutos</span>
-      </div>
+          <div className="px-3.5 pb-4 bg-card flex flex-col gap-1.5 text-left">
+            <p className={`text-xs text-foreground leading-relaxed whitespace-pre-line ${captionExpanded ? '' : 'line-clamp-4'}`}>
+              <strong className="mr-1.5">{username.replace(/^@/, '')}</strong>
+              {caption || (
+                <span className="text-muted-foreground italic">
+                  Sua legenda formatada aparecerá aqui com hashtags e quebras de linha...
+                </span>
+              )}
+            </p>
+            {caption.length > 140 && (
+              <button
+                type="button"
+                onClick={() => setCaptionExpanded((v) => !v)}
+                className="text-[11px] font-semibold text-muted-foreground hover:text-foreground self-start cursor-pointer"
+              >
+                {captionExpanded ? 'ver menos' : 'ver mais'}
+              </button>
+            )}
+            <span className="text-[10px] text-muted-foreground uppercase font-semibold">Agora mesmo</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -407,10 +441,9 @@ export default function PublishPanel({
   const [collaboratorsInput, setCollaboratorsInput] = useState('');
   const [verificandoColab, setVerificandoColab] = useState(false);
   const [collaboratorTags, setCollaboratorTags] = useState<CollaboratorTag[]>([]);
-  const [userTagsInput, setUserTagsInput] = useState('');
+  const [userTagList, setUserTagList] = useState<CollaboratorTag[]>([]);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [locationName, setLocationName] = useState<string | null>(null);
-  const [audioName, setAudioName] = useState<string>('');
   // Responsável pelo post (conta como entrega na produtividade). Vazio = quem está publicando.
   const [responsavelId, setResponsavelId] = useState<string>('');
   const [equipe, setEquipe] = useState<{ id: string; nome: string }[]>([]);
@@ -431,46 +464,6 @@ export default function PublishPanel({
       ativo = false;
     };
   }, []);
-  const [audioPickerOpen, setAudioPickerOpen] = useState(false);
-  const [appKitOpen, setAppKitOpen] = useState(false);
-  const [selectedTrack, setSelectedTrack] = useState<TrendingTrack | null>(null);
-  const [panelAudioPlaying, setPanelAudioPlaying] = useState(false);
-  const panelAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (panelAudioRef.current) {
-        panelAudioRef.current.pause();
-        panelAudioRef.current = null;
-      }
-    };
-  }, []);
-
-  const handleTogglePanelAudio = () => {
-    if (!selectedTrack?.preview_url) return;
-    if (panelAudioPlaying) {
-      panelAudioRef.current?.pause();
-      setPanelAudioPlaying(false);
-    } else {
-      if (!panelAudioRef.current || panelAudioRef.current.src !== selectedTrack.preview_url) {
-        panelAudioRef.current = new Audio(selectedTrack.preview_url);
-        panelAudioRef.current.onended = () => setPanelAudioPlaying(false);
-        panelAudioRef.current.onerror = () => setPanelAudioPlaying(false);
-      }
-      panelAudioRef.current.play().catch(() => setPanelAudioPlaying(false));
-      setPanelAudioPlaying(true);
-    }
-  };
-
-  const handleClearAudio = () => {
-    setAudioName('');
-    setSelectedTrack(null);
-    if (panelAudioRef.current) {
-      panelAudioRef.current.pause();
-      panelAudioRef.current = null;
-      setPanelAudioPlaying(false);
-    }
-  };
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -612,9 +605,6 @@ export default function PublishPanel({
     if (prefillData.locationName || prefillData.locationId) {
       setLocationId(prefillData.locationId || null);
       setLocationName(prefillData.locationName || null);
-    }
-    if (prefillData.audioName) {
-      setAudioName(prefillData.audioName);
     }
     if (prefillData.collaborators && prefillData.collaborators.length > 0) {
       setCollaboratorTags(prefillData.collaborators.map((c) => ({ username: c.replace(/^@/, '') })));
@@ -798,7 +788,7 @@ export default function PublishPanel({
           setVerificandoColab(false);
         }
       }
-      const userTags = kind === 'story' ? parseNameList(userTagsInput).map((username) => ({ username })) : [];
+      const userTags = userTagList.map((t) => ({ username: t.username.replace(/^@/, '') })).filter((t) => t.username);
 
       const automationPayload = autoEnabled
         ? {
@@ -826,7 +816,6 @@ export default function PublishPanel({
             cover_url: finalCoverUrl || undefined,
             location_id: locationId || undefined,
             location_name: locationName || undefined,
-            audio_name: audioName.trim() || undefined,
             scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
             automation_config: automationPayload,
           }),
@@ -851,7 +840,6 @@ export default function PublishPanel({
             cover_url: finalCoverUrl || undefined,
             location_id: locationId || undefined,
             location_name: locationName || undefined,
-            audio_name: audioName.trim() || undefined,
             scheduled_at: scheduleEnabled && scheduledAt ? scheduledAt.toISOString() : undefined,
             conteudo_item_id: prefillData?.conteudoId || undefined,
             responsavel_id: responsavelId || undefined,
@@ -895,15 +883,9 @@ export default function PublishPanel({
       setCaption('');
       setCollaboratorsInput('');
       setCollaboratorTags([]);
-      setUserTagsInput('');
+      setUserTagList([]);
       setLocationId(null);
       setLocationName(null);
-      setAudioName('');
-      setSelectedTrack(null);
-      if (panelAudioRef.current) {
-        panelAudioRef.current.pause();
-        setPanelAudioPlaying(false);
-      }
       setCoverUrl(null);
       setCoverFile(null);
       setCoverPreview(null);
@@ -940,9 +922,8 @@ export default function PublishPanel({
     caption.trim() !== '' ||
     collaboratorTags.length > 0 ||
     collaboratorsInput.trim() !== '' ||
-    userTagsInput.trim() !== '' ||
+    userTagList.length > 0 ||
     locationName !== null ||
-    audioName.trim() !== '' ||
     coverFile !== null ||
     (autoEnabled && !editingPostId);
 
@@ -997,16 +978,17 @@ export default function PublishPanel({
       setCollaboratorsInput('');
     }
     const postTags = (post as any).user_tags;
-    setUserTagsInput(
+    setUserTagList(
       Array.isArray(postTags)
-        ? postTags.map((t: any) => (typeof t === 'string' ? t : t.username)).join(', ')
-        : ''
+        ? postTags
+            .map((t: any) => ({ username: String(typeof t === 'string' ? t : t?.username || '').replace(/^@/, '') }))
+            .filter((t: CollaboratorTag) => Boolean(t.username))
+        : []
     );
 
-    // Localização, Capa e Áudio
+    // Localização e Capa
     setLocationId((post as any).location_id || null);
     setLocationName((post as any).location_name || null);
-    setAudioName((post as any).audio_name || '');
     setCoverUrl((post as any).cover_url || null);
     setCoverFile(null);
     setCoverPreview((post as any).cover_url || null);
@@ -1039,15 +1021,9 @@ export default function PublishPanel({
     setCaption('');
     setCollaboratorsInput('');
     setCollaboratorTags([]);
-    setUserTagsInput('');
+    setUserTagList([]);
     setLocationId(null);
     setLocationName(null);
-    setAudioName('');
-    setSelectedTrack(null);
-    if (panelAudioRef.current) {
-      panelAudioRef.current.pause();
-      setPanelAudioPlaying(false);
-    }
     setCoverUrl(null);
     setCoverFile(null);
     setCoverPreview(null);
@@ -1517,229 +1493,56 @@ export default function PublishPanel({
             </div>
           )}
 
-          {/* Trilha Sonora / Música para Feed, Carrossel, Reels e Stories */}
-          <div className="flex flex-col gap-3 p-4 rounded-2xl bg-card border border-border shadow-2xs">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-primary/15 text-primary flex items-center justify-center shadow-2xs">
-                  <Music className="w-4 h-4" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-foreground block">
-                    Trilha Sonora / Música (Opcional)
-                  </label>
-                  <span className="text-xs text-muted-foreground">
-                    {kind === 'reels'
-                      ? 'Áudio de exibição no Reels.'
-                      : kind === 'story'
-                      ? 'Música para o Story (com sticker na prévia).'
-                      : isCarousel
-                      ? 'Música de fundo recomendada para o Carrossel.'
-                      : 'Música de fundo recomendada para a publicação.'}
-                  </span>
-                </div>
-              </div>
-
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setAudioPickerOpen(true)}
-                    className="h-8 text-xs rounded-xl gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-primary" />
-                    Explorar Músicas em Alta
-                  </Button>
-
-                  {(isCarousel || kind === 'story' || audioName.trim()) && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => setAppKitOpen(true)}
-                      className="h-8 text-xs rounded-xl gap-1.5 border border-primary/30 text-foreground hover:bg-accent font-semibold"
-                      title="Abrir Kit para Postar no App com Música Oficial"
-                    >
-                      <Smartphone className="w-3.5 h-3.5 text-primary" />
-                      Kit de Postagem no App
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Se tiver uma faixa selecionada com artwork e preview */}
-              {selectedTrack ? (
-                <div className="flex items-center justify-between p-3 rounded-xl bg-accent/25 border border-primary/20 gap-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-accent shrink-0 border border-border group">
-                      {selectedTrack.artwork_url ? (
-                        <img
-                          src={selectedTrack.artwork_url}
-                          alt={selectedTrack.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          <Music className="w-4 h-4" />
-                        </div>
-                      )}
-                      {selectedTrack.preview_url && (
-                        <Tip label={panelAudioPlaying ? 'Pausar prévia' : 'Ouvir prévia (30s)'}><button
-                          type="button"
-                          onClick={handleTogglePanelAudio}
-                          className="absolute inset-0 bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors cursor-pointer"
-                        >
-                          {panelAudioPlaying ? (
-                            <Pause className="w-4 h-4 text-primary fill-primary" />
-                          ) : (
-                            <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-                          )}
-                        </button></Tip>
-                      )}
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-bold text-foreground truncate max-w-[200px] sm:max-w-[280px]">
-                          {selectedTrack.title}
-                        </span>
-                        {panelAudioPlaying && (
-                          <div className="flex items-center gap-0.5 h-2.5">
-                            <span className="w-0.5 bg-primary h-2.5 animate-pulse" />
-                            <span className="w-0.5 bg-primary h-1.5 animate-pulse [animation-delay:150ms]" />
-                            <span className="w-0.5 bg-primary h-3 animate-pulse [animation-delay:300ms]" />
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground truncate">
-                        {selectedTrack.artist}
-                      </span>
-                      <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
-                        <a
-                          href={selectedTrack.instagram_search_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline flex items-center gap-1 font-semibold"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Instagram className="w-2.5 h-2.5" />
-                          Ver no Instagram
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-
-                        {selectedTrack.preview_url && (
-                          <Tip label={"Baixar áudio de 30s para embutir no Canva ou CapCut"}><a
-                            href={selectedTrack.preview_url}
-                            download={`${selectedTrack.title}.mp3`}
-                            target="_blank"
-                            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Download className="w-2.5 h-2.5 text-primary" />
-                            Baixar MP3 (p/ Vídeo)
-                          </a></Tip>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Tip label={"Trocar música"}><button
-                      type="button"
-                      onClick={() => setAudioPickerOpen(true)}
-                      className="px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent/40 rounded-lg transition-colors cursor-pointer"
-                    >
-                      Trocar
-                    </button></Tip>
-                    <Tip label={"Remover música"}><button
-                      type="button"
-                      onClick={handleClearAudio}
-                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer" aria-label={"Remover música"}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button></Tip>
-                  </div>
-                </div>
-              ) : (
-                /* Campo de input de texto caso queira digitar livremente ou se não selecionou do catálogo */
-                <div className="relative flex items-center">
-                  <Music className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <input
-                    type="text"
-                    value={audioName}
-                    onChange={(e) => {
-                      setAudioName(e.target.value);
-                      if (!e.target.value) handleClearAudio();
-                    }}
-                    placeholder="ex: Coldplay - Viva La Vida (ou use 'Explorar Músicas em Alta')"
-                    className="h-9.5 pl-9 pr-8 w-full rounded-xl bg-accent/20 border border-input text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-sans"
-                  />
-                  {audioName.trim() && (
-                    <Tip label={"Limpar música"}><button
-                      type="button"
-                      onClick={handleClearAudio}
-                      className="absolute right-2.5 p-1 text-muted-foreground hover:text-foreground" aria-label={"Limpar música"}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button></Tip>
-                  )}
-                </div>
-              )}
-
-              {kind !== 'reels' && (
-                <div className="mt-1 pt-2.5 border-t border-border flex flex-col gap-1.5 text-xs text-muted-foreground">
-                  <div className="flex items-start gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 shrink-0 text-primary mt-0.5" />
-                    <div className="flex flex-col gap-1">
-                      <span className="font-bold text-foreground">Como ter a música tocando no Carrossel/Story:</span>
-                      <span>
-                        • <strong>Opção 1 (100% Automático via API):</strong> Baixe o MP3 acima e insira como trilha do slide 1 em vídeo (.mp4 no Canva ou CapCut). O Instagram tocará o áudio automaticamente no feed!
-                      </span>
-                      <span>
-                        • <strong>Opção 2 (Música Oficial no App):</strong> Abra o{' '}
-                        <button
-                          type="button"
-                          onClick={() => setAppKitOpen(true)}
-                          className="text-primary font-bold hover:underline inline-flex items-center gap-0.5 cursor-pointer"
-                        >
-                          Kit de Postagem no App <ExternalLink className="w-2.5 h-2.5" />
-                        </button>{' '}
-                        para baixar as mídias, copiar a legenda e tocar em "Abrir Áudio" para publicar no app oficial em 10 segundos.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
           </div>
 
-          <div id="passo-legenda" role="tabpanel" aria-labelledby="aba-legenda" hidden={passo !== 'legenda'} className="flex flex-col gap-6">
-          {/* Legenda & Copy com Contadores */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-foreground">Legenda do Instagram</label>
-              <span className={`text-xs font-sans tabular-nums transition-colors ${caption.length > 2200 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                {caption.length}/2.200 caracteres
+          <div id="passo-legenda" role="tabpanel" aria-labelledby="aba-legenda" hidden={passo !== 'legenda'} className="flex flex-col gap-5">
+          {/* Legenda & Copy com Contadores (Área Ampliada) */}
+          <div className="p-4 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-foreground block">Legenda do Instagram</label>
+                  <span className="text-[11px] text-muted-foreground">Quebras de linha, hashtags e CTAs aparecem na prévia ao lado</span>
+                </div>
+              </div>
+              <span className={`text-xs font-mono tabular-nums font-bold px-2.5 py-1 rounded-lg border ${
+                caption.length > 2200
+                  ? 'bg-destructive/10 text-destructive border-destructive/30'
+                  : 'bg-accent/50 text-muted-foreground border-border'
+              }`}>
+                {caption.length} / 2.200
               </span>
             </div>
             <Textarea
-              rows={4}
+              rows={8}
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Escreva a copy da postagem, chamadas de ação e hashtags..."
-              className="rounded-2xl text-xs"
+              placeholder="Escreva a legenda completa da sua publicação, Reels ou Carrossel com chamadas de ação e hashtags..."
+              className="min-h-[190px] rounded-2xl text-sm leading-relaxed p-3.5 bg-background/50"
             />
+            <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full transition-all duration-200 ${
+                  caption.length > 2200 ? 'bg-destructive' : caption.length > 1800 ? 'bg-warning' : 'bg-primary'
+                }`}
+                style={{ width: `${Math.min(100, Math.round((caption.length / 2200) * 100))}%` }}
+              />
+            </div>
           </div>
 
           {/* Localização da Postagem */}
-          <div className="flex flex-col gap-1.5 pt-1">
+          <div className="p-4 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-primary" />
+              <label className="text-xs font-bold text-foreground flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                  <MapPin className="w-3.5 h-3.5" />
+                </span>
                 Localização da Postagem
               </label>
-              <span className="text-xs text-muted-foreground">Opcional</span>
+              <span className="text-[11px] text-muted-foreground">Opcional</span>
             </div>
             <LocationPicker
               locationId={locationId}
@@ -1751,39 +1554,49 @@ export default function PublishPanel({
             />
           </div>
 
-          {/* Colaboradores / Marcação de Perfis */}
-          {kind !== 'story' ? (
-            <div className="flex flex-col gap-1.5 pt-1">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-primary" />
-                  Colaboradores do Post (até 5 perfis)
+          {/* 1. Colaboradores do Post (Collab oficial até 3 perfis) */}
+          {kind !== 'story' && (
+            <div className="p-4 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="text-xs font-bold text-foreground flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                    <Users className="w-3.5 h-3.5" />
+                  </span>
+                  Colaboradores do Post — Collab (até 3 perfis)
                 </label>
-                <span className="text-xs text-muted-foreground">
-                  Receberão convite de co-autoria
+                <span className="text-[11px] text-muted-foreground">
+                  Convite de co-autoria · aparece no feed deles
                 </span>
               </div>
               <CollaboratorsTagsInput
                 value={collaboratorTags}
                 onChange={setCollaboratorTags}
-                max={5}
-                placeholder="Digite @perfil ou nome e tecle Espaço..."
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5 pt-1">
-              <label className="text-xs font-semibold text-foreground">
-                Marcar pessoas no Story (separados por vírgula)
-              </label>
-              <input
-                type="text"
-                value={userTagsInput}
-                onChange={(e) => setUserTagsInput(e.target.value)}
-                placeholder="ex: perfil1, perfil2"
-                className="h-9 px-3.5 rounded-xl bg-card border border-input text-xs text-foreground focus:outline-none focus:border-foreground/40 font-sans"
+                max={3}
+                placeholder="Digite @perfil para convidar como colaborador (collab)..."
               />
             </div>
           )}
+
+          {/* 2. Marcações no Post (user_tags — apenas marca/menciona, sem collab) */}
+          <div className="p-4 rounded-2xl bg-card border border-border shadow-2xs flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <label className="text-xs font-bold text-foreground flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-accent text-foreground flex items-center justify-center border border-border">
+                  <AtSign className="w-3.5 h-3.5 text-primary" />
+                </span>
+                {kind === 'story' ? 'Marcações no Story' : 'Marcações no Post (sem Collab)'}
+              </label>
+              <span className="text-[11px] text-muted-foreground">
+                Apenas marca e menciona o perfil na publicação
+              </span>
+            </div>
+            <CollaboratorsTagsInput
+              value={userTagList}
+              onChange={setUserTagList}
+              max={20}
+              placeholder="Digite @perfil para marcar sem adicionar como colaborador..."
+            />
+          </div>
 
           </div>
 
@@ -2152,31 +1965,6 @@ export default function PublishPanel({
           </div>
         </Card>
 
-        {/* Modal de Músicas & Áudios em Alta no Instagram */}
-        <AudioPickerModal
-          open={audioPickerOpen}
-          onClose={() => setAudioPickerOpen(false)}
-          currentAudioName={audioName}
-          onSelectTrack={(track) => {
-            setAudioName(track.display_name);
-            setSelectedTrack(track);
-            toast.success(`Música selecionada: ${track.display_name}`);
-          }}
-        />
-
-        {/* Kit de Publicação no App com Música Oficial (Opção 2 - Later/Buffer) */}
-        <PublishAppKitModal
-          open={appKitOpen}
-          onClose={() => setAppKitOpen(false)}
-          mediaUrls={previewUrls}
-          caption={caption}
-          audioName={audioName}
-          selectedTrack={selectedTrack}
-          collaborators={collaboratorTags.map((c) => c.username)}
-          locationName={locationName}
-          accountUsername={accounts.find((a) => a.instagram_user_id === targetAccount)?.instagram_username || null}
-        />
-
         {/* Modal / Dialog de Confirmação Obrigatória Antes de Enviar ao Instagram */}
         <Sheet
           open={showConfirmModal}
@@ -2299,14 +2087,14 @@ export default function PublishPanel({
                         <MapPin className="w-3 h-3 text-primary" /> {locationName}
                       </span>
                     )}
-                    {audioName.trim() && (
-                      <span className="text-xs bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
-                        <Music className="w-3 h-3 text-primary" /> {audioName}
-                      </span>
-                    )}
                     {collaboratorTags.length > 0 && (
                       <span className="text-xs bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
-                        <User className="w-3 h-3 text-primary" /> {collaboratorTags.map((c) => `@${c.username}`).join(', ')}
+                        <Users className="w-3 h-3 text-primary" /> Collab: {collaboratorTags.map((c) => `@${c.username}`).join(', ')}
+                      </span>
+                    )}
+                    {userTagList.length > 0 && (
+                      <span className="text-xs bg-accent px-2 py-0.5 rounded-md text-foreground flex items-center gap-1">
+                        <AtSign className="w-3 h-3 text-primary" /> Marcações: {userTagList.map((t) => `@${t.username}`).join(', ')}
                       </span>
                     )}
                     {coverPreview && (
@@ -2328,36 +2116,6 @@ export default function PublishPanel({
               <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
-              </div>
-            )}
-
-            {(isCarousel || kind === 'story') && audioName.trim() && (
-              <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center shrink-0">
-                    <Smartphone className="w-4 h-4" />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-foreground">
-                      Quer a música oficial da Meta tocando no post?
-                    </span>
-                    <span className="text-xs text-muted-foreground truncate">
-                      Use o kit para baixar mídias, copiar legenda e abrir o áudio no app.
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setShowConfirmModal(false);
-                    setAppKitOpen(true);
-                  }}
-                  className="h-8 text-xs font-bold rounded-xl shrink-0 gap-1 border-primary/40 text-primary hover:bg-primary/15"
-                >
-                  Abrir Kit no App
-                </Button>
               </div>
             )}
 
@@ -2393,11 +2151,18 @@ export default function PublishPanel({
           </div>
         </Sheet>
 
-        {/* Lado Direito: Mockup de Celular Fiel ao Instagram (lg:col-span-5) */}
+        {/* Lado Direito: Prévia Editorial Realista (lg:col-span-5) */}
         <div className="lg:col-span-5 flex flex-col items-center gap-3 sticky top-20">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span className="font-semibold">Prévia Fiel no Aplicativo</span>
+          <div className="w-full max-w-[360px] flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                <Eye className="w-3.5 h-3.5" />
+              </span>
+              <span className="font-display text-xs font-bold text-foreground">Prévia em Tempo Real</span>
+            </div>
+            <Badge variant="muted" className="text-[10px] font-semibold">
+              {kind === 'story' ? 'Story 9:16' : kind === 'reels' ? 'Reels 9:16' : isCarousel ? 'Carrossel 4:5' : 'Feed 4:5'}
+            </Badge>
           </div>
 
           <InstagramPhoneMockup
@@ -2409,8 +2174,8 @@ export default function PublishPanel({
             caption={caption}
             automationKeyword={autoEnabled ? (autoKeywords.split(',')[0]?.trim() || 'QUERO') : null}
             locationName={locationName}
-            audioName={audioName.trim() || null}
             collaborators={collaboratorTags}
+            userTags={userTagList}
             coverUrl={coverPreview}
           />
         </div>
@@ -2452,13 +2217,13 @@ export default function PublishPanel({
               </SegmentedItem>
             </div>
 
-            {/* Filtros de Status */}
+            {/* Filtros de Status com Contadores */}
             <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-2xl border border-border">
               {[
-                { id: 'all' as const, label: 'Todas' },
-                { id: 'scheduled' as const, label: 'Agendadas' },
-                { id: 'published' as const, label: 'Publicadas' },
-                { id: 'failed' as const, label: 'Falhas' },
+                { id: 'all' as const, label: 'Todas', count: posts.length },
+                { id: 'scheduled' as const, label: 'Agendadas', count: agendadasCount },
+                { id: 'published' as const, label: 'Publicadas', count: publicadasCount },
+                { id: 'failed' as const, label: 'Falhas', count: falhasCount },
               ].map((st) => (
                 <SegmentedItem
                   key={st.id}
@@ -2466,9 +2231,10 @@ export default function PublishPanel({
                   onClick={() => setFiltroStatus(st.id)}
                   group="publish-panel-2217"
                   active={filtroStatus === st.id}
-                  className="px-3 py-1 rounded-xl font-bold"
+                  className="px-3 py-1 rounded-xl font-bold flex items-center gap-1.5"
                 >
-                  {st.label}
+                  <span>{st.label}</span>
+                  <span className="text-[10px] font-mono tabular-nums opacity-75">({st.count})</span>
                 </SegmentedItem>
               ))}
             </div>
@@ -2478,7 +2244,7 @@ export default function PublishPanel({
         {loadingPosts ? (
           <div className="flex flex-col gap-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 rounded-2xl bg-accent/30 animate-pulse border border-border" />
+              <div key={i} className="h-24 rounded-2xl bg-accent/30 animate-pulse border border-border" />
             ))}
           </div>
         ) : postsFiltrados.length === 0 ? (
@@ -2488,7 +2254,7 @@ export default function PublishPanel({
             description="Agende ou publique conteúdos acima para acompanhar a esteira em tempo real."
           />
         ) : (
-          <div className="flex flex-col divide-y divide-border">
+          <div className="flex flex-col gap-3">
             {postsFiltrados.map((post) => {
               const meta = STATUS_META[post.status];
               const StatusIcon = meta.icon;
@@ -2496,152 +2262,184 @@ export default function PublishPanel({
               const isCarouselPost = post.media_type === 'CAROUSEL';
               const isScheduled = post.status === 'scheduled';
               const isEditingThis = editingPostId === post.id;
+              const postUserTags = (post as any).user_tags as Array<string | { username?: string }> | undefined;
+              const statusBar =
+                post.status === 'published'
+                  ? 'bg-emerald-500'
+                  : post.status === 'failed'
+                  ? 'bg-destructive'
+                  : post.status === 'publishing'
+                  ? 'bg-amber-500'
+                  : 'bg-sky-500';
+              const dataExibicao = new Date(
+                post.status === 'published' && post.published_at ? post.published_at : post.scheduled_at
+              );
 
               return (
                 <div
                   key={post.id}
-                  className={`py-3.5 flex flex-col gap-2 transition-ui rounded-2xl px-3 ${
+                  className={`relative overflow-hidden p-4 pl-5 rounded-2xl border transition-ui flex flex-col gap-3 ${
                     isEditingThis
-                      ? 'bg-warning-soft border-2 border-warning-ring shadow-xs ring-1 ring-warning-ring'
-                      : 'hover:bg-accent/25 border border-transparent'
+                      ? 'bg-warning-soft border-warning-ring shadow-xs ring-1 ring-warning-ring'
+                      : 'bg-card border-border hover:border-foreground/20 hover:shadow-2xs'
                   }`}
                 >
-                  {/* Topo do Card: Conta + Status + Ações Rápidas */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs font-sans font-bold bg-accent text-foreground px-2 py-0.5 rounded-md border border-border truncate">
-                        @{accounts.find((a) => a.instagram_user_id === post.instagram_user_id)?.instagram_username || 'instagram'}
-                      </span>
-                      <Badge variant={meta.variant} className="text-[11px] sm:text-xs font-bold shrink-0">
-                        <StatusIcon className={`w-3 h-3 ${post.status === 'publishing' ? 'animate-spin' : ''}`} />
-                        {meta.label}
-                      </Badge>
-                    </div>
+                  <span aria-hidden="true" className={`absolute inset-y-3 left-1.5 w-1 rounded-full ${statusBar}`} />
 
-                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                      {isScheduled && (
-                        <Tip label={"Editar publicação no simulador"}>
-                          <button
-                            type="button"
-                            onClick={() => handleStartEdit(post)}
-                            className={`h-7 sm:h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-ui cursor-pointer shadow-2xs active:scale-[0.98] ${
-                              isEditingThis
-                                ? 'bg-warning text-warning-foreground border-warning-ring shadow-xs'
-                                : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 hover:border-primary/50'
-                            }`}
-                            aria-label={"Editar publicação no simulador"}
-                          >
-                            <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                            <span>{isEditingThis ? 'Editando' : 'Editar'}</span>
-                          </button>
-                        </Tip>
-                      )}
-
-                      {post.status === 'published' && post.ig_media_id && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setExpandedId(isExpanded ? null : post.id)}
-                          className="h-7 sm:h-8 text-xs font-bold text-primary hover:text-primary/80 px-2"
-                        >
-                          <BarChart3 className="w-3.5 h-3.5 mr-1" />
-                          {isExpanded ? 'Ocultar' : 'Métricas'}
-                        </Button>
-                      )}
-
-                      <Tip label={post.status === 'scheduled'
-                            ? 'Cancelar e excluir agendamento'
-                            : post.status === 'published'
-                            ? 'Excluir publicação do histórico'
-                            : 'Excluir registro da fila'}>
-                        <button
-                          type="button"
-                          onClick={() => handleDeletePost(post)}
-                          className="p-1 sm:p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer shrink-0"
-                          aria-label={post.status === 'scheduled'
-                              ? 'Cancelar e excluir agendamento'
-                              : post.status === 'published'
-                              ? 'Excluir publicação do histórico'
-                              : 'Excluir registro da fila'}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </button>
-                      </Tip>
-                    </div>
-                  </div>
-
-                  {/* Corpo do Card: Thumbnail + Detalhes (Legenda, Tipo, Data) */}
-                  <div
-                    onClick={() => isScheduled && handleStartEdit(post)}
-                    className={`flex items-start gap-3 min-w-0 ${isScheduled ? 'cursor-pointer group' : ''}`}
-                  >
-                    {/* Thumbnail */}
-                    <div className="relative w-12 h-14 rounded-xl overflow-hidden bg-accent shrink-0 border border-border group-hover:border-foreground/40 transition-colors">
-                      <img src={post.cover_url || post.media_url} alt="" className="w-full h-full object-cover" />
+                  {/* Linha Principal: Miniatura 4:5 + Informações + Ações */}
+                  <div className="flex items-start gap-3.5 min-w-0">
+                    {/* Miniatura Completa sem Cortes */}
+                    <div
+                      onClick={() => isScheduled && handleStartEdit(post)}
+                      className={`relative w-14 sm:w-16 aspect-[4/5] rounded-xl overflow-hidden bg-muted/50 shrink-0 border border-border flex items-center justify-center ${
+                        isScheduled ? 'cursor-pointer hover:border-primary/50' : ''
+                      }`}
+                    >
+                      <img src={post.cover_url || post.media_url} alt="" className="w-full h-full object-contain" />
                       {isCarouselPost && post.media_urls && (
-                        <span className="absolute bottom-0 right-0 bg-black/80 text-white text-xs font-mono font-bold px-1 rounded-tl">
+                        <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md">
                           {post.media_urls.length}
                         </span>
                       )}
                       {post.cover_url && (
-                        <span className="absolute top-0 left-0 bg-primary/90 text-primary-foreground text-[8px] font-mono font-bold px-1 rounded-br">
+                        <span className="absolute top-1 left-1 bg-primary/90 text-primary-foreground text-[8px] font-mono font-bold px-1 rounded">
                           CAPA
                         </span>
                       )}
                     </div>
 
-                    {/* Info */}
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <p className="text-xs font-bold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                        {post.caption || '(sem legenda)'}
-                      </p>
-                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs text-muted-foreground">
-                        <span className="font-semibold uppercase tracking-wider text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground/80 shrink-0">
-                          {post.media_type}
-                        </span>
-                        <span>•</span>
-                        <span>
-                          {new Date(post.status === 'published' && post.published_at ? post.published_at : post.scheduled_at).toLocaleString('pt-BR')}
-                        </span>
-                        {post.location_name && (
-                          <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
-                            · <MapPin className="w-2.5 h-2.5 text-primary" /> {post.location_name}
+                    {/* Conteúdo Central */}
+                    <div className="min-w-0 flex-1 flex flex-col gap-2">
+                      {/* Cabeçalho do Card */}
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <span className="text-xs font-bold bg-accent text-foreground px-2.5 py-0.5 rounded-lg border border-border truncate">
+                            @{accounts.find((a) => a.instagram_user_id === post.instagram_user_id)?.instagram_username || 'instagram'}
                           </span>
-                        )}
-                        {post.audio_name && (
-                          <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
-                            · <Music className="w-2.5 h-2.5 text-primary" /> {post.audio_name}
-                          </span>
-                        )}
-                        {Array.isArray(post.collaborators) && post.collaborators.length > 0 && (
-                          <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
-                            · <User className="w-2.5 h-2.5 text-primary" /> {post.collaborators.map((c) => `@${typeof c === 'string' ? c : (c as any).username}`).join(', ')}
-                          </span>
-                        )}
-                      </div>
-                      {post.status === 'failed' && post.error_message && (
-                        <p className="text-xs text-destructive mt-0.5 font-medium">{post.error_message}</p>
-                      )}
-                      {post.aviso && (
-                        <p className="text-xs text-warning mt-0.5 font-medium inline-flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3 shrink-0" /> {post.aviso}
-                        </p>
-                      )}
-                      {post.automation_config?.enabled && (
-                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                          <Badge variant="info" className="text-xs px-2 py-0 font-bold flex items-center gap-1 max-w-full min-w-0">
-                            <Zap className="w-2.5 h-2.5 shrink-0" />
-                            <span className="truncate">Gatilho: {(post.automation_config.keywords || ['QUERO']).join(', ')}</span>
+                          <Badge variant={meta.variant} className="text-[11px] font-bold shrink-0">
+                            <StatusIcon className={`w-3 h-3 ${post.status === 'publishing' ? 'animate-spin' : ''}`} />
+                            {meta.label}
                           </Badge>
-                          {post.created_automation_id ? (
-                            <span className="text-xs text-primary font-bold flex items-center gap-0.5">
+                          <span className="font-semibold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60 shrink-0">
+                            {post.media_type}
+                          </span>
+                          <span className="text-xs font-mono tabular-nums text-muted-foreground flex items-center gap-1">
+                            <CalendarIcon className="w-3 h-3 text-primary" />
+                            {dataExibicao.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} às{' '}
+                            {dataExibicao.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+
+                        {/* Ações Rápidas */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isScheduled && (
+                            <Tip label="Editar publicação no estúdio">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEdit(post)}
+                                className={`h-8 px-3 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-ui cursor-pointer shadow-2xs ${
+                                  isEditingThis
+                                    ? 'bg-warning text-warning-foreground border-warning-ring'
+                                    : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/30'
+                                }`}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                <span>{isEditingThis ? 'Editando' : 'Editar'}</span>
+                              </button>
+                            </Tip>
+                          )}
+
+                          {post.status === 'published' && post.ig_media_id && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setExpandedId(isExpanded ? null : post.id)}
+                              className="h-8 text-xs font-bold px-2.5 rounded-xl"
+                            >
+                              <BarChart3 className="w-3.5 h-3.5 mr-1 text-primary" />
+                              {isExpanded ? 'Ocultar' : 'Métricas'}
+                            </Button>
+                          )}
+
+                          <Tip
+                            label={
+                              post.status === 'scheduled'
+                                ? 'Cancelar e excluir agendamento'
+                                : post.status === 'published'
+                                ? 'Excluir publicação do histórico'
+                                : 'Excluir registro da fila'
+                            }
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePost(post)}
+                              className="size-8 rounded-xl border border-transparent hover:border-destructive/30 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-ui flex items-center justify-center cursor-pointer shrink-0"
+                              aria-label="Excluir publicação"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </Tip>
+                        </div>
+                      </div>
+
+                      {/* Legenda */}
+                      <p
+                        onClick={() => isScheduled && handleStartEdit(post)}
+                        className={`text-sm font-medium text-foreground line-clamp-2 leading-snug ${
+                          isScheduled ? 'cursor-pointer hover:text-primary transition-colors' : ''
+                        }`}
+                      >
+                        {post.caption || <span className="text-muted-foreground italic">(sem legenda)</span>}
+                      </p>
+
+                      {/* Chips de Metadados (Localização, Collab, Marcações, Automação) */}
+                      {(post.location_name ||
+                        (Array.isArray(post.collaborators) && post.collaborators.length > 0) ||
+                        (Array.isArray(postUserTags) && postUserTags.length > 0) ||
+                        post.automation_config?.enabled) && (
+                        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                          {post.location_name && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-accent text-foreground border border-border">
+                              <MapPin className="w-3 h-3 text-primary" />
+                              {post.location_name}
+                            </span>
+                          )}
+                          {Array.isArray(post.collaborators) && post.collaborators.length > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25">
+                              <Users className="w-3 h-3" />
+                              Collab: {post.collaborators.map((c) => `@${typeof c === 'string' ? c : (c as any).username}`).join(', ')}
+                            </span>
+                          )}
+                          {Array.isArray(postUserTags) && postUserTags.length > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-accent text-foreground border border-border">
+                              <AtSign className="w-3 h-3 text-primary" />
+                              Marcações: {postUserTags.map((t) => `@${typeof t === 'string' ? t : t?.username || ''}`).join(', ')}
+                            </span>
+                          )}
+                          {post.automation_config?.enabled && (
+                            <Badge variant="info" className="text-[11px] px-2 py-0.5 font-bold flex items-center gap-1">
+                              <Zap className="w-3 h-3 shrink-0" />
+                              <span className="truncate">Gatilho: {(post.automation_config.keywords || ['QUERO']).join(', ')}</span>
+                            </Badge>
+                          )}
+                          {post.automation_config?.enabled && post.created_automation_id && (
+                            <span className="text-[11px] text-primary font-bold inline-flex items-center gap-0.5">
                               <Check className="w-3 h-3" /> Direct Ativo
                             </span>
-                          ) : post.status === 'scheduled' ? (
-                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                              <Clock className="w-3 h-3" /> Ativa ao publicar
-                            </span>
-                          ) : null}
+                          )}
+                        </div>
+                      )}
+
+                      {post.status === 'failed' && post.error_message && (
+                        <div className="p-2.5 rounded-xl bg-destructive/10 border border-destructive/25 text-xs text-destructive font-medium flex items-start gap-2">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                          <span>{post.error_message}</span>
+                        </div>
+                      )}
+                      {post.aviso && (
+                        <div className="p-2 rounded-xl bg-warning-soft border border-warning-ring text-xs text-warning font-medium inline-flex items-center gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{post.aviso}</span>
                         </div>
                       )}
                     </div>
