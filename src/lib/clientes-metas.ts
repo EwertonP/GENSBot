@@ -15,24 +15,51 @@ function normalizarTexto(txt?: string | null): string {
 export const CLIENTES_SEM_META_NOMES = [
   'hdi',
   'santa maria',
+  'hdiasantamaria',
   'terra de oportunidade',
+  'terradeoportunidade',
   'santa sofia',
+  'santa sophia',
   'diagno radiologia',
   'diagno radio',
   'everton.design',
   'everton design',
+  'ewerton.dsgn',
+  'ewerton dsgn',
   'felipe bezerra',
+  'fellipbezerra',
   'dr. felipe',
   'dr felipe',
+  'drfellip',
 ];
 
 /** Metas mensais oficiais da Agência GENS */
 export const METAS_MENSAIS_OFICIAIS: Array<{ padroes: string[]; meta: number }> = [
-  { padroes: ['camila lucas', 'camila'], meta: 4 },
-  { padroes: ['cardiologia', 'centro de diagnostico em cardiologia', 'cdc'], meta: 8 },
-  { padroes: ['ph'], meta: 12 },
-  { padroes: ['net+', 'netmais', 'net mais'], meta: 8 },
-  { padroes: ['bakanas', 'bakanas.net'], meta: 12 },
+  { padroes: ['camilalucas', 'camila lucas', 'camila'], meta: 4 },
+  {
+    padroes: [
+      'centrodiagnostico.cardio',
+      'centrodiagnostico',
+      'cardio',
+      'cardiologia',
+      'centro de diagnostico em cardiologia',
+      'centro de diagnostico cardiologia',
+      'cdc',
+    ],
+    meta: 8,
+  },
+  {
+    padroes: [
+      'ph__cursos',
+      'ph_cursos',
+      'ph cursos',
+      'phcursos',
+      'ph',
+    ],
+    meta: 12,
+  },
+  { padroes: ['netmais_provedor', 'net+', 'netmais', 'net mais'], meta: 8 },
+  { padroes: ['bakanasnet', 'bakanas', 'bakanas.net'], meta: 12 },
 ];
 
 /**
@@ -69,9 +96,9 @@ export function obterMetaCliente(cliente: {
   // Busca correspondência nas metas oficiais
   for (const { padroes, meta } of METAS_MENSAIS_OFICIAIS) {
     for (const p of padroes) {
-      // Se o padrão for "ph", busca como palavra isolada ou início/fim para evitar falso positivo
       if (p === 'ph') {
-        const regexPh = /\bph\b/i;
+        // Aceita 'ph' isolado, ou prefixos/sufixos com @ ou _ (ex: @ph__cursos, ph_cursos, posto ph)
+        const regexPh = /(?:^|[@_\s])ph(?:$|[@_\s])/i;
         if (regexPh.test(n)) return meta;
       } else if (n.includes(p)) {
         return meta;
