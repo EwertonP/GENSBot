@@ -20,6 +20,8 @@ import {
   Sparkles,
   ArrowRight,
   UserCheck,
+  Moon,
+  MessageCircle,
 } from 'lucide-react';
 
 export interface ContratoPublico {
@@ -91,9 +93,62 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
   const [assinando, setAssinando] = useState(false);
   const [linkCopiado, setLinkCopiado] = useState(false);
 
+  // UX e Visualização
+  const [modoVisualizacao, setModoVisualizacao] = useState<'dark' | 'papel'>('dark');
+  const [assinaturaVisivel, setAssinaturaVisivel] = useState(false);
+  const [conteudoAjustadoHtml, setConteudoAjustadoHtml] = useState(
+    contratoInicial?.conteudo_final_html || contratoInicial?.conteudo_html || ''
+  );
+  const conteudoRef = useRef<HTMLDivElement | null>(null);
+
   // Canvas para desenhar assinatura
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [desenhando, setDesenhando] = useState(false);
+
+  // Sincroniza HTML com valor mensal real do contrato
+  useEffect(() => {
+    if (!contrato) return;
+    let html = contrato.conteudo_final_html || contrato.conteudo_html || '';
+
+    if (contrato.valor_mensal > 0) {
+      const valorFormatado = `R$ ${Number(contrato.valor_mensal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+      html = html.replace(/R\$\s*2\.500,00/g, valorFormatado);
+      html = html.replace(/\{\{\s*valor_mensal\s*\}\}/g, valorFormatado);
+    }
+
+    if (contrato.dia_vencimento) {
+      html = html.replace(/\{\{\s*dia_vencimento\s*\}\}/g, String(contrato.dia_vencimento));
+    }
+
+    setConteudoAjustadoHtml(html);
+  }, [contrato]);
+
+  // Envolve tabelas em wrappers responsivos com overflow-x-auto
+  useEffect(() => {
+    if (!conteudoRef.current) return;
+    const tables = conteudoRef.current.querySelectorAll('table');
+    tables.forEach((table) => {
+      if (table.parentElement?.classList.contains('tabela-responsiva-wrapper')) return;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'tabela-responsiva-wrapper w-full overflow-x-auto my-4 rounded-xl border border-white/10 shadow-xs';
+      table.parentNode?.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    });
+  }, [conteudoAjustadoHtml, modoVisualizacao]);
+
+  // Observa se a seção de assinatura está visível para ocultar a Floating Action Bar
+  useEffect(() => {
+    const el = document.getElementById('secao-assinatura');
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setAssinaturaVisivel(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [contrato]);
 
   useEffect(() => {
     if (!token) return;
@@ -287,38 +342,60 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
     contrato.cliente?.nome || contrato.lead?.empresa || contrato.lead?.nome_contato || 'Cliente';
 
   return (
-    <div className="min-h-screen bg-[#090d08] text-foreground selection:bg-emerald-500/30 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#090d08] text-foreground selection:bg-emerald-500/30 flex flex-col font-sans max-w-full overflow-x-hidden">
       {/* 1. Header Fixo com Branding e Selo Jurídico */}
-      <header className="sticky top-0 z-40 bg-[#0c100a]/90 backdrop-blur-md border-b border-white/10 px-4 sm:px-8 py-3.5 transition-all">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-9 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-emerald-400 font-bold text-xs tracking-wider uppercase font-mono shadow-xs">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+      <header className="sticky top-0 z-40 bg-[#0c100a]/90 backdrop-blur-md border-b border-white/10 px-3 sm:px-8 py-3 transition-all">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1.5 sm:gap-2 text-emerald-400 font-bold text-[11px] sm:text-xs tracking-wider uppercase font-mono shadow-xs shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
               <span>Agência GENS</span>
             </div>
-            <div className="hidden sm:flex flex-col">
+            <div className="hidden md:flex flex-col">
               <span className="text-xs font-semibold text-white/90">Instrumento Jurídico Oficial</span>
               <span className="text-[10px] text-muted-foreground font-mono">MP 2.200-2/2001 • Lei 14.063/2020</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {totalmenteAssinado ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-xs">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>100% Formalizado</span>
               </span>
             ) : jaAssinadoCliente ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+              <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Assinado pelo Cliente (Aguardando Agência)</span>
+                <span className="hidden sm:inline">Assinado pelo Cliente (Aguardando Agência)</span>
+                <span className="sm:hidden">Assinado</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse">
+              <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse">
                 <Lock className="w-3.5 h-3.5" />
-                <span>Aguardando Assinatura</span>
+                <span className="hidden xs:inline">Aguardando Assinatura</span>
+                <span className="xs:hidden">Pendente</span>
               </span>
             )}
+
+            {/* Alternador de Modo Escuro / Folha A4 Corporativa */}
+            <button
+              type="button"
+              onClick={() => setModoVisualizacao((m) => (m === 'dark' ? 'papel' : 'dark'))}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white border border-white/10 transition-colors print:hidden cursor-pointer flex items-center gap-1.5 text-xs font-medium"
+              title={modoVisualizacao === 'dark' ? 'Alternar para Folha A4 Corporativa (Fundo Claro)' : 'Alternar para Modo Escuro'}
+            >
+              {modoVisualizacao === 'dark' ? (
+                <>
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span className="hidden sm:inline text-[11px] text-white/80">Folha A4</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-amber-400" />
+                  <span className="hidden sm:inline text-[11px] text-white/80">Dark</span>
+                </>
+              )}
+            </button>
 
             <button
               type="button"
@@ -342,8 +419,8 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
       </header>
 
       {/* 2. Hero Executivo do Contrato */}
-      <section className="max-w-5xl mx-auto w-full px-4 sm:px-8 pt-8 pb-4">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#121c10] via-[#0e160e] to-[#0c100a] border border-emerald-500/25 p-6 sm:p-8 shadow-2xl">
+      <section className="max-w-5xl mx-auto w-full px-3 sm:px-8 pt-6 sm:pt-8 pb-4">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#121c10] via-[#0e160e] to-[#0c100a] border border-emerald-500/25 p-5 sm:p-8 shadow-2xl">
           {/* Luz de fundo estética */}
           <div className="absolute -top-24 -right-24 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -364,19 +441,19 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
             )}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2 font-display">
+          <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-white mb-2 font-display leading-tight">
             {contrato.titulo}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-6">
+          <p className="text-xs sm:text-sm text-muted-foreground mb-5 leading-relaxed">
             Instrumento jurídico firmado entre <strong className="text-white">AGÊNCIA GENS</strong> e{' '}
             <strong className="text-emerald-400">{nomeClienteExibicao}</strong>.
           </p>
 
           {/* Grid de Resumo Executivo */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-4 border-t border-white/10">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 pt-4 border-t border-white/10">
             <div className="p-3 rounded-2xl bg-black/30 border border-white/5">
               <span className="text-muted-foreground block text-[11px] font-medium">Contratante</span>
-              <span className="font-bold text-white truncate block text-sm mt-0.5" title={nomeClienteExibicao}>
+              <span className="font-bold text-white block text-xs sm:text-sm mt-0.5 break-words line-clamp-2" title={nomeClienteExibicao}>
                 {nomeClienteExibicao}
               </span>
             </div>
@@ -384,7 +461,7 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
             {contrato.valor_mensal > 0 && (
               <div className="p-3 rounded-2xl bg-black/30 border border-white/5">
                 <span className="text-muted-foreground block text-[11px] font-medium">Fee Mensal</span>
-                <span className="font-extrabold text-emerald-400 truncate block text-sm mt-0.5 font-mono">
+                <span className="font-extrabold text-emerald-400 truncate block text-xs sm:text-sm mt-0.5 font-mono">
                   R$ {Number(contrato.valor_mensal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -393,7 +470,7 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
             {contrato.dia_vencimento && (
               <div className="p-3 rounded-2xl bg-black/30 border border-white/5">
                 <span className="text-muted-foreground block text-[11px] font-medium">Vencimento</span>
-                <span className="font-bold text-white truncate block text-sm mt-0.5">
+                <span className="font-bold text-white truncate block text-xs sm:text-sm mt-0.5">
                   Todo dia {contrato.dia_vencimento}
                 </span>
               </div>
@@ -402,7 +479,7 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
             {contrato.data_inicio && (
               <div className="p-3 rounded-2xl bg-black/30 border border-white/5">
                 <span className="text-muted-foreground block text-[11px] font-medium">Início das Ações</span>
-                <span className="font-bold text-white truncate block text-sm mt-0.5">
+                <span className="font-bold text-white truncate block text-xs sm:text-sm mt-0.5" suppressHydrationWarning>
                   {new Date(contrato.data_inicio).toLocaleDateString('pt-BR')}
                 </span>
               </div>
@@ -412,7 +489,7 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
           {contrato.expira_em && !jaAssinadoCliente && (
             <div className="mt-4 pt-3 border-t border-white/10 flex items-center gap-2 text-xs text-amber-400">
               <Clock className="w-3.5 h-3.5 shrink-0" />
-              <span>
+              <span suppressHydrationWarning>
                 Link seguro válido para assinatura até{' '}
                 <strong>{new Date(contrato.expira_em).toLocaleDateString('pt-BR')}</strong>
                 {expirado && <span className="text-destructive font-bold ml-1">(Prazo expirado)</span>}
@@ -423,22 +500,44 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
       </section>
 
       {/* 3. Corpo das Cláusulas do Contrato */}
-      <main className="max-w-5xl mx-auto w-full px-4 sm:px-8 py-4 flex-1">
-        <div className="bg-[#10160f] text-white/95 rounded-3xl p-6 sm:p-12 shadow-2xl border border-white/10 relative">
+      <main className="max-w-5xl mx-auto w-full px-3 sm:px-8 py-4 flex-1">
+        <div
+          ref={conteudoRef}
+          className={`transition-colors duration-300 rounded-3xl p-5 sm:p-12 shadow-2xl relative ${
+            modoVisualizacao === 'papel'
+              ? 'bg-[#fcfbf9] text-[#1e293b] border border-amber-900/10 shadow-2xl shadow-black/30'
+              : 'bg-[#10160f] text-white/95 border border-white/10'
+          }`}
+        >
           <div
-            className="prose dark:prose-invert max-w-none text-white/90 leading-relaxed text-xs sm:text-sm
-              [&_h1]:text-xl sm:[&_h1]:text-2xl [&_h1]:font-extrabold [&_h1]:tracking-tight [&_h1]:text-white [&_h1]:mb-6
-              [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-emerald-400
-              [&_h3]:text-sm sm:[&_h3]:text-base [&_h3]:font-bold [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-emerald-400
-              [&_p]:mb-3.5 [&_p]:text-white/80 [&_p]:leading-relaxed
-              [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-4 [&_ul]:space-y-1.5 [&_ul]:text-white/80
-              [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-4 [&_ol]:space-y-1.5 [&_ol]:text-white/80
-              [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:rounded-xl [&_table]:overflow-hidden
-              [&_th]:bg-white/5 [&_th]:text-white [&_th]:font-bold [&_th]:p-3 [&_th]:border [&_th]:border-white/10 [&_th]:text-left
-              [&_td]:p-3 [&_td]:border [&_td]:border-white/5 [&_td]:text-white/80
-              [&_strong]:text-white [&_strong]:font-bold
-              [&_hr]:my-6 [&_hr]:border-white/10"
-            dangerouslySetInnerHTML={{ __html: contrato.conteudo_html }}
+            className={
+              modoVisualizacao === 'papel'
+                ? `prose max-w-none text-[#1e293b] leading-relaxed text-xs sm:text-sm font-sans
+                  [&_h1]:text-lg sm:[&_h1]:text-2xl [&_h1]:font-black [&_h1]:tracking-tight [&_h1]:text-[#0f172a] [&_h1]:mb-6
+                  [&_h2]:text-sm sm:[&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-[#047857]
+                  [&_h3]:text-xs sm:[&_h3]:text-sm [&_h3]:font-bold [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-[#047857]
+                  [&_p]:mb-3.5 [&_p]:text-[#334155] [&_p]:leading-relaxed
+                  [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-4 [&_ul]:space-y-1.5 [&_ul]:text-[#334155]
+                  [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-4 [&_ol]:space-y-1.5 [&_ol]:text-[#334155]
+                  [&_table]:w-full [&_table]:min-w-[480px] [&_table]:border-collapse
+                  [&_th]:bg-[#f1f5f9] [&_th]:text-[#0f172a] [&_th]:font-bold [&_th]:p-3 [&_th]:border [&_th]:border-[#cbd5e1] [&_th]:text-left
+                  [&_td]:p-3 [&_td]:border [&_td]:border-[#e2e8f0] [&_td]:text-[#334155]
+                  [&_strong]:text-[#0f172a] [&_strong]:font-bold
+                  [&_hr]:my-6 [&_hr]:border-[#e2e8f0]`
+                : `prose dark:prose-invert max-w-none text-white/90 leading-relaxed text-xs sm:text-sm
+                  [&_h1]:text-lg sm:[&_h1]:text-2xl [&_h1]:font-extrabold [&_h1]:tracking-tight [&_h1]:text-white [&_h1]:mb-6
+                  [&_h2]:text-sm sm:[&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-emerald-400
+                  [&_h3]:text-xs sm:[&_h3]:text-sm [&_h3]:font-bold [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-emerald-400
+                  [&_p]:mb-3.5 [&_p]:text-white/80 [&_p]:leading-relaxed
+                  [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-4 [&_ul]:space-y-1.5 [&_ul]:text-white/80
+                  [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-4 [&_ol]:space-y-1.5 [&_ol]:text-white/80
+                  [&_table]:w-full [&_table]:min-w-[480px] [&_table]:border-collapse
+                  [&_th]:bg-white/5 [&_th]:text-white [&_th]:font-bold [&_th]:p-3 [&_th]:border [&_th]:border-white/10 [&_th]:text-left
+                  [&_td]:p-3 [&_td]:border [&_td]:border-white/5 [&_td]:text-white/80
+                  [&_strong]:text-white [&_strong]:font-bold
+                  [&_hr]:my-6 [&_hr]:border-white/10`
+            }
+            dangerouslySetInnerHTML={{ __html: conteudoAjustadoHtml }}
           />
 
           {/* 4. Módulo de Assinatura e Certificados */}
@@ -570,7 +669,10 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
 
             {/* Caso C: Pendente de Assinatura do Cliente */}
             {podeAssinar && (
-              <div className="bg-[#121811] rounded-3xl p-6 sm:p-8 border border-white/10 print:hidden shadow-xl">
+              <div
+                id="secao-assinatura"
+                className="bg-[#121811] rounded-3xl p-5 sm:p-8 border border-white/10 print:hidden shadow-xl scroll-mt-24"
+              >
                 <div className="flex items-center gap-3 mb-2">
                   <div className="size-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
                     <PenTool className="w-5 h-5" />
@@ -731,6 +833,56 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
           </div>
         </div>
       </main>
+
+      {/* 5. Barra Flutuante de Ação no Rodapé (Mobile e Desktop) */}
+      {podeAssinar && !assinaturaVisivel && (
+        <aside
+          aria-label="Ações rápidas do contrato"
+          className="fixed bottom-0 left-0 right-0 z-30 bg-[#0c100a]/95 backdrop-blur-lg border-t border-emerald-500/30 px-3 py-3 sm:py-3.5 sm:px-6 shadow-[0_-10px_35px_rgba(0,0,0,0.7)] animate-in fade-in slide-in-from-bottom duration-300 print:hidden"
+        >
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="size-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
+                <PenTool className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-bold text-white truncate max-w-[160px] sm:max-w-md">
+                  {contrato.titulo}
+                </span>
+                <span className="text-[11px] text-emerald-400 font-mono font-semibold truncate">
+                  {contrato.valor_mensal > 0
+                    ? `R$ ${Number(contrato.valor_mensal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / mês`
+                    : 'Aguardando formalização'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={`https://wa.me/5583999075739?text=${encodeURIComponent(`Olá, estou com uma dúvida referente ao contrato "${contrato.titulo}" da Agência GENS.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 sm:h-10 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Tirar dúvidas com a Agência GENS via WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-400" />
+                <span className="hidden sm:inline">Dúvidas</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById('secao-assinatura')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="h-9 sm:h-10 px-3.5 sm:px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer active:scale-95"
+              >
+                <span>Assinar Agora</span>
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
 
       {/* Footer Discreto */}
       <footer className="py-6 text-center text-xs text-muted-foreground border-t border-white/5 print:hidden">

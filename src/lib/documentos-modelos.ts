@@ -459,32 +459,34 @@ export const MODELOS_CONTRATOS_PADRAO: Omit<ModeloDocumento, 'id'>[] = [
   <h3 style="margin-top: 24px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">CLÁUSULA 3 — ESCOPO MENSAL DE ENTREGAS E PRODUÇÕES</h3>
   <p><strong>3.1.</strong> As entregas mensais da <strong>CONTRATADA</strong> estão definidas conforme o pacote contratado, ficando estabelecido o seguinte escopo:</p>
   
-  <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.85rem;">
-    <thead>
-      <tr style="background: rgba(255, 255, 255, 0.05); text-align: left;">
-        <th style="padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 700;">Entregável</th>
-        <th style="padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 700;">Quantidade Mensal</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Postagens regulares (posts estáticos / carrossel)</td>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">12 por mês (3 postagens por semana)</td>
-      </tr>
-      <tr>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Postagens de urgência (comunicados de última hora, ex.: manutenção programada, instabilidade na rede, aviso de retorno do serviço)</td>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">1 por mês, contabilizadas à parte das postagens regulares</td>
-      </tr>
-      <tr>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Reunião de alinhamento periódico</td>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">1 reunião a cada 3 meses</td>
-      </tr>
-      <tr>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Relatório de desempenho e métricas</td>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">1 relatório / mês</td>
-      </tr>
-    </tbody>
-  </table>
+  <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 16px 0;">
+    <table style="width: 100%; min-width: 480px; border-collapse: collapse; font-size: 0.85rem;">
+      <thead>
+        <tr style="background: rgba(255, 255, 255, 0.05); text-align: left;">
+          <th style="padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 700;">Entregável</th>
+          <th style="padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 700;">Quantidade Mensal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Postagens regulares (posts estáticos / carrossel)</td>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">12 por mês (3 postagens por semana)</td>
+        </tr>
+        <tr>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Postagens de urgência (comunicados de última hora, ex.: manutenção programada, instabilidade na rede, aviso de retorno do serviço)</td>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">1 por mês, contabilizadas à parte das postagens regulares</td>
+        </tr>
+        <tr>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Reunião de alinhamento periódico</td>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">1 reunião a cada 3 meses</td>
+        </tr>
+        <tr>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Relatório de desempenho e métricas</td>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">1 relatório / mês</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
   <div style="background: rgba(34, 197, 94, 0.08); border-left: 3px solid #22c55e; padding: 12px 14px; margin: 14px 0; border-radius: 6px; font-size: 0.85rem;">
     <strong>Atenção:</strong> Os vídeos/carrosséis serão flexíveis de acordo com o tempo disponível da <strong>CONTRATANTE</strong> para gravação. Caso naquele mês seja possível gravar 8 Reels, serão feitos os 8 Reels; caso seja possível gravar apenas 4, o restante será convertido em carrosséis. A recomendação da <strong>AGÊNCIA</strong> é de um post carrossel e um Reels por semana.
@@ -502,27 +504,29 @@ export const MODELOS_CONTRATOS_PADRAO: Omit<ModeloDocumento, 'id'>[] = [
   <h3 style="margin-top: 24px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">CLÁUSULA 5 — DAS METAS E INDICADORES DE DESEMPENHO (KPIs)</h3>
   <p><strong>5.1.</strong> As metas e KPIs são indicadores de referência para acompanhamento da estratégia digital, e não representam garantia de resultado financeiro ou comercial. Os valores abaixo são estimativas baseadas no histórico do mercado:</p>
   
-  <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.85rem;">
-    <thead>
-      <tr style="background: rgba(255, 255, 255, 0.05); text-align: left;">
-        <th style="padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 700;">Indicador (KPI)</th>
-        <th style="padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 700;">Plataforma</th>
-        <th style="padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 700;">Meta Mensal de Referência</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Crescimento de seguidores qualificados</td>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Instagram</td>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">50 / mês</td>
-      </tr>
-      <tr>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Alcance orgânico estimado</td>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Instagram</td>
-        <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">5.000 semanal</td>
-      </tr>
-    </tbody>
-  </table>
+  <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 16px 0;">
+    <table style="width: 100%; min-width: 480px; border-collapse: collapse; font-size: 0.85rem;">
+      <thead>
+        <tr style="background: rgba(255, 255, 255, 0.05); text-align: left;">
+          <th style="padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 700;">Indicador (KPI)</th>
+          <th style="padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 700;">Plataforma</th>
+          <th style="padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.12); font-weight: 700;">Meta Mensal de Referência</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Crescimento de seguidores qualificados</td>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Instagram</td>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">50 / mês</td>
+        </tr>
+        <tr>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Alcance orgânico estimado</td>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08);">Instagram</td>
+          <td style="padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); font-weight: 600;">5.000 semanal</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
   <p><strong>5.2. Plano de Correção:</strong> Em caso de queda de resultados no Instagram ou demais plataformas, a <strong>CONTRATADA</strong> se compromete a: identificar as causas da queda (mudança de algoritmo, sazonalidade, qualidade do conteúdo); realizar reunião extraordinária de alinhamento para ajuste de estratégia, sem custo adicional; e ajustar o calendário editorial como medida corretiva.</p>
   <p><strong>5.3. Exclusões de Responsabilidade:</strong> A <strong>CONTRATADA</strong> NÃO se responsabiliza por quedas de desempenho causadas por: alterações nos algoritmos das plataformas, restrições ou bloqueios impostos pelo próprio Instagram/Facebook/Google, crises de imagem da marca (incluindo as decorrentes de falhas na prestação do serviço da CONTRATANTE) ou sazonalidade natural do mercado.</p>

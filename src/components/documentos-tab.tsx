@@ -87,7 +87,7 @@ export function DocumentosTab() {
   const [camposFaltantes, setCamposFaltantes] = useState<string[]>([]);
 
   // Listas auxiliares (clientes e leads)
-  const [clientes, setClientes] = useState<{ id: string; nome: string; cnpj_cpf?: string; responsavel_legal?: string }[]>([]);
+  const [clientes, setClientes] = useState<{ id: string; nome: string; cnpj_cpf?: string; responsavel_legal?: string; endereco?: string }[]>([]);
   const [leads, setLeads] = useState<{ id: string; titulo: string; nome_contato: string; empresa?: string; telefone?: string }[]>([]);
 
   // Filtros
@@ -264,6 +264,32 @@ export function DocumentosTab() {
     }
 
     try {
+      const valorNum = parseFloat(String(formContrato.valor_mensal || '').replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+      const valorFormatado = valorNum > 0
+        ? `R$ ${valorNum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        : '';
+
+      let htmlFinal = formContrato.conteudo_html;
+      if (valorFormatado) {
+        htmlFinal = htmlFinal.replace(/R\$\s*2\.500,00/g, valorFormatado);
+        htmlFinal = htmlFinal.replace(/\{\{\s*valor_mensal\s*\}\}/g, valorFormatado);
+      }
+      if (formContrato.dia_vencimento) {
+        htmlFinal = htmlFinal.replace(/\{\{\s*dia_vencimento\s*\}\}/g, String(formContrato.dia_vencimento));
+      }
+
+      // Se há cliente selecionado, garante a substituição dos placeholders no texto
+      if (formContrato.cliente_id) {
+        const clienteSel = clientes.find((c) => c.id === formContrato.cliente_id);
+        if (clienteSel) {
+          htmlFinal = htmlFinal
+            .replace(/\[Nome do Cliente\]/g, clienteSel.nome)
+            .replace(/\[CNPJ ou CPF\]/g, clienteSel.cnpj_cpf || 'A preencher')
+            .replace(/\[Responsável\]/g, clienteSel.responsavel_legal || clienteSel.nome)
+            .replace(/\[Endereço do Cliente\]/g, clienteSel.endereco || 'A preencher');
+        }
+      }
+
       const res = await fetch('/api/contratos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -273,12 +299,12 @@ export function DocumentosTab() {
           cliente_id: formContrato.cliente_id || undefined,
           lead_id: formContrato.lead_id || undefined,
           titulo: formContrato.titulo,
-          valor_mensal: parseFloat(String(formContrato.valor_mensal || '').replace(/[^\d.,]/g, '').replace(',', '.')) || 0,
+          valor_mensal: valorNum,
           dia_vencimento: parseInt(String(formContrato.dia_vencimento || '10'), 10) || 10,
           data_inicio: formContrato.data_inicio || undefined,
           data_termino: formContrato.data_termino || undefined,
           renovacao_automatica: formContrato.renovacao_automatica,
-          conteudo_html: formContrato.conteudo_html,
+          conteudo_html: htmlFinal,
           status: 'rascunho',
         }),
       });
@@ -486,6 +512,7 @@ export function DocumentosTab() {
   // Selecionar Modelo para Novo Contrato
   function selecionarModeloContrato(modelo: ModeloDocumento) {
     const hoje = new Date().toLocaleDateString('pt-BR');
+    const valorPadrao = formContrato.valor_mensal ? `R$ ${formContrato.valor_mensal}` : 'R$ 2.500,00';
     const htmlInterpolado = interpolarVariaveis(modelo.conteudo_html, {
       agencia_nome: agencia?.nome || 'Nossa Agência',
       agencia_razao_social: agencia?.razao_social || agencia?.nome || 'Nossa Agência LTDA',
@@ -499,8 +526,8 @@ export function DocumentosTab() {
       cliente_doc: '[CNPJ ou CPF]',
       cliente_responsavel: '[Responsável]',
       cliente_endereco: '[Endereço do Cliente]',
-      valor_mensal: 'R$ 2.500,00',
-      dia_vencimento: 10,
+      valor_mensal: valorPadrao,
+      dia_vencimento: formContrato.dia_vencimento || 10,
       vigencia: '12 meses',
       data_inicio: new Date().toLocaleDateString('pt-BR'),
       data_termino: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
@@ -512,6 +539,7 @@ export function DocumentosTab() {
       modelo_id: modelo.id,
       titulo: modelo.titulo,
       conteudo_html: htmlInterpolado,
+      valor_mensal: prev.valor_mensal || '2.500,00',
     }));
   }
 
@@ -1662,7 +1690,8 @@ export function DocumentosTab() {
                         conteudo_html: prev.conteudo_html
                           .replace(/\[Nome do Cliente\]/g, cli.nome)
                           .replace(/\[CNPJ ou CPF\]/g, cli.cnpj_cpf || 'A preencher')
-                          .replace(/\[Responsável\]/g, cli.responsavel_legal || cli.nome),
+                          .replace(/\[Responsável\]/g, cli.responsavel_legal || cli.nome)
+                          .replace(/\[Endereço do Cliente\]/g, cli.endereco || 'A preencher'),
                       }));
                     }
                   }}
