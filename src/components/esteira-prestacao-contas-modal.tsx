@@ -24,6 +24,7 @@ import { ClienteAvatar } from '@/components/cliente-avatar';
 import type { Cliente } from '@/lib/clientes';
 import type { ConteudoItem, TipoConteudo } from '@/lib/conteudo';
 import { obterLinkAprovacaoPublico } from '@/lib/conteudo';
+import { obterMetaCliente } from '@/lib/clientes-metas';
 
 interface PrestacaoContasModalProps {
   aberto: boolean;
@@ -70,7 +71,7 @@ export function EsteiraPrestacaoContasModal({
 }: PrestacaoContasModalProps) {
   const [copiando, setCopiando] = useState(false);
 
-  const metaContratual = (cliente.posts_mes || 0) + (cliente.reels_mes || 0);
+  const metaContratual = obterMetaCliente(cliente);
   const entregues = itensDoMes.filter(
     (it) => it.status === 'publicado' || it.status === 'agendamento' || it.status === 'revisao_agendamento' || it.status === 'pronto_publicar' || it.concluida
   );

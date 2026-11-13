@@ -77,6 +77,7 @@ import { AprovacaoWhatsappSheet } from '@/components/esteira-aprovacao-whatsapp-
 import { BotaoFiltros, FiltrosMobile, SeletorEtapaMobile, contarFiltros } from '@/components/esteira-mobile';
 import { DemandaSheet, ETAPAS_PIPELINE, getEtapaIndex } from '@/components/demanda-sheet';
 import { EsteiraPrestacaoContasModal } from '@/components/esteira-prestacao-contas-modal';
+import { obterMetaCliente, ehClienteSemMeta } from '@/lib/clientes-metas';
 
 export { ETAPAS_PIPELINE, getEtapaIndex };
 
@@ -541,7 +542,9 @@ export default function EsteiraTab({
 
   const statsClienteMes = useMemo(() => {
     if (!clienteAtivo) return null;
-    const metaContratual = (clienteAtivo.posts_mes || 0) + (clienteAtivo.reels_mes || 0);
+    const metaContratual = obterMetaCliente(clienteAtivo);
+    const semMetaFixa = ehClienteSemMeta(clienteAtivo.nome) || metaContratual === 0;
+
     const entregues = itensDoMes.filter(
       (it) => it.status === 'publicado' || it.status === 'agendamento' || it.status === 'revisao_agendamento' || it.status === 'pronto_publicar' || it.concluida
     );
@@ -564,6 +567,7 @@ export default function EsteiraTab({
 
     return {
       metaContratual,
+      semMetaFixa,
       entregues: entregues.length,
       publicados: publicados.length,
       emProducao: emProducao.length,
@@ -577,20 +581,26 @@ export default function EsteiraTab({
   const statsAgenciaMes = useMemo(() => {
     if (clienteSelecionado !== 'all') return null;
 
-    const clientesAtivos = clientes.filter((c) => c.ativo !== false);
-    const metaTotalAgencia = clientesAtivos.reduce((acc, c) => acc + (c.posts_mes || 0) + (c.reels_mes || 0), 0);
+    // Apenas clientes com metas oficiais contratadas (exclui HDI, Terra de Oportunidade, etc.)
+    const clientesComMeta = clientes.filter(
+      (c) => c.ativo !== false && !ehClienteSemMeta(c.nome) && obterMetaCliente(c) > 0
+    );
+    const metaTotalAgencia = clientesComMeta.reduce((acc, c) => acc + obterMetaCliente(c), 0);
 
-    const entreguesAgencia = itensDoMes.filter(
-      (it) => it.status === 'publicado' || it.status === 'agendamento' || it.status === 'pronto_publicar' || it.concluida
+    const idsComMeta = new Set(clientesComMeta.map((c) => c.id));
+    const itensDeClientesComMeta = itensDoMes.filter((it) => idsComMeta.has(it.cliente_id));
+
+    const entreguesAgencia = itensDeClientesComMeta.filter(
+      (it) => it.status === 'publicado' || it.status === 'agendamento' || it.status === 'revisao_agendamento' || it.status === 'pronto_publicar' || it.concluida
     ).length;
 
-    const publicadosAgencia = itensDoMes.filter((it) => it.status === 'publicado').length;
+    const publicadosAgencia = itensDeClientesComMeta.filter((it) => it.status === 'publicado').length;
 
-    const resumoPorCliente = clientesAtivos.map((cli) => {
+    const resumoPorCliente = clientesComMeta.map((cli) => {
       const itensCli = itensDoMes.filter((it) => it.cliente_id === cli.id);
-      const meta = (cli.posts_mes || 0) + (cli.reels_mes || 0);
+      const meta = obterMetaCliente(cli);
       const entreguesCli = itensCli.filter(
-        (it) => it.status === 'publicado' || it.status === 'agendamento' || it.status === 'pronto_publicar' || it.concluida
+        (it) => it.status === 'publicado' || it.status === 'agendamento' || it.status === 'revisao_agendamento' || it.status === 'pronto_publicar' || it.concluida
       ).length;
       const pctCli = meta > 0 ? Math.min(100, Math.round((entreguesCli / meta) * 100)) : 0;
 
@@ -1350,29 +1360,35 @@ export default function EsteiraTab({
                     {statsClienteMes && (
                       <>
                         <span className="text-muted-foreground/60 text-xs">·</span>
-                        <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
-                          <Target className="size-3 text-primary" />
-                          <span>
-                            Meta: {statsClienteMes.metaContratual > 0 ? `${statsClienteMes.metaContratual} posts/mês` : 'Não definida'}
+                        {statsClienteMes.semMetaFixa ? (
+                          <span className="text-xs font-medium text-muted-foreground bg-accent px-2 py-0.5 rounded-md border border-border">
+                            Escopo sob demanda / sem quota fixa
                           </span>
-                          <Tip label="Editar meta contratual deste cliente">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setEditandoMetaCliente({
-                                  clienteId: clienteAtivo.id,
-                                  nome: clienteAtivo.nome,
-                                  posts_mes: clienteAtivo.posts_mes || 0,
-                                  reels_mes: clienteAtivo.reels_mes || 0,
-                                })
-                              }
-                              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                              aria-label="Editar meta contratual"
-                            >
-                              <Pencil className="size-3" />
-                            </button>
-                          </Tip>
-                        </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
+                            <Target className="size-3 text-primary" />
+                            <span>
+                              Meta: {statsClienteMes.metaContratual} posts/mês
+                            </span>
+                            <Tip label="Editar meta contratual deste cliente">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditandoMetaCliente({
+                                    clienteId: clienteAtivo.id,
+                                    nome: clienteAtivo.nome,
+                                    posts_mes: clienteAtivo.posts_mes || 0,
+                                    reels_mes: clienteAtivo.reels_mes || 0,
+                                  })
+                                }
+                                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                                aria-label="Editar meta contratual"
+                              >
+                                <Pencil className="size-3" />
+                              </button>
+                            </Tip>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -1445,11 +1461,11 @@ export default function EsteiraTab({
                       Progresso de Entregas no Mês:
                     </span>
                     <span className="font-mono font-bold text-primary">
-                      {statsClienteMes.metaContratual > 0
+                      {!statsClienteMes.semMetaFixa && statsClienteMes.metaContratual > 0
                         ? `${statsClienteMes.entregues} de ${statsClienteMes.metaContratual} postagens (${statsClienteMes.pct}%)`
                         : `${statsClienteMes.entregues} postagens concluídas`}
                     </span>
-                    {statsClienteMes.pct >= 100 && statsClienteMes.metaContratual > 0 && (
+                    {!statsClienteMes.semMetaFixa && statsClienteMes.pct >= 100 && statsClienteMes.metaContratual > 0 && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
                         <CheckCircle2 className="size-3" /> Meta Contratual Batida! 🎯
                       </span>
@@ -1474,7 +1490,7 @@ export default function EsteiraTab({
                 </div>
 
                 {/* Barra de Progresso Visual */}
-                {statsClienteMes.metaContratual > 0 && (
+                {!statsClienteMes.semMetaFixa && statsClienteMes.metaContratual > 0 && (
                   <div className="h-2.5 w-full bg-accent rounded-full overflow-hidden border border-border/40">
                     <div
                       className={`h-full rounded-full transition-all duration-700 ${

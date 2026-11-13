@@ -10,6 +10,7 @@ import {
   traduzirErroBanco,
   validarContaInstagram,
 } from '@/lib/clientes-server';
+import { obterMetaCliente, ehClienteSemMeta } from '@/lib/clientes-metas';
 
 // GET: lista os clientes da agência e as contas de Instagram do usuário
 // (para o seletor de vínculo). Por padrão só os ativos; ?arquivados=1 traz todos.
@@ -56,8 +57,13 @@ export async function GET(req: Request) {
 
   const clientesTratados = (clientes ?? []).map((c) => {
     const conta = c.instagram_account_id ? contasMap.get(c.instagram_account_id) : null;
+    const metaOficial = obterMetaCliente(c);
+    const semMeta = ehClienteSemMeta(c.nome);
+    const postsMesFinal = semMeta ? null : c.posts_mes ?? (metaOficial > 0 ? metaOficial : null);
+
     return {
       ...c,
+      posts_mes: postsMesFinal,
       foto_url: c.foto_url || conta?.profile_picture_url || null,
       instagram_username: conta?.instagram_username || null,
     };
