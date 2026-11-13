@@ -120,6 +120,7 @@ interface ScheduledPost {
   scheduled_at: string;
   status: 'scheduled' | 'publishing' | 'published' | 'failed' | 'canceled';
   ig_media_id: string | null;
+  ig_container_id?: string | null;
   error_message: string | null;
   /** Aviso não fatal (ex.: a Meta recusou a localização e o post saiu sem ela). */
   aviso?: string | null;
@@ -665,6 +666,78 @@ export default function PublishPanel({
   useEffect(() => {
     loadPosts(targetAccount, filaContaFiltro);
   }, [targetAccount, selectedAccountId, filaContaFiltro]);
+
+  const [checkingPostId, setCheckingPostId] = useState<string | null>(null);
+
+  const handleCheckContainerStatus = async (post: ScheduledPost, manual = false) => {
+    if (checkingPostId === post.id) return;
+    setCheckingPostId(post.id);
+    try {
+      const res = await fetch('/api/instagram/check-container', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId: post.id }),
+      });
+      const data = await res.json();
+      if (data.status === 'FINISHED') {
+        toast.success('Vídeo publicado com sucesso no Instagram!');
+        loadPosts(targetAccount, filaContaFiltro);
+      } else if (data.status === 'ERROR') {
+        toast.error(data.error || 'Falha ao processar vídeo na Meta.');
+        loadPosts(targetAccount, filaContaFiltro);
+      } else if (manual) {
+        toast.info('A Meta ainda está transcodificando o vídeo. Em instantes será finalizado!');
+      }
+    } catch {
+      if (manual) toast.error('Não foi possível checar o status no momento.');
+    } finally {
+      setCheckingPostId(null);
+    }
+  };
+
+  // Polling automático em tempo real para vídeos em processamento na Meta
+  useEffect(() => {
+    const pendentes = posts.filter(
+      (p) =>
+        (p.status === 'scheduled' || p.status === 'publishing') &&
+        (p.aviso?.toLowerCase().includes('processamento') || Boolean(p.ig_container_id))
+    );
+
+    if (pendentes.length === 0) return;
+
+    let cancelado = false;
+    const interval = setInterval(async () => {
+      let houveMudanca = false;
+
+      for (const p of pendentes) {
+        try {
+          const res = await fetch('/api/instagram/check-container', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ postId: p.id }),
+          });
+          const data = await res.json();
+          if (data.status === 'FINISHED' || data.status === 'ERROR') {
+            houveMudanca = true;
+            if (data.status === 'FINISHED') {
+              toast.success('Vídeo publicado com sucesso no Instagram!');
+            }
+          }
+        } catch {
+          // Ignora erro temporário de conexão no polling
+        }
+      }
+
+      if (houveMudanca && !cancelado) {
+        loadPosts(targetAccount, filaContaFiltro);
+      }
+    }, 4500);
+
+    return () => {
+      cancelado = true;
+      clearInterval(interval);
+    };
+  }, [posts, targetAccount, filaContaFiltro]);
 
   const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -2295,7 +2368,19 @@ export default function PublishPanel({
                         isScheduled ? 'cursor-pointer hover:border-primary/50' : ''
                       }`}
                     >
-                      <img src={post.cover_url || post.media_url} alt="" className="w-full h-full object-contain" />
+                      {post.cover_url ? (
+                        <img src={post.cover_url} alt="" className="w-full h-full object-contain" />
+                      ) : post.media_type === 'REELS' || post.media_type === 'VIDEO' || post.media_url?.match(/\.(mp4|mov)(\?|$)/i) ? (
+                        <video
+                          src={`${post.media_url}#t=0.001`}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img src={post.media_url} alt="" className="w-full h-full object-contain" />
+                      )}
                       {isCarouselPost && post.media_urls && (
                         <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md">
                           {post.media_urls.length}
@@ -2437,9 +2522,26 @@ export default function PublishPanel({
                         </div>
                       )}
                       {post.aviso && (
-                        <div className="p-2 rounded-xl bg-warning-soft border border-warning-ring text-xs text-warning font-medium inline-flex items-center gap-1.5">
-                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                          <span>{post.aviso}</span>
+                        <div className="p-2.5 rounded-xl bg-warning-soft border border-warning-ring text-xs text-warning font-medium flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {post.aviso.toLowerCase().includes('processamento') ? (
+                              <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-warning" />
+                            ) : (
+                              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                            )}
+                            <span className="leading-snug">{post.aviso}</span>
+                          </div>
+                          {post.aviso.toLowerCase().includes('processamento') && (
+                            <button
+                              type="button"
+                              onClick={() => handleCheckContainerStatus(post, true)}
+                              disabled={checkingPostId === post.id}
+                              className="px-2.5 py-1 rounded-lg bg-warning/20 hover:bg-warning/30 text-warning-foreground font-bold text-[11px] transition-colors flex items-center gap-1 shrink-0 cursor-pointer disabled:opacity-50"
+                            >
+                              {checkingPostId === post.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                              <span>{checkingPostId === post.id ? 'Checando...' : 'Verificar agora'}</span>
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>

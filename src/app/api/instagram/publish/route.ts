@@ -159,7 +159,7 @@ export async function POST(req: Request) {
 
     // Publicação imediata: chama a Graph API na hora e já grava como 'published'.
     try {
-      const { igMediaId, avisos, localizacaoDescartada } = await publishPost({
+      const { igMediaId, avisos, localizacaoDescartada, creationId } = await publishPost({
         instagramUserId: instagram_user_id,
         accessToken: account.access_token,
         mediaType: media_type,
@@ -197,6 +197,7 @@ export async function POST(req: Request) {
           status: 'published',
           approval_status: 'publicado',
           ig_media_id: igMediaId,
+          ig_container_id: creationId || null,
           created_automation_id: createdAutomationId,
           published_at: new Date().toISOString(),
         })
@@ -256,12 +257,14 @@ export async function POST(req: Request) {
     } catch (publishErr: any) {
       if (publishErr instanceof ContainerPendingError || publishErr?.name === 'ContainerPendingError') {
         const publishedDate = new Date().toISOString();
+        const pendingContainerId = publishErr.creationId || null;
         const { data, error } = await supabase
           .from('scheduled_posts')
           .insert({
             ...commonFields,
             scheduled_at: publishedDate,
             status: 'scheduled',
+            ig_container_id: pendingContainerId,
             aviso: 'Vídeo em processamento na Meta; a publicação será finalizada automaticamente pelo sistema em instantes.',
           })
           .select()

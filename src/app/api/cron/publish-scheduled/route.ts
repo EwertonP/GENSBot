@@ -107,6 +107,7 @@ async function handlePublishScheduled(req: Request) {
           coverUrl: post.cover_url,
           locationId: post.location_id,
           audioName: post.audio_name,
+          existingContainerId: post.ig_container_id || undefined,
         });
 
         let createdAutomationId: string | null = null;
@@ -130,6 +131,7 @@ async function handlePublishScheduled(req: Request) {
             ig_media_id: igMediaId,
             created_automation_id: createdAutomationId,
             published_at: publishedAt,
+            aviso: null,
             // Se a Meta recusou a localização, o registro não pode dizer que ela foi usada.
             ...(localizacaoDescartada ? { location_id: null, location_name: null } : {}),
             ...(avisos.length > 0 ? { aviso: avisos.join(' ') } : {}),

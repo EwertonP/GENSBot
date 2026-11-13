@@ -34,6 +34,8 @@ export interface PublishParams extends CreateContainerParams {
   mediaUrls?: string[] | null;
   /** Timeout máximo em ms aguardando o processamento assíncrono pela Meta (padrão 120s, ou 35s em rotas HTTP). */
   waitTimeoutMs?: number;
+  /** ID de um container já criado previamente na Meta para evitar recriação desnecessária */
+  existingContainerId?: string | null;
 }
 
 /** Erro quando a Meta ainda está processando o vídeo, mas o tempo limite do request expirou */
@@ -415,15 +417,65 @@ export async function publishContainer(
   return data.id as string;
 }
 
+/**
+ * Checa o status de um container na Meta e, se FINISHED, publica instantaneamente.
+ * Não bloqueia o chamador com espera longa.
+ */
+export async function checkAndPublishContainer({
+  instagramUserId,
+  accessToken,
+  creationId,
+}: {
+  instagramUserId: string;
+  accessToken: string;
+  creationId: string;
+}): Promise<{ status: 'FINISHED' | 'IN_PROGRESS' | 'ERROR'; igMediaId?: string; errorMessage?: string }> {
+  try {
+    const data = await graphFetch(
+      `${GRAPH_BASE}/${creationId}?fields=status_code&access_token=${accessToken}`
+    );
+
+    if (data.status_code === 'FINISHED') {
+      const igMediaId = await publishContainer(instagramUserId, accessToken, creationId);
+      return { status: 'FINISHED', igMediaId };
+    }
+
+    if (data.status_code === 'ERROR' || data.status_code === 'EXPIRED') {
+      return {
+        status: 'ERROR',
+        errorMessage: `Processamento do vídeo rejeitado pela Meta (status: ${data.status_code}).`,
+      };
+    }
+
+    return { status: 'IN_PROGRESS' };
+  } catch (err: any) {
+    return {
+      status: 'ERROR',
+      errorMessage: err?.message || 'Erro ao consultar status do container na Meta.',
+    };
+  }
+}
+
 export async function publishPost(
   params: PublishParams
-): Promise<{ igMediaId: string; avisos: string[]; localizacaoDescartada: boolean }> {
+): Promise<{ igMediaId: string; avisos: string[]; localizacaoDescartada: boolean; creationId?: string }> {
   const avisos: string[] = [];
-  const resultado = (igMediaId: string) => ({
+  const resultado = (igMediaId: string, creationId?: string) => ({
     igMediaId,
     avisos,
     localizacaoDescartada: avisos.includes(AVISO_LOCALIZACAO_DESCARTADA),
+    creationId,
   });
+
+  if (params.existingContainerId) {
+    // Reaproveita container já criado na Meta
+    await waitForContainerReady(params.existingContainerId, params.accessToken, {
+      timeoutMs: params.waitTimeoutMs ?? 120_000,
+    });
+    const igMediaId = await publishContainer(params.instagramUserId, params.accessToken, params.existingContainerId);
+    return resultado(igMediaId, params.existingContainerId);
+  }
+
   if (params.mediaType === 'CAROUSEL') {
     if (!params.mediaUrls || params.mediaUrls.length < 2) {
       throw new Error('Carrossel precisa de ao menos 2 itens de mídia.');
@@ -442,7 +494,7 @@ export async function publishPost(
     // de poder ser publicado, mesmo quando todos os itens são imagem.
     await waitForContainerReady(creationId, params.accessToken, { timeoutMs: params.waitTimeoutMs ?? 120_000 });
     const igMediaId = await publishContainer(params.instagramUserId, params.accessToken, creationId);
-    return resultado(igMediaId);
+    return resultado(igMediaId, creationId);
   }
 
   const creationId = await createMediaContainer({ ...params, avisos });
@@ -459,7 +511,7 @@ export async function publishPost(
   }
 
   const igMediaId = await publishContainer(params.instagramUserId, params.accessToken, creationId);
-  return resultado(igMediaId);
+  return resultado(igMediaId, creationId);
 }
 
 /** Mensagem de erro se a lista passa do limite da Meta; null se está ok. */
