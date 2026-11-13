@@ -130,7 +130,7 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
     tables.forEach((table) => {
       if (table.parentElement?.classList.contains('tabela-responsiva-wrapper')) return;
       const wrapper = document.createElement('div');
-      wrapper.className = 'tabela-responsiva-wrapper w-full overflow-x-auto my-4 rounded-xl border border-white/10 shadow-xs';
+      wrapper.className = 'tabela-responsiva-wrapper w-full max-w-full min-w-0 overflow-x-auto my-4 rounded-xl border border-white/10 shadow-xs block';
       table.parentNode?.insertBefore(wrapper, table);
       wrapper.appendChild(table);
     });
@@ -419,8 +419,8 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
       </header>
 
       {/* 2. Hero Executivo do Contrato */}
-      <section className="max-w-5xl mx-auto w-full px-3 sm:px-8 pt-6 sm:pt-8 pb-4">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#121c10] via-[#0e160e] to-[#0c100a] border border-emerald-500/25 p-5 sm:p-8 shadow-2xl">
+      <section className="max-w-5xl mx-auto w-full min-w-0 px-3 sm:px-8 pt-6 sm:pt-8 pb-4">
+        <div className="relative overflow-hidden rounded-3xl w-full min-w-0 max-w-full bg-gradient-to-br from-[#121c10] via-[#0e160e] to-[#0c100a] border border-emerald-500/25 p-5 sm:p-8 shadow-2xl">
           {/* Luz de fundo estética */}
           <div className="absolute -top-24 -right-24 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -500,10 +500,10 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
       </section>
 
       {/* 3. Corpo das Cláusulas do Contrato */}
-      <main className="max-w-5xl mx-auto w-full px-3 sm:px-8 py-4 flex-1">
+      <main className="max-w-5xl mx-auto w-full min-w-0 px-3 sm:px-8 py-4 flex-1">
         <div
           ref={conteudoRef}
-          className={`transition-colors duration-300 rounded-3xl p-5 sm:p-12 shadow-2xl relative ${
+          className={`transition-colors duration-300 rounded-3xl p-5 sm:p-12 shadow-2xl relative w-full min-w-0 max-w-full overflow-hidden ${
             modoVisualizacao === 'papel'
               ? 'bg-[#fcfbf9] text-[#1e293b] border border-amber-900/10 shadow-2xl shadow-black/30'
               : 'bg-[#10160f] text-white/95 border border-white/10'
@@ -512,7 +512,7 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
           <div
             className={
               modoVisualizacao === 'papel'
-                ? `prose max-w-none text-[#1e293b] leading-relaxed text-xs sm:text-sm font-sans
+                ? `prose max-w-full min-w-0 overflow-x-hidden text-[#1e293b] leading-relaxed text-xs sm:text-sm font-sans
                   [&_h1]:text-lg sm:[&_h1]:text-2xl [&_h1]:font-black [&_h1]:tracking-tight [&_h1]:text-[#0f172a] [&_h1]:mb-6
                   [&_h2]:text-sm sm:[&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-[#047857]
                   [&_h3]:text-xs sm:[&_h3]:text-sm [&_h3]:font-bold [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-[#047857]
@@ -524,7 +524,7 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
                   [&_td]:p-3 [&_td]:border [&_td]:border-[#e2e8f0] [&_td]:text-[#334155]
                   [&_strong]:text-[#0f172a] [&_strong]:font-bold
                   [&_hr]:my-6 [&_hr]:border-[#e2e8f0]`
-                : `prose dark:prose-invert max-w-none text-white/90 leading-relaxed text-xs sm:text-sm
+                : `prose dark:prose-invert max-w-full min-w-0 overflow-x-hidden text-white/90 leading-relaxed text-xs sm:text-sm
                   [&_h1]:text-lg sm:[&_h1]:text-2xl [&_h1]:font-extrabold [&_h1]:tracking-tight [&_h1]:text-white [&_h1]:mb-6
                   [&_h2]:text-sm sm:[&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-emerald-400
                   [&_h3]:text-xs sm:[&_h3]:text-sm [&_h3]:font-bold [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-emerald-400
