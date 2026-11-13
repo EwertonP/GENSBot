@@ -351,13 +351,13 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
               <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
               <span>Agência GENS</span>
             </div>
-            <div className="hidden md:flex flex-col">
+            <div className="hidden sm:flex flex-col">
               <span className="text-xs font-semibold text-white/90">Instrumento Jurídico Oficial</span>
               <span className="text-[10px] text-muted-foreground font-mono">MP 2.200-2/2001 • Lei 14.063/2020</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {totalmenteAssinado ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-xs">
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -370,10 +370,10 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
                 <span className="sm:hidden">Assinado</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse">
-                <Lock className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">Aguardando Assinatura</span>
-                <span className="xs:hidden">Pendente</span>
+              <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse">
+                <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className="hidden sm:inline">Aguardando Assinatura</span>
+                <span className="sm:hidden">Pendente</span>
               </span>
             )}
 
@@ -381,17 +381,17 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
             <button
               type="button"
               onClick={() => setModoVisualizacao((m) => (m === 'dark' ? 'papel' : 'dark'))}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white border border-white/10 transition-colors print:hidden cursor-pointer flex items-center gap-1.5 text-xs font-medium"
+              className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white border border-white/10 transition-colors print:hidden cursor-pointer flex items-center gap-1.5 text-xs font-medium"
               title={modoVisualizacao === 'dark' ? 'Alternar para Folha A4 Corporativa (Fundo Claro)' : 'Alternar para Modo Escuro'}
             >
               {modoVisualizacao === 'dark' ? (
                 <>
-                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
                   <span className="hidden sm:inline text-[11px] text-white/80">Folha A4</span>
                 </>
               ) : (
                 <>
-                  <Moon className="w-4 h-4 text-amber-400" />
+                  <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
                   <span className="hidden sm:inline text-[11px] text-white/80">Dark</span>
                 </>
               )}
@@ -400,16 +400,16 @@ export default function PaginaContratoClient({ token, contratoInicial }: Contrat
             <button
               type="button"
               onClick={handleCopiarLink}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white border border-white/10 transition-colors print:hidden cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white border border-white/10 transition-colors print:hidden cursor-pointer"
               title="Copiar link rastreável do contrato"
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             <button
               type="button"
               onClick={() => window.print()}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white border border-white/10 transition-colors print:hidden cursor-pointer"
+              className="hidden sm:flex p-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white border border-white/10 transition-colors print:hidden cursor-pointer"
               title="Imprimir ou Salvar PDF"
             >
               <Printer className="w-4 h-4" />
