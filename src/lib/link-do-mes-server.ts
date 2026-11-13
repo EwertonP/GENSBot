@@ -13,7 +13,16 @@ import {
 import { dataLimiteTexto, diasRetencaoTexto } from './retencao';
 
 export interface MesDoCliente {
-  cliente: { id: string; nome: string; cor: string | null; nicho: string | null; foto_url: string | null; usuario: string | null };
+  cliente: {
+    id: string;
+    nome: string;
+    cor: string | null;
+    nicho: string | null;
+    foto_url: string | null;
+    usuario: string | null;
+    posts_mes?: number | null;
+    reels_mes?: number | null;
+  };
   mes: string;
   meses: { mes: string; total: number }[];
   itens: ItemDoMes[];
@@ -32,7 +41,7 @@ export type ResultadoMes = { ok: true; dados: MesDoCliente } | { ok: false; stat
 export async function carregarMesDoCliente(token: string, mesPedido: string | null): Promise<ResultadoMes> {
   const { data: cliente } = await supabase
     .from('clientes')
-    .select('id, nome, cor, nicho, foto_url, instagram_accounts(instagram_username, profile_picture_url)')
+    .select('id, nome, cor, nicho, foto_url, posts_mes, reels_mes, instagram_accounts(instagram_username, profile_picture_url)')
     .eq('token_aprovacao_mes', token)
     .maybeSingle();
 
@@ -109,6 +118,8 @@ export async function carregarMesDoCliente(token: string, mesPedido: string | nu
         nicho: cliente.nicho,
         foto_url: cliente.foto_url || ig?.profile_picture_url || null,
         usuario: ig?.instagram_username || null,
+        posts_mes: cliente.posts_mes ?? null,
+        reels_mes: cliente.reels_mes ?? null,
       },
       mes,
       meses,

@@ -37,7 +37,15 @@ import { podeSugerirCampo, type CampoSugestao } from '@/lib/sugestoes-texto';
 import { blocosDoRoteiro, partesNegrito, roteiroComoTextoPuro, ROTULO_FORMATO, type FormatoPost } from '@/lib/roteiro-cliente';
 
 interface Dados {
-  cliente: { nome: string; cor: string | null; nicho: string | null; foto_url: string | null; usuario: string | null };
+  cliente: {
+    nome: string;
+    cor: string | null;
+    nicho: string | null;
+    foto_url: string | null;
+    usuario: string | null;
+    posts_mes?: number | null;
+    reels_mes?: number | null;
+  };
   mes: string;
   meses: { mes: string; total: number }[];
   itens: ItemDoMes[];
@@ -661,6 +669,33 @@ export default function LinkDoMesPage() {
           ? `${dados.contagem.para_voce === 1 ? '1 post espera' : `${dados.contagem.para_voce} posts esperam`} você. Veja em que etapa está cada um do mês.`
           : 'Nada esperando você agora. Acompanhe aqui em que etapa está cada post do mês.'}
       </p>
+
+      {/* Acompanhamento do Escopo Contratual */}
+      {(() => {
+        const metaContrato = (dados.cliente.posts_mes || 0) + (dados.cliente.reels_mes || 0);
+        if (metaContrato <= 0) return null;
+        const concluidas = dados.contagem.publicados;
+        const pct = Math.min(100, Math.round((concluidas / metaContrato) * 100));
+        return (
+          <div className="mt-1 flex flex-col gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 sm:p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <CircleCheck className="size-4" />
+                Meta do Contrato: {metaContrato} postagens
+              </span>
+              <span className="text-foreground font-mono">
+                {concluidas} de {metaContrato} entregues ({pct}%)
+              </span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-emerald-950/40">
+              <div
+                className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })()}
     </header>
   );
 

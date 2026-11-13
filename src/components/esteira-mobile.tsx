@@ -28,6 +28,8 @@ interface FiltrosMobileProps {
   mostrarPublicados: boolean;
   onMostrarPublicados: (v: boolean) => void;
   totalPublicados: number;
+  mesSelecionado?: string;
+  onMesSelecionado?: (mes: string) => void;
   sincronizando: boolean;
   onSincronizar: () => void;
 }
@@ -86,6 +88,18 @@ export function FiltrosMobile(p: FiltrosMobileProps) {
             Limpar
           </button>
         </div>
+
+        {p.onMesSelecionado && (
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+            Mês de Referência
+            <input
+              type="month"
+              value={p.mesSelecionado || ''}
+              onChange={(e) => p.onMesSelecionado?.(e.target.value)}
+              className="h-11 rounded-xl border border-input bg-card px-3 text-sm font-mono text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </label>
+        )}
 
         {!p.clienteTravado && (
           <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">

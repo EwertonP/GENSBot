@@ -31,6 +31,11 @@ import {
   Archive,
   SlidersHorizontal,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Target,
+  FileText,
+  Pencil,
 } from 'lucide-react';
 import { Menu } from '@base-ui/react/menu';
 import { corDaEtiqueta, type Etiqueta } from '@/lib/etiquetas';
@@ -71,6 +76,7 @@ import { DuplicarMesSheet } from '@/components/esteira-duplicar-mes-sheet';
 import { AprovacaoWhatsappSheet } from '@/components/esteira-aprovacao-whatsapp-sheet';
 import { BotaoFiltros, FiltrosMobile, SeletorEtapaMobile, contarFiltros } from '@/components/esteira-mobile';
 import { DemandaSheet, ETAPAS_PIPELINE, getEtapaIndex } from '@/components/demanda-sheet';
+import { EsteiraPrestacaoContasModal } from '@/components/esteira-prestacao-contas-modal';
 
 export { ETAPAS_PIPELINE, getEtapaIndex };
 
@@ -292,6 +298,70 @@ export default function EsteiraTab({
     statusInicial?: StatusConteudo;
   }>({ aberto: false, modo: 'novo', item: null, chave: 0 });
 
+  // Modal Prestação de Contas / Comprovante do Mês
+  const [modalPrestacaoContasAberto, setModalPrestacaoContasAberto] = useState(false);
+
+  // Modal rápido de edição de meta mensal do cliente
+  const [editandoMetaCliente, setEditandoMetaCliente] = useState<{
+    clienteId: string;
+    nome: string;
+    posts_mes: number;
+    reels_mes: number;
+  } | null>(null);
+  const [salvandoMeta, setSalvandoMeta] = useState(false);
+
+  function navegarMes(delta: number) {
+    if (mesSelecionado === 'all') {
+      setMesSelecionado(new Date().toISOString().slice(0, 7));
+      return;
+    }
+    const [ano, mes] = mesSelecionado.split('-').map(Number);
+    const d = new Date(ano, mes - 1 + delta, 1);
+    const novoAno = d.getFullYear();
+    const novoMes = String(d.getMonth() + 1).padStart(2, '0');
+    setMesSelecionado(`${novoAno}-${novoMes}`);
+  }
+
+  function formatarRotuloMes(mesYYYYMM: string): string {
+    if (mesYYYYMM === 'all') return 'Todos os meses';
+    const [ano, mes] = mesYYYYMM.split('-').map(Number);
+    const d = new Date(ano, mes - 1, 1);
+    const nome = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    return nome.charAt(0).toUpperCase() + nome.slice(1);
+  }
+
+  async function handleSalvarMetaCliente(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editandoMetaCliente) return;
+    setSalvandoMeta(true);
+    try {
+      const res = await fetch(`/api/clientes/${editandoMetaCliente.clienteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          posts_mes: Number(editandoMetaCliente.posts_mes) || 0,
+          reels_mes: Number(editandoMetaCliente.reels_mes) || 0,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao salvar meta.');
+
+      setClientes((prev) =>
+        prev.map((c) =>
+          c.id === editandoMetaCliente.clienteId
+            ? { ...c, posts_mes: Number(editandoMetaCliente.posts_mes) || 0, reels_mes: Number(editandoMetaCliente.reels_mes) || 0 }
+            : c
+        )
+      );
+      showToast('Meta contratual atualizada com sucesso!', 'success');
+      setEditandoMetaCliente(null);
+    } catch (err: any) {
+      showToast(err?.message || 'Falha ao atualizar meta contratual.', 'error');
+    } finally {
+      setSalvandoMeta(false);
+    }
+  }
+
   // Modal Duplicar Mês
   const [modalDuplicarAberto, setModalDuplicarAberto] = useState(false);
   const [duplicarClienteId, setDuplicarClienteId] = useState('');
@@ -407,10 +477,24 @@ export default function EsteiraTab({
       if (clienteSelecionado !== 'all' && item.cliente_id !== clienteSelecionado) return false;
       if (responsavelFiltro !== 'all' && !ehResponsavel(item, responsavelFiltro)) return false;
       if (etiquetaFiltro !== 'all' && !(item.etiquetas_ids ?? []).includes(etiquetaFiltro)) return false;
+
+      // Filtro de Mês Selecionado (se não for 'all')
+      if (mesSelecionado !== 'all') {
+        const mesItem = (
+          (item.data_programada && item.data_programada.slice(0, 7)) ||
+          (item.publicado_em && item.publicado_em.slice(0, 7)) ||
+          (item.mes_referencia && item.mes_referencia.slice(0, 7)) ||
+          ''
+        );
+        if (mesItem !== mesSelecionado) {
+          return false;
+        }
+      }
+
       if (ocultarPublicados && item.status === 'publicado') return false;
 
-      // Posts publicados há mais de 7 dias não ocupam espaço na tela de publicados da esteira
-      if (item.status === 'publicado') {
+      // Posts publicados há mais de 7 dias não ocupam espaço na tela de publicados apenas quando em visão geral "Todos os meses"
+      if (mesSelecionado === 'all' && item.status === 'publicado') {
         const dataPub = item.publicado_em
           ? new Date(item.publicado_em).getTime()
           : item.atualizado_em
@@ -431,7 +515,104 @@ export default function EsteiraTab({
       }
       return true;
     }).sort(compararPorData);
-  }, [items, clienteSelecionado, responsavelFiltro, etiquetaFiltro, busca, ocultarPublicados, mostrarArquivados]);
+  }, [items, clienteSelecionado, responsavelFiltro, etiquetaFiltro, busca, mesSelecionado, ocultarPublicados, mostrarArquivados]);
+
+  // Todas as demandas pertencentes ao mês selecionado (sem ocultar publicados, para métricas e prestação de contas)
+  const itensDoMes = useMemo(() => {
+    return items.filter((item) => {
+      if (item.arquivada_em) return false;
+      if (clienteSelecionado !== 'all' && item.cliente_id !== clienteSelecionado) return false;
+      if (mesSelecionado !== 'all') {
+        const mesItem = (
+          (item.data_programada && item.data_programada.slice(0, 7)) ||
+          (item.publicado_em && item.publicado_em.slice(0, 7)) ||
+          (item.mes_referencia && item.mes_referencia.slice(0, 7)) ||
+          ''
+        );
+        if (mesItem !== mesSelecionado) return false;
+      }
+      return true;
+    });
+  }, [items, clienteSelecionado, mesSelecionado]);
+
+  const clienteAtivo = useMemo(() => {
+    return clienteSelecionado !== 'all' ? clientes.find((c) => c.id === clienteSelecionado) || null : null;
+  }, [clienteSelecionado, clientes]);
+
+  const statsClienteMes = useMemo(() => {
+    if (!clienteAtivo) return null;
+    const metaContratual = (clienteAtivo.posts_mes || 0) + (clienteAtivo.reels_mes || 0);
+    const entregues = itensDoMes.filter(
+      (it) => it.status === 'publicado' || it.status === 'agendamento' || it.status === 'revisao_agendamento' || it.status === 'pronto_publicar' || it.concluida
+    );
+    const publicados = itensDoMes.filter((it) => it.status === 'publicado');
+    const aguardandoCliente = itensDoMes.filter((it) => it.status === 'revisao_cliente');
+    const agendados = itensDoMes.filter((it) => it.status === 'agendamento' || it.status === 'revisao_agendamento' || it.status === 'pronto_publicar');
+    const emProducao = itensDoMes.filter(
+      (it) =>
+        it.status === 'planejamento' ||
+        it.status === 'copy' ||
+        it.status === 'criacao_arte' ||
+        it.status === 'revisao_arte' ||
+        it.status === 'em_gravacao' ||
+        it.status === 'em_edicao' ||
+        it.status === 'revisao_interna' ||
+        it.status === 'travado'
+    );
+
+    const pct = metaContratual > 0 ? Math.min(100, Math.round((entregues.length / metaContratual) * 100)) : 0;
+
+    return {
+      metaContratual,
+      entregues: entregues.length,
+      publicados: publicados.length,
+      emProducao: emProducao.length,
+      aguardandoCliente: aguardandoCliente.length,
+      agendados: agendados.length,
+      totalMes: itensDoMes.length,
+      pct,
+    };
+  }, [clienteAtivo, itensDoMes]);
+
+  const statsAgenciaMes = useMemo(() => {
+    if (clienteSelecionado !== 'all') return null;
+
+    const clientesAtivos = clientes.filter((c) => c.ativo !== false);
+    const metaTotalAgencia = clientesAtivos.reduce((acc, c) => acc + (c.posts_mes || 0) + (c.reels_mes || 0), 0);
+
+    const entreguesAgencia = itensDoMes.filter(
+      (it) => it.status === 'publicado' || it.status === 'agendamento' || it.status === 'pronto_publicar' || it.concluida
+    ).length;
+
+    const publicadosAgencia = itensDoMes.filter((it) => it.status === 'publicado').length;
+
+    const resumoPorCliente = clientesAtivos.map((cli) => {
+      const itensCli = itensDoMes.filter((it) => it.cliente_id === cli.id);
+      const meta = (cli.posts_mes || 0) + (cli.reels_mes || 0);
+      const entreguesCli = itensCli.filter(
+        (it) => it.status === 'publicado' || it.status === 'agendamento' || it.status === 'pronto_publicar' || it.concluida
+      ).length;
+      const pctCli = meta > 0 ? Math.min(100, Math.round((entreguesCli / meta) * 100)) : 0;
+
+      return {
+        cliente: cli,
+        meta,
+        entregues: entreguesCli,
+        totalDemandas: itensCli.length,
+        pct: pctCli,
+      };
+    });
+
+    const pctGeral = metaTotalAgencia > 0 ? Math.min(100, Math.round((entreguesAgencia / metaTotalAgencia) * 100)) : 0;
+
+    return {
+      metaTotalAgencia,
+      entreguesAgencia,
+      publicadosAgencia,
+      pctGeral,
+      resumoPorCliente,
+    };
+  }, [clienteSelecionado, clientes, itensDoMes]);
 
   async function handleMudarStatus(
     itemId: string,
@@ -791,8 +972,6 @@ export default function EsteiraTab({
               }
   }
 
-  const clienteAtivo = clientes.find((c) => c.id === clienteSelecionado);
-
   return (
     <div className="flex flex-col gap-6 animate-fade-in pb-12">
       <FiltrosMobile
@@ -813,6 +992,8 @@ export default function EsteiraTab({
         mostrarPublicados={!ocultarPublicados}
         onMostrarPublicados={(v) => setOcultarPublicados(!v)}
         totalPublicados={totalPublicados}
+        mesSelecionado={mesSelecionado === 'all' ? '' : mesSelecionado}
+        onMesSelecionado={(m) => setMesSelecionado(m || 'all')}
         sincronizando={sincronizandoNotion}
         onSincronizar={sincronizarNotion}
       />
@@ -944,16 +1125,58 @@ export default function EsteiraTab({
 
         {/* Linha Única de Botões de Ação */}
         <div className="max-md:hidden flex items-center gap-2 flex-wrap shrink-0">
-          {/* Seletor de Mês (quando no modo Feed) */}
-          {viewMode === 'feed' && (
+          {/* Seletor e Navegador de Mês Ativo */}
+          <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border shadow-2xs">
+            <Tip label="Mês anterior">
+              <button
+                type="button"
+                onClick={() => navegarMes(-1)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                aria-label="Mês anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </Tip>
+
             <input
               type="month"
-              value={mesSelecionado}
-              onChange={(e) => setMesSelecionado(e.target.value)}
-              className="h-9 text-xs px-2.5 rounded-xl bg-background border border-input text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs"
-              title="Mês de referência do feed"
+              value={mesSelecionado === 'all' ? '' : mesSelecionado}
+              onChange={(e) => setMesSelecionado(e.target.value || 'all')}
+              className="h-7 text-xs px-2 rounded-lg bg-background border border-input text-foreground font-mono focus:outline-hidden focus:ring-1 focus:ring-primary shadow-2xs cursor-pointer"
+              title="Mês de referência das demandas"
             />
-          )}
+
+            <Tip label="Próximo mês">
+              <button
+                type="button"
+                onClick={() => navegarMes(1)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                aria-label="Próximo mês"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </Tip>
+
+            {mesSelecionado !== 'all' ? (
+              <Tip label="Ver demandas de todos os meses">
+                <button
+                  type="button"
+                  onClick={() => setMesSelecionado('all')}
+                  className="px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors cursor-pointer"
+                >
+                  Todos
+                </button>
+              </Tip>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setMesSelecionado(new Date().toISOString().slice(0, 7))}
+                className="px-2 py-1 text-[11px] font-bold text-primary bg-primary/20 rounded-lg border border-primary/30 transition-colors cursor-pointer"
+              >
+                Mês Atual
+              </button>
+            )}
+          </div>
 
           {/* Alternador Kanban / Aprovação / Lista / Feed 3x3 */}
           <div className="flex items-center gap-1 bg-accent/60 p-1 rounded-xl border border-border">
@@ -1105,82 +1328,243 @@ export default function EsteiraTab({
             showToast={showToast}
           />
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 p-4 rounded-2xl bg-card border border-border shadow-2xs">
-            <div className="flex items-center gap-3">
-              <ClienteAvatar nome={clienteAtivo.nome} cor={clienteAtivo.cor} fotoUrl={clienteAtivo.foto_url} tamanho="md" />
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-foreground">{clienteAtivo.nome}</span>
-                  <span className="text-xs font-mono text-muted-foreground bg-accent px-2 py-0.5 rounded-md border border-border">
-                    {itemsFiltrados.length} {itemsFiltrados.length === 1 ? 'demanda' : 'demandas'}
-                  </span>
+          <div className="flex flex-col gap-4 p-4 rounded-2xl bg-card border border-border shadow-2xs">
+            {/* Linha Principal: Identificação do Cliente & Ações */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+              <div className="flex items-center gap-3">
+                <ClienteAvatar nome={clienteAtivo.nome} cor={clienteAtivo.cor} fotoUrl={clienteAtivo.foto_url} tamanho="md" />
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold text-foreground">{clienteAtivo.nome}</span>
+                    <span className="text-xs font-mono text-muted-foreground bg-accent px-2 py-0.5 rounded-md border border-border">
+                      {itemsFiltrados.length} {itemsFiltrados.length === 1 ? 'demanda' : 'demandas'}
+                    </span>
+                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+                      {formatarRotuloMes(mesSelecionado)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <p className="text-xs text-muted-foreground">
+                      {clienteAtivo.nicho || 'Cliente da Agência'}
+                    </p>
+                    {statsClienteMes && (
+                      <>
+                        <span className="text-muted-foreground/60 text-xs">·</span>
+                        <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
+                          <Target className="size-3 text-primary" />
+                          <span>
+                            Meta: {statsClienteMes.metaContratual > 0 ? `${statsClienteMes.metaContratual} posts/mês` : 'Não definida'}
+                          </span>
+                          <Tip label="Editar meta contratual deste cliente">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditandoMetaCliente({
+                                  clienteId: clienteAtivo.id,
+                                  nome: clienteAtivo.nome,
+                                  posts_mes: clienteAtivo.posts_mes || 0,
+                                  reels_mes: clienteAtivo.reels_mes || 0,
+                                })
+                              }
+                              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                              aria-label="Editar meta contratual"
+                            >
+                              <Pencil className="size-3" />
+                            </button>
+                          </Tip>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {clienteAtivo.nicho || 'Cliente da Agência'} · Feed visual do mês para envio e aprovação no WhatsApp.
-                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setModalPrestacaoContasAberto(true)}
+                  className="rounded-xl text-xs h-8.5 font-bold border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5 mr-1.5" />
+                  Prestação de Contas
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={viewMode === 'feed' ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('feed')}
+                  className="rounded-xl text-xs h-8.5 font-semibold"
+                >
+                  <Grid3X3 className="w-3.5 h-3.5 mr-1.5" />
+                  Ver Grade Feed 3x3
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
+                    const url = `${obterLinkAprovacaoPublico(token, 'mes')}?mes=${mesSelecionado}`;
+                    navigator.clipboard.writeText(url);
+                    showToast(`Link de ${formatarRotuloMes(mesSelecionado)} copiado!`, 'success');
+                  }}
+                  className="rounded-xl text-xs h-8.5 font-semibold"
+                >
+                  <Share2 className="w-3.5 h-3.5 mr-1.5" />
+                  Link do mês
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
+                    const url = `${obterLinkAprovacaoPublico(token, 'mes')}?mes=${mesSelecionado}`;
+                    const msg = `Olá ${clienteAtivo.nome}! Segue o link de prestação de contas e prévias de ${formatarRotuloMes(mesSelecionado)} para conferência e aprovação:\n\n${url}`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                  }}
+                  className="rounded-xl text-xs h-8.5 font-bold bg-success hover:bg-success/90 text-success-foreground active:scale-[0.98]"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                  Enviar no WhatsApp
+                </Button>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant={viewMode === 'feed' ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('feed')}
-                className="rounded-xl text-xs h-8.5 font-semibold"
-              >
-                <Grid3X3 className="w-3.5 h-3.5 mr-1.5" />
-                Ver Grade Feed 3x3
-              </Button>
+            {/* Linha de Progresso & Mini-KPIs de Status */}
+            {statsClienteMes && (
+              <div className="flex flex-col gap-2.5 pt-3 border-t border-border/60">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-foreground">
+                      Progresso de Entregas no Mês:
+                    </span>
+                    <span className="font-mono font-bold text-primary">
+                      {statsClienteMes.metaContratual > 0
+                        ? `${statsClienteMes.entregues} de ${statsClienteMes.metaContratual} postagens (${statsClienteMes.pct}%)`
+                        : `${statsClienteMes.entregues} postagens concluídas`}
+                    </span>
+                    {statsClienteMes.pct >= 100 && statsClienteMes.metaContratual > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                        <CheckCircle2 className="size-3" /> Meta Contratual Batida! 🎯
+                      </span>
+                    )}
+                  </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
-                  const url = obterLinkAprovacaoPublico(token, 'feed');
-                  navigator.clipboard.writeText(url);
-                  showToast('Link da grade do feed copiado para o WhatsApp!', 'success');
-                }}
-                className="rounded-xl text-xs h-8.5 font-semibold"
-              >
-                <Share2 className="w-3.5 h-3.5 mr-1.5" />
-                Copiar Link
-              </Button>
+                  {/* Pílulas de Status do Mês */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      🟡 Produção: {statsClienteMes.emProducao}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      🔵 No Cliente: {statsClienteMes.aguardandoCliente}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      🟣 Agendadas: {statsClienteMes.agendados}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      🟢 Publicadas: {statsClienteMes.publicados}
+                    </span>
+                  </div>
+                </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
-                  const url = `${obterLinkAprovacaoPublico(token, 'mes')}?mes=${mesSelecionado}`;
-                  navigator.clipboard.writeText(url);
-                  showToast(`Link de ${mesSelecionado.split('-').reverse().join('/')} copiado!`, 'success');
-                }}
-                className="rounded-xl text-xs h-8.5 font-semibold"
-              >
-                <Share2 className="w-3.5 h-3.5 mr-1.5" />
-                Link do mês
-              </Button>
+                {/* Barra de Progresso Visual */}
+                {statsClienteMes.metaContratual > 0 && (
+                  <div className="h-2.5 w-full bg-accent rounded-full overflow-hidden border border-border/40">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        statsClienteMes.pct >= 100
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                          : 'bg-gradient-to-r from-primary to-emerald-500'
+                      }`}
+                      style={{ width: `${statsClienteMes.pct}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  const token = clienteAtivo.token_aprovacao_mes || clienteAtivo.id;
-                  const url = obterLinkAprovacaoPublico(token, 'feed');
-                  const msg = `Olá ${clienteAtivo.nome}! Segue a prévia visual completa do seu feed deste mês no Instagram para conferência e aprovação:\n\n${url}`;
-                  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-                }}
-                className="rounded-xl text-xs h-8.5 font-bold bg-success hover:bg-success/90 text-success-foreground active:scale-[0.98]"
-              >
-                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                Enviar no WhatsApp
-              </Button>
+      {/* Visão Consolidada de Entregas da Agência no Mês (quando nenhum cliente específico está filtrado) */}
+      {!clienteAtivo && statsAgenciaMes && (
+        <div className="flex flex-col gap-3.5 p-4 rounded-2xl bg-card border border-border shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-primary uppercase tracking-wider">Acompanhamento da Agência</span>
+                <span className="text-xs text-muted-foreground">· {formatarRotuloMes(mesSelecionado)}</span>
+              </div>
+              <h3 className="text-base font-bold text-foreground mt-0.5">
+                Saúde de Entregas Mensais por Cliente
+              </h3>
             </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-foreground bg-accent px-3 py-1 rounded-xl border border-border">
+                Total Agência: {statsAgenciaMes.entreguesAgencia} de {statsAgenciaMes.metaTotalAgencia} entregas ({statsAgenciaMes.pctGeral}%)
+              </span>
+            </div>
+          </div>
+
+          {/* Barra de progresso geral */}
+          {statsAgenciaMes.metaTotalAgencia > 0 && (
+            <div className="h-2 w-full bg-accent rounded-full overflow-hidden border border-border/40">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-500 transition-all duration-700"
+                style={{ width: `${statsAgenciaMes.pctGeral}%` }}
+              />
+            </div>
+          )}
+
+          {/* Grid de clientes com mini-barras */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 mt-1">
+            {statsAgenciaMes.resumoPorCliente.map((item) => (
+              <button
+                key={item.cliente.id}
+                type="button"
+                onClick={() => setClienteSelecionado(item.cliente.id)}
+                className="flex flex-col gap-2 p-3 rounded-xl bg-accent/40 hover:bg-accent/80 border border-border/80 transition-all text-left cursor-pointer group hover:border-primary/40 hover:shadow-2xs"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ClienteAvatar nome={item.cliente.nome} cor={item.cliente.cor} fotoUrl={item.cliente.foto_url} tamanho="xs" />
+                    <span className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                      {item.cliente.nome}
+                    </span>
+                  </div>
+                  {item.pct >= 100 && (
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20 shrink-0">
+                      🎯 Meta Batida
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+                  <span>
+                    {item.meta > 0 ? `${item.entregues} / ${item.meta} entregas` : `${item.entregues} entregas`}
+                  </span>
+                  <span className="font-bold text-foreground">
+                    {item.meta > 0 ? `${item.pct}%` : 'Sem meta'}
+                  </span>
+                </div>
+
+                <div className="h-1.5 w-full bg-background rounded-full overflow-hidden border border-border/40">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      item.pct >= 100 ? 'bg-emerald-400' : 'bg-primary'
+                    }`}
+                    style={{ width: `${Math.min(100, item.pct)}%` }}
+                  />
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -2058,6 +2442,104 @@ export default function EsteiraTab({
         onCopiarLink={handleCopiarLinkAprovacao}
         showToast={showToast}
       />
+
+      {/* 6. Modal de Prestação de Contas & Comprovante de Entregas Mensais */}
+      {clienteAtivo && (
+        <EsteiraPrestacaoContasModal
+          aberto={modalPrestacaoContasAberto}
+          onFechar={() => setModalPrestacaoContasAberto(false)}
+          cliente={clienteAtivo}
+          mesSelecionado={mesSelecionado === 'all' ? new Date().toISOString().slice(0, 7) : mesSelecionado}
+          itensDoMes={itensDoMes}
+          showToast={showToast}
+        />
+      )}
+
+      {/* 7. Modal Rápido de Edição de Meta Contratual do Cliente */}
+      {editandoMetaCliente && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm shadow-xl flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div>
+                <span className="text-xs text-primary font-semibold uppercase tracking-wider">Meta Contratual</span>
+                <h4 className="text-sm font-bold text-foreground mt-0.5">{editandoMetaCliente.nome}</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditandoMetaCliente(null)}
+                className="text-muted-foreground hover:text-foreground text-sm p-1 rounded-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvarMetaCliente} className="flex flex-col gap-3.5">
+              <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
+                Posts por mês (Feed / Carrossel):
+                <Input
+                  type="number"
+                  min={0}
+                  max={500}
+                  value={editandoMetaCliente.posts_mes}
+                  onChange={(e) =>
+                    setEditandoMetaCliente((prev) =>
+                      prev ? { ...prev, posts_mes: parseInt(e.target.value, 10) || 0 } : null
+                    )
+                  }
+                  className="h-10 text-sm font-mono"
+                  placeholder="Ex: 12"
+                  autoFocus
+                />
+              </label>
+
+              <label className="flex flex-col gap-1 text-xs font-semibold text-foreground">
+                Reels por mês:
+                <Input
+                  type="number"
+                  min={0}
+                  max={500}
+                  value={editandoMetaCliente.reels_mes}
+                  onChange={(e) =>
+                    setEditandoMetaCliente((prev) =>
+                      prev ? { ...prev, reels_mes: parseInt(e.target.value, 10) || 0 } : null
+                    )
+                  }
+                  className="h-10 text-sm font-mono"
+                  placeholder="Ex: 4"
+                />
+              </label>
+
+              <div className="flex items-center justify-between pt-2 text-xs font-mono text-muted-foreground">
+                <span>Total combinado:</span>
+                <span className="font-bold text-primary">
+                  {(editandoMetaCliente.posts_mes || 0) + (editandoMetaCliente.reels_mes || 0)} postagens/mês
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditandoMetaCliente(null)}
+                  className="rounded-xl text-xs h-9"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  disabled={salvandoMeta}
+                  className="rounded-xl text-xs h-9 font-bold bg-primary text-primary-foreground"
+                >
+                  {salvandoMeta ? 'Salvando...' : 'Salvar Meta'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
