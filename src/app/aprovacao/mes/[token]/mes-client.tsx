@@ -5,8 +5,10 @@ import { useParams } from 'next/navigation';
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CircleCheck,
   Clapperboard,
   Clock,
@@ -32,7 +34,15 @@ import { InstagramCarrosselPreview } from '@/components/aprovacao/instagram-carr
 import { InstagramReelsPreview } from '@/components/aprovacao/instagram-reels-preview';
 import { InstagramStoryPreview } from '@/components/aprovacao/instagram-story-preview';
 import { cn } from '@/lib/utils';
-import { ETAPAS_PROCESSO, indiceDaEtapa, itemNoFiltro, type FiltroMes, type ItemDoMes } from '@/lib/link-do-mes';
+import {
+  ETAPAS_PROCESSO,
+  indiceDaEtapa,
+  itemNoFiltro,
+  obterPostInicial,
+  publicadoHaMaisDeDias,
+  type FiltroMes,
+  type ItemDoMes,
+} from '@/lib/link-do-mes';
 import { podeSugerirCampo, type CampoSugestao } from '@/lib/sugestoes-texto';
 import { blocosDoRoteiro, partesNegrito, roteiroComoTextoPuro, ROTULO_FORMATO, type FormatoPost } from '@/lib/roteiro-cliente';
 
@@ -432,6 +442,7 @@ export default function LinkDoMesPage() {
   const [painel, setPainel] = useState<null | 'aprovar' | 'ajuste'>(null);
   const [textoAjuste, setTextoAjuste] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [mostrarPublicadosAntigos, setMostrarPublicadosAntigos] = useState(false);
 
   const carregar = useCallback(
     async (mesPedido: string | null) => {
@@ -482,10 +493,48 @@ export default function LinkDoMesPage() {
 
   const itensFiltro = useMemo(() => (dados?.itens || []).filter((i) => itemNoFiltro(i, filtro)), [dados, filtro]);
   const aberto = useMemo(() => itensFiltro.find((i) => i.id === abertoId) || null, [itensFiltro, abertoId]);
-  // No computador sempre há um post aberto; no celular só depois do toque.
-  const selecionado = aberto || itensFiltro[0] || null;
+  // No computador sempre há um post aberto (prioriza pendências de aprovação); no celular só depois do toque.
+  const selecionado = aberto || obterPostInicial(itensFiltro);
   const indice = selecionado ? itensFiltro.findIndex((i) => i.id === selecionado.id) : -1;
   const itensAba = itensFiltro;
+
+  const itensAtivos = useMemo(() => itensAba.filter((i) => i.etapa !== 'publicado'), [itensAba]);
+  const itensPublicados = useMemo(() => itensAba.filter((i) => i.etapa === 'publicado'), [itensAba]);
+
+  const { publicadosRecentes, publicadosAntigos } = useMemo(() => {
+    // Se houver poucos publicados no total (<= 3), mostra todos sem colapso
+    if (itensPublicados.length <= 3) {
+      return { publicadosRecentes: itensPublicados, publicadosAntigos: [] };
+    }
+
+    const recentes: ItemDoMes[] = [];
+    const antigos: ItemDoMes[] = [];
+
+    for (const it of itensPublicados) {
+      if (publicadoHaMaisDeDias(it.publicado_em || it.data_programada, 5)) {
+        antigos.push(it);
+      } else {
+        recentes.push(it);
+      }
+    }
+
+    // Se todos caíram como antigos, mantém os 2 mais recentes visíveis como referência
+    if (recentes.length === 0 && antigos.length > 0) {
+      return {
+        publicadosRecentes: antigos.slice(0, 2),
+        publicadosAntigos: antigos.slice(2),
+      };
+    }
+
+    return { publicadosRecentes: recentes, publicadosAntigos: antigos };
+  }, [itensPublicados]);
+
+  // Se o post selecionado for um publicado antigo oculto, expande automaticamente para ficar visível
+  useEffect(() => {
+    if (selecionado && publicadoHaMaisDeDias(selecionado.publicado_em || selecionado.data_programada, 5)) {
+      setMostrarPublicadosAntigos(true);
+    }
+  }, [selecionado]);
 
   function abrir(id: string) {
     setAbertoId(id);
@@ -499,6 +548,9 @@ export default function LinkDoMesPage() {
     setFiltro(novo);
     setAbertoId(null);
     setPainel(null);
+    if (novo === 'publicados') {
+      setMostrarPublicadosAntigos(true);
+    }
   }
 
   function guardarNome(v: string) {
@@ -725,7 +777,8 @@ export default function LinkDoMesPage() {
         </div>
       ) : (
         <ol className="flex flex-col gap-2" aria-label="Posts do mês">
-          {itensAba.map((it) => {
+          {/* Posts ativos (aguardando aprovação, em revisão, produção ou agendados) */}
+          {itensAtivos.map((it) => {
             const ativo = selecionado?.id === it.id;
             const d = diaEDiaSemana(it.data_programada || it.publicado_em);
             const sugestoes = it.sugestoes?.length || 0;
@@ -762,6 +815,115 @@ export default function LinkDoMesPage() {
               </li>
             );
           })}
+
+          {/* Divisor para a seção de posts já publicados */}
+          {itensAtivos.length > 0 && itensPublicados.length > 0 && (
+            <li className="pt-3 pb-1" aria-hidden="true">
+              <div className="flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground/75">
+                <CircleCheck className="size-3.5 text-emerald-500" />
+                <span>Já publicados este mês ({itensPublicados.length})</span>
+                <div className="h-px flex-1 bg-border/60" />
+              </div>
+            </li>
+          )}
+
+          {/* Posts publicados recentes (estilo apagado / concluído) */}
+          {publicadosRecentes.map((it) => {
+            const ativo = selecionado?.id === it.id;
+            const d = diaEDiaSemana(it.data_programada || it.publicado_em);
+            return (
+              <li key={it.id}>
+                <button
+                  type="button"
+                  onClick={() => abrir(it.id)}
+                  aria-current={ativo ? 'true' : undefined}
+                  className={cn(
+                    'flex w-full items-stretch gap-3 rounded-2xl border text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    ativo
+                      ? 'border-emerald-500/50 bg-card/80 opacity-90 lg:ring-1 lg:ring-emerald-500'
+                      : 'border-border/50 bg-card/40 opacity-60 hover:opacity-100 hover:bg-card/70 hover:border-border'
+                  )}
+                >
+                  <span className="flex w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-muted/50 py-1.5 text-muted-foreground">
+                    <span className="font-display text-title font-semibold tabular-nums leading-none">{d?.dia ?? '—'}</span>
+                    <span className="mt-1 text-xs capitalize text-muted-foreground">{d?.semana ?? 's/ data'}</span>
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <SeloFormato formato={it.formato} />
+                      <SeloEtapa item={it} />
+                    </span>
+                    <span className={cn('line-clamp-2 text-sm font-semibold leading-5', !ativo && 'text-muted-foreground')}>
+                      {it.titulo || 'Sem título'}
+                    </span>
+                    <BarraProcesso etapa={it.etapa} compacta />
+                  </span>
+                  <ChevronRight className="size-4 shrink-0 self-center text-muted-foreground lg:hidden" aria-hidden />
+                </button>
+              </li>
+            );
+          })}
+
+          {/* Posts publicados antigos (se expandido) */}
+          {mostrarPublicadosAntigos &&
+            publicadosAntigos.map((it) => {
+              const ativo = selecionado?.id === it.id;
+              const d = diaEDiaSemana(it.data_programada || it.publicado_em);
+              return (
+                <li key={it.id}>
+                  <button
+                    type="button"
+                    onClick={() => abrir(it.id)}
+                    aria-current={ativo ? 'true' : undefined}
+                    className={cn(
+                      'flex w-full items-stretch gap-3 rounded-2xl border text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      ativo
+                        ? 'border-emerald-500/50 bg-card/80 opacity-90 lg:ring-1 lg:ring-emerald-500'
+                        : 'border-border/50 bg-card/40 opacity-60 hover:opacity-100 hover:bg-card/70 hover:border-border'
+                    )}
+                  >
+                    <span className="flex w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-muted/50 py-1.5 text-muted-foreground">
+                      <span className="font-display text-title font-semibold tabular-nums leading-none">{d?.dia ?? '—'}</span>
+                      <span className="mt-1 text-xs capitalize text-muted-foreground">{d?.semana ?? 's/ data'}</span>
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <SeloFormato formato={it.formato} />
+                        <SeloEtapa item={it} />
+                      </span>
+                      <span className={cn('line-clamp-2 text-sm font-semibold leading-5', !ativo && 'text-muted-foreground')}>
+                        {it.titulo || 'Sem título'}
+                      </span>
+                      <BarraProcesso etapa={it.etapa} compacta />
+                    </span>
+                    <ChevronRight className="size-4 shrink-0 self-center text-muted-foreground lg:hidden" aria-hidden />
+                  </button>
+                </li>
+              );
+            })}
+
+          {/* Botão para alternar exibição de posts publicados há mais de 5 dias */}
+          {publicadosAntigos.length > 0 && (
+            <li className="pt-1">
+              <button
+                type="button"
+                onClick={() => setMostrarPublicadosAntigos((v) => !v)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border/80 bg-muted/20 py-2.5 px-3 text-xs font-semibold text-muted-foreground transition-all hover:bg-muted/50 hover:text-foreground"
+              >
+                {mostrarPublicadosAntigos ? (
+                  <>
+                    <ChevronUp className="size-3.5" />
+                    <span>Ocultar {publicadosAntigos.length} posts publicados anteriores</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="size-3.5" />
+                    <span>Ver mais {publicadosAntigos.length} posts publicados anteriores</span>
+                  </>
+                )}
+              </button>
+            </li>
+          )}
         </ol>
       )}
     </div>

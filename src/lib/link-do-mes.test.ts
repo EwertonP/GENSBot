@@ -10,7 +10,10 @@ import {
   mesDoItem,
   montarItemDoMes,
   normalizarMes,
+  obterPostInicial,
   ordenarItensDoMes,
+  pesoPrioridadeEtapa,
+  publicadoHaMaisDeDias,
   ETAPAS_PROCESSO,
   type ItemBrutoDoMes,
 } from './link-do-mes';
@@ -181,5 +184,91 @@ describe('ordenarItensDoMes', () => {
     ];
     const ordem = new Map([['a', 2], ['d', 1]]);
     expect(ordenarItensDoMes(itens, ordem).map((i) => i.id)).toEqual(['c', 'b', 'd', 'a']);
+  });
+
+  it('prioriza posts que esperam aprovação e revisão, empurrando publicados para o fim', () => {
+    const itens = [
+      { id: 'pub-antigo', etapa: 'publicado' as const, data_programada: '2026-11-04', publicado_em: '2026-11-04' },
+      { id: 'pub-recente', etapa: 'publicado' as const, data_programada: '2026-11-14', publicado_em: '2026-11-14' },
+      { id: 'revisao', etapa: 'revisao' as const, data_programada: '2026-11-18', precisa_de_voce: false },
+      { id: 'aprovacao', etapa: 'aprovacao' as const, data_programada: '2026-11-20', precisa_de_voce: true },
+      { id: 'agendado', etapa: 'agendado' as const, data_programada: '2026-11-25', precisa_de_voce: false },
+      { id: 'planejamento', etapa: 'texto' as const, data_programada: '2026-11-28', precisa_de_voce: false },
+    ];
+
+    const ordenados = ordenarItensDoMes(itens);
+    expect(ordenados.map((i) => i.id)).toEqual([
+      'aprovacao', // Prioridade 1: precisa_de_voce
+      'revisao', // Prioridade 3: revisao
+      'planejamento', // Prioridade 4: texto
+      'agendado', // Prioridade 5: agendado
+      'pub-recente', // Prioridade 6: publicado (mais recente primeiro)
+      'pub-antigo', // Prioridade 6: publicado (mais antigo no rodapé)
+    ]);
+  });
+});
+
+describe('obterPostInicial', () => {
+  it('seleciona quem precisa de ação mesmo que haja posts com datas anteriores', () => {
+    const itens = [
+      { id: 'pub1', etapa: 'publicado' as const, precisa_de_voce: false },
+      { id: 'pub2', etapa: 'publicado' as const, precisa_de_voce: false },
+      { id: 'em-aprovacao', etapa: 'aprovacao' as const, precisa_de_voce: true },
+      { id: 'agendado', etapa: 'agendado' as const, precisa_de_voce: false },
+    ];
+    expect(obterPostInicial(itens)?.id).toBe('em-aprovacao');
+  });
+
+  it('se ninguém precisa de ação, escolhe o primeiro ativo', () => {
+    const itens = [
+      { id: 'pub1', etapa: 'publicado' as const, precisa_de_voce: false },
+      { id: 'agendado', etapa: 'agendado' as const, precisa_de_voce: false },
+      { id: 'planejamento', etapa: 'texto' as const, precisa_de_voce: false },
+    ];
+    expect(obterPostInicial(itens)?.id).toBe('agendado');
+  });
+
+  it('se todos forem publicados, seleciona o primeiro', () => {
+    const itens = [
+      { id: 'pub1', etapa: 'publicado' as const, precisa_de_voce: false },
+      { id: 'pub2', etapa: 'publicado' as const, precisa_de_voce: false },
+    ];
+    expect(obterPostInicial(itens)?.id).toBe('pub1');
+  });
+
+  it('retorna null para array vazio', () => {
+    expect(obterPostInicial([])).toBeNull();
+  });
+});
+
+describe('publicadoHaMaisDeDias', () => {
+  const agora = new Date('2026-11-16T12:00:00Z');
+
+  it('retorna true para posts publicados há mais de 5 dias', () => {
+    expect(publicadoHaMaisDeDias('2026-11-04T12:00:00Z', 5, agora)).toBe(true);
+    expect(publicadoHaMaisDeDias('2026-11-10T12:00:00Z', 5, agora)).toBe(true);
+  });
+
+  it('retorna false para posts publicados recentemente (< 5 dias)', () => {
+    expect(publicadoHaMaisDeDias('2026-11-14T12:00:00Z', 5, agora)).toBe(false);
+    expect(publicadoHaMaisDeDias('2026-11-16T10:00:00Z', 5, agora)).toBe(false);
+  });
+
+  it('retorna false para datas nulas ou inválidas', () => {
+    expect(publicadoHaMaisDeDias(null, 5, agora)).toBe(false);
+    expect(publicadoHaMaisDeDias(undefined, 5, agora)).toBe(false);
+    expect(publicadoHaMaisDeDias('invalido', 5, agora)).toBe(false);
+  });
+});
+
+describe('pesoPrioridadeEtapa', () => {
+  it('atribui pesos corretos por urgência e ciclo de vida', () => {
+    expect(pesoPrioridadeEtapa({ precisa_de_voce: true })).toBe(1);
+    expect(pesoPrioridadeEtapa({ etapa: 'aprovacao', precisa_de_voce: false })).toBe(2);
+    expect(pesoPrioridadeEtapa({ etapa: 'revisao', precisa_de_voce: false })).toBe(3);
+    expect(pesoPrioridadeEtapa({ etapa: 'texto', precisa_de_voce: false })).toBe(4);
+    expect(pesoPrioridadeEtapa({ etapa: 'producao', precisa_de_voce: false })).toBe(4);
+    expect(pesoPrioridadeEtapa({ etapa: 'agendado', precisa_de_voce: false })).toBe(5);
+    expect(pesoPrioridadeEtapa({ etapa: 'publicado', precisa_de_voce: false })).toBe(6);
   });
 });

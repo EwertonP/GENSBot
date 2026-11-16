@@ -207,12 +207,76 @@ export function escolherMes(pedido: string | null | undefined, mesesComItens: st
   return ordenados[ordenados.length - 1] || atual;
 }
 
-/** Ordena por data programada (sem data vai para o fim) e depois pela ordem do kanban. */
-export function ordenarItensDoMes<T extends { data_programada: string | null; id: string }>(
+/** Peso de prioridade para exibição no Link do Mês: o que precisa de ação vem primeiro, publicados vão para o fim. */
+export function pesoPrioridadeEtapa(item: { etapa?: EtapaMes; precisa_de_voce?: boolean }): number {
+  if (item.precisa_de_voce) return 1; // Topo: aguarda ação da cliente (Aprovar post ou aprovar texto)
+  if (item.etapa === 'aprovacao') return 2; // Revisão do cliente
+  if (item.etapa === 'revisao') return 3; // Revisão da equipe
+  if (item.etapa === 'texto' || item.etapa === 'producao') return 4; // Planejamento ou Produção
+  if (item.etapa === 'agendado') return 5; // Agendado
+  if (item.etapa === 'publicado') return 6; // Já no ar (vai para o rodapé)
+  return 4;
+}
+
+/** Escolhe o post aberto inicialmente: prioriza quem precisa de atenção ou o primeiro ativo do mês. */
+export function obterPostInicial<T extends { etapa?: EtapaMes; precisa_de_voce?: boolean }>(itens: T[]): T | null {
+  if (!itens || itens.length === 0) return null;
+  const pendente = itens.find((i) => i.precisa_de_voce);
+  if (pendente) return pendente;
+  const ativo = itens.find((i) => i.etapa && i.etapa !== 'publicado');
+  if (ativo) return ativo;
+  return itens[0];
+}
+
+/** Verifica se um post já foi publicado há mais de N dias (para colapso visual de posts antigos). */
+export function publicadoHaMaisDeDias(
+  publicadoEm: string | null | undefined,
+  dias: number = 5,
+  agora: Date = new Date()
+): boolean {
+  if (!publicadoEm) return false;
+  const d = new Date(publicadoEm.length <= 10 ? `${publicadoEm}T12:00:00` : publicadoEm);
+  if (Number.isNaN(d.getTime())) return false;
+  const diffMs = agora.getTime() - d.getTime();
+  const diffDias = diffMs / (1000 * 60 * 60 * 24);
+  return diffDias >= dias;
+}
+
+/**
+ * Ordena os itens do mês priorizando o que precisa de atenção:
+ * 1. Posts que esperam aprovação ou sugestão da cliente
+ * 2. Posts em revisão interna, produção e agendados
+ * 3. Posts publicados no final (mais recentes primeiro)
+ */
+export function ordenarItensDoMes<
+  T extends {
+    data_programada: string | null;
+    id: string;
+    etapa?: EtapaMes;
+    precisa_de_voce?: boolean;
+    publicado_em?: string | null;
+  }
+>(
   itens: T[],
   ordemPorId: Map<string, number> = new Map()
 ): T[] {
   return [...itens].sort((a, b) => {
+    const pesoA = pesoPrioridadeEtapa(a);
+    const pesoB = pesoPrioridadeEtapa(b);
+    if (pesoA !== pesoB) {
+      return pesoA - pesoB;
+    }
+
+    // Se ambos forem publicados, os mais recentes vêm primeiro
+    if (a.etapa === 'publicado' && b.etapa === 'publicado') {
+      const dataA = a.data_programada || a.publicado_em || '';
+      const dataB = b.data_programada || b.publicado_em || '';
+      if (dataA && dataB) {
+        const d = dataB.localeCompare(dataA);
+        if (d !== 0) return d;
+      }
+    }
+
     if (a.data_programada && b.data_programada) {
       const d = a.data_programada.localeCompare(b.data_programada);
       if (d !== 0) return d;
