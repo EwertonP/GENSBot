@@ -171,20 +171,23 @@ export async function enviarMensagemOpenWA({
   para,
   texto,
   linkPreview = true,
+  config = getOpenWAConfig(),
 }: {
   sessionName: string;
   para: string;
   texto: string;
   linkPreview?: boolean;
+  /** Gateway do cliente. Sem ele, o do ambiente (fluxos antigos). */
+  config?: ConfigOpenWA;
 }): Promise<{ ok: boolean; messageId?: string; erro?: string }> {
-  const { url, headers } = getOpenWAConfig();
+  const { url, headers } = config;
   if (!url) {
     return { ok: false, erro: 'OPENWA_API_URL não configurada no ambiente.' };
   }
 
   // 1. Resolve o UUID exato da sessão no OpenWA. Sem correspondência exata não envia:
   // cair em outra sessão faria a mensagem sair do número de outra pessoa.
-  const { sessionUuid, sessionExactName } = await obterSessionUuidOpenWA(sessionName);
+  const { sessionUuid, sessionExactName } = await obterSessionUuidOpenWA(sessionName, config);
   if (!sessionUuid) {
     return {
       ok: false,
@@ -284,4 +287,26 @@ export async function enviarMensagemOpenWA({
     ok: false,
     erro: ultimoErro || 'Não foi possível enviar a mensagem no WhatsApp.',
   };
+}
+
+/**
+ * Marca a conversa como lida antes de responder (um humano lê antes de escrever).
+ * shortcut: manda só o chatId (confirma a mais recente que o OpenWA guarda); passar os ids das
+ * mensagens do paciente se um dia sobrar mensagem sem visto. Nunca lança: ler é cortesia, não trava o envio.
+ */
+export async function marcarComoLidoOpenWA({ sessionName, chatId, config }: { sessionName: string; chatId: string; config: ConfigOpenWA }): Promise<boolean> {
+  if (!config.url) return false;
+  const { sessionUuid } = await obterSessionUuidOpenWA(sessionName, config);
+  if (!sessionUuid) return false;
+  try {
+    const res = await fetch(`${config.url}/api/sessions/${encodeURIComponent(sessionUuid)}/chats/read`, {
+      method: 'POST',
+      headers: config.headers,
+      body: JSON.stringify({ chatId }),
+      signal: AbortSignal.timeout(8000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
