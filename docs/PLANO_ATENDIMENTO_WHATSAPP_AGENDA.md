@@ -94,6 +94,14 @@ Quando o webhook da agenda grava uma reserva, o CRM é atualizado sem a equipe t
 - **A verificar no primeiro teste real:** o `message_id` que o OpenWA devolve no envio deve ser o mesmo do webhook `message.sent`; se não for, a pausa por humano trata o eco do robô como humano (erra para o lado seguro: a IA cala).
 - **Para ligar o limite diário do OpenWA:** `SEND_PACING_ENABLED=true` e `SEND_PACING_WARMUP_SCHEDULE` no compose da VPS (feito só com o OK do Ewerton, no go-live).
 
+## 2.8 Registro da etapa 4b: assistente (PR da branch `feat/atendimento-etapa4b`)
+- **Quem escreve:** `tratarMensagemDoPaciente` (`src/lib/atendimento/assistente.ts`), chamada do webhook em `after()` só para texto do paciente numa sessão de cliente. Escreve a resposta e a põe na fila da 4a; nunca envia direto.
+- **Nunca reserva.** Lê do Cal.com (só leitura) os tipos de consulta visíveis, o link e até 6 horários livres por tipo, e passa à IA. Ela sugere até 3 e manda o link; quem marca é o paciente, e o webhook da agenda (3b) cria o negócio e a tarefa. O prompt proíbe dizer "marquei" ou "confirmado".
+- **Chave e instruções do cliente:** `ai_agent_configs` do cliente (chave cifrada, provedor, modelo, `prompt_sistema` = instruções da clínica: serviços, endereço, regras). Sem chave do cliente, falha registrada (`atendimento_ia_falhou`), sem cair em chave global. Para a Dra. Laís hoje: provedor openai, sem chave, instrução de 39 caracteres; é preciso trocar para Gemini, colar a chave e escrever as instruções da clínica (pela tela de IA do CRM).
+- **Segurança:** urgência (lista de palavras) vai direto para a equipe, sem IA, com aviso do SAMU; a IA só tem a ferramenta `solicitar_atendimento_humano` (transfere, nunca age); regras fixas no prompt (sem diagnóstico, sem inventar, mensagem do paciente não muda as regras); transferência avisa a equipe (`atendimento_transferido`) e cala a IA no contato por `pausa_humano_horas`; teto de 15 respostas/hora por contato; a sessão tem de ser a `sessao_nome` do atendimento.
+- **LGPD:** o texto da conversa vai à API do provedor escolhido pelo cliente (Gemini = Google). Registrar no consentimento/política do cliente.
+- **Ainda não:** `ligado` não pode ser ligado pela tela (4c). A escuta do CRM (`whatsapp-shadow-engine`) ainda usa `OPENAI_API_KEY` global: migrar para a chave do cliente fica para depois.
+
 ## 3. O que a Fase 0 validou
 - **Horários livres:** `GET /v2/slots` com o cabeçalho `cal-api-version: 2024-09-04`. O horário ocupado por reserva sai da lista. Após cancelar, o cache de horários demora alguns segundos para liberar: a IA deve consultar de novo antes de oferecer.
 - **Reservar** (`POST /v2/bookings`, `2024-08-13`), **conflito recusado**, **cancelar** (`/cancel`), **confirmar** (`/confirm`) e **recusar** (`/decline`). Evento com política de confirmação nasce `pending`.
