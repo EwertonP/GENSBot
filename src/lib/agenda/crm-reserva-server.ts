@@ -195,7 +195,7 @@ export async function aplicarReservaNoCrm({
     if (plano.aviso) {
       let destinatarios = unirDestinatarios([negocio?.responsavel_id ?? responsavelId], await equipeDoCliente(clienteId));
       if (destinatarios.length === 0) destinatarios = await gestoresDaAgencia(agenciaId);
-      await notificar(destinatarios, { tipo: 'consulta_agenda', titulo: plano.aviso.titulo, corpo: plano.aviso.corpo, url: '/?tab=crm', agrupar: `agenda:${reserva.uid}`, evitarRepetirMin: 30 });
+      await notificar(destinatarios, { tipo: 'consulta_agenda', titulo: plano.aviso.titulo, corpo: plano.aviso.corpo, url: '/?tab=crm', agrupar: `agenda:${reserva.uid}` });
     }
     return { ok: true, acao: 'aplicado', negocioId };
   } catch (err) {
