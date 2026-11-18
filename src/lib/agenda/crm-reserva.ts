@@ -73,6 +73,8 @@ export interface Plano {
   concluirTarefasDe: string[];
   /** Uma consulta nova chegou: as tarefas "remarcar" pendentes deste negócio não fazem mais sentido. */
   concluirRemarcarPendentes: boolean;
+  /** O que a equipe vê no sino e no push. Sem aviso, nada foi relevante para ninguém. */
+  aviso: { titulo: string; corpo: string } | null;
 }
 
 export interface EntradaPlano {
@@ -87,7 +89,7 @@ export interface EntradaPlano {
   agora: Date;
 }
 
-const vazio = (): Plano => ({ criarNegocio: null, moverPara: null, atividades: [], tarefa: null, concluirTarefasDe: [], concluirRemarcarPendentes: false });
+const vazio = (): Plano => ({ criarNegocio: null, moverPara: null, atividades: [], tarefa: null, concluirTarefasDe: [], concluirRemarcarPendentes: false, aviso: null });
 const mais = (d: Date, horas: number) => new Date(d.getTime() + horas * 3600_000);
 
 export function planejarCrm({ reserva, negocio, estagios, outrasReservasAtivas, reservaJaRemarcada, agora }: EntradaPlano): Plano {
@@ -136,6 +138,10 @@ export function planejarCrm({ reserva, negocio, estagios, outrasReservasAtivas, 
     }
     plano.concluirRemarcarPendentes = confirmada;
     if (reserva.remarcadaDeUid) plano.concluirTarefasDe.push(reserva.remarcadaDeUid);
+    plano.aviso = {
+      titulo: !confirmada ? `Consulta solicitada: ${nome}` : reserva.remarcadaDeUid ? `Consulta remarcada: ${nome}` : `Consulta marcada: ${nome}`,
+      corpo: !confirmada ? `${quando}. Confirme com o paciente.` : `${quando}. Confirme a presença com o paciente perto da data.`,
+    };
     return plano;
   }
 
@@ -155,5 +161,9 @@ export function planejarCrm({ reserva, negocio, estagios, outrasReservasAtivas, 
     }
     plano.tarefa = { titulo: `Remarcar consulta com ${nome}`, tipo: 'whatsapp', prazo: mais(agora, 2), natureza: 'remarcar' };
   }
+  plano.aviso = {
+    titulo: `Consulta ${reserva.status === 'recusada' ? 'recusada' : 'cancelada'}: ${nome}`,
+    corpo: plano.tarefa ? `${quando}. Entre em contato para remarcar.` : `${quando}${motivo}.`,
+  };
   return plano;
 }

@@ -8,6 +8,8 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { garantirPipelinePadrao } from '@/lib/crm';
+import { notificar } from '@/lib/notificar';
+import { equipeDoCliente, gestoresDaAgencia, unirDestinatarios } from '@/lib/notificar-destinatarios';
 import { planejarCrm, type EstagioCrm, type NegocioCrm, type Plano } from './crm-reserva';
 import type { ReservaDoWebhook } from './webhook-calcom';
 
@@ -38,6 +40,14 @@ export async function pipelineParaNovoNegocio(db: SupabaseClient, agenciaId: str
   return criado ? { id: criado.id, estagios: (criado.estagios ?? []) as EstagioCrm[] } : null;
 }
 
+/** Quem fica com a tarefa: o responsável do negócio; senão o responsável fixo do cliente; senão um gestor. */
+async function responsavelPadrao(agenciaId: string, clienteId: string, doNegocio: string | null | undefined): Promise<string | null> {
+  if (doNegocio) return doNegocio;
+  const equipe = await equipeDoCliente(clienteId);
+  if (equipe[0]) return equipe[0];
+  return (await gestoresDaAgencia(agenciaId))[0] ?? null;
+}
+
 export async function aplicarReservaNoCrm({
   db,
   agenciaId,
@@ -57,7 +67,9 @@ export async function aplicarReservaNoCrm({
   reservaJaRemarcada: boolean;
   agora?: Date;
 }): Promise<ResultadoCrm> {
-  const chave = { reserva_uid: reserva.uid, gatilho: reserva.gatilho, evento_em: reserva.eventoEm };
+  // A chave é (reserva, gatilho): cada evento real (criada, cancelada, remarcada) dispara uma vez por uid.
+  // O instante do evento NÃO entra: um reenvio com outro `createdAt` duplicaria as atividades.
+  const chave = { reserva_uid: reserva.uid, gatilho: reserva.gatilho };
   try {
     // 1. Idempotência.
     const { data: jaFeito } = await db.from('whatsapp_ia_acoes').select('id').eq('agencia_id', agenciaId).eq('acao', ACAO_OK).contains('dados_extraidos', chave).limit(1);
@@ -98,8 +110,9 @@ export async function aplicarReservaNoCrm({
     const estagioAnterior = negocio ? estagios.find((e) => e.id === negocio!.estagio_id)?.nome ?? null : null;
 
     // 4. Executa.
-    const dadosExtras = { ...chave, origem: 'agenda' };
+    const dadosExtras = { ...chave, evento_em: reserva.eventoEm, origem: 'agenda' };
     let negocioId = negocio?.id ?? null;
+    const responsavelId = plano.criarNegocio || plano.tarefa ? await responsavelPadrao(agenciaId, clienteId, negocio?.responsavel_id) : null;
 
     if (plano.criarNegocio) {
       const inicial = plano.criarNegocio.estagio;
@@ -116,6 +129,7 @@ export async function aplicarReservaNoCrm({
           nome_contato: nome,
           telefone: reserva.telefone || null,
           email: reserva.email,
+          responsavel_id: responsavelId,
           origem: 'whatsapp',
           prioridade: 'media',
           status: 'aberto',
@@ -161,7 +175,7 @@ export async function aplicarReservaNoCrm({
       if (existente && existente.length > 0) {
         await db.from('crm_tarefas').update(campos).eq('id', (existente[0] as { id: string }).id).eq('agencia_id', agenciaId);
       } else {
-        await db.from('crm_tarefas').insert({ agencia_id: agenciaId, negocio_id: negocioId, responsavel_id: negocio?.responsavel_id ?? null, reserva_uid: marcador, ...campos });
+        await db.from('crm_tarefas').insert({ agencia_id: agenciaId, negocio_id: negocioId, responsavel_id: responsavelId, reserva_uid: marcador, ...campos });
       }
     }
 
@@ -176,6 +190,13 @@ export async function aplicarReservaNoCrm({
       resumo_detectado: plano.atividades.map((a) => a.descricao).join(' ') || 'Sem mudança no CRM.',
       dados_extraidos: chave,
     });
+
+    // 6. Avisa quem cuida do cliente (sino e push). Depois do livro-razão: um evento repetido não avisa de novo.
+    if (plano.aviso) {
+      let destinatarios = unirDestinatarios([negocio?.responsavel_id ?? responsavelId], await equipeDoCliente(clienteId));
+      if (destinatarios.length === 0) destinatarios = await gestoresDaAgencia(agenciaId);
+      await notificar(destinatarios, { tipo: 'consulta_agenda', titulo: plano.aviso.titulo, corpo: plano.aviso.corpo, url: '/?tab=crm', agrupar: `agenda:${reserva.uid}`, evitarRepetirMin: 30 });
+    }
     return { ok: true, acao: 'aplicado', negocioId };
   } catch (err) {
     const erro = err instanceof Error ? err.message : String(err);

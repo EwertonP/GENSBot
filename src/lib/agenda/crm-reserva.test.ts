@@ -168,7 +168,7 @@ describe('reserva CANCELADA ou RECUSADA', () => {
 
   it('cancelamento da reserva que já foi remarcada NÃO é cancelamento: nada acontece', () => {
     const p = plano({ negocio: negocio('e3'), reservaJaRemarcada: true, reserva: reserva({ status: 'cancelada' }) });
-    expect(p).toEqual({ criarNegocio: null, moverPara: null, atividades: [], tarefa: null, concluirTarefasDe: [], concluirRemarcarPendentes: false });
+    expect(p).toEqual({ criarNegocio: null, moverPara: null, atividades: [], tarefa: null, concluirTarefasDe: [], concluirRemarcarPendentes: false, aviso: null });
   });
 
   it('sem negócio no CRM: nada a atualizar', () => {
@@ -185,5 +185,25 @@ describe('reserva PENDENTE', () => {
   });
   it('sem negócio: cria no estágio de atendimento, não no de agendado', () => {
     expect(plano({ negocio: null, reserva: reserva({ status: 'pendente' }) }).criarNegocio?.estagio?.id).toBe('e1');
+  });
+});
+
+describe('aviso para a equipe (sino e push)', () => {
+  it('confirmada: "Consulta marcada"; remarcada: "Consulta remarcada"; pendente: "Consulta solicitada"', () => {
+    expect(plano({ negocio: negocio('e1') }).aviso).toEqual({ titulo: 'Consulta marcada: Maria', corpo: '23/11/2026, 13:00. Confirme a presença com o paciente perto da data.' });
+    expect(plano({ negocio: negocio('e3'), reserva: reserva({ uid: 'n', remarcadaDeUid: 'v' }) }).aviso?.titulo).toBe('Consulta remarcada: Maria');
+    expect(plano({ negocio: negocio('e0'), reserva: reserva({ status: 'pendente' }) }).aviso?.titulo).toBe('Consulta solicitada: Maria');
+  });
+  it('cancelada que precisa remarcar manda o pedido de contato; a que tem outra consulta só informa', () => {
+    const cai = plano({ negocio: negocio('e3'), reserva: reserva({ status: 'cancelada' }) }).aviso!;
+    expect(cai.titulo).toBe('Consulta cancelada: Maria');
+    expect(cai.corpo).toContain('remarcar');
+    const informa = plano({ negocio: negocio('e3'), outrasReservasAtivas: 1, reserva: reserva({ status: 'cancelada', motivoCancelamento: 'viagem' }) }).aviso!;
+    expect(informa.corpo).not.toContain('remarcar');
+    expect(informa.corpo).toContain('viagem');
+  });
+  it('cancelamento da antiga já remarcada e cancelamento sem negócio não incomodam ninguém', () => {
+    expect(plano({ negocio: negocio('e3'), reservaJaRemarcada: true, reserva: reserva({ status: 'cancelada' }) }).aviso).toBeNull();
+    expect(plano({ negocio: null, reserva: reserva({ status: 'cancelada' }) }).aviso).toBeNull();
   });
 });

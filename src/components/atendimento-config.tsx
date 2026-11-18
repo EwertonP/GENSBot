@@ -31,6 +31,7 @@ interface Estado {
   config: ConfigPublica;
   agenda: AgendaPublica | null;
   reservasRecebidas: number;
+  falhasCrm: number;
 }
 
 const DIAS: Array<[string, string]> = [
@@ -235,6 +236,11 @@ export function AtendimentoConfig({
             <p className="text-xs text-muted-foreground">
               {estado.reservasRecebidas} reserva(s) recebida(s). O Cal.com avisa o GENSBot a cada reserva, cancelamento ou remarcação.
             </p>
+            {estado.falhasCrm > 0 ? (
+              <p role="alert" className="text-xs text-destructive border border-destructive/40 rounded-lg px-3 py-2">
+                {estado.falhasCrm} reserva(s) dos últimos 7 dias chegaram, mas não foram aplicadas no CRM. Confira esses pacientes na agenda e avise o suporte.
+              </p>
+            ) : null}
             <Button type="button" variant="outline" className="text-xs" onClick={desconectarAgenda} disabled={ocupado === 'agenda'}>
               {ocupado === 'agenda' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null} Desconectar agenda
             </Button>

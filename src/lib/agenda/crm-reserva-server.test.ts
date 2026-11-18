@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+const { avisar, equipe, gestores } = vi.hoisted(() => ({ avisar: vi.fn(), equipe: vi.fn(), gestores: vi.fn() }));
 vi.mock('@/lib/crm', () => ({ garantirPipelinePadrao: vi.fn(async () => null) }));
+vi.mock('@/lib/notificar', () => ({ notificar: avisar }));
+vi.mock('@/lib/notificar-destinatarios', () => ({
+  equipeDoCliente: equipe,
+  gestoresDaAgencia: gestores,
+  unirDestinatarios: (...listas: (string | null | undefined)[][]) => [...new Set(listas.flat().filter((i): i is string => !!i))],
+}));
 
 import { aplicarReservaNoCrm, pipelineParaNovoNegocio } from './crm-reserva-server';
 import type { ReservaDoWebhook } from './webhook-calcom';
@@ -100,6 +107,8 @@ const doTipo = (tabela: string, op: string) => estado.chamadas.filter((c) => c.t
 beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  equipe.mockResolvedValue(['resp-fixo', 'membro-2']);
+  gestores.mockResolvedValue(['gestor-1']);
   Object.assign(estado, { ledger: [], negocio: null, outras: 0, tarefasRemarcar: [], tarefaExistente: [], falharEm: [], chamadas: [] });
 });
 
@@ -130,12 +139,13 @@ describe('aplicarReservaNoCrm', () => {
     expect(doTipo('crm_tarefas', 'insert')[0].payload).toMatchObject({ responsavel_id: 'm1' });
   });
 
-  it('evento já aplicado: não repete nada (idempotência pelo livro-razão)', async () => {
+  it('evento já aplicado: não repete nada (idempotência pelo livro-razão), nem avisa de novo', async () => {
     estado.ledger = [{ id: 'a1' }];
     const r = await aplicarReservaNoCrm({ db: criarDb(), negocioIdAtual: 'n1', reserva: reserva(), ...base });
     expect(r).toEqual({ ok: true, acao: 'ja_aplicado', negocioId: 'n1' });
     expect(estado.chamadas.every((c) => c.op === 'select')).toBe(true);
-    expect(doTipo('whatsapp_ia_acoes', 'select')[0].filtros).toMatchObject({ agencia_id: 'ag1', acao: 'agenda_crm', dados_extraidos_contains: { reserva_uid: 'u1', gatilho: 'BOOKING_CREATED', evento_em: '2026-11-18T12:00:00Z' } });
+    expect(avisar).not.toHaveBeenCalled();
+    expect(doTipo('whatsapp_ia_acoes', 'select')[0].filtros).toMatchObject({ agencia_id: 'ag1', acao: 'agenda_crm', dados_extraidos_contains: { reserva_uid: 'u1', gatilho: 'BOOKING_CREATED' } });
   });
 
   it('cancelamento: conclui a tarefa da reserva, volta o estágio e cria "remarcar:uid"', async () => {
@@ -192,6 +202,46 @@ describe('aplicarReservaNoCrm', () => {
     expect(r).toMatchObject({ ok: false, acao: 'falhou' });
     // Tentou registrar a falha (e a tentativa quebrou) em vez de desistir antes.
     expect(doTipo('whatsapp_ia_acoes', 'insert').some((c) => (c.payload as Linha).acao === 'agenda_crm_falhou')).toBe(true);
+  });
+});
+
+describe('responsável e aviso à equipe', () => {
+  it('negócio novo e tarefa ficam com o responsável fixo do cliente (nunca sem dono)', async () => {
+    await aplicarReservaNoCrm({ db: criarDb(), negocioIdAtual: null, reserva: reserva(), ...base });
+    expect((doTipo('crm_negocios', 'insert')[0].payload as Linha).responsavel_id).toBe('resp-fixo');
+    expect((doTipo('crm_tarefas', 'insert')[0].payload as Linha).responsavel_id).toBe('resp-fixo');
+  });
+
+  it('sem equipe cadastrada, cai no gestor da agência', async () => {
+    equipe.mockResolvedValue([]);
+    await aplicarReservaNoCrm({ db: criarDb(), negocioIdAtual: null, reserva: reserva(), ...base });
+    expect((doTipo('crm_tarefas', 'insert')[0].payload as Linha).responsavel_id).toBe('gestor-1');
+  });
+
+  it('negócio que já tem responsável o mantém', async () => {
+    estado.negocio = { id: 'n1', status: 'aberto', estagio_id: 'e1', pipeline_id: 'p-padrao', responsavel_id: 'dono-do-negocio', nome_contato: 'Maria' };
+    await aplicarReservaNoCrm({ db: criarDb(), negocioIdAtual: 'n1', reserva: reserva(), ...base });
+    expect((doTipo('crm_tarefas', 'insert')[0].payload as Linha).responsavel_id).toBe('dono-do-negocio');
+  });
+
+  it('avisa responsável e equipe do cliente pelo sino e push, depois de gravar o livro-razão', async () => {
+    await aplicarReservaNoCrm({ db: criarDb(), negocioIdAtual: null, reserva: reserva(), ...base });
+    expect(avisar).toHaveBeenCalledTimes(1);
+    const [quem, dados] = avisar.mock.calls[0];
+    expect(quem).toEqual(['resp-fixo', 'membro-2']);
+    expect(dados).toMatchObject({ tipo: 'consulta_agenda', titulo: 'Consulta marcada: Maria', url: '/?tab=crm', agrupar: 'agenda:u1' });
+  });
+
+  it('sem ninguém na equipe, avisa o gestor', async () => {
+    equipe.mockResolvedValue([]);
+    await aplicarReservaNoCrm({ db: criarDb(), negocioIdAtual: null, reserva: reserva(), ...base });
+    expect(avisar.mock.calls[0][0]).toEqual(['gestor-1']);
+  });
+
+  it('se o CRM falhou no meio, não avisa ninguém como se tivesse dado certo', async () => {
+    estado.falharEm = ['crm_atividades:insert'];
+    await aplicarReservaNoCrm({ db: criarDb(), negocioIdAtual: null, reserva: reserva(), ...base });
+    expect(avisar).not.toHaveBeenCalled();
   });
 });
 

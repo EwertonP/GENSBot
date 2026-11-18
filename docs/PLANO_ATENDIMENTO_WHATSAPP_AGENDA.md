@@ -79,10 +79,12 @@ Quando o webhook da agenda grava uma reserva, o CRM é atualizado sem a equipe t
 | Pendente | Registra e pede confirmação, sem mover. |
 - **Nunca puxa para trás** o que a equipe avançou. O estágio é achado por **nome** ("Consulta Agendada" ou "…Agendado/Agendada"; "Agendando" não conta); sem correspondência, registra e não move (sem o fallback por posição do motor de IA).
 - **Funis:** negócio existente segue o funil dele; negócio novo nasce no funil marcado `padrao`. A Dra. Laís tem dois ("Vendas (@laisleal.dermato)", padrão, e "Dra Lais", com estágios próprios). Decidir qual será o oficial antes do piloto.
-- **Idempotência** pelo livro-razão `whatsapp_ia_acoes` (`agenda_crm` por reserva, gatilho e instante do evento). **Falhas ficam visíveis** como `agenda_crm_falhou`; o webhook responde 200 mesmo assim.
+- **Idempotência** pelo livro-razão `whatsapp_ia_acoes` (`agenda_crm`, chave **reserva + gatilho**; o instante do evento fica de fora porque um reenvio com outro `createdAt` duplicaria as atividades). **Falhas** viram `agenda_crm_falhou`, o webhook responde 200 mesmo assim, e o cartão do cliente mostra quantas reservas dos últimos 7 dias não foram aplicadas.
+- **Responsável:** negócio novo e tarefa ficam com o responsável do negócio, senão o responsável fixo do cliente (`equipeDoCliente`), senão um gestor. **Aviso no sino e push** (`consulta_agenda`) para o responsável e a equipe do cliente: nenhuma tela global lista `crm_tarefas` (só a gaveta do negócio), então o aviso é o que garante que alguém veja.
 - Tarefas automáticas ligadas à reserva pela coluna nova `crm_tarefas.reserva_uid` (uid para confirmar, `remarcar:`+uid para remarcar), não pelo texto do título.
 - **Checklist de go-live:** nos tipos de evento reais da doutora, o campo **WhatsApp (`attendeePhoneNumber`) precisa ser obrigatório**. Sem telefone nem código do negócio, a reserva criaria um negócio duplicado.
-- **Não faz ainda:** notificar a equipe (a tarefa aparece no CRM), nem lembretes por WhatsApp (etapa 5).
+- **Não faz ainda:** lembretes por WhatsApp ao paciente (etapa 5).
+- **Drift de migrations no CRM (achado em 18/11):** `20261109_crm_qualificacao_sdr.sql` e `20261110_crm_novo_funil_sdr.sql` **não estão aplicadas** em produção. Por isso `crm_negocios.data_proximo_followup` não existe, apesar de o quadro, a gaveta e o MCP o usarem (o indicador de follow-up do cartão não funciona). A 3b **não depende** dessa coluna. Decidir à parte se aquelas migrations devem ser aplicadas.
 
 ## 3. O que a Fase 0 validou
 - **Horários livres:** `GET /v2/slots` com o cabeçalho `cal-api-version: 2024-09-04`. O horário ocupado por reserva sai da lista. Após cancelar, o cache de horários demora alguns segundos para liberar: a IA deve consultar de novo antes de oferecer.
