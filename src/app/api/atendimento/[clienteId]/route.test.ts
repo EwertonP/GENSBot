@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { contexto, cliente, config, integ, reservas, salvar } = vi.hoisted(() => ({
+const { contexto, cliente, config, integ, reservas, salvar, falhas } = vi.hoisted(() => ({
   contexto: vi.fn(),
   cliente: vi.fn(),
   config: vi.fn(),
   integ: vi.fn(),
   reservas: vi.fn(),
   salvar: vi.fn(),
+  falhas: vi.fn(),
 }));
 
 vi.mock('@/lib/clientes-server', () => ({
@@ -19,8 +20,9 @@ vi.mock('@/lib/supabase', () => ({
       const c: Record<string, unknown> = {
         select: () => c,
         eq: () => c,
+        gte: () => c,
         maybeSingle: async () => ({ data: t === 'clientes' ? cliente() : null }),
-        then: (r: (v: unknown) => void) => r({ count: reservas() }),
+        then: (r: (v: unknown) => void) => r({ count: t === 'whatsapp_ia_acoes' ? falhas() : reservas() }),
       };
       return c;
     },
@@ -49,6 +51,7 @@ beforeEach(() => {
   config.mockResolvedValue(null);
   integ.mockResolvedValue(null);
   reservas.mockReturnValue(0);
+  falhas.mockReturnValue(0);
 });
 
 describe('/api/atendimento/[clienteId]', () => {
@@ -87,8 +90,16 @@ describe('/api/atendimento/[clienteId]', () => {
     expect(corpo.config).toMatchObject({ ligado: false, temChaveOpenwa: true });
     expect(corpo.agenda).toMatchObject({ ativo: true, temChave: true, webhookRegistrado: true });
     expect(corpo.reservasRecebidas).toBe(3);
+    expect(corpo.falhasCrm).toBe(0);
     const texto = JSON.stringify(corpo);
     for (const proibido of ['enc:', 'segredo-do-openwa', 'cal_live_x', 'hmac', 'webhook_secret']) expect(texto).not.toContain(proibido);
+  });
+
+  it('GET mostra quantas reservas falharam no CRM nos últimos 7 dias', async () => {
+    falhas.mockReturnValue(2);
+    reservas.mockReturnValue(5);
+    const corpo = await (await GET(new Request('http://x'), ctx)).json();
+    expect(corpo).toMatchObject({ reservasRecebidas: 5, falhasCrm: 2 });
   });
 
   it('PUT repassa só a agência do master, e devolve o erro de validação', async () => {

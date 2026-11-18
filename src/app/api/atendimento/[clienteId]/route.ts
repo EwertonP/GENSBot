@@ -23,10 +23,21 @@ export async function GET(_req: Request, { params }: Contexto) {
     .eq('agencia_id', acesso.agenciaId)
     .eq('cliente_id', acesso.clienteId);
 
+  // Reservas que chegaram mas não foram aplicadas no CRM (últimos 7 dias): é o que a equipe precisa ver.
+  const seteDiasAtras = new Date(Date.now() - 7 * 24 * 3600_000).toISOString();
+  const { count: falhas } = await db
+    .from('whatsapp_ia_acoes')
+    .select('id', { count: 'exact', head: true })
+    .eq('agencia_id', acesso.agenciaId)
+    .eq('cliente_id', acesso.clienteId)
+    .eq('acao', 'agenda_crm_falhou')
+    .gte('criado_em', seteDiasAtras);
+
   return NextResponse.json({
     config: configPublica(config),
     agenda: integracao ? paraPublica(integracao) : null,
     reservasRecebidas: count ?? 0,
+    falhasCrm: falhas ?? 0,
   });
 }
 

@@ -80,7 +80,7 @@ describe('notificar', () => {
     expect(tipoValido('cliente_sugeriu_texto')).toBe(true);
     expect(tipoValido('alerta_conta')).toBe(true);
     expect(tipoValido('x')).toBe(false);
-    expect(Object.keys(TIPOS_NOTIFICACAO)).toHaveLength(7);
+    expect(Object.keys(TIPOS_NOTIFICACAO)).toHaveLength(8);
   });
 
   it('leva imagem, botões, prioridade e agrupa pela chave pedida', async () => {

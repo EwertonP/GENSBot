@@ -1,6 +1,6 @@
 # Plano: atendimento no WhatsApp com IA e agenda (piloto: Dra. Laís Leal)
 
-Status: **etapa 2 mesclada (#260); etapa 3a pronta para revisão** (18/11/2026). Agenda: **Cal.com (nuvem, plano gratuito)** no lugar do Cal.diy.
+Status: **etapas 2 (#260) e 3a (#261) mescladas e validadas em produção; etapa 3b pronta para revisão** (18/11/2026). Agenda: **Cal.com (nuvem, plano gratuito)** no lugar do Cal.diy.
 
 ## 1. Objetivo
 A IA conversa no WhatsApp da clínica, **propõe horários reais** de uma agenda ligada ao Google Agenda da médica, e a **equipe confirma**. Cada conversa alimenta o CRM do GENSBot automaticamente, e a secretária pode corrigir tudo à mão. Um **link de agendamento** enviado na conversa deixa a reserva pronta e no contato certo.
@@ -67,6 +67,24 @@ No OpenWA o `chatId` da mensagem é sempre o contato (nos dois sentidos), por is
 - **Assinatura do webhook (verificada com eventos reais, 18/11/2026):** `x-cal-signature-256` é o HMAC-SHA256 em hexadecimal do corpo bruto. Capturados `BOOKING_CREATED` e `BOOKING_CANCELLED` do Cal.diy e rodada a função do GENSBot sobre eles. No Cal.com nuvem, confirmar de ponta a ponta depois do merge (conectar, reservar, ver a linha em `agenda_reservas`, desconectar e ver o webhook sumir).
 - **Cadastrar o webhook no OpenWA** exige: sessão com esse nome **deste cliente**, OpenWA **próprio** do cliente (nunca o da agência) e **desliga `ia_escuta_ativa`** da sessão, porque o motor de escuta usaria a OpenAI, que a política de privacidade não cita. Reconectar a agenda avisa se não conseguir apagar o webhook antigo.
 - **Pendências para antes do número piloto:** (1) um segredo de webhook por sessão (hoje é o `OPENWA_WEBHOOK_SECRET` global copiado em cada OpenWA); (2) a rota de sessão/QR criar a sessão no OpenWA do cliente e gravar a linha em `whatsapp_sessions` (hoje é preciso existir a linha); (3) a escuta por IA migrar para o Gemini do cliente (etapa 4).
+
+## 2.6 Registro da etapa 3b: da reserva para o CRM (PR da branch `feat/atendimento-crm-agenda`)
+Quando o webhook da agenda grava uma reserva, o CRM é atualizado sem a equipe tocar em nada. Regras (`lib/agenda/crm-reserva.ts`, núcleo puro e testado):
+| Evento | Efeito |
+|---|---|
+| Confirmada | Move para o estágio de agendado (só se estiver antes), registra atividade e cria a tarefa "Confirmar presença" 24 h antes. Sem negócio: cria no funil padrão do cliente (`origem: whatsapp`). |
+| Negócio ganho/perdido | Registra, **não move e não reabre**. |
+| Cancelada/recusada | Registra; se era a única consulta e o negócio ainda está no estágio de agendado, volta para "Em Atendimento" e cria "Remarcar consulta". |
+| Remarcada | Registra o novo horário e troca a tarefa de confirmar. **Remarcar não é cancelar**: o Cal.com manda só `BOOKING_RESCHEDULED` (verificado com captura real), sem cancelamento da antiga. |
+| Pendente | Registra e pede confirmação, sem mover. |
+- **Nunca puxa para trás** o que a equipe avançou. O estágio é achado por **nome** ("Consulta Agendada" ou "…Agendado/Agendada"; "Agendando" não conta); sem correspondência, registra e não move (sem o fallback por posição do motor de IA).
+- **Funis:** negócio existente segue o funil dele; negócio novo nasce no funil marcado `padrao`. A Dra. Laís tem dois ("Vendas (@laisleal.dermato)", padrão, e "Dra Lais", com estágios próprios). Decidir qual será o oficial antes do piloto.
+- **Idempotência** pelo livro-razão `whatsapp_ia_acoes` (`agenda_crm`, chave **reserva + gatilho**; o instante do evento fica de fora porque um reenvio com outro `createdAt` duplicaria as atividades). **Falhas** viram `agenda_crm_falhou`, o webhook responde 200 mesmo assim, e o cartão do cliente mostra quantas reservas dos últimos 7 dias não foram aplicadas.
+- **Responsável:** negócio novo e tarefa ficam com o responsável do negócio, senão o responsável fixo do cliente (`equipeDoCliente`), senão um gestor. **Aviso no sino e push** (`consulta_agenda`) para o responsável e a equipe do cliente: nenhuma tela global lista `crm_tarefas` (só a gaveta do negócio), então o aviso é o que garante que alguém veja.
+- Tarefas automáticas ligadas à reserva pela coluna nova `crm_tarefas.reserva_uid` (uid para confirmar, `remarcar:`+uid para remarcar), não pelo texto do título.
+- **Checklist de go-live:** nos tipos de evento reais da doutora, o campo **WhatsApp (`attendeePhoneNumber`) precisa ser obrigatório**. Sem telefone nem código do negócio, a reserva criaria um negócio duplicado.
+- **Não faz ainda:** lembretes por WhatsApp ao paciente (etapa 5).
+- **Drift de migrations no CRM (achado em 18/11):** `20261109_crm_qualificacao_sdr.sql` e `20261110_crm_novo_funil_sdr.sql` **não estão aplicadas** em produção. Por isso `crm_negocios.data_proximo_followup` não existe, apesar de o quadro, a gaveta e o MCP o usarem (o indicador de follow-up do cartão não funciona). A 3b **não depende** dessa coluna. Decidir à parte se aquelas migrations devem ser aplicadas.
 
 ## 3. O que a Fase 0 validou
 - **Horários livres:** `GET /v2/slots` com o cabeçalho `cal-api-version: 2024-09-04`. O horário ocupado por reserva sai da lista. Após cancelar, o cache de horários demora alguns segundos para liberar: a IA deve consultar de novo antes de oferecer.
