@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { upsert, cancelar, agendar, sincronizar } = vi.hoisted(() => ({
+const { upsert, cancelar, agendar, sincronizar, atender } = vi.hoisted(() => ({
+  atender: vi.fn(),
   upsert: vi.fn(),
   cancelar: vi.fn(),
   agendar: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock('@/lib/supabase', () => ({
 vi.mock('@/lib/segredos', () => ({ validarWebhookOpenWA: () => null }));
 
 vi.mock('@/lib/whatsapp-followup', () => ({ cancelarFollowUpsDoLead: cancelar, agendarReguaFollowUp: agendar }));
+vi.mock('@/lib/atendimento/assistente', () => ({ tratarMensagemDoPaciente: atender }));
 vi.mock('@/lib/whatsapp-shadow-engine', () => ({ sincronizarMensagemEAtualizarCrm: sincronizar }));
 
 import { POST } from './route';
@@ -127,5 +129,25 @@ describe('webhook do WhatsApp', () => {
     expect(await (await chamar({ id: 'g', from: '5583999990001@c.us', body: 'x' })).json()).toMatchObject({ duplicate: true });
     await rodarAdiados();
     expect(cancelar).not.toHaveBeenCalled();
+  });
+});
+
+describe('atendimento por IA no webhook', () => {
+  it('mensagem de texto do paciente chama o assistente (depois da resposta), com a sessão e o contato', async () => {
+    await chamarOpenWA('message.received', { id: 'p1', from: '5583999990001@c.us', body: 'quero marcar consulta', contact: { pushName: 'Maria' } });
+    expect(atender).not.toHaveBeenCalled(); // roda em after(), não segura o gateway
+    await rodarAdiados();
+    expect(atender).toHaveBeenCalledWith(expect.objectContaining({ agenciaId: 'ag1', clienteId: 'cl1', remetente: '5583999990001@c.us', sessionName: 'cliente-1', texto: 'quero marcar consulta' }));
+  });
+  it('mensagem da secretária não chama o assistente', async () => {
+    await chamarOpenWA('message.sent', { id: 's1', chatId: '5583999990001@c.us', fromMe: true, body: 'Olá!' });
+    await rodarAdiados();
+    expect(atender).not.toHaveBeenCalled();
+  });
+  it('falha do assistente não derruba o resto do processamento', async () => {
+    atender.mockRejectedValueOnce(new Error('boom'));
+    await chamarOpenWA('message.received', { id: 'p2', from: '5583999990001@c.us', body: 'oi' });
+    await rodarAdiados();
+    expect(sincronizar).toHaveBeenCalled();
   });
 });

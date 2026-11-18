@@ -6,7 +6,7 @@
 import { supabase } from './supabase';
 import { enviarPush, type AcaoPush, type PrioridadePush } from './push';
 
-export type TipoNotificacao = 'post_falhou' | 'cliente_aprovou' | 'cliente_pediu_ajuste' | 'demanda_atribuida' | 'lead_novo' | 'cliente_sugeriu_texto' | 'alerta_conta' | 'consulta_agenda';
+export type TipoNotificacao = 'post_falhou' | 'cliente_aprovou' | 'cliente_pediu_ajuste' | 'demanda_atribuida' | 'lead_novo' | 'cliente_sugeriu_texto' | 'alerta_conta' | 'consulta_agenda' | 'atendimento_transferido';
 
 export const TIPOS_NOTIFICACAO: Record<TipoNotificacao, { rotulo: string; descricao: string; pushPadrao: boolean }> = {
   post_falhou: { rotulo: 'Post que falhou', descricao: 'Quando uma publicação não consegue sair no Instagram.', pushPadrao: true },
@@ -16,6 +16,7 @@ export const TIPOS_NOTIFICACAO: Record<TipoNotificacao, { rotulo: string; descri
   alerta_conta: { rotulo: 'Alerta de conta conectada', descricao: 'Quando o acesso ao Instagram de um cliente está vencendo ou a renovação falhou, ou quando as automações estão falhando.', pushPadrao: true },
   demanda_atribuida: { rotulo: 'Demanda atribuída a você', descricao: 'Quando alguém passa uma demanda para você.', pushPadrao: true },
   consulta_agenda: { rotulo: 'Consulta na agenda', descricao: 'Quando uma consulta é marcada, remarcada ou cancelada pela agenda de um cliente seu.', pushPadrao: true },
+  atendimento_transferido: { rotulo: 'Conversa passada para a equipe', descricao: 'Quando o atendimento automático do WhatsApp de um cliente seu passa uma conversa para uma pessoa (urgência, pedido do paciente ou dúvida que ele não pode responder).', pushPadrao: true },
   lead_novo: { rotulo: 'Lead novo', descricao: 'Quando uma automação sua captura um lead. Pode ser frequente.', pushPadrao: false },
 };
 

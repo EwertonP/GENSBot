@@ -105,6 +105,17 @@ export async function POST(req: Request) {
             });
           }
 
+          // Atendimento por IA: só texto do paciente numa sessão de cliente. Ela escreve e põe na fila
+          // (nunca envia daqui); se o atendimento está desligado, retorna na primeira consulta.
+          if (!deMim && clienteId && conteudo?.trim()) {
+            try {
+              const { tratarMensagemDoPaciente } = await import('@/lib/atendimento/assistente');
+              await tratarMensagemDoPaciente({ db: serviceSupabase, agenciaId, clienteId, remetente, sessionName, texto: conteudo, nomeContato });
+            } catch (err) {
+              console.error('[OpenWA Webhook] Erro no atendimento por IA:', err);
+            }
+          }
+
           // Se a escuta ativa estiver habilitada nesta sessão:
           if (sessionData.ia_escuta_ativa !== false && conteudo?.trim()) {
             // Últimas 6 mensagens da conversa para dar contexto à IA

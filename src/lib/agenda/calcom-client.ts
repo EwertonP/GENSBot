@@ -25,12 +25,12 @@ export function apiBaseValida(valor: string | null | undefined): string | null {
   }
 }
 
-async function chamar(apiBase: string, apiKey: string, caminho: string, init: RequestInit = {}) {
+async function chamar(apiBase: string, apiKey: string, caminho: string, init: RequestInit = {}, versao = VERSAO_API_CALCOM) {
   return fetch(`${apiBase}${caminho}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      'cal-api-version': VERSAO_API_CALCOM,
+      'cal-api-version': versao,
       'content-type': 'application/json',
     },
     signal: AbortSignal.timeout(15000),
@@ -77,5 +77,52 @@ export async function apagarWebhookCalcom(apiBase: string, apiKey: string, id: s
     return res.ok || res.status === 404;
   } catch {
     return false;
+  }
+}
+
+export interface TipoConsulta {
+  id: number;
+  titulo: string;
+  minutos: number;
+  link: string | null;
+  /** Próximos horários livres (ISO, com fuso), espalhados pelos dias. */
+  horarios: string[];
+}
+
+const dia = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);
+
+/**
+ * Tipos de consulta visíveis e seus próximos horários livres, só leitura. A IA nunca reserva:
+ * quem agenda é o paciente pelo link (o webhook da agenda cuida do resto).
+ * shortcut: até 3 tipos e 2 horários por dia, sem paginação; subir se a clínica tiver mais.
+ */
+export async function consultarAgendaCalcom(
+  apiBase: string,
+  apiKey: string,
+  { agora = new Date(), dias = 7, maxTipos = 3, maxHorarios = 6 }: { agora?: Date; dias?: number; maxTipos?: number; maxHorarios?: number } = {}
+): Promise<ResultadoCalcom<{ tipos: TipoConsulta[] }>> {
+  try {
+    const resTipos = await chamar(apiBase, apiKey, '/v2/event-types');
+    if (!resTipos.ok) return { ok: false, erro: `O Cal.com respondeu ${resTipos.status} ao listar os tipos de consulta.` };
+    const corpo = (await resTipos.json()) as { data?: Array<{ id: number; title?: string; lengthInMinutes?: number; hidden?: boolean; bookingUrl?: string }> };
+    const visiveis = (corpo.data ?? []).filter((t) => !t.hidden).slice(0, maxTipos);
+
+    const inicio = dia(new Date(agora.getTime() + 2 * 3600_000)); // antecedência mínima de 2 h
+    const fim = dia(new Date(agora.getTime() + dias * 86400_000));
+    const tipos: TipoConsulta[] = [];
+    for (const t of visiveis) {
+      const res = await chamar(apiBase, apiKey, `/v2/slots?eventTypeId=${t.id}&start=${inicio}&end=${fim}&timeZone=America%2FSao_Paulo`, {}, '2024-09-04');
+      const slots = res.ok ? (((await res.json()) as { data?: Record<string, Array<{ start: string }>> }).data ?? {}) : {};
+      const horarios: string[] = [];
+      for (const dd of Object.keys(slots).sort()) {
+        const doDia = slots[dd].filter((x) => Date.parse(x.start) > agora.getTime() + 2 * 3600_000);
+        // dois por dia (o primeiro e um mais tarde), para a pessoa ter escolha sem receber uma lista enorme
+        for (const x of [doDia[0], doDia[Math.floor(doDia.length / 2)]].filter((v, i, a) => v && a.indexOf(v) === i)) horarios.push(x.start);
+      }
+      tipos.push({ id: t.id, titulo: t.title ?? 'Consulta', minutos: t.lengthInMinutes ?? 0, link: t.bookingUrl ?? null, horarios: horarios.slice(0, maxHorarios) });
+    }
+    return { ok: true, tipos };
+  } catch (err) {
+    return { ok: false, erro: `Não consegui falar com o Cal.com: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
