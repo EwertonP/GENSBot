@@ -1,6 +1,6 @@
 # Plano: atendimento no WhatsApp com IA e agenda (piloto: Dra. Laís Leal)
 
-Status: **etapa 2 pronta para revisão** (18/11/2026). Agenda: **Cal.com (nuvem, plano gratuito)** no lugar do Cal.diy.
+Status: **etapa 2 mesclada (#260); etapa 3a pronta para revisão** (18/11/2026). Agenda: **Cal.com (nuvem, plano gratuito)** no lugar do Cal.diy.
 
 ## 1. Objetivo
 A IA conversa no WhatsApp da clínica, **propõe horários reais** de uma agenda ligada ao Google Agenda da médica, e a **equipe confirma**. Cada conversa alimenta o CRM do GENSBot automaticamente, e a secretária pode corrigir tudo à mão. Um **link de agendamento** enviado na conversa deixa a reserva pronta e no contato certo.
@@ -52,6 +52,17 @@ Correção (neste PR): a rota reconhece os eventos do OpenWA e lê o nome da ses
 Isso entra na etapa 3 como função + rota do GENSBot (registrar ao criar a sessão), junto da escolha do OpenWA por cliente.
 
 No OpenWA o `chatId` da mensagem é sempre o contato (nos dois sentidos), por isso o webhook o usa para mensagens `fromMe`.
+
+## 2.5 Registro da etapa 3a: cadastro e configuração (PR da branch `feat/atendimento-config-agenda`)
+- **Verificado antes de construir (18/11/2026):** na nuvem do Cal.com, `POST /v2/webhooks` (cabeçalho `cal-api-version: 2024-06-14`, corpo `{subscriberUrl, triggers, active, secret}`) devolve `data.id`; `DELETE /v2/webhooks/:id` apaga. No OpenWA: `GET/POST/PUT /api/sessions/:id/webhooks` (o PUT é parcial).
+- `lib/agenda/integracao.ts`: conectar confere a chave (`GET /v2/me`) antes de guardar, apaga o webhook antigo antes de criar o novo e guarda chave e segredo **cifrados**; o segredo nasce no servidor e nunca vai para a tela. `calcom_webhook_id` evita duplicados.
+- `lib/openwa-config.ts`: `configOpenWA({clienteId})` usa o OpenWA do cliente quando existe; **com OpenWA próprio, nunca cai no do ambiente** (a mensagem da clínica nunca sai pelo número da agência). O caminho por variável de ambiente é provado idêntico ao anterior por teste.
+- `lib/openwa-webhook.ts`: cadastra/atualiza o webhook da sessão (`?session=`, cabeçalho `x-openwa-secret`), idempotente.
+- `lib/url-publica.ts`: os endereços de webhook vêm de `NEXT_PUBLIC_APP_URL`/produção, **nunca do host da requisição** (previews compartilham o banco).
+- `atendimento_config` (migration, sem RLS de usuário): desligado por padrão, modo simulação, ritmo de resposta, limite por hora, pausa quando a equipe responde e horário.
+- Rotas `/api/atendimento/[clienteId]` (+ `/agenda`, `/openwa-webhook`): só o master, só clientes da própria agência.
+- Tela `AtendimentoConfig` na ficha do cliente; quem não é master não a vê. O atendimento aparece como "Desligado: disponível na etapa 4".
+- **Ainda não feito:** a sessão/QR do OpenWA do cliente (`/api/whatsapp/session`) ainda usa o OpenWA do ambiente; primeiro item da etapa 4. O restante dos helpers (`enviarMensagemOpenWA` etc.) segue com o padrão do ambiente.
 
 ## 3. O que a Fase 0 validou
 - **Horários livres:** `GET /v2/slots` com o cabeçalho `cal-api-version: 2024-09-04`. O horário ocupado por reserva sai da lista. Após cancelar, o cache de horários demora alguns segundos para liberar: a IA deve consultar de novo antes de oferecer.

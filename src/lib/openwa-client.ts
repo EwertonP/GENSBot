@@ -14,30 +14,42 @@ export interface OpenWASessionInfo {
   };
 }
 
-export function getOpenWAConfig() {
-  let url = process.env.OPENWA_API_URL?.trim().replace(/\/$/, '') || null;
+export interface ConfigOpenWA {
+  url: string | null;
+  key: string | null;
+  headers: Record<string, string>;
+}
+
+/** Monta a configuração a partir de um endereço e uma chave (da variável de ambiente ou de um cliente). */
+export function montarConfigOpenWA(urlBruta: string | null | undefined, key: string | null | undefined): ConfigOpenWA {
+  let url = urlBruta?.trim().replace(/\/$/, '') || null;
   if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
     url = `https://${url}`;
   }
-  const key = process.env.OPENWA_API_KEY || process.env.API_MASTER_KEY || null;
+  const chave = key || null;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   };
-  if (key) {
-    headers['X-API-Key'] = key;
-    headers['Authorization'] = `Bearer ${key}`;
+  if (chave) {
+    headers['X-API-Key'] = chave;
+    headers['Authorization'] = `Bearer ${chave}`;
   }
 
-  return { url, key, headers };
+  return { url, key: chave, headers };
+}
+
+/** Configuração padrão, das variáveis de ambiente. É o que todos os fluxos antigos usam. */
+export function getOpenWAConfig(): ConfigOpenWA {
+  return montarConfigOpenWA(process.env.OPENWA_API_URL, process.env.OPENWA_API_KEY || process.env.API_MASTER_KEY);
 }
 
 /**
  * Consulta as sessões ativas no OpenWA
  */
-export async function listarSessoesOpenWA(): Promise<OpenWASessionInfo[]> {
-  const { url, headers } = getOpenWAConfig();
+export async function listarSessoesOpenWA(config: ConfigOpenWA = getOpenWAConfig()): Promise<OpenWASessionInfo[]> {
+  const { url, headers } = config;
   if (!url) return [];
 
   try {
@@ -80,11 +92,14 @@ export function acharSessaoOpenWA<T extends OpenWASessionInfo>(
 /**
  * Resolve o UUID exato da sessão no OpenWA a partir do sessionName cadastrado
  */
-export async function obterSessionUuidOpenWA(sessionName: string): Promise<{
+export async function obterSessionUuidOpenWA(
+  sessionName: string,
+  config: ConfigOpenWA = getOpenWAConfig()
+): Promise<{
   sessionUuid: string | null;
   sessionExactName: string | null;
 }> {
-  const { url, headers } = getOpenWAConfig();
+  const { url, headers } = config;
   if (!url) return { sessionUuid: null, sessionExactName: null };
 
   try {
