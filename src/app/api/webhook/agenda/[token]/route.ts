@@ -3,6 +3,7 @@ import { supabase as db } from '@/lib/supabase';
 import { descriptografarSegredo } from '@/lib/cripto';
 import { hashDoEvento, interpretarWebhookCalcom, verificarAssinaturaCalcom } from '@/lib/agenda/webhook-calcom';
 import { acharNegocioDaReserva } from '@/lib/agenda/vinculo-negocio';
+import { aplicarReservaNoCrm } from '@/lib/agenda/crm-reserva-server';
 
 const TOKEN = /^[A-Za-z0-9_-]{24,80}$/;
 const MAX_CORPO = 256 * 1024;
@@ -53,7 +54,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
   const { data: atual } = await db
     .from('agenda_reservas')
-    .select('id, evento_em, negocio_id, inicio, fim, titulo, nome_contato, email, telefone')
+    .select('id, status, evento_em, negocio_id, inicio, fim, titulo, nome_contato, email, telefone')
     .eq('integracao_id', integ.id)
     .eq('agencia_id', integ.agencia_id)
     .eq('uid', reserva.uid)
@@ -75,13 +76,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     }));
 
   const agora = new Date().toISOString();
+  // A reserva antiga que foi remarcada continua "remarcada", mesmo que um cancelamento dela chegue depois.
+  const jaRemarcada = atual?.status === 'remarcada';
   const { error } = await db.from('agenda_reservas').upsert(
     {
       agencia_id: integ.agencia_id,
       cliente_id: integ.cliente_id,
       integracao_id: integ.id,
       uid: reserva.uid,
-      status: reserva.status,
+      status: jaRemarcada && reserva.status === 'cancelada' ? 'remarcada' : reserva.status,
       // Um evento incompleto (o cancelamento, por exemplo) não apaga o que já estava guardado.
       inicio: reserva.inicio ?? atual?.inicio ?? null,
       fim: reserva.fim ?? atual?.fim ?? null,
@@ -116,5 +119,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       .eq('uid', reserva.remarcadaDeUid);
   }
 
-  return NextResponse.json({ ok: true });
+  // CRM: nunca lança e nunca muda a resposta. Uma falha fica registrada em whatsapp_ia_acoes
+  // (`agenda_crm_falhou`); devolver erro aqui só faria o Cal.com reenviar o mesmo evento.
+  const crm = await aplicarReservaNoCrm({
+    db,
+    agenciaId: integ.agencia_id,
+    clienteId: integ.cliente_id,
+    integracaoId: integ.id,
+    reserva,
+    negocioIdAtual: negocioId,
+    reservaJaRemarcada: jaRemarcada,
+  });
+
+  return NextResponse.json({ ok: true, crm: crm.acao });
 }
