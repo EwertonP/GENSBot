@@ -86,6 +86,14 @@ Quando o webhook da agenda grava uma reserva, o CRM é atualizado sem a equipe t
 - **Não faz ainda:** lembretes por WhatsApp ao paciente (etapa 5).
 - **Drift de migrations no CRM (achado em 18/11):** `20261109_crm_qualificacao_sdr.sql` e `20261110_crm_novo_funil_sdr.sql` **não estão aplicadas** em produção. Por isso `crm_negocios.data_proximo_followup` não existe, apesar de o quadro, a gaveta e o MCP o usarem (o indicador de follow-up do cartão não funciona). A 3b **não depende** dessa coluna. Decidir à parte se aquelas migrations devem ser aplicadas.
 
+## 2.7 Registro da etapa 4a: fila e ritmo (PR da branch `feat/atendimento-etapa4`)
+- **O que o OpenWA já faz e não se repete:** "digitando" com pausa proporcional ao texto (`SIMULATE_TYPING`, ligado por padrão, teto de 5 s) e, opcional, limite diário com aquecimento pela idade do número, limite de conversas novas e disjuntor de falhas (`SEND_PACING_ENABLED`, desligado por padrão). Ele não tem limite por minuto/hora, espera longa, horário de atendimento nem pausa por humano.
+- **O que esta etapa faz:** tabela `atendimento_fila` (migration `20261120_atendimento_fila.sql`), `enfileirarResposta` (atraso aleatório entre `resposta_min/max_segundos`; a pendente do mesmo contato é substituída; nunca grupo) e `processarFila` (cron por minuto, encadeado no `drain`). No envio reavalia: desligado, paciente sem mensagem nas últimas 24 h (nunca puxa conversa), mensagem nova do paciente depois da resposta montada (descarta; quem enfileirou refaz), secretária respondeu nas últimas `pausa_humano_horas` (o eco da resposta do robô é reconhecido pelo `message_id`), fora do horário (adia 5 min, expira em 12 h), limite por hora.
+- Modo `simulacao`: só marca `simulada` e grava `atendimento_simulado` em `whatsapp_ia_acoes`. Modo `real`: marca como lido, espera 1–3 s e envia pelo OpenWA **do próprio cliente** (sem chave dele, falha fechada; nunca cai no do ambiente).
+- **Ainda sem produtor:** nada enfileira até a 4b (assistente Gemini), e `ligado` segue sem poder ser ligado pela tela (4c).
+- **A verificar no primeiro teste real:** o `message_id` que o OpenWA devolve no envio deve ser o mesmo do webhook `message.sent`; se não for, a pausa por humano trata o eco do robô como humano (erra para o lado seguro: a IA cala).
+- **Para ligar o limite diário do OpenWA:** `SEND_PACING_ENABLED=true` e `SEND_PACING_WARMUP_SCHEDULE` no compose da VPS (feito só com o OK do Ewerton, no go-live).
+
 ## 3. O que a Fase 0 validou
 - **Horários livres:** `GET /v2/slots` com o cabeçalho `cal-api-version: 2024-09-04`. O horário ocupado por reserva sai da lista. Após cancelar, o cache de horários demora alguns segundos para liberar: a IA deve consultar de novo antes de oferecer.
 - **Reservar** (`POST /v2/bookings`, `2024-08-13`), **conflito recusado**, **cancelar** (`/cancel`), **confirmar** (`/confirm`) e **recusar** (`/decline`). Evento com política de confirmação nasce `pending`.
