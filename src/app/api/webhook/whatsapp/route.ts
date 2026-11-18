@@ -2,6 +2,7 @@ import { NextResponse, after } from 'next/server';
 import { supabase as serviceSupabase } from '@/lib/supabase';
 import { sincronizarMensagemEAtualizarCrm } from '@/lib/whatsapp-shadow-engine';
 import { validarWebhookOpenWA } from '@/lib/segredos';
+import { jidParaE164 } from '@/lib/telefone';
 
 // POST: Webhook oficial para receber eventos do OpenWA
 export async function POST(req: Request) {
@@ -14,9 +15,12 @@ export async function POST(req: Request) {
     const { event, session, data } = body;
 
     // Se for evento de mensagem (recebida ou enviada)
-    if (event === 'onMessage' || event === 'message' || event === 'message_create' || body.message) {
+    // `message.received` / `message.sent` é o formato do OpenWA; os demais são formatos antigos.
+    const EVENTOS_DE_MENSAGEM = ['onMessage', 'message', 'message_create', 'message.received', 'message.sent'];
+    if (EVENTOS_DE_MENSAGEM.includes(event) || body.message) {
       const msg = data || body.message || body;
-      const sessionName = session || body.session || 'default';
+      // O OpenWA manda só o UUID da sessão (`sessionId`); o nome vem no `?session=` da URL cadastrada.
+      const sessionName = session || body.session || new URL(req.url).searchParams.get('session') || 'default';
 
       // 1. Localiza a sessão para identificar o cliente_id e agencia_id
       const { data: sessionData } = await serviceSupabase
@@ -35,10 +39,14 @@ export async function POST(req: Request) {
       const clienteId = sessionData.cliente_id || null;
 
       const messageId = msg.id || msg.key?.id || `${Date.now()}-${Math.random()}`;
-      const remetente = msg.from || msg.sender || msg.key?.remoteJid || '';
       const deMim = Boolean(msg.fromMe || msg.key?.fromMe);
+      // No OpenWA, `chatId` é sempre o contato (nos dois sentidos). Sem ele, mantém o que valia antes.
+      const remetente: string =
+        (deMim ? msg.chatId || msg.key?.remoteJid || msg.from : msg.from || msg.sender || msg.key?.remoteJid || msg.chatId) || '';
+      // Com RESOLVE_LID_TO_PHONE=true o OpenWA manda `senderPhone` quando o JID é `@lid`.
+      const telefoneContato = jidParaE164(remetente) || (msg.senderPhone ? jidParaE164(`${String(msg.senderPhone).replace(/\D/g, '')}@c.us`) : '');
       const conteudo = msg.body || msg.text || msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-      const nomeContato = msg.pushName || msg.notifyName || null;
+      const nomeContato = msg.pushName || msg.notifyName || msg.contact?.pushName || msg.contact?.name || null;
 
       // Ignora mensagens de grupos para não poluir o CRM
       if (remetente.includes('@g.us') || msg.isGroup) {
@@ -55,7 +63,7 @@ export async function POST(req: Request) {
             cliente_id: clienteId,
             session_id: sessionData?.id || null,
             message_id: messageId,
-            remetente: remetente.replace(/D/g, ''),
+            remetente,
             de_mim: deMim,
             tipo: msg.type || 'texto',
             conteudo,
@@ -70,6 +78,13 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, duplicate: true });
       }
 
+      // JID `@lid` sem telefone resolvido: a mensagem fica guardada, mas não dá para criar
+      // lead nem régua de follow-up com um número que não existe.
+      if (!telefoneContato) {
+        console.warn('[OpenWA Webhook] Contato sem telefone (@lid). Ative RESOLVE_LID_TO_PHONE=true no OpenWA.');
+        return NextResponse.json({ ok: true, processed: false, skipped: 'sem_telefone' });
+      }
+
       // O resto (follow-ups e análise da IA) roda depois da resposta: o gateway recebe o 200
       // na hora e não reenvia o evento por timeout enquanto o modelo pensa.
       after(async () => {
@@ -77,14 +92,14 @@ export async function POST(req: Request) {
           if (!deMim) {
             // Mensagem do paciente/lead: CANCELA follow-ups pendentes imediatamente
             const { cancelarFollowUpsDoLead } = await import('@/lib/whatsapp-followup');
-            await cancelarFollowUpsDoLead(agenciaId, remetente);
+            await cancelarFollowUpsDoLead(agenciaId, telefoneContato);
           } else {
             // Mensagem da secretária: AGENDAR nova régua de follow-up (3h -> 8h -> 48h)
             const { agendarReguaFollowUp } = await import('@/lib/whatsapp-followup');
             await agendarReguaFollowUp({
               agenciaId,
               clienteId,
-              telefone: remetente,
+              telefone: telefoneContato,
               nomeContato,
               sessionName,
             });
@@ -97,7 +112,7 @@ export async function POST(req: Request) {
               .from('whatsapp_mensagens')
               .select('de_mim, conteudo, timestamp_msg')
               .eq('agencia_id', agenciaId)
-              .eq('remetente', remetente.replace(/D/g, ''))
+              .eq('remetente', remetente)
               .order('timestamp_msg', { ascending: false })
               .limit(6);
 
@@ -108,7 +123,7 @@ export async function POST(req: Request) {
             await sincronizarMensagemEAtualizarCrm({
               agenciaId,
               clienteId,
-              remetenteTelefone: remetente,
+              remetenteTelefone: telefoneContato,
               remetenteNome: nomeContato,
               mensagensTexto: mensagensFormatadas.length > 0 ? mensagensFormatadas : [`${deMim ? 'Secretária' : 'Paciente'}: ${conteudo}`],
               autoCriarCards: sessionData.auto_criar_cards !== false,
