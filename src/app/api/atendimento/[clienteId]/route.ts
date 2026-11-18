@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase as db } from '@/lib/supabase';
 import { exigirMasterDoCliente } from '@/lib/atendimento/acesso';
-import { configPublica, lerConfig, salvarConfig, type EntradaConfig } from '@/lib/atendimento/config';
+import { calcularFaltas, configPublica, lerConfig, salvarConfig, type EntradaConfig } from '@/lib/atendimento/config';
 import { lerIntegracao, paraPublica } from '@/lib/agenda/integracao';
 import { respostaErro } from '@/lib/clientes-server';
 
@@ -38,6 +38,8 @@ export async function GET(_req: Request, { params }: Contexto) {
     agenda: integracao ? paraPublica(integracao) : null,
     reservasRecebidas: count ?? 0,
     falhasCrm: falhas ?? 0,
+    // O que ainda impede de ligar o atendimento (vazio = pode ligar).
+    faltas: await calcularFaltas(db, acesso.agenciaId, acesso.clienteId, config),
   });
 }
 
@@ -54,5 +56,5 @@ export async function PUT(req: Request, { params }: Contexto) {
 
   const r = await salvarConfig(db, acesso.agenciaId, acesso.clienteId, corpo);
   if (!r.ok) return respostaErro(r.erro, r.status);
-  return NextResponse.json({ config: r.config });
+  return NextResponse.json({ config: r.config, desligadoSozinho: r.desligadoSozinho });
 }

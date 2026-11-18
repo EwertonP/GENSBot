@@ -79,6 +79,77 @@ export function historicoParaChat(linhas: Array<{ de_mim: boolean; conteudo: str
 const TEXTO_TRANSFERENCIA = 'Vou pedir para a equipe da clínica te responder por aqui, tudo bem?';
 const TEXTO_URGENCIA = `${TEXTO_TRANSFERENCIA} Se for uma urgência, procure um pronto atendimento ou ligue para o SAMU (192).`;
 
+export type Proposta =
+  | { tipo: 'urgencia'; motivo: string; texto: string }
+  | { tipo: 'transferir'; motivo: string; texto: string }
+  | { tipo: 'responder'; texto: string }
+  | { tipo: 'vazia' }
+  | { tipo: 'sem_chave_ia' };
+
+export type ChamarLLM = (p: { provider: AIProvider; apiKey: string; model: string; temperature?: number; systemPrompt?: string; messages: ChatMessage[]; tools?: typeof CRM_AI_TOOLS }) => Promise<AIGenerateResult>;
+export type ConsultarAgenda = (apiBase: string, apiKey: string) => Promise<TipoConsulta[] | null>;
+
+const agendaPadrao = (agora: Date): ConsultarAgenda => async (base, chave) => {
+  const r = await consultarAgendaCalcom(base, chave, { agora });
+  return r.ok ? r.tipos : null;
+};
+
+/**
+ * O que a IA responderia a esta conversa. SEM efeitos: não grava, não enfileira, não notifica.
+ * É o que o simulador chama; `tratarMensagemDoPaciente` aplica os efeitos em cima dele.
+ * `messages` é o histórico em turnos que termina na mensagem do paciente.
+ */
+export async function proporResposta({
+  db,
+  agenciaId,
+  clienteId,
+  messages,
+  agora = new Date(),
+  llm = chamarLLM,
+  agenda = agendaPadrao(agora),
+}: {
+  db: SupabaseClient;
+  agenciaId: string;
+  clienteId: string;
+  messages: ChatMessage[];
+  agora?: Date;
+  llm?: ChamarLLM;
+  agenda?: ConsultarAgenda;
+}): Promise<Proposta & { agendaVista?: string }> {
+  const ultima = messages[messages.length - 1]?.content ?? '';
+  if (ehUrgencia(ultima)) return { tipo: 'urgencia', motivo: 'Possível urgência na mensagem do paciente.', texto: TEXTO_URGENCIA };
+
+  const { data: ia } = await db.from('ai_agent_configs').select('provedor, api_key, modelo, temperatura, nome_agente, prompt_sistema').eq('agencia_id', agenciaId).eq('cliente_id', clienteId).maybeSingle();
+  const apiKey = descriptografarSegredo((ia as { api_key?: string } | null)?.api_key);
+  if (!ia || !apiKey) return { tipo: 'sem_chave_ia' };
+  const cfgIa = ia as { provedor: AIProvider; modelo: string; temperatura: number; nome_agente: string; prompt_sistema: string };
+
+  let tipos: TipoConsulta[] | null = null;
+  const integ = await lerIntegracao(db, agenciaId, clienteId);
+  const base = apiBaseValida(integ?.api_base);
+  const chaveAgenda = descriptografarSegredo(integ?.api_key_cifrada);
+  if (integ?.ativo && base && chaveAgenda) tipos = await agenda(base, chaveAgenda);
+  const agendaVista = formatarAgenda(tipos);
+
+  const r = await llm({
+    provider: cfgIa.provedor,
+    apiKey,
+    model: cfgIa.modelo,
+    temperature: Math.min(Number(cfgIa.temperatura) || 0.4, 0.5),
+    systemPrompt: montarPrompt({ nomeAgente: cfgIa.nome_agente, instrucoes: cfgIa.prompt_sistema, agenda: agendaVista, agora }),
+    messages,
+    tools: CRM_AI_TOOLS.filter((t) => t.name === 'solicitar_atendimento_humano'),
+  });
+
+  const pedido = r.toolCalls?.find((c) => c.name === 'solicitar_atendimento_humano');
+  if (pedido) {
+    const motivo = String((pedido.arguments as { motivo?: unknown }).motivo ?? 'A IA pediu uma pessoa.');
+    return { tipo: 'transferir', motivo, texto: limparResposta(r.replyText) || TEXTO_TRANSFERENCIA, agendaVista };
+  }
+  const texto = limparResposta(r.replyText);
+  return texto ? { tipo: 'responder', texto, agendaVista } : { tipo: 'vazia', agendaVista };
+}
+
 export type ResultadoAssistente =
   | { acao: 'ignorada'; motivo: string }
   | { acao: 'respondida'; filaId: string }
@@ -101,10 +172,7 @@ export async function tratarMensagemDoPaciente({
   nomeContato,
   agora = new Date(),
   llm = chamarLLM,
-  agenda = async (base: string, chave: string) => {
-    const r = await consultarAgendaCalcom(base, chave, { agora });
-    return r.ok ? r.tipos : null;
-  },
+  agenda,
 }: {
   db: SupabaseClient;
   agenciaId: string;
@@ -114,8 +182,8 @@ export async function tratarMensagemDoPaciente({
   texto: string;
   nomeContato?: string | null;
   agora?: Date;
-  llm?: (p: { provider: AIProvider; apiKey: string; model: string; temperature?: number; systemPrompt?: string; messages: ChatMessage[]; tools?: typeof CRM_AI_TOOLS }) => Promise<AIGenerateResult>;
-  agenda?: (apiBase: string, apiKey: string) => Promise<TipoConsulta[] | null>;
+  llm?: ChamarLLM;
+  agenda?: ConsultarAgenda;
 }): Promise<ResultadoAssistente> {
   const ignorar = (motivo: string): ResultadoAssistente => ({ acao: 'ignorada', motivo });
   const registrar = (acao: string, resumo: string, extras: Record<string, unknown> = {}) =>
@@ -152,49 +220,30 @@ export async function tratarMensagemDoPaciente({
       return { acao: 'transferida', motivo };
     };
 
+    // A mensagem que chegou agora é a que vale para a urgência, sem depender de o histórico já tê-la.
     if (ehUrgencia(texto)) return await transferir('Possível urgência na mensagem do paciente.', TEXTO_URGENCIA);
-
-    const { data: ia } = await db.from('ai_agent_configs').select('provedor, api_key, modelo, temperatura, nome_agente, prompt_sistema').eq('agencia_id', agenciaId).eq('cliente_id', clienteId).maybeSingle();
-    const apiKey = descriptografarSegredo((ia as { api_key?: string } | null)?.api_key);
-    if (!ia || !apiKey) {
-      await registrar('atendimento_ia_falhou', 'Sem chave de IA configurada para este cliente.');
-      return { acao: 'falhou', motivo: 'sem_chave_ia' };
-    }
-    const cfgIa = ia as { provedor: AIProvider; modelo: string; temperatura: number; nome_agente: string; prompt_sistema: string };
-
-    let tipos: TipoConsulta[] | null = null;
-    const integ = await lerIntegracao(db, agenciaId, clienteId);
-    const base = apiBaseValida(integ?.api_base);
-    const chaveAgenda = descriptografarSegredo(integ?.api_key_cifrada);
-    if (integ?.ativo && base && chaveAgenda) tipos = await agenda(base, chaveAgenda);
 
     const { data: linhas } = await db.from('whatsapp_mensagens').select('de_mim, conteudo').eq('agencia_id', agenciaId).eq('cliente_id', clienteId).eq('remetente', remetente).order('timestamp_msg', { ascending: false }).limit(12);
     const messages = historicoParaChat(((linhas as Array<{ de_mim: boolean; conteudo: string | null }> | null) ?? []).reverse());
     if (!messages.length) return ignorar('sem_historico');
 
-    const ferramenta = CRM_AI_TOOLS.filter((t) => t.name === 'solicitar_atendimento_humano');
-    const r = await llm({
-      provider: cfgIa.provedor,
-      apiKey,
-      model: cfgIa.modelo,
-      temperature: Math.min(Number(cfgIa.temperatura) || 0.4, 0.5),
-      systemPrompt: montarPrompt({ nomeAgente: cfgIa.nome_agente, instrucoes: cfgIa.prompt_sistema, agenda: formatarAgenda(tipos), agora }),
-      messages,
-      tools: ferramenta,
-    });
-
-    const pedido = r.toolCalls?.find((c) => c.name === 'solicitar_atendimento_humano');
-    if (pedido) {
-      const motivo = String((pedido.arguments as { motivo?: unknown }).motivo ?? 'A IA pediu uma pessoa.');
-      return await transferir(motivo, limparResposta(r.replyText) || TEXTO_TRANSFERENCIA);
+    const p = await proporResposta({ db, agenciaId, clienteId, messages, agora, llm, agenda });
+    switch (p.tipo) {
+      case 'urgencia':
+      case 'transferir':
+        return await transferir(p.motivo, p.texto);
+      case 'sem_chave_ia':
+        await registrar('atendimento_ia_falhou', 'Sem chave de IA configurada para este cliente.');
+        return { acao: 'falhou', motivo: 'sem_chave_ia' };
+      case 'vazia':
+        return ignorar('resposta_vazia');
+      case 'responder': {
+        const f = await enfileirarResposta({ db, agenciaId, clienteId, remetente, texto: p.texto, agora });
+        if (!f.ok) return { acao: 'falhou', motivo: f.erro };
+        await registrar('atendimento_ia', p.texto, { fila_id: f.id });
+        return { acao: 'respondida', filaId: f.id };
+      }
     }
-    const resposta = limparResposta(r.replyText);
-    if (!resposta) return ignorar('resposta_vazia');
-
-    const f = await enfileirarResposta({ db, agenciaId, clienteId, remetente, texto: resposta, agora });
-    if (!f.ok) return { acao: 'falhou', motivo: f.erro };
-    await registrar('atendimento_ia', resposta, { fila_id: f.id });
-    return { acao: 'respondida', filaId: f.id };
   } catch (err) {
     const motivo = err instanceof Error ? err.message : String(err);
     console.error('[Atendimento IA] Falhou:', motivo);

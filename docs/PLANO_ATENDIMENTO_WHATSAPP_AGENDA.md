@@ -102,6 +102,11 @@ Quando o webhook da agenda grava uma reserva, o CRM é atualizado sem a equipe t
 - **LGPD:** o texto da conversa vai à API do provedor escolhido pelo cliente (Gemini = Google). Registrar no consentimento/política do cliente.
 - **Ainda não:** `ligado` não pode ser ligado pela tela (4c). A escuta do CRM (`whatsapp-shadow-engine`) ainda usa `OPENAI_API_KEY` global: migrar para a chave do cliente fica para depois.
 
+## 2.9 Registro da etapa 4c: ligar e simular (PR da branch `feat/atendimento-etapa4c`)
+- **Ligar:** `ligado` agora pode ser gravado pela tela (card 3 na ficha do cliente), com modo `simulacao` ou `real`. Só liga com os pré-requisitos (`faltasParaLigar`): nome da sessão, horário de atendimento, chave de IA do cliente e instruções da clínica com no mínimo 100 caracteres; no modo real, também o endereço e a chave do OpenWA do cliente e o webhook cadastrado. A tela lista o que falta. Uma mudança de configuração que quebra um requisito com o atendimento ligado o desliga sozinho (avisa na tela). Passar para real ou ligar em real pede confirmação.
+- **Simulador** (`POST /api/atendimento/:clienteId/simular`, card 4): conversa digitada na tela; devolve o que a IA responderia (`proporResposta`, o núcleo sem efeitos que o `tratarMensagemDoPaciente` também usa), e como a fila trataria (atraso sorteado, dentro ou fora do horário). Não envia, não grava na fila, não notifica, não precisa de sessão nem de atendimento ligado. Só o gestor; até 20 turnos de 1000 caracteres; usa a chave de IA do cliente.
+- **Verificado no navegador** (página de teste temporária com a API simulada): botão bloqueado com pendências, liga em simulação, conversa normal e de urgência no simulador, celular sem rolagem lateral. **Não verificado:** a chamada real à IA e o fluxo com o banco real.
+
 ## 3. O que a Fase 0 validou
 - **Horários livres:** `GET /v2/slots` com o cabeçalho `cal-api-version: 2024-09-04`. O horário ocupado por reserva sai da lista. Após cancelar, o cache de horários demora alguns segundos para liberar: a IA deve consultar de novo antes de oferecer.
 - **Reservar** (`POST /v2/bookings`, `2024-08-13`), **conflito recusado**, **cancelar** (`/cancel`), **confirmar** (`/confirm`) e **recusar** (`/decline`). Evento com política de confirmação nasce `pending`.
