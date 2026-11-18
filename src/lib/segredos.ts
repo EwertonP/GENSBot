@@ -27,12 +27,13 @@ export function validarCron(req: Request): Response | null {
 }
 
 /**
- * Valida o webhook do OpenWA. Em produção exige OPENWA_WEBHOOK_SECRET e que o
- * gateway o envie em `x-openwa-secret` ou `Authorization`.
+ * Valida o webhook do OpenWA. Em produção exige o segredo e que o gateway o envie em
+ * `x-openwa-secret` ou `Authorization`. Se a sessão tem segredo próprio (`esperadoDaSessao`),
+ * só ele vale (o global NÃO é aceito para essa sessão); sem ele, vale OPENWA_WEBHOOK_SECRET.
  */
-export function validarWebhookOpenWA(req: Request): Response | null {
+export function validarWebhookOpenWA(req: Request, esperadoDaSessao?: string | null): Response | null {
   if (!emProducao()) return null;
-  const esperado = process.env.OPENWA_WEBHOOK_SECRET;
+  const esperado = esperadoDaSessao || process.env.OPENWA_WEBHOOK_SECRET;
   if (!esperado) {
     return Response.json({ error: 'OPENWA_WEBHOOK_SECRET não configurado' }, { status: 503 });
   }

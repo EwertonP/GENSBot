@@ -3,16 +3,31 @@ import { supabase as serviceSupabase } from '@/lib/supabase';
 import { sincronizarMensagemEAtualizarCrm } from '@/lib/whatsapp-shadow-engine';
 import { validarWebhookOpenWA } from '@/lib/segredos';
 import { jidParaE164 } from '@/lib/telefone';
+import { segredoDaSessao } from '@/lib/openwa-segredo';
 
 // POST: Webhook oficial para receber eventos do OpenWA
 export async function POST(req: Request) {
-  const negado = validarWebhookOpenWA(req);
-  if (negado) return negado;
+  // Barato e antes de qualquer leitura: em produção, sem segredo nenhum nem se olha o corpo.
+  if (process.env.NODE_ENV === 'production' && !req.headers.get('x-openwa-secret') && !req.headers.get('authorization')) {
+    return NextResponse.json({ error: 'Assinatura inválida do webhook' }, { status: 401 });
+  }
 
   try {
     const body = await req.json();
 
     const { event, session, data } = body;
+
+    // O segredo depende da sessão (cada cliente tem o seu); o nome dela só se sabe lendo o corpo.
+    const nomeDaSessao: string = session || body.session || new URL(req.url).searchParams.get('session') || 'default';
+    let segredoSessao: string | null;
+    try {
+      segredoSessao = await segredoDaSessao(nomeDaSessao);
+    } catch (err) {
+      console.error('[OpenWA Webhook] Não consegui ler o segredo da sessão:', err);
+      return NextResponse.json({ error: 'Falha ao validar o webhook' }, { status: 503 });
+    }
+    const negado = validarWebhookOpenWA(req, segredoSessao);
+    if (negado) return negado;
 
     // Se for evento de mensagem (recebida ou enviada)
     // `message.received` / `message.sent` é o formato do OpenWA; os demais são formatos antigos.
