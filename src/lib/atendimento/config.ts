@@ -115,6 +115,8 @@ export interface ConfigPublica {
   openwaUrl: string | null;
   temChaveOpenwa: boolean;
   webhookOpenwaRegistrado: boolean;
+  /** O webhook usa o segredo próprio deste cliente (não o global). */
+  webhookSegredoProprio: boolean;
   horario: Horario;
   respostaMinSegundos: number;
   respostaMaxSegundos: number;
@@ -129,6 +131,7 @@ export const CONFIG_PADRAO: ConfigPublica = {
   openwaUrl: null,
   temChaveOpenwa: false,
   webhookOpenwaRegistrado: false,
+  webhookSegredoProprio: false,
   horario: {},
   respostaMinSegundos: 45,
   respostaMaxSegundos: 180,
@@ -147,6 +150,7 @@ export function configPublica(l: Linha | null): ConfigPublica {
     openwaUrl: (l.openwa_url as string | null) ?? null,
     temChaveOpenwa: Boolean(l.openwa_key_cifrada),
     webhookOpenwaRegistrado: Boolean(l.openwa_webhook_id),
+    webhookSegredoProprio: Boolean(l.openwa_webhook_secret_cifrado),
     horario: (l.horario_atendimento as Horario) ?? {},
     respostaMinSegundos: Number(l.resposta_min_segundos ?? CONFIG_PADRAO.respostaMinSegundos),
     respostaMaxSegundos: Number(l.resposta_max_segundos ?? CONFIG_PADRAO.respostaMaxSegundos),
@@ -173,7 +177,7 @@ export function faltasParaLigar({ linha, temChaveIA, tamInstrucoes, webhookOpenw
   if (tamInstrucoes < MIN_INSTRUCOES) f.push(`Escreva as instruções da clínica (mínimo ${MIN_INSTRUCOES} caracteres) na tela de IA do CRM.`);
   if (linha?.modo === 'real') {
     if (!linha.openwa_url || !linha.openwa_key_cifrada) f.push('Modo real: informe o endereço e a chave do OpenWA do cliente.');
-    if (!webhookOpenwa) f.push('Modo real: cadastre o webhook no OpenWA.');
+    if (!webhookOpenwa) f.push('Modo real: cadastre o webhook no OpenWA (com o segredo próprio do cliente).');
   }
   return f;
 }
@@ -181,7 +185,7 @@ export function faltasParaLigar({ linha, temChaveIA, tamInstrucoes, webhookOpenw
 export async function calcularFaltas(db: SupabaseClient, agenciaId: string, clienteId: string, linha: Linha | null): Promise<string[]> {
   const { data } = await db.from('ai_agent_configs').select('api_key, prompt_sistema').eq('agencia_id', agenciaId).eq('cliente_id', clienteId).maybeSingle();
   const ia = data as { api_key?: string | null; prompt_sistema?: string | null } | null;
-  return faltasParaLigar({ linha, temChaveIA: Boolean(ia?.api_key), tamInstrucoes: (ia?.prompt_sistema ?? '').trim().length, webhookOpenwa: Boolean(linha?.openwa_webhook_id) });
+  return faltasParaLigar({ linha, temChaveIA: Boolean(ia?.api_key), tamInstrucoes: (ia?.prompt_sistema ?? '').trim().length, webhookOpenwa: Boolean(linha?.openwa_webhook_id && linha?.openwa_webhook_secret_cifrado) });
 }
 
 export async function salvarConfig(db: SupabaseClient, agenciaId: string, clienteId: string, entrada: EntradaConfig) {

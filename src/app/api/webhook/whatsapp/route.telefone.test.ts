@@ -32,6 +32,7 @@ vi.mock('@/lib/supabase', () => ({
 vi.mock('@/lib/segredos', () => ({ validarWebhookOpenWA: () => null }));
 
 vi.mock('@/lib/whatsapp-followup', () => ({ cancelarFollowUpsDoLead: cancelar, agendarReguaFollowUp: agendar }));
+vi.mock('@/lib/openwa-segredo', () => ({ segredoDaSessao: async () => null }));
 vi.mock('@/lib/atendimento/assistente', () => ({ tratarMensagemDoPaciente: atender }));
 vi.mock('@/lib/whatsapp-shadow-engine', () => ({ sincronizarMensagemEAtualizarCrm: sincronizar }));
 

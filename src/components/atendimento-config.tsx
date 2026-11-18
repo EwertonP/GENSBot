@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { CalendarCheck, KeyRound, Loader2, MessageCircle, Power, Timer } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { CalendarCheck, KeyRound, Loader2, MessageCircle, Power, QrCode, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ interface ConfigPublica {
   openwaUrl: string | null;
   temChaveOpenwa: boolean;
   webhookOpenwaRegistrado: boolean;
+  webhookSegredoProprio: boolean;
   horario: Horario;
   respostaMinSegundos: number;
   respostaMaxSegundos: number;
@@ -48,6 +49,12 @@ const DIAS: Array<[string, string]> = [
   ['dom', 'Domingo'],
 ];
 
+interface SessaoEstado {
+  existe: boolean;
+  conectada: boolean;
+  qr: string | null;
+}
+
 type Busca = { tipo: 'ok'; estado: Estado } | { tipo: 'semAcesso' } | { tipo: 'erro'; mensagem: string };
 
 async function buscarEstado(base: string): Promise<Busca> {
@@ -78,6 +85,9 @@ export function AtendimentoConfig({
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [semAcesso, setSemAcesso] = useState(false);
+  const [sessaoEstado, setSessaoEstado] = useState<SessaoEstado | null>(null);
+  const [acompanhando, setAcompanhando] = useState(false);
+  const acompanhandoRef = useRef(false);
 
   // Campos editáveis (a chave do Cal.com e a do OpenWA só entram; nunca voltam do servidor).
   const [chaveCalcom, setChaveCalcom] = useState('');
@@ -224,6 +234,50 @@ export function AtendimentoConfig({
 
   const desligar = () => chamar('ligar', base, { method: 'PUT', body: JSON.stringify({ ligado: false }) }, 'Atendimento desligado.');
 
+  // Conexão do número: POST cria/liga e traz o QR; enquanto não conectar, pergunta de 5 em 5 s.
+  const perguntarSessao = useCallback(async () => {
+    try {
+      const res = await fetch(`${base}/sessao`);
+      const corpo = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(corpo.error || 'Falha ao consultar a sessão.');
+      setSessaoEstado(corpo as SessaoEstado);
+      if ((corpo as SessaoEstado).conectada) {
+        acompanhandoRef.current = false;
+        setAcompanhando(false);
+      }
+    } catch (e) {
+      acompanhandoRef.current = false;
+      setAcompanhando(false);
+      showToast(e instanceof Error ? e.message : 'Falha ao consultar a sessão.', 'error');
+    }
+  }, [base, showToast]);
+
+  useEffect(() => {
+    if (!acompanhando) return;
+    const t = setInterval(() => {
+      if (acompanhandoRef.current) void perguntarSessao();
+    }, 5000);
+    return () => clearInterval(t);
+  }, [acompanhando, perguntarSessao]);
+
+  const conectarWhatsapp = async () => {
+    const r = await chamar('sessao', `${base}/sessao`, { method: 'POST' }, 'Sessão iniciada.');
+    if (r) {
+      setSessaoEstado(r as SessaoEstado);
+      acompanhandoRef.current = !(r as SessaoEstado).conectada;
+      setAcompanhando(!(r as SessaoEstado).conectada);
+    }
+  };
+
+  const girarSegredo = async () => {
+    const ok = await confirmDialog({
+      title: 'Girar o segredo do webhook?',
+      description: 'Um segredo novo é gerado e cadastrado no OpenWA do cliente. Se o cadastro falhar no meio, cadastre o webhook de novo.',
+      confirmLabel: 'Girar segredo',
+    });
+    if (ok) await chamar('webhook', `${base}/openwa-webhook`, { method: 'POST', body: JSON.stringify({ girarSegredo: true }) }, 'Segredo girado e webhook atualizado.');
+  };
+
   const cadastrarWebhook = () => chamar('webhook', `${base}/openwa-webhook`, { method: 'POST' }, 'Webhook cadastrado no OpenWA.');
 
   if (semAcesso) return null;
@@ -363,6 +417,51 @@ export function AtendimentoConfig({
           </Button>
         </div>
         {!config.sessaoNome ? <p className="text-xs text-muted-foreground">Salve o nome da sessão para poder cadastrar o webhook.</p> : null}
+        {config.webhookOpenwaRegistrado ? (
+          <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+            {config.webhookSegredoProprio ? 'Webhook com segredo próprio deste cliente.' : 'Webhook ainda no segredo antigo (compartilhado): cadastre de novo para usar um segredo próprio.'}
+            {config.webhookSegredoProprio ? (
+              <button type="button" className="underline" onClick={girarSegredo} disabled={ocupado === 'webhook'}>Girar segredo</button>
+            ) : null}
+          </p>
+        ) : null}
+
+        <div className="pt-2 border-t border-border space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 font-medium text-sm"><QrCode className="w-4 h-4" /> Conectar o número</div>
+            <Badge variant={sessaoEstado?.conectada ? 'success' : 'muted'} className="text-xs">
+              {sessaoEstado?.conectada ? 'Conectado' : sessaoEstado?.existe ? 'Aguardando leitura do QR' : 'Não conectado'}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Salve o endereço e a chave do OpenWA do cliente e o nome da sessão. Depois gere o QR e leia com o WhatsApp do número (Aparelhos conectados). Cadastre o webhook só depois de conectar.
+          </p>
+          {sessaoEstado?.qr && !sessaoEstado.conectada ? (
+            <div className="flex flex-col items-start gap-2">
+              {sessaoEstado.qr.startsWith('data:image') ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={sessaoEstado.qr} alt="QR Code para conectar o WhatsApp" className="w-48 h-48 bg-white rounded-xl p-2 object-contain" />
+              ) : (
+                <pre className="text-[10px] leading-none bg-white text-black p-2 rounded-xl overflow-x-auto max-w-full">{sessaoEstado.qr}</pre>
+              )}
+              <p className="text-xs text-muted-foreground flex items-center gap-2">{acompanhando ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Esperando você ler o QR…</> : null}</p>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={conectarWhatsapp}
+              disabled={ocupado === 'sessao' || !config.sessaoNome || !config.openwaUrl || !config.temChaveOpenwa}
+            >
+              {ocupado === 'sessao' ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />} {sessaoEstado?.existe ? 'Gerar QR de novo' : 'Conectar WhatsApp (gerar QR)'}
+            </Button>
+            {sessaoEstado ? (
+              <Button type="button" variant="outline" onClick={() => void perguntarSessao()}>Verificar conexão</Button>
+            ) : null}
+          </div>
+          {!config.openwaUrl || !config.temChaveOpenwa ? <p className="text-xs text-muted-foreground">Preencha e salve o endereço e a chave do OpenWA do cliente para liberar a conexão.</p> : null}
+        </div>
       </div>
 
       {/* 3. Ligar */}

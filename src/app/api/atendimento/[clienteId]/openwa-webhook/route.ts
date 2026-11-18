@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase as db } from '@/lib/supabase';
 import { exigirMasterDoCliente } from '@/lib/atendimento/acesso';
 import { lerConfig } from '@/lib/atendimento/config';
+import { criptografarSegredo, descriptografarSegredo, segredoDisponivel } from '@/lib/cripto';
+import { gerarSegredoWebhook } from '@/lib/openwa-segredo';
 import { configOpenWA } from '@/lib/openwa-config';
 import { registrarWebhookOpenWA } from '@/lib/openwa-webhook';
 import { urlWebhookWhatsapp } from '@/lib/url-publica';
@@ -13,7 +15,7 @@ type Contexto = { params: Promise<{ clienteId: string }> };
  * Cadastra (ou atualiza) no OpenWA o webhook que entrega as mensagens da sessão do cliente.
  * O endereço vem de url-publica (nunca do host da requisição) para um preview não registrar o seu.
  */
-export async function POST(_req: Request, { params }: Contexto) {
+export async function POST(req: Request, { params }: Contexto) {
   const acesso = await exigirMasterDoCliente((await params).clienteId);
   if (!acesso.ok) return acesso.response;
 
@@ -54,19 +56,28 @@ export async function POST(_req: Request, { params }: Contexto) {
     .eq('agencia_id', acesso.agenciaId);
   if (erroEscuta) return respostaErro('Não consegui desligar a escuta por IA desta sessão; o webhook não foi cadastrado.', 500);
 
+  // Segredo PRÓPRIO deste cliente (nunca o global): guardado cifrado, cadastrado só no OpenWA dele.
+  // `girarSegredo` troca por um novo. Só grava no banco depois de o OpenWA aceitar; se algo falhar no
+  // meio, repetir o cadastro resolve.
+  if (!segredoDisponivel()) return respostaErro('Cifra de segredos não configurada no servidor (AI_KEYS_SECRET).', 503);
+  const corpo = (await req.json().catch(() => ({}))) as { girarSegredo?: unknown };
+  const existente = descriptografarSegredo(config?.openwa_webhook_secret_cifrado as string | null);
+  const segredo = corpo.girarSegredo === true || !existente ? gerarSegredoWebhook() : existente;
+
   const r = await registrarWebhookOpenWA({
     sessionName,
     webhookUrl: urlWebhookWhatsapp(sessionName),
-    segredo: process.env.OPENWA_WEBHOOK_SECRET,
+    segredo,
     config: openwa,
   });
   if (!r.ok) return respostaErro(r.erro, 502);
 
-  await db
+  const { error: erroGravar } = await db
     .from('atendimento_config')
-    .update({ openwa_webhook_id: r.webhookId, atualizado_em: new Date().toISOString() })
+    .update({ openwa_webhook_id: r.webhookId, openwa_webhook_secret_cifrado: criptografarSegredo(segredo), atualizado_em: new Date().toISOString() })
     .eq('cliente_id', acesso.clienteId)
     .eq('agencia_id', acesso.agenciaId);
+  if (erroGravar) return respostaErro('O OpenWA aceitou o webhook, mas não consegui guardar o segredo. Cadastre de novo.', 500);
 
-  return NextResponse.json({ ok: true, acao: r.acao, origem: openwa.origem, escutaIaDesligada: true });
+  return NextResponse.json({ ok: true, acao: r.acao, origem: openwa.origem, escutaIaDesligada: true, segredoProprio: true });
 }

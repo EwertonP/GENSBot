@@ -41,13 +41,14 @@ vi.mock('@/lib/openwa-webhook', () => ({ registrarWebhookOpenWA: h.registrar }))
 import { POST } from './route';
 
 const CLIENTE = '11111111-1111-1111-1111-111111111111';
-const chamar = () => POST(new Request('https://preview-qualquer.vercel.app/x', { method: 'POST' }), { params: Promise.resolve({ clienteId: CLIENTE }) });
+const chamar = (corpo: unknown = {}) => POST(new Request('https://preview-qualquer.vercel.app/x', { method: 'POST', body: JSON.stringify(corpo) }), { params: Promise.resolve({ clienteId: CLIENTE }) });
 
 beforeEach(() => {
   vi.clearAllMocks();
   h.updates.length = 0;
   h.falharEscuta.valor = false;
   vi.stubEnv('OPENWA_WEBHOOK_SECRET', 'segredo-do-webhook-1234');
+  vi.stubEnv('AI_KEYS_SECRET', Buffer.alloc(32, 7).toString('base64'));
   h.contexto.mockResolvedValue({ ok: true, ctx: { membro: { papel: 'master', agencia_id: 'ag1' } } });
   h.cliente.mockReturnValue({ id: CLIENTE });
   h.config.mockResolvedValue({ sessao_nome: 'cliente-lais' });
@@ -101,9 +102,23 @@ describe('POST /api/atendimento/[clienteId]/openwa-webhook', () => {
     const args = h.registrar.mock.calls[0][0];
     expect(args.webhookUrl).toBe('https://allingens.vercel.app/api/webhook/whatsapp?session=cliente-lais');
     expect(args.webhookUrl).not.toContain('preview-qualquer');
-    expect(args.segredo).toBe('segredo-do-webhook-1234');
+    // Segredo PRÓPRIO do cliente: aleatório, nunca o global, e guardado cifrado.
+    expect(args.segredo).toMatch(/^[0-9a-f]{64}$/);
+    expect(args.segredo).not.toBe('segredo-do-webhook-1234');
+    const gravado = h.updates.find((u) => u.tabela === 'atendimento_config')!.campos;
+    expect(gravado).toMatchObject({ openwa_webhook_id: 'wh-1' });
+    expect(gravado.openwa_webhook_secret_cifrado).toEqual(expect.any(String));
+    expect(gravado.openwa_webhook_secret_cifrado).not.toContain(args.segredo);
+  });
 
-    expect(h.updates.find((u) => u.tabela === 'atendimento_config')!.campos).toMatchObject({ openwa_webhook_id: 'wh-1' });
+  it('cadastrar de novo mantém o segredo; girarSegredo troca por outro', async () => {
+    const { criptografarSegredo } = await import('@/lib/cripto');
+    h.config.mockResolvedValue({ sessao_nome: 'cliente-lais', openwa_webhook_secret_cifrado: criptografarSegredo('a'.repeat(64)) });
+    await chamar();
+    expect(h.registrar.mock.calls[0][0].segredo).toBe('a'.repeat(64));
+    await chamar({ girarSegredo: true });
+    expect(h.registrar.mock.calls[1][0].segredo).not.toBe('a'.repeat(64));
+    expect(h.registrar.mock.calls[1][0].segredo).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('não consegue desligar a escuta: 500 e o webhook não é cadastrado', async () => {
