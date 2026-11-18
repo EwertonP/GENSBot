@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { calcularIndiceSaude, type DiagnosticoSaude } from '@/lib/cliente-saude';
 import { PainelAnuncios } from '@/components/meta-ads/painel-anuncios';
+import { AtendimentoConfig } from '@/components/atendimento-config';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -1023,6 +1024,8 @@ export default function ClienteFicha({
             clienteNome={cliente?.nome || nomeInicial}
             showToast={showToast}
           />
+
+          <AtendimentoConfig clienteId={clienteId} showToast={showToast} />
         </div>
       )}
 
