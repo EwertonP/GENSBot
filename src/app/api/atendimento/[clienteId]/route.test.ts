@@ -87,7 +87,8 @@ describe('/api/atendimento/[clienteId]', () => {
     integ.mockResolvedValue({ id: 'i', provedor: 'calcom', api_base: 'https://api.cal.com', api_key_cifrada: 'enc:cal_live_x', webhook_token: 'tok', webhook_secret_cifrado: 'enc:hmac', calcom_webhook_id: 'cw', ativo: true });
     reservas.mockReturnValue(3);
     const corpo = await (await GET(new Request('http://x'), ctx)).json();
-    expect(corpo.config).toMatchObject({ ligado: false, temChaveOpenwa: true });
+    expect(corpo.faltas.length).toBeGreaterThan(0); // sem chave de IA nem instruções
+    expect(corpo.config).toMatchObject({ ligado: true, temChaveOpenwa: true });
     expect(corpo.agenda).toMatchObject({ ativo: true, temChave: true, webhookRegistrado: true });
     expect(corpo.reservasRecebidas).toBe(3);
     expect(corpo.falhasCrm).toBe(0);

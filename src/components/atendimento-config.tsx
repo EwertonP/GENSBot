@@ -1,15 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { CalendarCheck, KeyRound, Loader2, MessageCircle, Timer } from 'lucide-react';
+import { CalendarCheck, KeyRound, Loader2, MessageCircle, Power, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { confirmDialog } from '@/components/ui/dialog';
+import { AtendimentoSimulador } from '@/components/atendimento-simulador';
 
 type Horario = Partial<Record<string, Array<{ de: string; ate: string }>>>;
 
 interface ConfigPublica {
+  ligado: boolean;
   modo: 'simulacao' | 'real';
   sessaoNome: string | null;
   openwaUrl: string | null;
@@ -32,6 +34,8 @@ interface Estado {
   agenda: AgendaPublica | null;
   reservasRecebidas: number;
   falhasCrm: number;
+  /** O que ainda impede de ligar (vazio = pode). */
+  faltas: string[];
 }
 
 const DIAS: Array<[string, string]> = [
@@ -187,7 +191,38 @@ export function AtendimentoConfig({
       'Configuração salva.'
     );
     if (r) setOpenwaKey('');
+    if (r?.desligadoSozinho) showToast('O atendimento foi desligado: a mudança deixou de cumprir um requisito. Veja a lista na seção 3.', 'error');
   };
+
+  const trocarModo = async (modo: 'simulacao' | 'real') => {
+    if (modo === config.modo) return;
+    if (modo === 'real' && config.ligado) {
+      const ok = await confirmDialog({
+        title: 'Responder de verdade?',
+        description: 'A IA passa a enviar as respostas pelo WhatsApp do cliente, com os atrasos e limites configurados.',
+        confirmLabel: 'Passar para real',
+        tone: 'destructive',
+      });
+      if (!ok) return;
+    }
+    const r = await chamar('modo', base, { method: 'PUT', body: JSON.stringify({ modo }) }, modo === 'real' ? 'Modo real.' : 'Modo simulação.');
+    if (r?.desligadoSozinho) showToast('O atendimento foi desligado: o modo real exige o OpenWA do cliente e o webhook.', 'error');
+  };
+
+  const ligar = async () => {
+    if (config.modo === 'real') {
+      const ok = await confirmDialog({
+        title: 'Ligar em modo real?',
+        description: 'A IA vai responder pacientes de verdade pelo WhatsApp do cliente. Se ainda estiver ajustando, deixe em simulação.',
+        confirmLabel: 'Ligar',
+        tone: 'destructive',
+      });
+      if (!ok) return;
+    }
+    await chamar('ligar', base, { method: 'PUT', body: JSON.stringify({ ligado: true }) }, config.modo === 'real' ? 'Atendimento ligado.' : 'Atendimento ligado em simulação.');
+  };
+
+  const desligar = () => chamar('ligar', base, { method: 'PUT', body: JSON.stringify({ ligado: false }) }, 'Atendimento desligado.');
 
   const cadastrarWebhook = () => chamar('webhook', `${base}/openwa-webhook`, { method: 'POST' }, 'Webhook cadastrado no OpenWA.');
 
@@ -217,10 +252,16 @@ export function AtendimentoConfig({
               <p className="text-xs text-muted-foreground">A IA responde, propõe horários e a equipe confirma.</p>
             </div>
           </div>
-          <Badge variant="muted" className="text-xs">Desligado: disponível na etapa 4</Badge>
+          <Badge variant={config.ligado ? 'success' : 'muted'} className="text-xs">
+            {config.ligado ? (config.modo === 'real' ? 'Ligado: respondendo de verdade' : 'Ligado: simulação') : 'Desligado'}
+          </Badge>
         </div>
         <p className="text-xs text-muted-foreground">
-          Por enquanto só dá para preparar tudo: conectar a agenda, ligar o WhatsApp e definir o ritmo. Nada é respondido sozinho.
+          {config.ligado && config.modo === 'simulacao'
+            ? 'Em simulação a IA escreve e registra o que responderia, mas não envia nada.'
+            : config.ligado
+              ? 'A IA responde os pacientes pelo WhatsApp do cliente, dentro do horário e dos limites.'
+              : 'Nada é respondido sozinho. Prepare as seções abaixo, teste a conversa e depois ligue.'}
         </p>
       </div>
 
@@ -323,6 +364,46 @@ export function AtendimentoConfig({
         </div>
         {!config.sessaoNome ? <p className="text-xs text-muted-foreground">Salve o nome da sessão para poder cadastrar o webhook.</p> : null}
       </div>
+
+      {/* 3. Ligar */}
+      <div className={cartao}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 font-medium text-sm"><Power className="w-4 h-4" /> 3. Ligar o atendimento</div>
+          <Badge variant={config.ligado ? 'success' : 'muted'} className="text-xs">{config.ligado ? 'Ligado' : 'Desligado'}</Badge>
+        </div>
+
+        <fieldset className="space-y-2" disabled={ocupado === 'modo'}>
+          <legend className="text-xs font-medium text-muted-foreground mb-1.5">Modo</legend>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="radio" name="modo" className="mt-1" checked={config.modo === 'simulacao'} onChange={() => void trocarModo('simulacao')} />
+            <span><strong>Simulação</strong><span className="block text-xs text-muted-foreground">A IA escreve e registra o que responderia. Nada é enviado.</span></span>
+          </label>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="radio" name="modo" className="mt-1" checked={config.modo === 'real'} onChange={() => void trocarModo('real')} />
+            <span><strong>Real</strong><span className="block text-xs text-muted-foreground">Envia pelo WhatsApp do cliente. Exige o OpenWA do cliente e o webhook cadastrado.</span></span>
+          </label>
+        </fieldset>
+
+        {estado.faltas.length > 0 ? (
+          <div className="rounded-xl border border-border px-3 py-2 text-xs space-y-1">
+            <p className="font-medium">Para ligar, falta:</p>
+            <ul className="list-disc pl-4 text-muted-foreground space-y-0.5">{estado.faltas.map((f) => <li key={f}>{f}</li>)}</ul>
+          </div>
+        ) : null}
+
+        {config.ligado ? (
+          <Button type="button" variant="outline" onClick={desligar} disabled={ocupado === 'ligar'}>
+            {ocupado === 'ligar' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />} Desligar atendimento
+          </Button>
+        ) : (
+          <Button type="button" onClick={ligar} disabled={ocupado === 'ligar' || estado.faltas.length > 0}>
+            {ocupado === 'ligar' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />} Ligar atendimento
+          </Button>
+        )}
+      </div>
+
+      {/* 4. Simulador */}
+      <AtendimentoSimulador base={base} showToast={showToast} />
     </section>
   );
 }
