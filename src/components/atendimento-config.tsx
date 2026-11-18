@@ -148,7 +148,10 @@ export function AtendimentoConfig({
 
   const conectarAgenda = async () => {
     const r = await chamar('agenda', `${base}/agenda`, { method: 'POST', body: JSON.stringify({ apiKey: chaveCalcom }) }, 'Agenda conectada.');
-    if (r) setChaveCalcom('');
+    if (r) {
+      setChaveCalcom('');
+      if (r.aviso) showToast(r.aviso, 'error');
+    }
   };
 
   const desconectarAgenda = async () => {

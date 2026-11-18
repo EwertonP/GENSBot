@@ -115,6 +115,17 @@ describe('conectarAgenda', () => {
     expect(gravacoes[1].calcom_webhook_id).toBe('wh-2');
   });
 
+  it('falha ao apagar o webhook antigo: conecta, mas avisa em vez de calar', async () => {
+    await conectarAgenda(base);
+    apagar.mockResolvedValue(false);
+    criar.mockResolvedValue({ ok: true, id: 'wh-2' });
+    const r = await conectarAgenda({ ...base, apiKey: 'cal_live_outra_chave_0123456' });
+    expect(r).toMatchObject({ ok: true, aviso: expect.stringContaining('apagar o webhook antigo') });
+    // Sem falha, não há aviso nenhum.
+    apagar.mockResolvedValue(true);
+    expect((await conectarAgenda(base)) as Record<string, unknown>).not.toHaveProperty('aviso');
+  });
+
   it('Cal.com recusa o webhook: guarda inativa e avisa (502)', async () => {
     criar.mockResolvedValue({ ok: false, erro: 'O Cal.com recusou o cadastro do webhook (400).' });
     expect(await conectarAgenda(base)).toMatchObject({ ok: false, status: 502 });

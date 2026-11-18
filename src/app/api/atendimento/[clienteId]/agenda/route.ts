@@ -27,7 +27,7 @@ export async function POST(req: Request, { params }: Contexto) {
     apiBase: typeof corpo.apiBase === 'string' ? corpo.apiBase : null,
   });
   if (!r.ok) return respostaErro(r.erro, r.status);
-  return NextResponse.json({ agenda: r.integracao, usuario: r.usuario ?? null });
+  return NextResponse.json({ agenda: r.integracao, usuario: r.usuario ?? null, aviso: r.aviso ?? null });
 }
 
 export async function DELETE(_req: Request, { params }: Contexto) {

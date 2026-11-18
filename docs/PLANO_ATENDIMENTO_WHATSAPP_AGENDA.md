@@ -64,6 +64,10 @@ No OpenWA o `chatId` da mensagem é sempre o contato (nos dois sentidos), por is
 - Tela `AtendimentoConfig` na ficha do cliente; quem não é master não a vê. O atendimento aparece como "Desligado: disponível na etapa 4".
 - **Ainda não feito:** a sessão/QR do OpenWA do cliente (`/api/whatsapp/session`) ainda usa o OpenWA do ambiente; primeiro item da etapa 4. O restante dos helpers (`enviarMensagemOpenWA` etc.) segue com o padrão do ambiente.
 
+- **Assinatura do webhook (verificada com eventos reais, 18/11/2026):** `x-cal-signature-256` é o HMAC-SHA256 em hexadecimal do corpo bruto. Capturados `BOOKING_CREATED` e `BOOKING_CANCELLED` do Cal.diy e rodada a função do GENSBot sobre eles. No Cal.com nuvem, confirmar de ponta a ponta depois do merge (conectar, reservar, ver a linha em `agenda_reservas`, desconectar e ver o webhook sumir).
+- **Cadastrar o webhook no OpenWA** exige: sessão com esse nome **deste cliente**, OpenWA **próprio** do cliente (nunca o da agência) e **desliga `ia_escuta_ativa`** da sessão, porque o motor de escuta usaria a OpenAI, que a política de privacidade não cita. Reconectar a agenda avisa se não conseguir apagar o webhook antigo.
+- **Pendências para antes do número piloto:** (1) um segredo de webhook por sessão (hoje é o `OPENWA_WEBHOOK_SECRET` global copiado em cada OpenWA); (2) a rota de sessão/QR criar a sessão no OpenWA do cliente e gravar a linha em `whatsapp_sessions` (hoje é preciso existir a linha); (3) a escuta por IA migrar para o Gemini do cliente (etapa 4).
+
 ## 3. O que a Fase 0 validou
 - **Horários livres:** `GET /v2/slots` com o cabeçalho `cal-api-version: 2024-09-04`. O horário ocupado por reserva sai da lista. Após cancelar, o cache de horários demora alguns segundos para liberar: a IA deve consultar de novo antes de oferecer.
 - **Reservar** (`POST /v2/bookings`, `2024-08-13`), **conflito recusado**, **cancelar** (`/cancel`), **confirmar** (`/confirm`) e **recusar** (`/decline`). Evento com política de confirmação nasce `pending`.

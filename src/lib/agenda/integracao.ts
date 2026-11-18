@@ -20,7 +20,7 @@ export interface IntegracaoPublica {
 }
 
 export type ResultadoIntegracao =
-  | { ok: true; integracao: IntegracaoPublica; usuario?: string | null }
+  | { ok: true; integracao: IntegracaoPublica; usuario?: string | null; aviso?: string }
   | { ok: false; erro: string; status: number };
 
 /** Token na URL (identifica a integração) e segredo (assina o corpo). Ambos aleatórios. */
@@ -90,10 +90,13 @@ export async function conectarAgenda({
 
   // 2. Reconectar apaga o webhook antigo antes de criar o novo (sem empilhar duplicados).
   const atual = await lerIntegracao(db, agenciaId, clienteId);
+  let aviso: string | undefined;
   if (atual?.calcom_webhook_id) {
     const chaveAntiga = descriptografarSegredo(atual.api_key_cifrada);
     const baseAntiga = apiBaseValida(atual.api_base) ?? base;
-    if (chaveAntiga) await apagarWebhookCalcom(baseAntiga, chaveAntiga, atual.calcom_webhook_id);
+    const apagado = chaveAntiga ? await apagarWebhookCalcom(baseAntiga, chaveAntiga, atual.calcom_webhook_id) : false;
+    // Um webhook antigo que sobra continua mandando eventos assinados com o segredo velho (401 em cada um).
+    if (!apagado) aviso = 'Conectei com a chave nova, mas não consegui apagar o webhook antigo no Cal.com. Apague-o em Developer > Webhooks para não sobrar um duplicado.';
   }
 
   // 3. Segredo novo a cada conexão; o token do endereço se mantém para não quebrar nada.
@@ -118,7 +121,7 @@ export async function conectarAgenda({
   if (error || !data) return { ok: false, status: 500, erro: 'Não foi possível salvar a integração.' };
   if (!criado.ok) return { ok: false, status: 502, erro: criado.erro };
 
-  return { ok: true, integracao: paraPublica(data as LinhaIntegracao), usuario: valida.username };
+  return { ok: true, integracao: paraPublica(data as LinhaIntegracao), usuario: valida.username, ...(aviso ? { aviso } : {}) };
 }
 
 export async function desconectarAgenda({ db, agenciaId, clienteId }: { db: SupabaseClient; agenciaId: string; clienteId: string }): Promise<ResultadoIntegracao | { ok: true; integracao: null }> {
