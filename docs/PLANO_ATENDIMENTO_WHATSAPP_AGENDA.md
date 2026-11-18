@@ -1,0 +1,124 @@
+# Plano: atendimento no WhatsApp com IA e agenda (piloto: Dra. Laís Leal)
+
+Status: **etapa 2 pronta para revisão** (18/11/2026). Agenda: **Cal.com (nuvem, plano gratuito)** no lugar do Cal.diy.
+
+## 1. Objetivo
+A IA conversa no WhatsApp da clínica, **propõe horários reais** de uma agenda ligada ao Google Agenda da médica, e a **equipe confirma**. Cada conversa alimenta o CRM do GENSBot automaticamente, e a secretária pode corrigir tudo à mão. Um **link de agendamento** enviado na conversa deixa a reserva pronta e no contato certo.
+
+Decisões: canal = OpenWA (Kapso fica para depois, atrás de um adaptador); agenda = **Cal.com nuvem** (decidido em 18/11; o Cal.diy da VPS fica como reserva e será desligado depois) + Google Calendar; autonomia = IA propõe, equipe confirma; IA = Gemini direto, plano pago; um cliente no início.
+
+## 2. Infraestrutura já no ar (Fase 0)
+VPS na Shardcloud (Ubuntu 22.04, 4 vCPU, 4 GB, template Docker). Túnel Cloudflare (`gensbot-agenda`), sem portas públicas.
+
+| Serviço | Endereço | Observação |
+|---|---|---|
+| Cal.diy (painel e páginas de agendamento) | `https://agenda.dralaisleal.com.br` | cadastro público desligado |
+| API v2 do Cal.diy | `https://api-agenda.dralaisleal.com.br` | exige `Authorization: Bearer cal_…` |
+| OpenWA | `https://wa.dralaisleal.com.br` | motor whatsapp-web.js, sem número conectado |
+
+Código em `/opt/gensbot-agenda` (cal.diy e OpenWA, `docker compose`). Segredos só em `.env` da VPS (modo 600) e em variáveis de ambiente do GENSBot. Nada disso entra no repositório.
+
+## 2.1 Mudança de agenda: Cal.com (18/11/2026)
+Testado com chave de API do plano gratuito: horários livres, reserva, conflito recusado, cancelamento e webhooks funcionam; Google Agenda conectado. A VPS fica só com o OpenWA.
+- API: `https://api.cal.com/v2` (mesmos caminhos e cabeçalhos de versão do Cal.diy).
+- O e-mail do paciente precisa ser real (a nuvem recusa domínio que não recebe e-mail).
+- O interruptor "Requires confirmation" não apareceu na interface gratuita: a confirmação da equipe é feita no GENSBot (a IA só propõe; a reserva só é criada depois da aprovação). Reserva direta pelo link continua imediata.
+- Os dados das reservas ficam no Cal.com (EUA): citar o Cal.com na política de privacidade antes do go-live.
+- Chaves e segredos do webhook ficam **por cliente**, cifrados, na tabela `agenda_integracoes` (não em variável de ambiente).
+
+## 2.2 Proteção do número (anti-banimento) e ritmo humano
+Desenho decidido para a etapa 4, implementado só com a automação **desligada por padrão** por cliente (`atendimento_config.ligado = false`):
+- **Nunca dormir dentro de `after()`** (limite de 60 s). A resposta vai para uma fila com `enviar_em`, drenada por cron a cada minuto.
+- **Debounce:** cada nova mensagem do paciente adia o envio; responde uma vez ao lote, depois de um silêncio aleatório.
+- **Antes de responder:** marcar como lido (`POST /api/sessions/:id/chats/read`) e mostrar "digitando" (`POST …/chats/typing`, `state: typing`) por tempo proporcional ao texto. Ritmos e limites a calibrar nos testes.
+- **Limites:** só em horário de atendimento, teto de respostas por hora, nunca iniciar conversa, nunca responder em grupo, nunca para número que não escreveu antes.
+- **Assunção humana:** mensagem `fromMe` que o robô não enviou (a secretária respondeu pelo celular) pausa a IA nessa conversa por algumas horas.
+- **Canal de teste (dry-run)** que só registra em `whatsapp_ia_acoes` e um simulador de mensagens, para ajustar respostas e tempos antes de existir o número da doutora.
+- OpenWA: `RESOLVE_LID_TO_PHONE=true` (aplicado na VPS em 18/11) para contatos `@lid`.
+
+## 2.3 Registro da etapa 2 (PR da branch `feat/atendimento-whatsapp-base`)
+- Webhook do WhatsApp: corrigida a regex `/D/g` (apagava a letra D, não os não-dígitos); em mensagem enviada por nós o contato é o destinatário; `@lid` sem telefone guarda a mensagem mas não cria lead nem follow-up.
+- `src/lib/telefone.ts`: JID, E.164 e o 9º dígito brasileiro.
+- Receptor `POST /api/webhook/agenda/[token]`: assinatura HMAC-SHA256 do corpo bruto, falha fechada, deduplicação, evento fora de ordem ignorado, vínculo com o negócio por `metadata.negocio_id` ou telefone.
+- Migration `20261118_agenda_integracoes_reservas.sql` (aditiva): só aplicar com OK do Ewerton.
+
+## 2.4 Achado: a entrada de mensagens do WhatsApp nunca esteve ligada (18/11/2026)
+Em produção há 4 sessões (2 conectadas), mas `whatsapp_mensagens`, `whatsapp_followups` e `whatsapp_ia_acoes` têm **zero linhas**. Causas confirmadas na documentação do OpenWA (§6.6):
+1. O GENSBot **não cadastra o webhook** no OpenWA (não há chamada no código).
+2. O OpenWA manda `event: "message.received"` e `"message.sent"` com `sessionId` (UUID). A rota só reconhecia `message`, `onMessage` e `message_create` e procurava a sessão por `session`.
+
+Correção (neste PR): a rota reconhece os eventos do OpenWA e lê o nome da sessão do `?session=` da URL cadastrada. **Falta cadastrar o webhook**, o que o OpenWA permite com URL própria e cabeçalhos próprios:
+`POST /api/sessions/:id/webhooks` com `url: https://<gensbot>/api/webhook/whatsapp?session=<nome-da-sessão>`, `events: ["message.received","message.sent"]`, `headers: {"x-openwa-secret": "<OPENWA_WEBHOOK_SECRET>"}`.
+Isso entra na etapa 3 como função + rota do GENSBot (registrar ao criar a sessão), junto da escolha do OpenWA por cliente.
+
+No OpenWA o `chatId` da mensagem é sempre o contato (nos dois sentidos), por isso o webhook o usa para mensagens `fromMe`.
+
+## 3. O que a Fase 0 validou
+- **Horários livres:** `GET /v2/slots` com o cabeçalho `cal-api-version: 2024-09-04`. O horário ocupado por reserva sai da lista. Após cancelar, o cache de horários demora alguns segundos para liberar: a IA deve consultar de novo antes de oferecer.
+- **Reservar** (`POST /v2/bookings`, `2024-08-13`), **conflito recusado**, **cancelar** (`/cancel`), **confirmar** (`/confirm`) e **recusar** (`/decline`). Evento com política de confirmação nasce `pending`.
+- **Google Agenda:** cliente OAuth "Aplicativo da Web" no projeto GensBot, conexão feita pelo painel do Cal.diy e vista em `/v2/calendars/connections`.
+- **Webhooks do Cal.diy** (`BOOKING_CREATED`, `CANCELLED`, `RESCHEDULED`, `REQUESTED`): chegam **assinados** (`x-cal-signature-256`), com telefone do paciente. O código do negócio (`metadata`) vem na criação, **não** vem no cancelamento.
+- **Link público:** o Cal.diy lê `metadata[chave]=valor` da URL. Pré-preenchimento de nome e telefone: confirmar na tela (etapa 2).
+- Formulário do evento precisa do campo **WhatsApp** (`attendeePhoneNumber`, tipo telefone).
+
+## 4. Fluxo de uma conversa
+1. Mensagem chega ao OpenWA, que chama `/api/webhook/whatsapp` no GENSBot.
+2. O GENSBot grava a mensagem e cria ou atualiza contato e negócio pelo telefone normalizado.
+3. O assistente (Gemini) responde dúvidas e, para agendar, envia o **link rastreado** ou propõe horários (`ver_horarios`).
+4. A reserva é criada pelo link ou pela proposta da IA (`pending` nos tipos que exigem confirmação).
+5. O Cal.diy avisa o GENSBot por webhook. O GENSBot guarda o `uid` da reserva, move o negócio, cria a tarefa da secretária, confirma no WhatsApp e agenda os lembretes.
+6. A secretária confirma, sugere outro horário ou recusa. A confirmação chama `/v2/bookings/:uid/confirm`.
+7. O evento aparece no Google Agenda da médica.
+
+## 5. Link de agendamento
+- Página pública do Cal.diy, por exemplo `agenda.dralaisleal.com.br/<usuario>/<evento>`.
+- O GENSBot gera um **link rastreado por conversa** (reaproveita o recurso de links UTM), com nome, telefone e `metadata[negocio_id]` pré-preenchidos.
+- Funil medido: link enviado, clicou, agendou.
+- Consulta nova: exige confirmação da equipe. Retorno: pode confirmar na hora (decisão a tomar).
+- No cancelamento o código não vem: casar por `uid` guardado na criação ou por telefone.
+
+## 6. CRM no GENSBot
+Estágios: Novo contato, Em conversa, Link enviado, Consulta solicitada, Confirmada, Compareceu ou Faltou, Retorno.
+- A IA move estágios e escreve um resumo da conversa, marcado "feito pela IA".
+- Campo editado pela secretária fica **protegido** contra reescrita da IA.
+- Faltou, cancelou ou remarcou vira tarefa de retorno.
+- Reaproveitar: `crm_negocios`, `crm_atividades`, `crm_tarefas`, `whatsapp-shadow-engine.ts`, inbox, `notificar()`.
+
+## 7. Agenda para a secretária
+Início: painel do Cal.diy (Bookings) e Google Agenda compartilhado. Depois: aba "Agenda" no GENSBot lendo `/v2/bookings`, com confirmar, remarcar e cancelar.
+
+## 8. Lembretes
+Cron do GENSBot envia por WhatsApp 24 h e 2 h antes, com botão de remarcar. A resposta "confirmo" ou "não vou" atualiza a reserva.
+
+## 9. Segurança, LGPD e conformidade
+- O assistente se identifica, não faz diagnóstico e passa para humano em urgência, queixa de saúde ou insistência. Horários só vêm do Cal.diy.
+- Webhooks conferem a assinatura; chaves só em variáveis de ambiente; a rota da API é protegida pela chave.
+- **Política de privacidade** da doutora atualizada (17/11/2026): assistente digital, uso limitado do Google Agenda, prestadores de IA e processamento fora do Brasil. Falta a doutora revisar o texto.
+- Confirmar nos termos atuais do Gemini (plano pago) que as mensagens não são usadas para treinar modelos.
+- **Backup diário** do Postgres do Cal.diy (a VPS é o único lugar dele).
+
+## 10. Google Cloud
+Projeto GensBot, cliente "Cal.diy Agenda" (Aplicativo da Web), app **Em produção**, tipo Externo, **sem verificação** (aviso "app não verificado" na conexão, limite de 100 contas). Branding: nome "Agenda Dra. Laís Leal", domínio autorizado `dralaisleal.com.br`, política em `dralaisleal.com.br/politica-de-privacidade`. Verificação oficial fica em paralelo.
+
+## 11. Etapas
+
+| # | Etapa | Status |
+|---|---|---|
+| 0 | Infra, Cal.diy, API v2, OpenWA, HTTPS, Google Agenda | concluída |
+| 1 | Testar webhook e pré-preenchimento do link | concluída (Cal.com e Cal.diy; falta ver o pré-preenchimento do telefone numa página real do Cal.com) |
+| 2 | **Base no GENSBot:** bug do telefone, receptor do webhook da agenda, tabelas de integração e reservas | pronta para revisão (PR pendente de OK e de aplicar a migration) |
+| 3 | **CRM automático:** estágios, resumo da IA, tarefa da secretária | a fazer |
+| 4 | **Link rastreado e assistente Gemini** (troca da chave global da OpenAI pela do cliente) | a fazer |
+| 5 | **Confirmação pela equipe e lembretes** | a fazer |
+| 6 | **Produção:** usuário e agenda reais da doutora, número real, 2FA, troca de segredos, backup | a fazer |
+| 7 | **Melhorias:** aba Agenda, métricas, segundo cliente | a fazer |
+
+Cada migration só é aplicada com o OK do Ewerton. Um PR por etapa.
+
+## 12. Pendências e riscos
+- **Trocar segredos que passaram pelo chat:** token do túnel, senha root da VPS, chave de API do OpenWA, chave de teste e segredo do cliente OAuth do Google.
+- Remover o usuário de teste `teste` e criar o da doutora (admin), com os tipos de consulta, horário e política de confirmação dela. Revogar no Google a permissão dada na conta de teste.
+- Memória da VPS (4 GB): Cal.diy, API e Postgres ocupam bem; mais de uma sessão do OpenWA exige 8 GB ou o motor Baileys.
+- Junção com as aprovações da agência: o GENSBot hoje aceita **um** OpenWA. Confirmar qual serviço (OpenWA antigo ou Kapso) envia as aprovações hoje.
+- OpenWA não é oficial: risco de bloqueio do número. Limitar volume e avisar o cliente.
+- `google_calendar_integrations` e o `agencia_id` fixo em `inbox` precisam de correção (ver auditoria do código).

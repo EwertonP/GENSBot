@@ -53,7 +53,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
   const { data: atual } = await db
     .from('agenda_reservas')
-    .select('id, evento_em, negocio_id')
+    .select('id, evento_em, negocio_id, inicio, fim, titulo, nome_contato, email, telefone')
     .eq('integracao_id', integ.id)
     .eq('agencia_id', integ.agencia_id)
     .eq('uid', reserva.uid)
@@ -82,12 +82,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       integracao_id: integ.id,
       uid: reserva.uid,
       status: reserva.status,
-      inicio: reserva.inicio,
-      fim: reserva.fim,
-      titulo: reserva.titulo,
-      nome_contato: reserva.nomeContato,
-      email: reserva.email,
-      telefone: reserva.telefone || null,
+      // Um evento incompleto (o cancelamento, por exemplo) não apaga o que já estava guardado.
+      inicio: reserva.inicio ?? atual?.inicio ?? null,
+      fim: reserva.fim ?? atual?.fim ?? null,
+      titulo: reserva.titulo ?? atual?.titulo ?? null,
+      nome_contato: reserva.nomeContato ?? atual?.nome_contato ?? null,
+      email: reserva.email ?? atual?.email ?? null,
+      telefone: reserva.telefone || atual?.telefone || null,
       negocio_id: negocioId,
       gatilho_ultimo: reserva.gatilho,
       evento_em: reserva.eventoEm,

@@ -154,6 +154,14 @@ describe('POST /api/webhook/agenda/[token]', () => {
     await pedido(criado());
     await pedido({ triggerEvent: 'BOOKING_CANCELLED', createdAt: '2026-11-19T16:00:00.000Z', payload: { uid: 'u1', cancellationReason: 'imprevisto' } });
     expect(estado.reservas[0]).toMatchObject({ status: 'cancelada', negocio_id: NEG, motivo_cancelamento: 'imprevisto' });
+    // O cancelamento veio sem horário, telefone, nome nem e-mail: o que já estava guardado fica.
+    expect(estado.reservas[0]).toMatchObject({
+      inicio: '2026-11-20T12:00:00Z',
+      fim: '2026-11-20T12:30:00Z',
+      telefone: '5583999990001',
+      nome_contato: 'Maria',
+      email: 'm@e.com',
+    });
   });
 
   it('evento mais antigo que o já gravado é ignorado', async () => {

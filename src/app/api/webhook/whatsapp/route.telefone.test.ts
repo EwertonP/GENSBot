@@ -38,6 +38,15 @@ import { POST } from './route';
 const chamar = (data: Record<string, unknown>) =>
   POST(new Request('http://x/api/webhook/whatsapp', { method: 'POST', body: JSON.stringify({ event: 'message', session: 'cliente-1', data }) }));
 
+// Formato real do OpenWA: evento com ponto, sessionId em UUID e o nome da sessão na URL cadastrada.
+const chamarOpenWA = (evento: string, data: Record<string, unknown>) =>
+  POST(
+    new Request('http://x/api/webhook/whatsapp?session=cliente-1', {
+      method: 'POST',
+      body: JSON.stringify({ event: evento, sessionId: '8f3c2b1a-9d4e-4c7a-8b2f-1e6d5a4c3b2a', timestamp: '2026-11-18T10:00:00Z', data }),
+    })
+  );
+
 async function rodarAdiados() {
   while (adiados.length) await adiados.shift()!();
 }
@@ -62,11 +71,39 @@ describe('webhook do WhatsApp', () => {
     expect(sincronizar).toHaveBeenCalledWith(expect.objectContaining({ remetenteTelefone: '+5583999990001' }));
   });
 
-  it('mensagem enviada por nós: o contato é o destinatário, não o próprio número', async () => {
-    await chamar({ id: 'c', fromMe: true, from: '5583988880000@c.us', to: '5583999990001@c.us', body: 'olá' });
+  it('mensagem enviada por nós: o contato é o chatId, não o próprio número', async () => {
+    await chamar({ id: 'c', fromMe: true, from: '5583988880000@c.us', to: '5583999990001@c.us', chatId: '5583999990001@c.us', body: 'olá' });
     expect(upsert.mock.calls[0][0]).toMatchObject({ remetente: '5583999990001@c.us', de_mim: true });
     await rodarAdiados();
     expect(agendar).toHaveBeenCalledWith(expect.objectContaining({ telefone: '+5583999990001' }));
+  });
+
+  it('enviada por nós sem chatId: mantém o `from` de antes (nada muda para formatos antigos)', async () => {
+    await chamar({ id: 'c2', fromMe: true, from: '5583999990001@c.us', body: 'olá' });
+    expect(upsert.mock.calls[0][0]).toMatchObject({ remetente: '5583999990001@c.us', de_mim: true });
+  });
+
+  it('formato real do OpenWA (message.received, sessionId e ?session=) é processado', async () => {
+    const r = await chamarOpenWA('message.received', {
+      id: 'true_5583999990001@c.us_3EB0',
+      from: '5583999990001@c.us',
+      chatId: '5583999990001@c.us',
+      body: 'oi, quero marcar',
+      fromMe: false,
+      contact: { pushName: 'Maria' },
+    });
+    expect(await r.json()).toMatchObject({ processed: true });
+    expect(upsert.mock.calls[0][0]).toMatchObject({ session_id: 's1', nome_contato: 'Maria', conteudo: 'oi, quero marcar' });
+  });
+
+  it('message.sent do OpenWA conta como mensagem nossa', async () => {
+    await chamarOpenWA('message.sent', { id: 'x', chatId: '5583999990001@c.us', from: '5583988880000@c.us', fromMe: true, body: 'ok' });
+    expect(upsert.mock.calls[0][0]).toMatchObject({ de_mim: true, remetente: '5583999990001@c.us' });
+  });
+
+  it('outros eventos do OpenWA (ex.: session.status) não viram mensagem', async () => {
+    await chamarOpenWA('session.status', { status: 'ready' });
+    expect(upsert).not.toHaveBeenCalled();
   });
 
   it('@lid sem telefone: guarda a mensagem mas não cria lead nem follow-up', async () => {

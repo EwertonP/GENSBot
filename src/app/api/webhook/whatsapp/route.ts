@@ -15,9 +15,12 @@ export async function POST(req: Request) {
     const { event, session, data } = body;
 
     // Se for evento de mensagem (recebida ou enviada)
-    if (event === 'onMessage' || event === 'message' || event === 'message_create' || body.message) {
+    // `message.received` / `message.sent` é o formato do OpenWA; os demais são formatos antigos.
+    const EVENTOS_DE_MENSAGEM = ['onMessage', 'message', 'message_create', 'message.received', 'message.sent'];
+    if (EVENTOS_DE_MENSAGEM.includes(event) || body.message) {
       const msg = data || body.message || body;
-      const sessionName = session || body.session || 'default';
+      // O OpenWA manda só o UUID da sessão (`sessionId`); o nome vem no `?session=` da URL cadastrada.
+      const sessionName = session || body.session || new URL(req.url).searchParams.get('session') || 'default';
 
       // 1. Localiza a sessão para identificar o cliente_id e agencia_id
       const { data: sessionData } = await serviceSupabase
@@ -37,15 +40,13 @@ export async function POST(req: Request) {
 
       const messageId = msg.id || msg.key?.id || `${Date.now()}-${Math.random()}`;
       const deMim = Boolean(msg.fromMe || msg.key?.fromMe);
-      // O contato da conversa: nas mensagens enviadas por nós o contato é o destinatário, não o `from`.
+      // No OpenWA, `chatId` é sempre o contato (nos dois sentidos). Sem ele, mantém o que valia antes.
       const remetente: string =
-        (deMim
-          ? msg.chatId || msg.to || msg.key?.remoteJid || msg.from
-          : msg.chatId || msg.from || msg.sender || msg.key?.remoteJid) || '';
+        (deMim ? msg.chatId || msg.key?.remoteJid || msg.from : msg.from || msg.sender || msg.key?.remoteJid || msg.chatId) || '';
       // Com RESOLVE_LID_TO_PHONE=true o OpenWA manda `senderPhone` quando o JID é `@lid`.
       const telefoneContato = jidParaE164(remetente) || (msg.senderPhone ? jidParaE164(`${String(msg.senderPhone).replace(/\D/g, '')}@c.us`) : '');
       const conteudo = msg.body || msg.text || msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-      const nomeContato = msg.pushName || msg.notifyName || null;
+      const nomeContato = msg.pushName || msg.notifyName || msg.contact?.pushName || msg.contact?.name || null;
 
       // Ignora mensagens de grupos para não poluir o CRM
       if (remetente.includes('@g.us') || msg.isGroup) {
