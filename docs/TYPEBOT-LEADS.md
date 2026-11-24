@@ -14,7 +14,7 @@ Depois de criar as variáveis, é preciso novo deploy.
    - Método `POST`, URL `https://SEU-GENSBOT/api/crm/inbound/typebot`
    - Header `x-gens-secret: <o segredo>` e `Content-Type: application/json`
    - Body (JSON) com as variáveis do Typebot:
-     `{ "nome": "{{nome}}", "whatsapp": "{{whatsapp}}", "email": "{{email}}", "empresa": "{{empresa}}", "nicho": "{{nicho}}", "dor": "{{dor}}", "faturamento": "{{faturamento}}", "investimento": "{{investimento}}", "como_conheceu": "{{como_conheceu}}", "utm_source": "{{utm_source}}", "utm_medium": "{{utm_medium}}", "utm_campaign": "{{utm_campaign}}", "result_id": "{{result_id}}" }`
+     `{ "nome": "{{nome}}", "whatsapp": "{{whatsapp}}", "email": "{{email}}", "empresa": "{{empresa}}", "nicho": "{{nicho}}", "dor": "{{dor}}", "faturamento": "{{faturamento}}", "investimento": "{{investimento}}", "como_conheceu": "{{como_conheceu}}", "servico": "{{servico}}", "tempo_empresa": "{{tempo_empresa}}", "tamanho_empresa": "{{tamanho_empresa}}", "experiencia": "{{experiencia}}", "instagram": "{{instagram}}", "site": "{{site}}", "utm_source": "{{utm_source}}", "utm_medium": "{{utm_medium}}", "utm_campaign": "{{utm_campaign}}", "result_id": "{{result_id}}" }`
 4. Depois do HTTP Request, o bloco **Redirect** para `https://wa.me/55NUMERO?text=Oi, sou {{nome}}. {{dor}}`.
 
 ## O que acontece no CRM

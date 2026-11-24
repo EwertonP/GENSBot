@@ -29,7 +29,7 @@ import { POST } from './route';
 
 const post = (body: unknown, headers: Record<string, string> = { 'x-gens-secret': 'seg' }) =>
   POST(new Request('http://localhost/api/crm/inbound/typebot', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) }));
-const lead = { nome: 'Ana', whatsapp: '(83) 99999-0000', dor: 'Não aparece no Google', nicho: 'Dermatologia', faturamento: '30 mil', investimento: '3 mil', como_conheceu: 'Instagram' };
+const lead = { nome: 'Ana', whatsapp: '(83) 99999-0000', dor: 'Não aparece no Google', nicho: 'Dermatologia', faturamento: '30 mil', investimento: '3 mil', como_conheceu: 'Instagram', instagram: '@ana.derm', tamanho_empresa: 'Profissional Liberal' };
 
 describe('POST /api/crm/inbound/typebot', () => {
   beforeEach(() => { vi.clearAllMocks(); existentes = []; vi.stubEnv('CRM_INBOUND_TYPEBOT_SECRET', 'seg'); });
@@ -54,6 +54,8 @@ describe('POST /api/crm/inbound/typebot', () => {
     expect(negocio).toMatchObject({ telefone: '5583999990000', origem: 'site', estagio_id: 'e1', tags: ['Typebot', 'Nicho: Dermatologia'] });
     const [, atividades] = insert.mock.calls.find((c) => c[0] === 'atividade')!;
     expect((atividades as { descricao: string }[])[1].descricao).toContain('Dor: Não aparece no Google');
+    expect((atividades as { descricao: string }[])[1].descricao).toContain('Tamanho da empresa: Profissional Liberal');
+    expect(negocio).toMatchObject({ instagram_username: 'ana.derm' });
   });
   it('mesmo telefone em negócio aberto atualiza e não duplica', async () => {
     existentes = [{ id: 'n9', tags: ['x'] }];

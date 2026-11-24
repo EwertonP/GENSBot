@@ -34,6 +34,12 @@ export async function POST(req: Request) {
     faturamento: texto(body.faturamento, 200),
     investimento: texto(body.investimento, 200),
     como_conheceu: texto(body.como_conheceu, 200),
+    servico: texto(body.servico, 200),
+    tempo_empresa: texto(body.tempo_empresa, 200),
+    tamanho_empresa: texto(body.tamanho_empresa, 200),
+    experiencia: texto(body.experiencia, 200),
+    instagram: texto(body.instagram, 200),
+    site: texto(body.site, 300),
   };
   const nota = [
     'Pré-qualificação (Typebot)',
@@ -42,6 +48,12 @@ export async function POST(req: Request) {
     q.faturamento && `Faturamento: ${q.faturamento}`,
     q.investimento && `Quer investir: ${q.investimento}`,
     q.como_conheceu && `Conheceu por: ${q.como_conheceu}`,
+    q.servico && `Serviço: ${q.servico}`,
+    q.tempo_empresa && `Tempo da empresa: ${q.tempo_empresa}`,
+    q.tamanho_empresa && `Tamanho da empresa: ${q.tamanho_empresa}`,
+    q.experiencia && `Já investiu em marketing: ${q.experiencia}`,
+    q.instagram && `Instagram: ${q.instagram}`,
+    q.site && `Site: ${q.site}`,
   ].filter(Boolean).join('\n');
   const utm = { utm_source: texto(body.utm_source, 200), utm_medium: texto(body.utm_medium, 200), utm_campaign: texto(body.utm_campaign, 200) };
   const extras = { fonte: 'typebot', qualificacao: q, ...utm, result_id: texto(body.result_id, 100) || null };
@@ -90,6 +102,7 @@ export async function POST(req: Request) {
         telefone: tel,
         email: texto(body.email, 200).toLowerCase() || null,
         empresa: texto(body.empresa, 200) || null,
+        instagram_username: q.instagram.replace(/^@/, '').slice(0, 100) || null,
         origem: 'site',
         utm_source: utm.utm_source || null,
         utm_medium: utm.utm_medium || null,
