@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     q.servico && `Serviço: ${q.servico}`,
     q.tempo_empresa && `Tempo da empresa: ${q.tempo_empresa}`,
     q.tamanho_empresa && `Tamanho da empresa: ${q.tamanho_empresa}`,
-    q.experiencia && `Já investiu em marketing: ${q.experiencia}`,
+    q.experiencia && `Já trabalhou com agência: ${q.experiencia}`,
     q.instagram && `Instagram: ${q.instagram}`,
     q.site && `Site: ${q.site}`,
   ].filter(Boolean).join('\n');
